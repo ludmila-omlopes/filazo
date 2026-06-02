@@ -34,6 +34,18 @@ export type EnrichedGameMetadata = {
   websites?: string[];
 };
 
+export type EnrichedCompletionTimes = {
+  hltbId: string;
+  name: string;
+  mainStoryMinutes?: number | null;
+  mainExtraMinutes?: number | null;
+  completionistMinutes?: number | null;
+  platforms?: string[];
+  similarity?: number | null;
+  storeUrl?: string | null;
+  rawData?: Record<string, unknown>;
+};
+
 export interface ProviderAccountAdapter {
   provider: "STEAM";
   fetchProfile(providerAccountId: string): Promise<ProviderProfile>;
@@ -46,4 +58,12 @@ export interface CatalogMetadataAdapter {
     title: string;
     platformName?: string | null;
   }): Promise<EnrichedGameMetadata | null>;
+}
+
+export interface CatalogCompletionTimeAdapter {
+  provider: "HLTB";
+  searchBestMatch(query: {
+    title: string;
+    platformName?: string | null;
+  }): Promise<EnrichedCompletionTimes | null>;
 }

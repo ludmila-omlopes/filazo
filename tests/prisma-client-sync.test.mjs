@@ -11,6 +11,9 @@ test("generated Prisma client includes synced Steam user game fields", () => {
   const model = Prisma.dmmf.datamodel.models.find(
     (item) => item.name === "UserGameEntry",
   );
+  const gameModel = Prisma.dmmf.datamodel.models.find(
+    (item) => item.name === "Game",
+  );
   const insightModel = Prisma.dmmf.datamodel.models.find(
     (item) => item.name === "UserGameInsight",
   );
@@ -29,6 +32,15 @@ test("generated Prisma client includes synced Steam user game fields", () => {
   );
   assert.ok(
     model.fields.some((field) => field.name === "activeBacklog"),
+    "Run npm run db:generate after changing prisma/schema.prisma.",
+  );
+  assert.ok(gameModel, "Game model should exist in generated Prisma client");
+  assert.ok(
+    gameModel.fields.some((field) => field.name === "hltbMainStoryMinutes"),
+    "Run npm run db:generate after changing prisma/schema.prisma.",
+  );
+  assert.ok(
+    gameModel.fields.some((field) => field.name === "hltbCompletionistMinutes"),
     "Run npm run db:generate after changing prisma/schema.prisma.",
   );
   assert.ok(insightModel, "UserGameInsight model should exist.");
@@ -67,6 +79,10 @@ test("SQLite bootstrap creates synced Steam user game columns", () => {
       assertTableHasColumn(db, "UserGameInsight", "signalType");
       assertTableHasColumn(db, "UserGameInsight", "friction");
       assertTableHasColumn(db, "AssistantRun", "outputSummary");
+      assertTableHasColumn(db, "Game", "hltbMainStoryMinutes");
+      assertTableHasColumn(db, "Game", "hltbMainExtraMinutes");
+      assertTableHasColumn(db, "Game", "hltbCompletionistMinutes");
+      assertTableHasColumn(db, "Game", "hltbUpdatedAt");
     } finally {
       db.close();
     }

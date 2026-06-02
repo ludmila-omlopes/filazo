@@ -2,7 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getGameBySlug } from "@/lib/catalog";
 import { ScreenshotLightbox } from "@/components/screenshot-lightbox";
-import { cn, formatDate, formatNumber, formatPlaytime } from "@/lib/utils";
+import {
+  cn,
+  formatDate,
+  formatNumber,
+  formatPlaytime,
+  formatTimeEstimate,
+} from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -45,6 +51,12 @@ export default async function GamePage({
   const hasRating =
     game.aggregatedRating !== null && game.aggregatedRating !== undefined;
   const ratingValue = hasRating ? Math.round(game.aggregatedRating!) : 0;
+  const hltbLink = game.providerLinks.find((link) => link.provider === "HLTB");
+  const hasCompletionTimes = Boolean(
+    game.hltbMainStoryMinutes ||
+      game.hltbMainExtraMinutes ||
+      game.hltbCompletionistMinutes,
+  );
 
   return (
     <main id="main-content" className="w-full max-w-[1200px] mx-auto grid gap-6 pb-10">
@@ -161,6 +173,14 @@ export default async function GamePage({
                 </span>
                 {formatNumber(owners.length)} in catalog
               </div>
+              {game.hltbMainStoryMinutes ? (
+                <div className="text-xs text-white/60 leading-tight">
+                  <span className="block text-white/80 font-semibold">
+                    Main story
+                  </span>
+                  {formatTimeEstimate(game.hltbMainStoryMinutes)}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
@@ -309,6 +329,56 @@ export default async function GamePage({
             </dl>
           </div>
 
+          <div className="panel !p-5">
+            <div className="flex items-start justify-between gap-3">
+              <span className="section-label !mb-0">HowLongToBeat</span>
+              {hltbLink?.storeUrl ? (
+                <a
+                  href={hltbLink.storeUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-bold uppercase tracking-wide text-ink/55 hover:text-ink"
+                >
+                  View
+                </a>
+              ) : null}
+            </div>
+            <dl className="grid gap-3.5 text-sm mt-4">
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-ink/50">Main story</dt>
+                <dd className="font-display text-xl leading-none text-right">
+                  {formatTimeEstimate(game.hltbMainStoryMinutes)}
+                </dd>
+              </div>
+              <div className="h-px bg-ink/8" />
+
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-ink/50">Main + extras</dt>
+                <dd className="font-display text-xl leading-none text-right">
+                  {formatTimeEstimate(game.hltbMainExtraMinutes)}
+                </dd>
+              </div>
+              <div className="h-px bg-ink/8" />
+
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-ink/50">Completionist</dt>
+                <dd className="font-display text-xl leading-none text-right">
+                  {formatTimeEstimate(game.hltbCompletionistMinutes)}
+                </dd>
+              </div>
+              <div className="h-px bg-ink/8" />
+
+              <div className="flex items-start justify-between gap-3">
+                <dt className="text-ink/50">Updated</dt>
+                <dd className="font-semibold text-right">
+                  {hasCompletionTimes
+                    ? formatDate(game.hltbUpdatedAt)
+                    : "Not collected"}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
           {/* Stats mini-cards */}
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 bg-lime/20 border-3 border-ink rounded-[18px] text-center">
@@ -345,7 +415,11 @@ export default async function GamePage({
                     <span className="w-7 h-7 flex-none grid place-items-center rounded-[8px] bg-ink/5 text-[0.65rem] font-display uppercase">
                       {link.provider.slice(0, 2)}
                     </span>
-                    {link.provider === "STEAM" ? "Steam Store" : link.provider}
+                    {link.provider === "STEAM"
+                      ? "Steam Store"
+                      : link.provider === "HLTB"
+                        ? "HowLongToBeat"
+                        : link.provider}
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5 ml-auto text-ink/30">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                     </svg>

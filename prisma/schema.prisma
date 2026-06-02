@@ -10,6 +10,7 @@ datasource db {
 enum ExternalProvider {
   STEAM
   IGDB
+  HLTB
 }
 
 enum UserGameStatus {
@@ -96,28 +97,32 @@ model ExternalAccount {
 }
 
 model Game {
-  id               String             @id @default(cuid())
-  slug             String             @unique
-  name             String
-  normalizedName   String
-  summary          String?
-  coverUrl         String?
-  heroUrl          String?
-  releaseDate      DateTime?
-  aggregatedRating Float?
-  totalRatingCount Int?
-  genres           Json?
-  platforms        Json?
-  screenshots      Json?
-  websites         Json?
-  metadataSource   ExternalProvider?
-  igdbId           Int?               @unique
-  igdbSlug         String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  providerLinks    GameProviderLink[]
-  userEntries      UserGameEntry[]
-  importRows       ImportRow[]
+  id                       String             @id @default(cuid())
+  slug                     String             @unique
+  name                     String
+  normalizedName           String
+  summary                  String?
+  coverUrl                 String?
+  heroUrl                  String?
+  releaseDate              DateTime?
+  aggregatedRating         Float?
+  totalRatingCount         Int?
+  genres                   Json?
+  platforms                Json?
+  screenshots              Json?
+  websites                 Json?
+  metadataSource           ExternalProvider?
+  igdbId                   Int?               @unique
+  igdbSlug                 String?
+  hltbMainStoryMinutes     Int?
+  hltbMainExtraMinutes     Int?
+  hltbCompletionistMinutes Int?
+  hltbUpdatedAt            DateTime?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+  providerLinks            GameProviderLink[]
+  userEntries              UserGameEntry[]
+  importRows               ImportRow[]
 
   @@index([normalizedName])
 }
@@ -138,7 +143,7 @@ model GameProviderLink {
 }
 
 model UserGameEntry {
-  id                String           @id @default(cuid())
+  id                String            @id @default(cuid())
   userId            String
   gameId            String
   status            UserGameStatus
@@ -150,20 +155,20 @@ model UserGameEntry {
   lastPlayedAt      DateTime?
   completionPercent Int?
   notes             String?
-  isFavorite        Boolean          @default(false)
+  isFavorite        Boolean           @default(false)
   startedAt         DateTime?
   abandonedAt       DateTime?
   abandonReason     String?
-  activeBacklog     Boolean          @default(true)
+  activeBacklog     Boolean           @default(true)
   userIntent        String?
   desiredSessionMin Int?
   lastSyncedAt      DateTime?
   rawData           Json?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  game              Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  externalAccount   ExternalAccount? @relation(fields: [externalAccountId], references: [id], onDelete: SetNull)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game              Game              @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  externalAccount   ExternalAccount?  @relation(fields: [externalAccountId], references: [id], onDelete: SetNull)
   insights          UserGameInsight[]
 
   @@unique([userId, gameId, status])
@@ -171,7 +176,7 @@ model UserGameEntry {
 }
 
 model UserGameInsight {
-  id              String          @id @default(cuid())
+  id              String              @id @default(cuid())
   userId          String
   userGameEntryId String
   signalType      AssistantSignalType
@@ -180,11 +185,11 @@ model UserGameInsight {
   confidence      Int
   reasons         Json
   suggestedAction String?
-  generatedBy     String          @default("rules")
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userGameEntry   UserGameEntry   @relation(fields: [userGameEntryId], references: [id], onDelete: Cascade)
+  generatedBy     String              @default("rules")
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userGameEntry   UserGameEntry       @relation(fields: [userGameEntryId], references: [id], onDelete: Cascade)
 
   @@unique([userGameEntryId, signalType])
   @@index([userId, signalType])
@@ -222,23 +227,23 @@ model ImportJob {
 }
 
 model ImportRow {
-  id              String          @id @default(cuid())
-  jobId           String
-  rowIndex        Int
-  rawData         Json
-  normalizedTitle String?
-  platformName    String?
-  statusText      String?
-  playtimeMinutes Int?
+  id                String           @id @default(cuid())
+  jobId             String
+  rowIndex          Int
+  rawData           Json
+  normalizedTitle   String?
+  platformName      String?
+  statusText        String?
+  playtimeMinutes   Int?
   completionPercent Int?
-  notes           String?
-  externalId      String?
-  outcome         ImportRowStatus?
-  error           String?
-  matchedGameId   String?
-  createdAt       DateTime        @default(now())
-  job             ImportJob       @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  matchedGame     Game?           @relation(fields: [matchedGameId], references: [id], onDelete: SetNull)
+  notes             String?
+  externalId        String?
+  outcome           ImportRowStatus?
+  error             String?
+  matchedGameId     String?
+  createdAt         DateTime         @default(now())
+  job               ImportJob        @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  matchedGame       Game?            @relation(fields: [matchedGameId], references: [id], onDelete: SetNull)
 
   @@index([jobId, rowIndex])
 }

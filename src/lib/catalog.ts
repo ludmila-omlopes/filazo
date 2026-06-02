@@ -7,6 +7,7 @@ import {
   UserGameStatus,
 } from "@prisma/client";
 import Papa from "papaparse";
+import { hltbAdapter } from "@/lib/hltb";
 import { igdbAdapter } from "@/lib/igdb";
 import { prisma } from "@/lib/prisma";
 import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
@@ -137,6 +138,49 @@ async function applyMetadataToExistingGame(
   });
 }
 
+async function applyCompletionTimesToGame(
+  gameId: string,
+  completionTimes: Awaited<ReturnType<typeof hltbAdapter.searchBestMatch>>,
+) {
+  if (!completionTimes) {
+    return prisma.game.findUniqueOrThrow({ where: { id: gameId } });
+  }
+
+  const game = await prisma.game.update({
+    where: { id: gameId },
+    data: {
+      hltbMainStoryMinutes: completionTimes.mainStoryMinutes ?? undefined,
+      hltbMainExtraMinutes: completionTimes.mainExtraMinutes ?? undefined,
+      hltbCompletionistMinutes:
+        completionTimes.completionistMinutes ?? undefined,
+      hltbUpdatedAt: new Date(),
+    },
+  });
+
+  await prisma.gameProviderLink.upsert({
+    where: {
+      provider_providerGameId: {
+        provider: ExternalProvider.HLTB,
+        providerGameId: completionTimes.hltbId,
+      },
+    },
+    update: {
+      gameId: game.id,
+      storeUrl: completionTimes.storeUrl ?? undefined,
+      rawData: completionTimes.rawData as Prisma.InputJsonValue | undefined,
+    },
+    create: {
+      gameId: game.id,
+      provider: ExternalProvider.HLTB,
+      providerGameId: completionTimes.hltbId,
+      storeUrl: completionTimes.storeUrl ?? undefined,
+      rawData: completionTimes.rawData as Prisma.InputJsonValue | undefined,
+    },
+  });
+
+  return game;
+}
+
 export async function resolveCatalogGame(input: ResolveGameInput) {
   const normalizedTitle = normalizeTitle(input.title);
   let game:
@@ -184,6 +228,26 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
     game = gameByIgdb ?? game;
   }
 
+  const completionTimes = await hltbAdapter.searchBestMatch({
+    title: metadata?.name ?? input.title,
+    platformName: input.platformName,
+  });
+
+  if (completionTimes?.hltbId) {
+    const gameByHltb = await prisma.gameProviderLink.findUnique({
+      where: {
+        provider_providerGameId: {
+          provider: ExternalProvider.HLTB,
+          providerGameId: completionTimes.hltbId,
+        },
+      },
+      include: {
+        game: true,
+      },
+    });
+    game = gameByHltb?.game ?? game;
+  }
+
   if (!game) {
     game = await prisma.game.create({
       data: metadataToGameCreateInput(input.title, metadata),
@@ -197,6 +261,15 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
     game = await applyMetadataToExistingGame(game.id, metadata);
   } else if (!game.coverUrl || !game.heroUrl) {
     game = await applyProviderArtworkFallback(game.id, game, input);
+  }
+
+  if (
+    completionTimes &&
+    (!game.hltbMainStoryMinutes ||
+      !game.hltbMainExtraMinutes ||
+      !game.hltbCompletionistMinutes)
+  ) {
+    game = await applyCompletionTimesToGame(game.id, completionTimes);
   }
 
   if (input.provider && input.providerGameId) {

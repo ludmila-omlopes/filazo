@@ -46,6 +46,23 @@ export function formatPlaytime(minutes: number | null | undefined) {
   return `${Math.round(hours)}h played`;
 }
 
+export function formatTimeEstimate(minutes: number | null | undefined) {
+  if (!minutes || minutes < 1) {
+    return "Unknown";
+  }
+
+  if (minutes < 60) {
+    return `${minutes}m`;
+  }
+
+  const hours = minutes / 60;
+  if (hours < 10) {
+    return `${hours.toFixed(1)}h`;
+  }
+
+  return `${Math.round(hours)}h`;
+}
+
 export function formatCompletionPercent(value: number | null | undefined) {
   if (value === null || value === undefined) {
     return "Not tracked";

@@ -53,6 +53,10 @@ db.exec(`
     "metadataSource" TEXT,
     "igdbId" INTEGER,
     "igdbSlug" TEXT,
+    "hltbMainStoryMinutes" INTEGER,
+    "hltbMainExtraMinutes" INTEGER,
+    "hltbCompletionistMinutes" INTEGER,
+    "hltbUpdatedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
@@ -200,5 +204,9 @@ addColumnIfMissing("UserGameEntry", "activeBacklog", "BOOLEAN NOT NULL DEFAULT t
 addColumnIfMissing("UserGameEntry", "userIntent", "TEXT");
 addColumnIfMissing("UserGameEntry", "desiredSessionMin", "INTEGER");
 addColumnIfMissing("ImportRow", "completionPercent", "INTEGER");
+addColumnIfMissing("Game", "hltbMainStoryMinutes", "INTEGER");
+addColumnIfMissing("Game", "hltbMainExtraMinutes", "INTEGER");
+addColumnIfMissing("Game", "hltbCompletionistMinutes", "INTEGER");
+addColumnIfMissing("Game", "hltbUpdatedAt", "DATETIME");
 
 console.log(`Initialized SQLite database at ${databasePath}`);

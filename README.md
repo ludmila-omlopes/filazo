@@ -6,6 +6,7 @@ It is designed around a canonical local game catalog that can absorb data from m
 - Steam account sign-in and owned library sync
 - CSV imports for backlog and wishlist exports
 - IGDB metadata enrichment for covers, release dates, platforms, screenshots, and ratings
+- HowLongToBeat completion-time enrichment for main story, main + extras, and completionist estimates
 - Optional rule-based and AI-assisted backlog assistance
 
 The current app already includes a landing page, a collector profile, Steam authentication, Steam sync, CSV mapping/import, and per-game catalog pages.
@@ -39,6 +40,7 @@ This means multiple providers can eventually point to the same internal game ins
 - Steam owned games sync with playtime, last played date, and achievement-based completion percentages when Steam exposes the data
 - CSV upload with in-browser column mapping for titles, status, playtime, completion percentage, notes, and external IDs
 - IGDB best-match enrichment during imports and sync
+- Best-effort HowLongToBeat enrichment during imports and sync
 - Collector profile page with owned and wishlist sections
 - Canonical game detail pages
 - Assistant tab with backlog friction insights, play-next picks, release candidates, and buy-decision guidance
@@ -52,6 +54,8 @@ Optional, depending on what you want to use:
 
 - Steam Web API key for owned library sync
 - IGDB client credentials for metadata enrichment
+
+HowLongToBeat enrichment uses an unofficial website-backed lookup and does not require credentials.
 
 ## Environment Variables
 
@@ -79,6 +83,7 @@ Notes:
 - `AUTH_SECRET` should be a long random string in any non-local environment.
 - `STEAM_API_KEY` is required for owned library sync. Steam sign-in itself uses OpenID.
 - IGDB enrichment is optional. If IGDB credentials are missing, the app still works, but imported/synced games stay with local metadata only.
+- HowLongToBeat enrichment is optional and best-effort. If the website-backed search is unavailable, imports and Steam sync continue without completion-time estimates.
 - The Assistant tab works without AI. If `OPENAI_API_KEY` is set, the app can use OpenAI's Responses API to turn rule-based insights into short explanations. Only library summaries, selected game metadata, and rule outputs are sent.
 
 ## Getting Started
@@ -160,11 +165,14 @@ Whenever a game comes from Steam or CSV:
 
 1. The app checks for an existing provider link when a provider ID is available.
 2. It checks for an existing game by normalized title.
-3. It tries to enrich the record with IGDB.
+3. It tries to enrich the record with IGDB and HowLongToBeat.
 4. It creates or updates the canonical `Game`.
-5. It stores the user-facing entry in `UserGameEntry`.
+5. It links external provider IDs, including HLTB IDs when available, through `GameProviderLink`.
+6. It stores the user-facing entry in `UserGameEntry`.
 
 Steam sync stores `lastPlayedAt` from Steam's `rtime_last_played` field when Steam returns it. It also tries to calculate `completionPercent` from achievements by comparing unlocked achievements to the total achievements returned for each app. Both are best-effort: games without last-played data or Steam achievements, private or blocked stats, and temporary API failures are left untracked.
+
+HowLongToBeat stores completion estimates on the canonical `Game` as minutes and links the HLTB game ID through `GameProviderLink`. HLTB does not expose an official public API, so failures or search misses are ignored instead of blocking catalog resolution.
 
 ### Assistant flow
 
@@ -188,6 +196,7 @@ src/
   lib/
     catalog.ts                Catalog resolution, sync, import logic
     assistant/                    Backlog scoring, AI summaries, and buy decisions
+    hltb.ts                   HowLongToBeat best-effort completion-time search
     igdb.ts                   IGDB auth, search, and ranking
     prisma.ts                 Prisma client singleton
     session.ts                Signed cookie session helpers
