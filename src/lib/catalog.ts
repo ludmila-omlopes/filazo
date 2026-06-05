@@ -13,6 +13,7 @@ import { metacriticAdapter } from "@/lib/metacritic";
 import { syncPlayStationLibraryForAccount } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
 import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
+import { syncXboxLibraryForAccount } from "@/lib/xbox";
 import {
   cleanGameTitle,
   normalizeTitle,
@@ -37,7 +38,7 @@ export type CsvColumnMapping = {
   completionPercent?: string;
   notes?: string;
   externalId?: string;
-  provider?: "PLAYSTATION";
+  provider?: "PLAYSTATION" | "XBOX";
 };
 
 type NormalizedImportRow = {
@@ -550,6 +551,100 @@ export async function syncPlayStationLibraryForUser(userId: string) {
   };
 }
 
+export async function syncXboxLibraryForUser(userId: string) {
+  const xboxAccount = await prisma.externalAccount.findFirst({
+    where: {
+      userId,
+      provider: ExternalProvider.XBOX,
+    },
+  });
+
+  if (!xboxAccount) {
+    throw new Error("Connect Xbox before syncing your played catalog.");
+  }
+
+  const { profile, games } = await syncXboxLibraryForAccount(xboxAccount);
+
+  let syncedCount = 0;
+
+  for (const syncedGame of games) {
+    const providerGameIds = Array.from(
+      new Set([syncedGame.providerGameId, ...(syncedGame.providerGameIds ?? [])]),
+    );
+    const game = await resolveCatalogGame({
+      title: syncedGame.title,
+      platformName: syncedGame.platformName,
+      provider: ExternalProvider.XBOX,
+      providerGameId: syncedGame.providerGameId,
+      storeUrl: syncedGame.storeUrl,
+      rawData: syncedGame.rawData,
+    });
+
+    for (const providerGameId of providerGameIds) {
+      await prisma.gameProviderLink.upsert({
+        where: {
+          provider_providerGameId: {
+            provider: ExternalProvider.XBOX,
+            providerGameId,
+          },
+        },
+        update: {
+          gameId: game.id,
+          storeUrl: syncedGame.storeUrl ?? undefined,
+          rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
+        },
+        create: {
+          gameId: game.id,
+          provider: ExternalProvider.XBOX,
+          providerGameId,
+          storeUrl: syncedGame.storeUrl ?? undefined,
+          rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
+        },
+      });
+    }
+
+    await prisma.userGameEntry.upsert({
+      where: {
+        userId_gameId_status: {
+          userId,
+          gameId: game.id,
+          status: UserGameStatus.OWNED,
+        },
+      },
+      update: {
+        source: EntrySource.XBOX,
+        provider: ExternalProvider.XBOX,
+        externalAccountId: xboxAccount.id,
+        platformName: syncedGame.platformName ?? undefined,
+        completionPercent: syncedGame.completionPercent ?? null,
+        lastPlayedAt: syncedGame.lastPlayedAt ?? null,
+        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
+        lastSyncedAt: new Date(),
+      },
+      create: {
+        userId,
+        gameId: game.id,
+        status: UserGameStatus.OWNED,
+        source: EntrySource.XBOX,
+        provider: ExternalProvider.XBOX,
+        externalAccountId: xboxAccount.id,
+        platformName: syncedGame.platformName ?? undefined,
+        completionPercent: syncedGame.completionPercent ?? null,
+        lastPlayedAt: syncedGame.lastPlayedAt ?? null,
+        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
+        lastSyncedAt: new Date(),
+      },
+    });
+
+    syncedCount += 1;
+  }
+
+  return {
+    syncedCount,
+    profile,
+  };
+}
+
 function parseStatus(rawValue: unknown) {
   const normalized = String(rawValue ?? "")
     .trim()
@@ -601,6 +696,22 @@ function parseCsvImportProvider(
 ): ExternalProvider | null {
   if (value === ExternalProvider.PLAYSTATION) {
     return ExternalProvider.PLAYSTATION;
+  }
+
+  if (value === ExternalProvider.XBOX) {
+    return ExternalProvider.XBOX;
+  }
+
+  return null;
+}
+
+function getDefaultPlatformName(provider: ExternalProvider | null) {
+  if (provider === ExternalProvider.PLAYSTATION) {
+    return "PlayStation";
+  }
+
+  if (provider === ExternalProvider.XBOX) {
+    return "Xbox";
   }
 
   return null;
@@ -681,8 +792,7 @@ export async function importCsvForUser({
   try {
     const rows = normalizeCsvRows(csvText, mapping);
     const importProvider = parseCsvImportProvider(mapping.provider);
-    const defaultPlatformName =
-      importProvider === ExternalProvider.PLAYSTATION ? "PlayStation" : null;
+    const defaultPlatformName = getDefaultPlatformName(importProvider);
     let importedCount = 0;
     let failedCount = 0;
 
@@ -862,6 +972,10 @@ export async function getProfileData(userId: string) {
     playStationAccount:
       user.externalAccounts.find(
         (account) => account.provider === ExternalProvider.PLAYSTATION,
+      ) ?? null,
+    xboxAccount:
+      user.externalAccounts.find(
+        (account) => account.provider === ExternalProvider.XBOX,
       ) ?? null,
   };
 }

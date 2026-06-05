@@ -1,6 +1,8 @@
 import {
   BacklogFriction,
   AssistantSignalType,
+  EntrySource,
+  ExternalProvider,
   UserGameStatus,
 } from "@prisma/client";
 import { estimateRemainingTime } from "../time-estimates.ts";
@@ -23,18 +25,27 @@ export type AssistantInsight = {
 
 export type AssistantGame = {
   id: string;
+  slug: string;
   name: string;
+  summary?: string | null;
   genres?: unknown;
   platforms?: unknown;
+  metadataSource?: ExternalProvider | null;
   aggregatedRating?: number | null;
   hltbMainStoryMinutes?: number | null;
   hltbMainExtraMinutes?: number | null;
   hltbCompletionistMinutes?: number | null;
+  providerLinks?: Array<{
+    provider: ExternalProvider;
+    hasStoreUrl: boolean;
+  }>;
 };
 
 export type AssistantEntry = {
   id: string;
   status: UserGameStatus;
+  source?: EntrySource;
+  provider?: ExternalProvider | null;
   playtimeMinutes?: number | null;
   lastPlayedAt?: Date | null;
   completionPercent?: number | null;

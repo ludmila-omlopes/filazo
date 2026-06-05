@@ -19,6 +19,7 @@ import {
 } from "@/lib/profile-games";
 import { getSessionUserId } from "@/lib/session";
 import { isSteamConfigured } from "@/lib/steam";
+import { isXboxConfigured } from "@/lib/xbox";
 import {
   cn,
   formatCompletionPercent,
@@ -34,6 +35,7 @@ import {
   importCsvAction,
   syncPlayStationLibraryAction,
   syncSteamLibraryAction,
+  syncXboxLibraryAction,
   toggleFavoriteAction,
 } from "./actions";
 import { refreshAssistantInsightsAction } from "./assistant-actions";
@@ -48,6 +50,8 @@ type ProfileSearchParams = Promise<{
   imported?: string;
   playstation?: string;
   playstationSynced?: string;
+  xbox?: string;
+  xboxSynced?: string;
   assistant?: string;
   error?: string;
 }>;
@@ -75,6 +79,15 @@ function SteamCompletionInfoIcon() {
   );
 }
 
+function formatAssistantCooldown(seconds: number) {
+  if (seconds <= 0) {
+    return "available now";
+  }
+
+  const minutes = Math.ceil(seconds / 60);
+  return minutes === 1 ? "in 1 minute" : `in ${minutes} minutes`;
+}
+
 export default async function ProfilePage({
   searchParams,
 }: PageProps<"/profile"> & { searchParams: ProfileSearchParams }) {
@@ -85,16 +98,21 @@ export default async function ProfilePage({
         <section className="p-7 text-center border-3 border-ink rounded-[30px] bg-paper/95 shadow-hard">
           <p className="section-label">Profile locked behind your library</p>
           <h1 className="mb-3 font-display text-[clamp(2.5rem,6vw,4.4rem)] leading-[0.95] uppercase">
-            Connect Steam to build your first shelf.
+            Connect an account to build your first shelf.
           </h1>
           <p className="max-w-[36rem] mx-auto leading-relaxed">
-            The profile page becomes functional as soon as you link Steam. CSV,
-            PlayStation import, and IGDB enrichment live here too.
+            The profile page becomes functional as soon as you link Steam or
+            Xbox. CSV, PlayStation import, and IGDB enrichment live here too.
           </p>
           <div className="flex items-center justify-center gap-3.5 flex-wrap mt-7">
             <a className="btn btn-primary" href="/api/auth/steam">
               Connect Steam
             </a>
+            {isXboxConfigured() ? (
+              <a className="btn btn-ghost" href="/api/auth/xbox">
+                Connect Xbox
+              </a>
+            ) : null}
             <Link className="btn btn-ghost" href="/">
               Back to landing
             </Link>
@@ -171,6 +189,11 @@ export default async function ProfilePage({
             tone: "success" as const,
             message: `PlayStation sync finished. ${query.playstationSynced} played titles refreshed.`,
           }
+      : query.xboxSynced
+        ? {
+            tone: "success" as const,
+            message: `Xbox sync finished. ${query.xboxSynced} achievement-history titles refreshed.`,
+          }
       : query.imported
         ? {
             tone: "success" as const,
@@ -187,6 +210,12 @@ export default async function ProfilePage({
                 tone: "success" as const,
                 message:
                   "PlayStation connected. Run a sync to pull played trophy titles.",
+              }
+          : query.xbox === "connected"
+            ? {
+                tone: "success" as const,
+                message:
+                  "Xbox connected. Run a sync to pull achievement-history titles.",
               }
           : query.assistant
             ? {
@@ -218,7 +247,7 @@ export default async function ProfilePage({
               {profile.user.displayName ?? "filazo Collector"}
             </h1>
             <p className="text-ink/60 text-sm mt-1">
-              Steam connected · PlayStation CSV ready &amp; future stores next
+              Steam connected · PlayStation and Xbox CSV ready
             </p>
           </div>
         </div>
@@ -403,7 +432,7 @@ export default async function ProfilePage({
           </section>
 
           {/* Steam + import panels */}
-          <section className="grid grid-cols-3 gap-6 max-xl:grid-cols-2 max-lg:grid-cols-1">
+          <section className="grid grid-cols-4 gap-6 max-2xl:grid-cols-2 max-lg:grid-cols-1">
             <article className="panel">
               <div className="flex items-center justify-between gap-3.5 mb-[22px] max-lg:flex-col max-lg:items-start">
                 <div>
@@ -465,6 +494,78 @@ export default async function ProfilePage({
                     {hasIgdbConfig() ? "ready" : "missing keys"}
                   </strong>
                 </div>
+              </div>
+            </article>
+
+            <article className="panel">
+              <div className="flex items-center justify-between gap-3.5 mb-[22px] max-lg:flex-col max-lg:items-start">
+                <div>
+                  <span className="section-label">Xbox</span>
+                  <h2 className="text-[clamp(1.5rem,3vw,2.2rem)] leading-[1.05]">
+                    Achievement sync
+                  </h2>
+                </div>
+                {profile.xboxAccount ? (
+                  <SyncActionForm
+                    action={syncXboxLibraryAction}
+                    buttonLabel="Sync Xbox"
+                    pendingLabel="Syncing Xbox..."
+                    pendingNotice="Xbox sync is running. Keep this page open while achievement-history titles are attached to your catalog."
+                  />
+                ) : isXboxConfigured() ? (
+                  <a className="btn btn-primary" href="/api/auth/xbox">
+                    Connect Xbox
+                  </a>
+                ) : null}
+              </div>
+
+              <div className="grid gap-3.5">
+                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
+                  <span>Status</span>
+                  <strong>
+                    {profile.xboxAccount ? "Connected" : "Not connected"}
+                  </strong>
+                </div>
+                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
+                  <span>Xbox sync</span>
+                  <strong>
+                    {profile.xboxAccount?.lastSyncedAt
+                      ? formatDate(profile.xboxAccount.lastSyncedAt)
+                      : "Not synced yet"}
+                  </strong>
+                </div>
+                {profile.xboxAccount?.profileUrl ? (
+                  <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
+                    <span>Profile</span>
+                    <strong>
+                      <a
+                        href={profile.xboxAccount.profileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="nav-link"
+                      >
+                        Open profile
+                      </a>
+                    </strong>
+                  </div>
+                ) : null}
+                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
+                  <span>Config</span>
+                  <strong>
+                    OAuth {isXboxConfigured() ? "ready" : "missing client ID"}
+                  </strong>
+                </div>
+                <p className="text-sm text-ink/70 leading-relaxed">
+                  Xbox sync imports titles found through Xbox achievement
+                  history and recent title history. It may miss owned games
+                  without achievement activity.
+                </p>
+                {!profile.xboxAccount && !isXboxConfigured() ? (
+                  <p className="text-xs font-bold text-ink/60 leading-relaxed">
+                    Set XBOX_CLIENT_ID and XBOX_CLIENT_SECRET to enable
+                    Microsoft account sign-in.
+                  </p>
+                ) : null}
               </div>
             </article>
 
@@ -590,7 +691,7 @@ export default async function ProfilePage({
             <article className="panel">
               <div className="flex items-center justify-between gap-3.5 mb-[22px] max-lg:flex-col max-lg:items-start">
                 <div>
-                  <span className="section-label">CSV and PlayStation</span>
+                  <span className="section-label">CSV imports</span>
                   <h2 className="text-[clamp(1.5rem,3vw,2.2rem)] leading-[1.05]">
                     Bring in backlog exports
                   </h2>
@@ -620,6 +721,27 @@ export default async function ProfilePage({
               </p>
               <p className="mt-1 text-xs text-ink/65">
                 AI explanations are optional. Rule-based scoring works without an API key.
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
+                <span className="rounded-full border-2 border-ink bg-paper/90 px-3 py-1">
+                  AI calls left today:{" "}
+                  {formatNumber(assistant.aiUsage.effectiveRemainingToday)}
+                </span>
+                <span className="rounded-full border-2 border-ink bg-paper/90 px-3 py-1">
+                  Your use: {formatNumber(assistant.aiUsage.userUsedToday)} /{" "}
+                  {formatNumber(assistant.aiUsage.userDailyLimit)}
+                </span>
+                <span className="rounded-full border-2 border-ink bg-paper/90 px-3 py-1">
+                  Next AI refresh:{" "}
+                  {assistant.aiUsage.openAiConfigured
+                    ? formatAssistantCooldown(
+                        assistant.aiUsage.cooldownRemainingSeconds,
+                      )
+                    : "API key missing"}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-ink/60">
+                Cached OpenAI picks and rule-only refreshes do not spend AI calls.
               </p>
             </div>
             <form action={refreshAssistantInsightsAction}>

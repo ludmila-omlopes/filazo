@@ -31,6 +31,8 @@ export async function POST(request: Request) {
   const assistantEntries: AssistantEntry[] = entries.map((entry) => ({
     id: entry.id,
     status: entry.status,
+    source: entry.source,
+    provider: entry.provider,
     playtimeMinutes: entry.playtimeMinutes,
     lastPlayedAt: entry.lastPlayedAt,
     completionPercent: entry.completionPercent,
@@ -44,9 +46,12 @@ export async function POST(request: Request) {
     desiredSessionMin: entry.desiredSessionMin,
     game: {
       id: entry.game.id,
+      slug: entry.game.slug,
       name: entry.game.name,
+      summary: entry.game.summary,
       genres: entry.game.genres,
       platforms: entry.game.platforms,
+      metadataSource: entry.game.metadataSource,
       aggregatedRating: entry.game.aggregatedRating,
     },
   }));

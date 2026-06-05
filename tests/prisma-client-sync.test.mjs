@@ -59,9 +59,19 @@ test("generated Prisma client includes synced Steam user game fields", () => {
     "Run npm run db:generate after adding PlayStation to prisma/schema.prisma.",
   );
   assert.equal(
+    ExternalProvider.XBOX,
+    "XBOX",
+    "Run npm run db:generate after adding Xbox to prisma/schema.prisma.",
+  );
+  assert.equal(
     EntrySource.PLAYSTATION,
     "PLAYSTATION",
     "Run npm run db:generate after adding PlayStation sync to prisma/schema.prisma.",
+  );
+  assert.equal(
+    EntrySource.XBOX,
+    "XBOX",
+    "Run npm run db:generate after adding Xbox sync to prisma/schema.prisma.",
   );
 });
 

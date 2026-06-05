@@ -17,7 +17,8 @@
       "Bash(git merge *)",
       "Bash(echo \"=== EXIT: $? ===\")",
       "Bash(git grep *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(echo \"\\(grep exit: $?\\)\")"
     ]
   }
 }

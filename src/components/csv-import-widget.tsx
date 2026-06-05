@@ -13,7 +13,7 @@ type ColumnMapping = {
   externalId: string;
 };
 
-type ImportSource = "GENERIC" | "PLAYSTATION";
+type ImportSource = "GENERIC" | "PLAYSTATION" | "XBOX";
 
 const fieldOptions: Array<{
   key: keyof ColumnMapping;
@@ -54,8 +54,28 @@ function createInitialMapping(headers: string[]): ColumnMapping {
       "product",
       "service",
       "psn",
+      "xbox",
+      "xuid",
+      "titleid",
+      "title id",
     ]),
   };
+}
+
+function getProviderForSource(source: ImportSource) {
+  return source === "GENERIC" ? undefined : source;
+}
+
+function getSourceLabel(source: ImportSource) {
+  if (source === "PLAYSTATION") {
+    return "PlayStation";
+  }
+
+  if (source === "XBOX") {
+    return "Xbox";
+  }
+
+  return "Generic";
 }
 
 export function CsvImportWidget({
@@ -82,10 +102,11 @@ export function CsvImportWidget({
     () =>
       JSON.stringify({
         ...mapping,
-        provider: source === "PLAYSTATION" ? "PLAYSTATION" : undefined,
+        provider: getProviderForSource(source),
       }),
     [mapping, source],
   );
+  const sourceLabel = getSourceLabel(source);
 
   const previewRows = useMemo(() => {
     if (!rows.length || !mapping.title) {
@@ -152,8 +173,8 @@ export function CsvImportWidget({
           className="w-full file:mr-3 file:px-4 file:py-2 file:border-3 file:border-ink file:rounded-pill file:bg-yellow file:font-bold file:cursor-pointer hover:file:bg-peach file:transition-colors"
         />
         <p className="text-ink/70 mt-2 text-sm leading-relaxed">
-          Supports generic and PlayStation exports. We will map your columns
-          before import.
+          Supports generic, PlayStation, and Xbox exports. We will map your
+          columns before import.
         </p>
       </div>
 
@@ -182,6 +203,7 @@ export function CsvImportWidget({
             >
               <option value="GENERIC">Generic CSV</option>
               <option value="PLAYSTATION">PlayStation CSV</option>
+              <option value="XBOX">Xbox CSV</option>
             </select>
           </label>
 
@@ -216,9 +238,9 @@ export function CsvImportWidget({
 
           <div className="grid gap-2.5" aria-live="polite">
             <div className="section-label">Preview</div>
-            {source === "PLAYSTATION" ? (
+            {source !== "GENERIC" ? (
               <p className="text-sm font-bold text-ink/70">
-                PlayStation rows will be attached as PlayStation provider
+                {sourceLabel} rows will be attached as {sourceLabel} provider
                 entries. External IDs are used as provider links when mapped.
               </p>
             ) : null}

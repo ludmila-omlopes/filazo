@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { AssistantSignalType, UserGameStatus } from "@prisma/client";
+import { buildFallbackPlayNextRecommendations } from "../src/lib/assistant/ai.ts";
 import { decideBuy } from "../src/lib/assistant/buy-decision.ts";
 import { scoreBacklogEntries } from "../src/lib/assistant/scoring.ts";
 
@@ -123,6 +124,31 @@ test("buy decision waits for sale when fit is good but similar games are untouch
   assert.equal(decision.verdict, "WAIT_FOR_SALE");
 });
 
+test("fallback play-next recommendations prefer different genres when possible", () => {
+  const entries = [
+    createEntry({ name: "Fast Action", genres: ["Action"], playtimeMinutes: 30 }),
+    createEntry({ name: "Long Action", genres: ["Action"], playtimeMinutes: 0 }),
+    createEntry({ name: "Cozy Puzzle", genres: ["Puzzle"], playtimeMinutes: 0 }),
+    createEntry({ name: "Short RPG", genres: ["RPG"], playtimeMinutes: 0 }),
+  ];
+  const ruleInsights = scoreBacklogEntries(entries, now);
+  const recommendations = buildFallbackPlayNextRecommendations({
+    userLibrarySummary: {
+      ownedCount: entries.length,
+      untouchedCount: 3,
+      sampledDroppedCount: 1,
+      topPlayedGenres: ["Action"],
+      untouchedGenres: ["Action", "Puzzle", "RPG"],
+      averagePlayedMinutes: 30,
+    },
+    entries,
+    ruleInsights,
+  });
+
+  assert.equal(recommendations.length, 3);
+  assert.equal(new Set(recommendations.map((item) => item.primaryGenre)).size, 3);
+});
+
 function createEntry({
   name,
   status = UserGameStatus.OWNED,
@@ -148,6 +174,7 @@ function createEntry({
     createdAt: new Date(`${createdAt}T00:00:00.000Z`),
     game: {
       id: `${name}-game`,
+      slug: name.toLowerCase().replaceAll(" ", "-"),
       name,
       genres,
       platforms: [],

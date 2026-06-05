@@ -8,6 +8,7 @@ import {
   type CsvColumnMapping,
   syncPlayStationLibraryForUser,
   syncSteamLibraryForUser,
+  syncXboxLibraryForUser,
 } from "@/lib/catalog";
 import { connectPlayStationAccountForUser } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
@@ -95,6 +96,27 @@ export async function syncPlayStationLibraryAction() {
   revalidatePath("/profile");
   revalidatePath("/");
   redirect(`/profile?playstationSynced=${syncedCount}`);
+}
+
+export async function syncXboxLibraryAction() {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/profile?error=Sign%20in%20before%20syncing%20Xbox.");
+  }
+
+  let syncedCount: number;
+  try {
+    const result = await syncXboxLibraryForUser(userId);
+    syncedCount = result.syncedCount;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Xbox sync failed.";
+    redirect(`/profile?error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect(`/profile?xboxSynced=${syncedCount}`);
 }
 
 export async function importCsvAction(formData: FormData) {

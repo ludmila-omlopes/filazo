@@ -7,12 +7,14 @@ It is designed around a canonical local game catalog that can absorb data from m
 - CSV imports for backlog and wishlist exports
 - PlayStation NPSSO-based sync for PS4/PS5 purchased games and played trophy titles
 - PlayStation CSV imports for library and backlog data
+- Xbox Microsoft account sign-in and achievement-history sync
+- Xbox CSV imports for library and backlog data
 - IGDB metadata enrichment for covers, release dates, platforms, screenshots, and ratings
 - HowLongToBeat completion-time enrichment for main story, main + extras, and completionist estimates
 - Metacritic metascore enrichment when Steam Store metadata exposes a score
 - Optional rule-based and AI-assisted backlog assistance
 
-The current app already includes a landing page, a collector profile, Steam authentication, Steam sync, PlayStation library sync, CSV mapping/import, and per-game catalog pages.
+The current app already includes a landing page, a collector profile, Steam authentication, Steam sync, PlayStation library sync, Xbox authentication and achievement-history sync, CSV mapping/import, and per-game catalog pages.
 
 ## Stack
 
@@ -43,8 +45,10 @@ This means multiple providers can eventually point to the same internal game ins
 - Steam OpenID sign-in
 - Steam owned games sync with playtime, last played date, and achievement-based completion percentages when Steam exposes the data
 - PlayStation connection through NPSSO with sync for PS4/PS5 purchased games, played trophy titles, and trophy progress
+- Xbox connection through Microsoft OAuth with sync for achievement-history titles, recent title history, and achievement progress
 - CSV upload with in-browser column mapping for titles, status, playtime, completion percentage, notes, and external IDs
 - PlayStation CSV mode that stores entries as PlayStation provider data and links mapped external IDs through `GameProviderLink`
+- Xbox CSV mode that stores entries as Xbox provider data and links mapped external IDs through `GameProviderLink`
 - IGDB best-match enrichment during imports and sync
 - Best-effort HowLongToBeat enrichment during imports and sync
 - Estimated time remaining for user entries when HLTB data and playtime or progress are available
@@ -61,9 +65,11 @@ This means multiple providers can eventually point to the same internal game ins
 Optional, depending on what you want to use:
 
 - Steam Web API key for owned library sync
+- Microsoft OAuth app credentials for Xbox account sync
 - IGDB client credentials for metadata enrichment
 
-PlayStation imports use CSV files and do not require credentials.
+PlayStation and Xbox imports use CSV files and do not require credentials.
+Xbox account sync requires Microsoft OAuth credentials and uses Xbox achievement/title-history endpoints.
 HowLongToBeat enrichment uses an unofficial website-backed lookup and does not require credentials.
 Metacritic scores are collected only when public Steam Store app metadata includes a metascore and URL.
 
@@ -78,6 +84,10 @@ AUTH_SECRET="replace-with-a-long-random-string"
 
 # Steam
 STEAM_API_KEY=""
+
+# Xbox / Microsoft OAuth
+XBOX_CLIENT_ID=""
+XBOX_CLIENT_SECRET=""
 
 # IGDB / Twitch
 IGDB_CLIENT_ID=""
@@ -95,10 +105,13 @@ Notes:
   intended for local development.
 - `STEAM_API_KEY` is required for owned library sync. Steam sign-in itself uses OpenID.
 - PlayStation sync does not require an app key. Users provide an NPSSO token in the profile page; the app exchanges it for PlayStation API tokens, stores encrypted refresh/access tokens, and does not store the NPSSO.
+- `XBOX_CLIENT_ID` is required for Xbox account sync. Register a Microsoft OAuth app for personal Microsoft accounts and add `${APP_URL}/api/auth/xbox/callback` as a web redirect URI. `XBOX_CLIENT_SECRET` is recommended for web app token exchange.
+- Xbox sync stores encrypted Microsoft refresh/access tokens in `ExternalAccount.metadata`. It imports Xbox achievement-history and recent-title-history records, not a guaranteed complete ownership library; Xbox CSV remains the fallback for owned games with no achievement activity.
 - IGDB enrichment is optional. If IGDB credentials are missing, the app still works, but imported/synced games stay with local metadata only.
 - HowLongToBeat enrichment is optional and best-effort. If the website-backed search is unavailable, imports and Steam sync continue without completion-time estimates.
 - Metacritic enrichment is optional and best-effort. If Steam Store app metadata does not expose a Metacritic score, the canonical game keeps an empty metascore.
-- The Assistant tab works without AI. If `OPENAI_API_KEY` is set, the app can use OpenAI's Responses API to turn rule-based insights into short explanations. Only library summaries, selected game metadata, and rule outputs are sent.
+- The Assistant tab works without AI. If `OPENAI_API_KEY` is set, the app can use OpenAI's Responses API to recommend three low-friction play-next picks and turn rule-based insights into short explanations. Only library summaries, selected game metadata, progress/playtime signals, source/provider labels, and rule outputs are sent.
+- Assistant AI calls are app-gated before hitting OpenAI: unchanged catalog context reuses the latest OpenAI recommendations, otherwise each user is limited to one AI refresh every 10 minutes and 20 AI refreshes per rolling 24 hours, with a 100 AI-refresh rolling daily cap across the app. When a gate blocks AI, the deterministic rules fallback is used.
 
 ## Getting Started
 
@@ -196,18 +209,30 @@ sync after Steam sign-in.
 5. Each title is attached to a canonical `Game` with `PLAYSTATION` `GameProviderLink` records keyed by available IDs such as `titleId`, `productId`, `conceptId`, `entitlementId`, and `npCommunicationId`.
 6. Trophy progress is stored as `UserGameEntry.completionPercent` when PSN exposes it.
 
-### CSV and PlayStation import flow
+### Xbox flow
+
+1. The user starts at `/api/auth/xbox`.
+2. The app redirects to Microsoft OAuth with `Xboxlive.signin` and `Xboxlive.offline_access` scopes.
+3. Microsoft returns to `/api/auth/xbox/callback`.
+4. The callback exchanges the authorization code for Microsoft OAuth tokens, then exchanges those for Xbox Live user and XSTS tokens.
+5. The app stores encrypted Microsoft OAuth tokens in `ExternalAccount.metadata`; short-lived Xbox Live/XSTS tokens are regenerated during sync.
+6. From the profile page, the user can sync Xbox achievement-history titles and recent title history.
+7. Each title is attached to a canonical `Game` with `XBOX` `GameProviderLink` records keyed by available IDs such as `titleId`, `scid`, and `pfn`.
+8. Achievement progress is stored as `UserGameEntry.completionPercent` when Xbox exposes enough achievement or gamerscore data.
+
+### CSV, PlayStation, and Xbox import flow
 
 1. The user uploads a CSV on the profile page.
 2. The browser parses the file and shows a source selector plus column-mapping UI.
 3. A server action receives the raw CSV plus selected mappings.
 4. Each row is normalized into a canonical game resolution attempt.
 5. When PlayStation CSV is selected, `UserGameEntry.provider` is set to `PLAYSTATION`, the platform defaults to PlayStation when no platform column is mapped, and any mapped external ID is stored as a PlayStation `GameProviderLink`.
-6. Import results are recorded in `ImportJob` and `ImportRow`.
+6. When Xbox CSV is selected, `UserGameEntry.provider` is set to `XBOX`, the platform defaults to Xbox when no platform column is mapped, and any mapped external ID is stored as an Xbox `GameProviderLink`.
+7. Import results are recorded in `ImportJob` and `ImportRow`.
 
 ### Catalog resolution
 
-Whenever a game comes from Steam, PlayStation sync, generic CSV, or PlayStation CSV:
+Whenever a game comes from Steam, PlayStation sync, Xbox sync, generic CSV, PlayStation CSV, or Xbox CSV:
 
 1. The app checks for an existing provider link when a provider ID is available.
 2. It checks for an existing game by normalized title.
@@ -227,8 +252,9 @@ Metacritic stores the critic metascore on the canonical `Game` and links the Met
 1. The user opens `/profile?tab=assistant`.
 2. A server action refreshes deterministic insights from `UserGameEntry` data such as status, playtime, last played date, completion, favorites, and genres.
 3. Insights are stored in `UserGameInsight`; each `AssistantRun` keeps a compact audit trail of the input summary and output summary.
-4. If OpenAI credentials are configured, the app asks for a structured explanation. If the request fails or credentials are missing, deterministic fallback text is used.
-5. The buy-decision helper compares a candidate title against owned/wishlist/backlog patterns and returns buy, wait, wishlist, or skip guidance.
+4. Before calling OpenAI, the app reuses the latest OpenAI recommendations when the relevant catalog context has not changed. Otherwise it enforces a 10-minute per-user cooldown, a 20-per-user rolling daily limit, and a 100-per-app rolling daily limit.
+5. If OpenAI credentials are configured and the AI gate allows the refresh, the app asks for structured play-next recommendations from the user's catalog and a structured explanation. If the request fails, credentials are missing, or a limit is reached, deterministic fallback picks and text are used.
+6. The buy-decision helper compares a candidate title against owned/wishlist/backlog patterns and returns buy, wait, wishlist, or skip guidance.
 
 ## Project Structure
 
@@ -236,6 +262,7 @@ Metacritic stores the critic metascore on the canonical `Game` and links the Met
 src/
   app/
     api/auth/steam/           Steam auth entry + callback
+    api/auth/xbox/            Xbox Microsoft OAuth entry + callback
     games/[slug]/             Canonical game page
     profile/                  Collector profile and server actions
   components/
@@ -251,6 +278,7 @@ src/
     prisma.ts                 Prisma client singleton
     session.ts                Signed cookie session helpers
     steam.ts                  Steam OpenID and Steam Web API integration
+    xbox.ts                   Xbox OAuth, profile, achievement history, and title history integration
     utils.ts                  Formatting and normalization helpers
 prisma/
   schema.prisma               Prisma schema
