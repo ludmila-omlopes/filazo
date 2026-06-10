@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { AssistantSignalType, UserGameStatus } from "@prisma/client";
-import { estimateRemainingTime } from "../time-estimates.ts";
+import { estimateRemainingTime, isEntryFinished } from "../time-estimates.ts";
 import {
   readStringList,
   type AssistantEntry,
@@ -215,9 +215,7 @@ function getRecommendationReason(
 function sortPlayNextCandidates(input: PlayNextRecommendationInput) {
   const insightMap = getInsightMap(input.ruleInsights);
   const playableEntries = input.entries.filter(
-    (entry) =>
-      entry.activeBacklog !== false &&
-      entry.status !== UserGameStatus.COMPLETED,
+    (entry) => entry.activeBacklog !== false && !isEntryFinished(entry),
   );
   const ownedEntries = playableEntries.filter(
     (entry) => entry.status !== UserGameStatus.WISHLIST,
@@ -331,7 +329,8 @@ function buildPlayNextContext(input: PlayNextRecommendationInput) {
           ]),
         ].filter(Boolean),
         playtimeMinutes: entry.playtimeMinutes,
-        completionPercent: entry.completionPercent,
+        achievementPercent: entry.completionPercent,
+        finishedAt: entry.finishedAt?.toISOString() ?? null,
         lastPlayedAt: entry.lastPlayedAt?.toISOString() ?? null,
         lastSyncedAt: entry.lastSyncedAt?.toISOString() ?? null,
         updatedAt: entry.updatedAt?.toISOString() ?? null,

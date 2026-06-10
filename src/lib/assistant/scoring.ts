@@ -5,7 +5,7 @@ import {
   ExternalProvider,
   UserGameStatus,
 } from "@prisma/client";
-import { estimateRemainingTime } from "../time-estimates.ts";
+import { estimateRemainingTime, isEntryFinished } from "../time-estimates.ts";
 
 export type AssistantReason = {
   code: string;
@@ -49,6 +49,7 @@ export type AssistantEntry = {
   playtimeMinutes?: number | null;
   lastPlayedAt?: Date | null;
   completionPercent?: number | null;
+  finishedAt?: Date | null;
   isFavorite?: boolean;
   activeBacklog?: boolean;
   createdAt: Date;
@@ -239,10 +240,7 @@ function getFinishableSoonInsight(entry: AssistantEntry): AssistantInsight | nul
     remainingTime.remainingMinutes > 0 &&
     remainingTime.remainingMinutes <= 360;
 
-  if (
-    entry.status === UserGameStatus.COMPLETED ||
-    (completion < 65 && !isShortFinish)
-  ) {
+  if (isEntryFinished(entry) || (completion < 65 && !isShortFinish)) {
     return null;
   }
 
@@ -251,7 +249,7 @@ function getFinishableSoonInsight(entry: AssistantEntry): AssistantInsight | nul
       ? buildReason(
           "completion_near",
           "Close enough to finish",
-          `${entry.game.name} is ${completion}% complete.`,
+          `${entry.game.name} has ${completion}% of its achievements unlocked.`,
         )
       : null,
     isShortFinish && remainingTime
@@ -279,6 +277,41 @@ function getFinishableSoonInsight(entry: AssistantEntry): AssistantInsight | nul
     confidence: isShortFinish ? 80 : 74,
     reasons,
     suggestedAction: "Schedule one focused session and decide if finishing still matters.",
+  };
+}
+
+function getLikelyFinishedInsight(entry: AssistantEntry, now: Date): AssistantInsight | null {
+  const mainStoryMinutes = entry.game.hltbMainStoryMinutes ?? 0;
+  const playtime = entry.playtimeMinutes ?? 0;
+  const lastPlayedDays = daysSince(entry.lastPlayedAt, now);
+
+  if (
+    isEntryFinished(entry) ||
+    mainStoryMinutes <= 0 ||
+    playtime < mainStoryMinutes * 0.9 ||
+    lastPlayedDays === null ||
+    lastPlayedDays < 14
+  ) {
+    return null;
+  }
+
+  return {
+    entryId: entry.id,
+    signalType: AssistantSignalType.LIKELY_FINISHED,
+    friction: BacklogFriction.COMPLETION_PRESSURE,
+    score: clampScore(55 + Math.min(playtime / mainStoryMinutes, 2) * 15),
+    confidence: 60,
+    reasons: [
+      buildReason(
+        "playtime_past_story",
+        "Played past the main story length",
+        `${entry.game.name} has ${Math.round(playtime / 60)}h logged against a ~${Math.round(
+          mainStoryMinutes / 60,
+        )}h main story, and has been idle for ${lastPlayedDays} days.`,
+      ),
+    ],
+    suggestedAction:
+      "If the credits already rolled, mark it finished so it stops counting as backlog.",
   };
 }
 
@@ -318,7 +351,7 @@ function getWishlistRiskInsight(entry: AssistantEntry, entries: AssistantEntry[]
 
 function getReleaseCandidateInsight(entry: AssistantEntry, now: Date): AssistantInsight | null {
   if (
-    entry.status === UserGameStatus.COMPLETED ||
+    isEntryFinished(entry) ||
     entry.status === UserGameStatus.WISHLIST ||
     entry.isFavorite ||
     entry.activeBacklog === false
@@ -407,7 +440,7 @@ export function scoreBacklogEntries(entries: AssistantEntry[], now = new Date())
   const insights: AssistantInsight[] = [];
 
   for (const entry of entries) {
-    if (entry.activeBacklog === false || entry.status === UserGameStatus.COMPLETED) {
+    if (entry.activeBacklog === false || isEntryFinished(entry)) {
       continue;
     }
 
@@ -417,6 +450,7 @@ export function scoreBacklogEntries(entries: AssistantEntry[], now = new Date())
         getSampledDroppedInsight(entry, now),
         getStalePlayingInsight(entry, now),
         getFinishableSoonInsight(entry),
+        getLikelyFinishedInsight(entry, now),
         getWishlistRiskInsight(entry, entries),
         getReleaseCandidateInsight(entry, now),
       ].filter((insight): insight is AssistantInsight => Boolean(insight)),

@@ -56,9 +56,9 @@ export function ScreenshotLightbox({
         {screenshots.slice(0, 6).map((screenshot, index) => (
           <button
             className={cn(
-              "overflow-hidden border-3 border-ink rounded-[18px] aspect-video bg-ink/5 cursor-pointer group relative",
+              "overflow-hidden rounded-inner border border-edge aspect-video bg-bg cursor-pointer group relative",
               "hover:shadow-hard-sm transition-all duration-200",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2",
               index === 0 &&
                 screenshots.length > 2 &&
                 "col-span-2 max-sm:col-span-1",

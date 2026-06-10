@@ -737,11 +737,12 @@ function normalizeCsvRows(
       : "";
     const playtimeHours = playtimeValue ? Number(playtimeValue) : null;
     const status = parseStatus(mapping.status ? row[mapping.status] : undefined);
+    // completionPercent tracks achievement/trophy progress only. A COMPLETED
+    // status means the credits rolled, which says nothing about achievements,
+    // so it must not be backfilled to 100.
     const completionPercent = mapping.completionPercent
       ? parseCompletionPercent(row[mapping.completionPercent])
-      : status === UserGameStatus.COMPLETED
-        ? 100
-        : null;
+      : null;
 
     return {
       title,
@@ -834,6 +835,10 @@ export async function importCsvForUser({
             platformName: platformName ?? undefined,
             playtimeMinutes: row.playtimeMinutes ?? undefined,
             completionPercent: row.completionPercent ?? undefined,
+            finishedAt:
+              row.status === UserGameStatus.COMPLETED ? new Date() : undefined,
+            finishedSource:
+              row.status === UserGameStatus.COMPLETED ? "import" : undefined,
             notes: row.notes ?? undefined,
             rawData: row.rawData as Prisma.InputJsonValue,
           },

@@ -17,12 +17,26 @@ type EstimateInput = {
   status: UserGameStatus | `${UserGameStatus}`;
   playtimeMinutes?: number | null;
   completionPercent?: number | null;
+  finishedAt?: Date | null;
   game: {
     hltbMainStoryMinutes?: number | null;
     hltbMainExtraMinutes?: number | null;
     hltbCompletionistMinutes?: number | null;
   };
 };
+
+/**
+ * A game is finished when the credits roll: the user marked it COMPLETED or a
+ * story-completion achievement set finishedAt. Achievement progress
+ * (completionPercent) is intentionally not part of this — 100% of trophies is
+ * mastery, not the bar for finishing.
+ */
+export function isEntryFinished(entry: {
+  status: UserGameStatus | `${UserGameStatus}`;
+  finishedAt?: Date | null;
+}) {
+  return entry.status === UserGameStatus.COMPLETED || Boolean(entry.finishedAt);
+}
 
 function getDefaultTarget(game: EstimateInput["game"]): CompletionTarget | null {
   if (game.hltbMainExtraMinutes && game.hltbMainExtraMinutes > 0) {
@@ -60,10 +74,7 @@ export function estimateRemainingTime(
     return null;
   }
 
-  if (
-    entry.status === UserGameStatus.COMPLETED ||
-    (entry.completionPercent ?? 0) >= 100
-  ) {
+  if (isEntryFinished(entry)) {
     return {
       remainingMinutes: 0,
       totalMinutes: target.minutes,

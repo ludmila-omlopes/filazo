@@ -62,6 +62,7 @@ enum AssistantSignalType {
   SAMPLED_DROPPED
   STALE_PLAYING
   FINISHABLE_SOON
+  LIKELY_FINISHED
   WISHLIST_RISK
   BUY_RISK
   RETURN_CANDIDATE
@@ -137,14 +138,21 @@ model Game {
 }
 
 model GameProviderLink {
-  id             String           @id @default(cuid())
-  gameId         String
-  provider       ExternalProvider
-  providerGameId String
-  storeUrl       String?
-  rawData        Json?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id                        String           @id @default(cuid())
+  gameId                    String
+  provider                  ExternalProvider
+  providerGameId            String
+  storeUrl                  String?
+  rawData                   Json?
+  // Cached id/name of the achievement or trophy awarded when the main story
+  // ends ("credits roll"). Source is "ai", "heuristic", or "none" when the
+  // game has no detectable story-completion achievement.
+  storyAchievementId        String?
+  storyAchievementName      String?
+  storyAchievementSource    String?
+  storyAchievementCheckedAt DateTime?
+  createdAt                 DateTime         @default(now())
+  updatedAt                 DateTime         @updatedAt
   game           Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerGameId])
@@ -162,7 +170,12 @@ model UserGameEntry {
   platformName      String?
   playtimeMinutes   Int?
   lastPlayedAt      DateTime?
+  // Achievement/trophy progress (0-100). This is NOT story completion; a game
+  // is "finished" when finishedAt is set or status is COMPLETED.
   completionPercent Int?
+  finishedAt        DateTime?
+  // "manual" | "import" | "story_achievement" | "inferred"
+  finishedSource    String?
   notes             String?
   isFavorite        Boolean           @default(false)
   startedAt         DateTime?

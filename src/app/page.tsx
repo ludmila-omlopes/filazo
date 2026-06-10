@@ -1,30 +1,11 @@
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Notice } from "@/components/ui/notice";
 import { getProfileData } from "@/lib/catalog";
 import { getDatabaseErrorMessage } from "@/lib/database-errors";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
-import { formatDate, formatNumber } from "@/lib/utils";
-
-const sources = [
-  {
-    label: "Steam",
-    line: "Owned games + playtime",
-    tone: "bg-cyan",
-    icon: <ControllerIcon />,
-  },
-  {
-    label: "CSV",
-    line: "Backlog & wishlist exports",
-    tone: "bg-lime",
-    icon: <SheetIcon />,
-  },
-  {
-    label: "IGDB",
-    line: "Cover art & metadata",
-    tone: "bg-peach",
-    icon: <TagIcon />,
-  },
-];
+import { formatNumber } from "@/lib/utils";
 
 async function getHomeData() {
   const userId = await getSessionUserId();
@@ -57,207 +38,261 @@ async function getHomeData() {
 }
 
 export default async function Home() {
-  const { profile, catalogCount, enrichedCount, databaseError } =
-    await getHomeData();
-  const wishlistCount = profile?.wishlistEntries.length ?? 0;
-  const latestImport = profile?.latestImport ?? null;
+  const { catalogCount, enrichedCount, databaseError } = await getHomeData();
 
   return (
-    <main id="main-content" className="w-full max-w-[1200px] mx-auto grid gap-6 overflow-hidden pb-9">
+    <main
+      id="main-content"
+      className="mx-auto grid w-full max-w-[1100px] gap-24 overflow-visible pb-20 max-md:gap-16"
+    >
       {databaseError ? (
-        <section
-          aria-live="polite"
-          className="panel bg-[#ffd5ca] text-sm font-bold"
-          role="status"
-        >
+        <Notice tone="error">
           {databaseError} Vercel deployments need a production database
           connection; this repo&apos;s SQLite file setup is intended for local
           development.
-        </section>
+        </Notice>
       ) : null}
 
-      {/* Hero */}
-      <section className="grid grid-cols-[minmax(0,1.05fr)_minmax(300px,0.95fr)] items-center gap-8 p-8 bg-yellow border-3 border-ink rounded-card shadow-hard max-lg:grid-cols-1 max-md:p-5">
-        <div className="flex min-w-0 flex-col gap-5">
-          <span className="pill">Backlog assistant</span>
-          <h1 className="font-display text-[clamp(2rem,4.5vw,3.4rem)] leading-[1.02] tracking-wide uppercase max-w-[14ch]">
-            Know what to play next.
-          </h1>
-          <p className="max-w-[42ch] text-[1.05rem] font-medium leading-relaxed">
-            filazo pulls your Steam library, backlog spreadsheets, and IGDB
-            metadata into one catalog — then shortlists what&apos;s worth your
-            evening.
-          </p>
-          <div className="flex flex-wrap items-center gap-3.5">
-            <a className="btn btn-primary" href="/api/auth/steam">
-              Connect Steam
-            </a>
-            <Link className="btn btn-ghost" href="/profile">
-              Import CSV
-            </Link>
-          </div>
-        </div>
+      {/* ═══ Hero — dusk sanctuary ═══ */}
+      <section className="relative overflow-hidden rounded-[36px] bg-dusk-deep text-cream shadow-[0_40px_90px_rgba(34,43,37,0.35)]">
+        {/* Ambient light */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -left-32 -top-40 h-[480px] w-[480px] rounded-full bg-glow/25 blur-[110px] animate-breathe"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -bottom-48 right-[18%] h-[420px] w-[420px] rounded-full bg-lime/15 blur-[110px] animate-breathe [animation-delay:-4.5s]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute right-[-90px] top-[-60px] h-[300px] w-[300px] rounded-full bg-cyan/10 blur-[90px]"
+        />
 
-        <ShortlistCard />
+        <div className="relative z-10 grid grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)] items-center gap-12 px-14 py-20 max-lg:grid-cols-1 max-lg:gap-14 max-md:px-7 max-md:py-12">
+          <div className="flex min-w-0 flex-col items-start gap-7">
+            <p className="text-[0.78rem] font-bold uppercase tracking-[0.28em] text-glow/90">
+              For players with too many games
+            </p>
+            <h1 className="text-[clamp(2.6rem,6vw,4.4rem)] font-normal leading-[1.04] tracking-[-0.015em]">
+              Stop fighting
+              <br />
+              your backlog.
+              <br />
+              <em className="serif-accent text-glow">Befriend it.</em>
+            </h1>
+            <p className="max-w-[40ch] text-lg leading-relaxed text-cream/70">
+              filazo turns the pile of unplayed games into a quiet library —
+              and hands you one gentle pick for tonight.
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-4">
+              <Button
+                asChild
+                size="lg"
+                className="h-12 rounded-full bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+              >
+                <a href="/api/auth/steam">Connect Steam</a>
+              </Button>
+              <Button
+                asChild
+                variant="ghost"
+                size="lg"
+                className="h-12 rounded-full border border-cream/25 px-7 text-base font-semibold text-cream hover:bg-cream/10 hover:text-cream"
+              >
+                <Link href="/profile">Bring a CSV instead</Link>
+              </Button>
+            </div>
+            <p className="mt-2 text-sm text-cream/45">
+              {formatNumber(catalogCount)} games already rest here. None of
+              them are deadlines.
+            </p>
+          </div>
+
+          <TonightStack />
+        </div>
       </section>
 
-      {/* How it works: 3 sources merge into one catalog */}
-      <section className="panel bg-paper grid gap-6">
-        <div className="flex items-end justify-between gap-4 flex-wrap">
-          <div>
-            <span className="section-label">How it works</span>
-            <h2 className="text-[clamp(1.4rem,3vw,2.1rem)] leading-tight max-w-[20ch]">
-              Three messy sources, one clean catalog.
-            </h2>
-          </div>
-          <MergeBadge count={formatNumber(catalogCount)} />
-        </div>
+      {/* ═══ An evening with filazo — editorial steps ═══ */}
+      <section className="relative grid gap-2 px-4">
+        <p className="text-center text-[0.78rem] font-bold uppercase tracking-[0.28em] text-ink-soft">
+          An evening with filazo
+        </p>
 
-        <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">
-          {sources.map((source) => (
-            <article className={`card flex items-center gap-4 ${source.tone}`} key={source.label}>
-              <span className="shrink-0 grid place-items-center size-12 border-3 border-ink rounded-[16px] bg-paper">
-                {source.icon}
-              </span>
-              <div className="min-w-0">
-                <strong className="font-display text-lg uppercase tracking-wide">
-                  {source.label}
-                </strong>
-                <p className="text-sm font-medium leading-snug">{source.line}</p>
-              </div>
-            </article>
-          ))}
-        </div>
+        <EveningStep
+          number="01"
+          align="left"
+          title="Gather"
+          line="Steam syncs itself. Spreadsheets and PlayStation lists fold in. Cover art arrives on its own."
+        />
+        <EveningStep
+          number="02"
+          align="right"
+          title="Settle"
+          line="Duplicates merge into one canonical shelf. Every game gets a place — owned, wishlist, or simply resting."
+        />
+        <EveningStep
+          number="03"
+          align="left"
+          title="Play"
+          line="Ask for one pick that fits the hours you actually have. Play it, or don't. The shelf will keep."
+          last
+        />
       </section>
 
-      {/* Live stats + final CTA */}
-      <section className="panel flex items-center justify-between gap-8 bg-peach max-lg:flex-col max-lg:items-start">
-        <div className="grid grid-cols-3 gap-4 min-w-0 max-sm:grid-cols-1">
-          <Stat label="Catalog" value={formatNumber(catalogCount)} />
-          <Stat label="Wishlist" value={formatNumber(wishlistCount)} />
-          <Stat label="Enriched" value={formatNumber(enrichedCount)} />
-        </div>
-        <div className="flex flex-col items-start gap-3">
-          <p className="text-sm font-bold uppercase tracking-wide">
-            Last import: {latestImport ? formatDate(latestImport.createdAt) : "not yet"}
-          </p>
-          <div className="flex flex-wrap items-center gap-3.5">
-            <a className="btn btn-primary" href="/api/auth/steam">
-              Connect Steam
-            </a>
-            <Link className="btn btn-ghost" href="/profile">
-              Import CSV
-            </Link>
+      {/* ═══ Manifesto interlude ═══ */}
+      <section className="relative px-4 py-6 text-center">
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 select-none font-display text-[clamp(5rem,16vw,11rem)] font-medium italic leading-none text-ink/4"
+        >
+          breathe
+        </span>
+        <blockquote className="relative mx-auto max-w-[24ch] font-display text-[clamp(1.7rem,3.6vw,2.6rem)] font-normal italic leading-snug">
+          “A backlog is a library,
+          <br />
+          not a debt.”
+        </blockquote>
+        <p className="relative mt-5 text-sm text-ink-soft">
+          Libraries are meant to be bigger than one lifetime. That&apos;s what
+          makes them wonderful.
+        </p>
+      </section>
+
+      {/* ═══ Closing — back to the dusk ═══ */}
+      <section className="relative overflow-hidden rounded-[36px] bg-dusk text-cream">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 -top-32 h-[380px] w-[380px] rounded-full bg-glow/20 blur-[100px] animate-breathe"
+        />
+        <div className="relative z-10 flex flex-col items-center gap-6 px-10 py-16 text-center max-md:px-6">
+          <h2 className="max-w-[22ch] text-[clamp(1.6rem,3.4vw,2.4rem)] font-normal leading-snug">
+            Tonight, play <em className="serif-accent text-glow">one</em> game.
+            Let the rest sleep.
+          </h2>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Button
+              asChild
+              size="lg"
+              className="h-12 rounded-full bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+            >
+              <a href="/api/auth/steam">Connect Steam</a>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="lg"
+              className="h-12 rounded-full border border-cream/25 px-7 text-base font-semibold text-cream hover:bg-cream/10 hover:text-cream"
+            >
+              <Link href="/profile">Open your library</Link>
+            </Button>
           </div>
+          <p className="text-xs text-cream/40">
+            {formatNumber(enrichedCount)} games here already carry their own
+            cover art, play times, and stories.
+          </p>
         </div>
       </section>
     </main>
   );
 }
 
-function ShortlistCard() {
+/* Stacked, tilted "tonight's pick" cards drifting slowly in the hero. */
+function TonightStack() {
   return (
     <div
-      className="relative w-full max-w-[340px] justify-self-end border-3 border-ink rounded-card bg-paper shadow-hard overflow-hidden max-lg:justify-self-start"
-      aria-label="Example shortlist recommendation"
+      className="relative mx-auto h-[360px] w-[290px] max-lg:h-[330px]"
+      aria-label="Example: tonight's gentle pick"
     >
-      <span className="absolute right-3 top-3 z-10 rotate-[8deg] rounded-pill border-3 border-ink bg-lime px-3 py-1 font-display text-xs uppercase tracking-wide shadow-hard-xs">
-        Play next
-      </span>
-      <GameCover />
-      <div className="grid gap-3 border-t-3 border-ink p-5">
-        <div>
-          <p className="section-label !mb-1">Top of the pile</p>
-          <h3 className="font-display text-xl uppercase leading-tight">
-            Neon Drift
-          </h3>
+      {/* Back cards */}
+      <div
+        aria-hidden
+        className="absolute left-2 top-7 h-[290px] w-[225px] rounded-[20px] bg-cream/6 backdrop-blur-[2px] [--card-tilt:-7deg] animate-drift-slow [animation-delay:-3s]"
+      />
+      <div
+        aria-hidden
+        className="absolute right-0 top-3 h-[300px] w-[235px] rounded-[20px] bg-cream/10 [--card-tilt:5deg] animate-drift-slow [animation-delay:-6s]"
+      />
+
+      {/* Front card */}
+      <div className="absolute left-1/2 top-1/2 w-[250px] -translate-x-1/2 -translate-y-1/2 rounded-[22px] bg-cream p-3 text-dusk-deep shadow-[0_30px_60px_rgba(0,0,0,0.4)] [--card-tilt:-2deg] animate-drift-slow">
+        <div className="overflow-hidden rounded-[14px]">
+          <PickCover />
         </div>
-        <div className="flex flex-wrap gap-2 text-xs font-bold uppercase">
-          <span className="rounded-pill border-2 border-ink bg-cyan px-2.5 py-1">
-            Owned
-          </span>
-          <span className="rounded-pill border-2 border-ink bg-yellow px-2.5 py-1">
-            12h played
-          </span>
-          <span className="rounded-pill border-2 border-ink bg-white px-2.5 py-1">
-            Backlog
-          </span>
+        <div className="px-2 pb-2 pt-3">
+          <p className="text-[0.62rem] font-bold uppercase tracking-[0.22em] text-dusk-mist">
+            Tonight&apos;s gentle pick
+          </p>
+          <p className="mt-1 font-display text-xl">Neon Drift</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-dusk-mist">
+            About 3 hours left — it fits your evening with room to spare.
+          </p>
         </div>
       </div>
     </div>
   );
 }
 
-function GameCover() {
+function PickCover() {
   return (
     <svg
-      viewBox="0 0 340 200"
+      viewBox="0 0 250 150"
       className="w-full"
       role="img"
       aria-label="Stylized game cover artwork"
     >
-      <rect width="340" height="200" fill="var(--color-cyan)" />
-      <circle cx="250" cy="62" r="34" fill="var(--color-yellow)" stroke="var(--color-ink)" strokeWidth="4" />
-      <path d="M0 200 L70 110 L130 200 Z" fill="var(--color-lime)" stroke="var(--color-ink)" strokeWidth="4" />
-      <path d="M95 200 L185 90 L275 200 Z" fill="var(--color-peach)" stroke="var(--color-ink)" strokeWidth="4" />
-      <path d="M220 200 L300 130 L340 200 Z" fill="var(--color-lime)" stroke="var(--color-ink)" strokeWidth="4" />
-      <rect x="0" y="178" width="340" height="22" fill="var(--color-ink)" />
+      <rect width="250" height="150" fill="var(--color-dusk)" />
+      <circle cx="190" cy="42" r="22" fill="var(--color-glow)" opacity="0.9" />
+      <path d="M0 150 L62 88 L115 150 Z" fill="var(--color-lime)" opacity="0.5" />
+      <path d="M70 150 L148 70 L226 150 Z" fill="var(--color-lime)" opacity="0.75" />
+      <path d="M170 150 L228 100 L250 150 Z" fill="var(--color-cyan)" opacity="0.55" />
     </svg>
   );
 }
 
-function MergeBadge({ count }: { count: string }) {
+function EveningStep({
+  number,
+  title,
+  line,
+  align,
+  last = false,
+}: {
+  number: string;
+  title: string;
+  line: string;
+  align: "left" | "right";
+  last?: boolean;
+}) {
   return (
-    <div className="flex items-center gap-2 rounded-pill border-3 border-ink bg-lime px-4 py-2 shadow-hard-xs">
-      <span className="font-display text-lg leading-none">{count}</span>
-      <span className="text-xs font-bold uppercase tracking-wide leading-tight">
-        canonical
-        <br />
-        games
-      </span>
+    <div
+      className={`relative grid grid-cols-2 max-md:grid-cols-1 ${
+        last ? "" : "pb-16 max-md:pb-10"
+      }`}
+    >
+      {/* Center spine */}
+      {!last ? (
+        <span
+          aria-hidden
+          className="absolute left-1/2 top-16 bottom-0 w-px -translate-x-1/2 bg-edge max-md:hidden"
+        />
+      ) : null}
+
+      <div
+        className={`flex items-start gap-6 ${
+          align === "right"
+            ? "col-start-2 pl-14 max-md:col-start-1 max-md:pl-0"
+            : "col-start-1 pr-14 max-md:pr-0"
+        }`}
+      >
+        <span className="font-display text-[clamp(3rem,7vw,4.6rem)] font-normal italic leading-none text-lime/70">
+          {number}
+        </span>
+        <div className="pt-2">
+          <h2 className="font-display text-2xl font-medium">{title}</h2>
+          <p className="mt-2 max-w-[38ch] leading-relaxed text-ink-soft">
+            {line}
+          </p>
+        </div>
+      </div>
     </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-[18px] border-3 border-ink bg-paper p-3.5">
-      <span className="stat-label !mb-1">{label}</span>
-      <strong className="font-display text-[clamp(1.6rem,4vw,2.4rem)] leading-none">
-        {value}
-      </strong>
-    </div>
-  );
-}
-
-function ControllerIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="var(--color-ink)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="8" width="20" height="10" rx="5" />
-      <line x1="7" y1="11" x2="7" y2="15" />
-      <line x1="5" y1="13" x2="9" y2="13" />
-      <circle cx="16" cy="12.5" r="1" fill="var(--color-ink)" />
-      <circle cx="18.5" cy="14.5" r="1" fill="var(--color-ink)" />
-    </svg>
-  );
-}
-
-function SheetIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="var(--color-ink)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="3" width="16" height="18" rx="1.5" />
-      <line x1="4" y1="9" x2="20" y2="9" />
-      <line x1="4" y1="15" x2="20" y2="15" />
-      <line x1="12" y1="3" x2="12" y2="21" />
-    </svg>
-  );
-}
-
-function TagIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="var(--color-ink)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 11.5 L11 3.5 L21 3.5 L21 13.5 L13 21.5 Z" />
-      <circle cx="16.5" cy="8" r="1.4" fill="var(--color-ink)" />
-    </svg>
   );
 }

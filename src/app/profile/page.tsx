@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AssistantSignalType } from "@prisma/client";
+import { Armchair, LibraryBig, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { BacklogDiagnosis } from "@/components/assistant/backlog-diagnosis";
 import { BuyDecisionForm } from "@/components/assistant/buy-decision-form";
@@ -8,6 +9,10 @@ import { PlayNextPanel } from "@/components/assistant/play-next-panel";
 import { PlayerProfilePanel } from "@/components/assistant/player-profile-panel";
 import { CsvImportWidget } from "@/components/csv-import-widget";
 import { SyncActionForm } from "@/components/sync-action-form";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Notice } from "@/components/ui/notice";
+import { SectionHeader } from "@/components/ui/section-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { getProfileData } from "@/lib/catalog";
 import { getDatabaseErrorMessage } from "@/lib/database-errors";
 import {
@@ -39,6 +44,7 @@ import {
 } from "./assistant-actions";
 import {
   connectPlayStationAction,
+  detectFinishedGamesAction,
   importCsvAction,
   syncPlayStationLibraryAction,
   syncSteamLibraryAction,
@@ -60,11 +66,13 @@ type ProfileSearchParams = Promise<{
   xboxSynced?: string;
   assistant?: string;
   playerProfile?: string;
+  finishedDetected?: string;
+  finishedScanned?: string;
   error?: string;
 }>;
 
 const STEAM_COMPLETION_TOOLTIP =
-  "Steam completion is based on unlocked achievements divided by total achievements. It is unavailable for games without Steam achievements, private/blocked stats, or API failures, and may not match story completion.";
+  "This percentage is unlocked achievements divided by total achievements. It is not story completion — a game counts as finished when its credits-roll achievement is unlocked or you mark it finished.";
 
 function parseAssistantSignal(value: string | undefined) {
   return Object.values(AssistantSignalType).includes(value as AssistantSignalType)
@@ -76,7 +84,7 @@ function SteamCompletionInfoIcon() {
   return (
     <span
       aria-label={STEAM_COMPLETION_TOOLTIP}
-      className="inline-grid h-4 w-4 flex-none place-items-center rounded-full border border-current text-[0.62rem] font-black leading-none opacity-70"
+      className="inline-grid h-4 w-4 flex-none place-items-center rounded-full border border-current text-[0.62rem] font-black leading-none opacity-60"
       role="img"
       tabIndex={0}
       title={STEAM_COMPLETION_TOOLTIP}
@@ -95,23 +103,50 @@ function formatAssistantCooldown(seconds: number) {
   return minutes === 1 ? "in 1 minute" : `in ${minutes} minutes`;
 }
 
+function HeartIcon({ filled, className }: { filled: boolean; className?: string }) {
+  return filled ? (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
+    </svg>
+  ) : (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+    </svg>
+  );
+}
+
+function ConnectionRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3.5 border-b border-edge pb-3 last:border-b-0 last:pb-0 max-lg:flex-col max-lg:items-start">
+      <span className="text-sm text-ink-soft">{label}</span>
+      <span className="text-sm font-semibold">{children}</span>
+    </div>
+  );
+}
+
 export default async function ProfilePage({
   searchParams,
 }: PageProps<"/profile"> & { searchParams: ProfileSearchParams }) {
   const userId = await getSessionUserId();
   if (!userId) {
     return (
-      <main id="main-content" className="w-full max-w-[900px] mx-auto">
-        <section className="p-7 text-center border-3 border-ink rounded-[30px] bg-paper/95 shadow-hard">
-          <p className="section-label">Profile locked behind your library</p>
-          <h1 className="mb-3 font-display text-[clamp(2.5rem,6vw,4.4rem)] leading-[0.95] uppercase">
-            Connect an account to build your first shelf.
+      <main id="main-content" className="mx-auto w-full max-w-[760px]">
+        <section className="panel p-10 text-center">
+          <p className="section-label justify-center">Your library</p>
+          <h1 className="mb-3 text-[clamp(1.8rem,4vw,2.6rem)] leading-snug">
+            Connect an account to begin.
           </h1>
-          <p className="max-w-[36rem] mx-auto leading-relaxed">
-            The profile page becomes functional as soon as you link Steam or
-            Xbox. CSV, PlayStation import, and IGDB enrichment live here too.
+          <p className="mx-auto max-w-[42ch] leading-relaxed text-ink-soft">
+            Link Steam or Xbox to bring your games here. CSV and PlayStation
+            imports are waiting too — start wherever feels easiest.
           </p>
-          <div className="flex items-center justify-center gap-3.5 flex-wrap mt-7">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
             <a className="btn btn-primary" href="/api/auth/steam">
               Connect Steam
             </a>
@@ -121,7 +156,7 @@ export default async function ProfilePage({
               </a>
             ) : null}
             <Link className="btn btn-ghost" href="/">
-              Back to landing
+              Back home
             </Link>
           </div>
         </section>
@@ -136,20 +171,20 @@ export default async function ProfilePage({
     console.error("Could not load profile data.", error);
 
     return (
-      <main id="main-content" className="w-full max-w-[900px] mx-auto">
-        <section className="p-7 text-center border-3 border-ink rounded-[30px] bg-[#ffd5ca] shadow-hard">
-          <p className="section-label">Database unavailable</p>
-          <h1 className="mb-3 font-display text-[clamp(2rem,5vw,3.4rem)] leading-[0.98] uppercase">
-            Profile data cannot load yet.
+      <main id="main-content" className="mx-auto w-full max-w-[760px]">
+        <section className="panel bg-clay-soft p-10 text-center">
+          <p className="section-label justify-center">Database unavailable</p>
+          <h1 className="mb-3 text-[clamp(1.6rem,4vw,2.4rem)] leading-snug">
+            Your library can&apos;t load right now.
           </h1>
-          <p className="max-w-[38rem] mx-auto font-bold leading-relaxed">
+          <p className="mx-auto max-w-[44ch] leading-relaxed text-ink-soft">
             {getDatabaseErrorMessage(error)} Vercel deployments need a
             production database connection; this repo&apos;s SQLite file setup is
             intended for local development.
           </p>
-          <div className="flex items-center justify-center gap-3.5 flex-wrap mt-7">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
             <Link className="btn btn-primary" href="/">
-              Back to landing
+              Back home
             </Link>
           </div>
         </section>
@@ -203,6 +238,13 @@ export default async function ProfilePage({
             tone: "success" as const,
             message: `Xbox sync finished. ${query.xboxSynced} achievement-history titles refreshed.`,
           }
+      : query.finishedDetected
+        ? {
+            tone: "success" as const,
+            message: `Finished-game detection scanned ${
+              query.finishedScanned ?? "your"
+            } entries and marked ${query.finishedDetected} as finished (credits rolled).`,
+          }
       : query.imported
         ? {
             tone: "success" as const,
@@ -245,129 +287,134 @@ export default async function ProfilePage({
                   }
                 : null;
 
+  const gamesCount =
+    profile.ownedEntries.length + profile.wishlistEntries.length;
+  const railSections = [
+    {
+      tab: "overview",
+      href: "/profile",
+      label: "Overview",
+      hint: "Profile & connections",
+      icon: Armchair,
+      count: null as number | null,
+    },
+    {
+      tab: "games",
+      href: "/profile?tab=games",
+      label: "Games",
+      hint: "Your whole shelf",
+      icon: LibraryBig,
+      count: gamesCount,
+    },
+    {
+      tab: "assistant",
+      href: "/profile?tab=assistant",
+      label: "Assistant",
+      hint: "Gentle suggestions",
+      icon: Sparkles,
+      count: assistant ? assistant.insights.length : null,
+    },
+  ];
+
   return (
-    <main id="main-content" className="w-full max-w-[1200px] mx-auto grid gap-6">
-      {/* ── Profile Hero ── */}
-      <section className="hero-dashed-inset overflow-hidden p-8 bg-gradient-to-br from-yellow/95 to-peach/94 border-3 border-ink rounded-[38px] shadow-hard">
-        {/* Identity row */}
-        <div className="relative z-10 flex items-center gap-5 mb-6 max-sm:flex-col max-sm:items-start">
-          <div className="w-20 h-20 flex-none overflow-hidden border-3 border-ink rounded-[20px] bg-paper shadow-hard-xs grid place-items-center font-display text-3xl hover:scale-105 transition-transform duration-200">
-            {profile.user.avatarUrl ? (
-              <img
-                alt={`${profile.user.displayName ?? "User"} avatar`}
-                src={profile.user.avatarUrl}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span>{(profile.user.displayName ?? "C").slice(0, 1)}</span>
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="section-label !mb-1">Collector profile</p>
-            <h1 className="font-display text-[clamp(1.6rem,4vw,2.8rem)] leading-tight uppercase truncate">
-              {profile.user.displayName ?? "filazo Collector"}
+    <main
+      id="main-content"
+      className="mx-auto grid w-full max-w-[1180px] grid-cols-[260px_minmax(0,1fr)] items-start gap-8 max-lg:grid-cols-1"
+    >
+      {/* ── Identity rail ── */}
+      <aside className="sticky top-6 grid gap-4 self-start max-lg:static">
+        <div className="relative overflow-hidden rounded-[28px] bg-dusk-deep p-6 text-cream">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -right-16 -top-20 h-[200px] w-[200px] rounded-full bg-glow/25 blur-[70px] animate-breathe"
+          />
+          <div className="relative">
+            <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-cream/15 font-display text-2xl ring-2 ring-cream/20">
+              {profile.user.avatarUrl ? (
+                <img
+                  alt={`${profile.user.displayName ?? "User"} avatar`}
+                  src={profile.user.avatarUrl}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span>{(profile.user.displayName ?? "C").slice(0, 1)}</span>
+              )}
+            </div>
+            <h1 className="mt-4 truncate font-display text-xl font-medium">
+              {profile.user.displayName ?? "Player"}
             </h1>
-            <p className="text-ink/60 text-sm mt-1">
-              Steam connected · PlayStation and Xbox CSV ready
+            <p className="mt-1 text-xs leading-relaxed text-cream/55">
+              {formatNumber(profile.ownedEntries.length)} games resting ·{" "}
+              {formatNumber(profile.wishlistEntries.length)} wished for ·{" "}
+              {formatNumber(profile.user.externalAccounts.length)}{" "}
+              {profile.user.externalAccounts.length === 1
+                ? "account"
+                : "accounts"}
             </p>
           </div>
         </div>
 
-        {/* Stats strip */}
-        <div className="relative z-10 grid grid-cols-3 gap-3 max-sm:grid-cols-3">
-          <div className="p-4 bg-paper/90 border-3 border-ink rounded-[18px] text-center">
-            <strong className="block font-display text-[clamp(1.6rem,3vw,2.2rem)] leading-none">
-              {formatNumber(profile.ownedEntries.length)}
-            </strong>
-            <span className="block mt-1.5 text-[0.72rem] uppercase tracking-widest text-ink/70">
-              Owned
-            </span>
-          </div>
-          <div className="p-4 bg-paper/90 border-3 border-ink rounded-[18px] text-center">
-            <strong className="block font-display text-[clamp(1.6rem,3vw,2.2rem)] leading-none">
-              {formatNumber(profile.wishlistEntries.length)}
-            </strong>
-            <span className="block mt-1.5 text-[0.72rem] uppercase tracking-widest text-ink/70">
-              Wishlist
-            </span>
-          </div>
-          <div className="p-4 bg-paper/90 border-3 border-ink rounded-[18px] text-center">
-            <strong className="block font-display text-[clamp(1.6rem,3vw,2.2rem)] leading-none">
-              {formatNumber(profile.user.externalAccounts.length)}
-            </strong>
-            <span className="block mt-1.5 text-[0.72rem] uppercase tracking-widest text-ink/70">
-              Accounts
-            </span>
-          </div>
-        </div>
-      </section>
+        <nav
+          className="grid gap-1 rounded-[28px] border border-edge bg-paper p-2 shadow-hard-xs"
+          aria-label="Profile sections"
+        >
+          {railSections.map(({ tab, href, label, hint, icon: Icon, count }) => (
+            <Link
+              href={href}
+              key={tab}
+              aria-current={activeTab === tab ? "page" : undefined}
+              className={cn(
+                "flex items-center gap-3 rounded-[20px] px-4 py-3 transition-colors duration-200",
+                activeTab === tab
+                  ? "bg-ink text-paper"
+                  : "text-ink-soft hover:bg-bg hover:text-ink",
+              )}
+            >
+              <Icon className="h-4.5 w-4.5 flex-none opacity-80" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold leading-tight">
+                  {label}
+                </span>
+                <span
+                  className={cn(
+                    "block text-[0.7rem] leading-tight",
+                    activeTab === tab ? "text-paper/60" : "text-ink-soft/70",
+                  )}
+                >
+                  {hint}
+                </span>
+              </span>
+              {count !== null ? (
+                <span
+                  className={cn(
+                    "rounded-full px-2 py-0.5 text-[0.68rem] font-bold",
+                    activeTab === tab
+                      ? "bg-paper/20 text-paper"
+                      : "bg-bg text-ink-soft",
+                  )}
+                >
+                  {count}
+                </span>
+              ) : null}
+            </Link>
+          ))}
+        </nav>
 
+        <p className="px-4 text-center font-display text-sm italic text-ink-soft/80 max-lg:hidden">
+          no streaks, no deadlines
+        </p>
+      </aside>
+
+      {/* ── Content column ── */}
+      <div className="grid min-w-0 gap-7">
       {/* ── Status Banner ── */}
       {statusMessage ? (
-        <section
-          role="status"
-          aria-live="polite"
-          className={cn(
-            "p-4 px-[18px] border-3 border-ink rounded-inner font-bold animate-slide-in",
-            statusMessage.tone === "success" && "bg-[#e7ffc2]",
-            statusMessage.tone === "error" && "bg-[#ffd5ca]",
-          )}
-        >
-          {statusMessage.message}
-        </section>
+        <Notice tone={statusMessage.tone}>{statusMessage.message}</Notice>
       ) : null}
 
-      {/* ── Tab Navigation ── */}
-      <nav className="flex gap-2" aria-label="Profile sections">
-        <Link
-          href="/profile"
-          className={cn(
-            "px-5 py-2.5 border-3 border-ink rounded-pill font-bold text-sm uppercase tracking-wide transition-all duration-150",
-            activeTab === "overview"
-              ? "bg-ink text-white shadow-hard-xs"
-              : "bg-paper/80 hover:bg-paper shadow-[2px_2px_0_rgba(21,21,21,0.12)] hover:shadow-hard-xs hover:-translate-y-0.5",
-          )}
-        >
-          Overview
-        </Link>
-        <Link
-          href="/profile?tab=games"
-          className={cn(
-            "px-5 py-2.5 border-3 border-ink rounded-pill font-bold text-sm uppercase tracking-wide transition-all duration-150",
-            activeTab === "games"
-              ? "bg-ink text-white shadow-hard-xs"
-              : "bg-paper/80 hover:bg-paper shadow-[2px_2px_0_rgba(21,21,21,0.12)] hover:shadow-hard-xs hover:-translate-y-0.5",
-          )}
-        >
-          Games
-          <span className="ml-1.5 text-xs opacity-70">
-            {profile.ownedEntries.length + profile.wishlistEntries.length}
-          </span>
-        </Link>
-        <Link
-          href="/profile?tab=assistant"
-          className={cn(
-            "px-5 py-2.5 border-3 border-ink rounded-pill font-bold text-sm uppercase tracking-wide transition-all duration-150",
-            activeTab === "assistant"
-              ? "bg-ink text-white shadow-hard-xs"
-              : "bg-paper/80 hover:bg-paper shadow-[2px_2px_0_rgba(21,21,21,0.12)] hover:shadow-hard-xs hover:-translate-y-0.5",
-          )}
-        >
-          Assistant
-          {assistant ? (
-            <span className="ml-1.5 text-xs opacity-70">
-              {assistant.insights.length}
-            </span>
-          ) : null}
-        </Link>
-      </nav>
-
-      {/* ══════════════════════════════════════════════ */}
       {/* ── OVERVIEW TAB ── */}
-      {/* ══════════════════════════════════════════════ */}
       {activeTab === "overview" ? (
         <>
-          {/* AI Player Profile */}
           <PlayerProfilePanel
             action={generatePlayerProfileAction}
             aiConfigured={Boolean(process.env.OPENAI_API_KEY)}
@@ -379,220 +426,188 @@ export default async function ProfilePage({
 
           {/* Favorite Games */}
           <section className="panel">
-            <div className="flex items-center justify-between gap-3.5 mb-[22px] max-lg:flex-col max-lg:items-start">
-              <div>
-                <span className="section-label">Favorites</span>
-                <h2 className="text-[clamp(1.5rem,3vw,2.2rem)] leading-[1.05]">
-                  Your top picks
-                </h2>
-              </div>
-              <div className="pill">
-                {profile.favoriteEntries.length} favorited
-              </div>
-            </div>
+            <SectionHeader
+              eyebrow="Favorites"
+              title="Games you love"
+              aside={
+                <div className="pill">
+                  {profile.favoriteEntries.length} favorited
+                </div>
+              }
+            />
 
             {profile.favoriteEntries.length ? (
-              <div className="grid grid-cols-4 gap-3.5 max-lg:grid-cols-2 max-sm:grid-cols-1">
+              <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
                 {profile.favoriteEntries.map((entry) => {
                   const remainingTime = estimateRemainingTime(entry);
 
                   return (
                     <div
-                      className="relative group border-3 border-ink rounded-[24px] overflow-hidden bg-gradient-to-b from-peach/20 to-yellow/30 shadow-hard-sm hover:shadow-hard hover:-translate-y-1 transition-all duration-200"
+                      className="card-hover group relative overflow-hidden rounded-card border border-edge bg-paper shadow-hard-xs"
                       key={`fav-${entry.id}`}
                     >
-                    <Link href={`/games/${entry.game.slug}`}>
-                      <div className="aspect-[3/4] overflow-hidden bg-gradient-to-b from-cyan to-yellow">
-                        {entry.game.coverUrl ? (
-                          <img
-                            alt=""
-                            src={entry.game.coverUrl}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="grid place-items-center w-full h-full p-4 font-display text-2xl uppercase text-center">
-                            {entry.game.name}
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-3.5">
-                        <h3 className="font-bold text-sm truncate">
-                          {entry.game.name}
-                        </h3>
-                        <p className="text-xs text-ink/60 mt-1">
-                          {formatPlaytime(
-                            entry.playtimeMinutes,
-                            entry.completionPercent,
+                      <Link href={`/games/${entry.game.slug}`}>
+                        <div className="aspect-[3/4] overflow-hidden bg-sage-soft">
+                          {entry.game.coverUrl ? (
+                            <img
+                              alt=""
+                              src={entry.game.coverUrl}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="grid h-full w-full place-items-center p-4 text-center font-display text-xl">
+                              {entry.game.name}
+                            </div>
                           )}
-                        </p>
-                        {remainingTime ? (
-                          <p
-                            className="text-xs font-bold text-ink/75"
-                            title={`Based on HLTB ${remainingTime.targetLabel}`}
-                          >
-                            {formatRemainingTime(remainingTime.remainingMinutes)}
+                        </div>
+                        <div className="p-3.5">
+                          <h3 className="truncate text-sm font-bold">
+                            {entry.game.name}
+                          </h3>
+                          <p className="mt-1 text-xs text-ink-soft">
+                            {formatPlaytime(
+                              entry.playtimeMinutes,
+                              entry.completionPercent,
+                            )}
                           </p>
-                        ) : null}
-                      </div>
-                    </Link>
-                    <form action={toggleFavoriteAction} className="absolute top-2.5 right-2.5">
-                      <input type="hidden" name="entryId" value={entry.id} />
-                      <button
-                        type="submit"
-                        className="w-9 h-9 grid place-items-center rounded-full bg-paper/90 border-2 border-ink shadow-hard-xs hover:bg-peach hover:text-white transition-colors cursor-pointer"
-                        aria-label={`Remove ${entry.game.name} from favorites`}
-                        title="Remove from favorites"
+                          {remainingTime ? (
+                            <p
+                              className="text-xs font-semibold text-ink-soft"
+                              title={`Based on HLTB ${remainingTime.targetLabel}`}
+                            >
+                              {formatRemainingTime(remainingTime.remainingMinutes)}
+                            </p>
+                          ) : null}
+                        </div>
+                      </Link>
+                      <form
+                        action={toggleFavoriteAction}
+                        className="absolute right-2.5 top-2.5"
                       >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4.5 h-4.5 text-peach">
-                          <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-                        </svg>
-                      </button>
-                    </form>
+                        <input type="hidden" name="entryId" value={entry.id} />
+                        <button
+                          type="submit"
+                          className="grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-paper/90 text-peach shadow-hard-xs transition-colors hover:bg-clay-soft"
+                          aria-label={`Remove ${entry.game.name} from favorites`}
+                          title="Remove from favorites"
+                        >
+                          <HeartIcon filled className="h-4.5 w-4.5" />
+                        </button>
+                      </form>
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="p-7 text-center border-3 border-ink rounded-[30px] bg-paper/95 shadow-hard">
-                <p className="font-bold">No favorites yet.</p>
-                <p className="text-ink/70 leading-relaxed">
-                  Hit the heart icon on any game in your library to pin it here.
-                </p>
-              </div>
+              <EmptyState title="No favorites yet — and that's fine.">
+                Tap the heart on any game whenever one feels special.
+              </EmptyState>
             )}
           </section>
 
-          {/* Steam + import panels */}
-          <section className="grid grid-cols-4 gap-6 max-2xl:grid-cols-2 max-lg:grid-cols-1">
+          {/* Connections + import panels */}
+          <section className="grid grid-cols-2 gap-6 max-lg:grid-cols-1">
             <article className="panel">
-              <div className="flex items-center justify-between gap-3.5 mb-[22px] max-lg:flex-col max-lg:items-start">
-                <div>
-                  <span className="section-label">Steam</span>
-                  <h2 className="text-[clamp(1.5rem,3vw,2.2rem)] leading-[1.05]">
-                    Account and sync
-                  </h2>
-                </div>
-                {profile.steamAccount ? (
-                  <SyncActionForm
-                    action={syncSteamLibraryAction}
-                    buttonLabel="Sync Steam library"
-                    pendingLabel="Syncing Steam..."
-                    pendingNotice="Steam sync is running. Keep this page open until the library refresh finishes."
-                  />
-                ) : (
-                  <a className="btn btn-primary" href="/api/auth/steam">
-                    Connect Steam
-                  </a>
-                )}
-              </div>
+              <SectionHeader
+                eyebrow="Steam"
+                title="Account and sync"
+                aside={
+                  profile.steamAccount ? (
+                    <SyncActionForm
+                      action={syncSteamLibraryAction}
+                      buttonLabel="Sync Steam library"
+                      pendingLabel="Syncing Steam..."
+                      pendingNotice="Steam sync is running. Keep this page open until the library refresh finishes."
+                    />
+                  ) : (
+                    <a className="btn btn-primary" href="/api/auth/steam">
+                      Connect Steam
+                    </a>
+                  )
+                }
+              />
 
-              <div className="grid gap-3.5">
-                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
-                  <span>Status</span>
-                  <strong>
-                    {profile.steamAccount ? "Connected" : "Not connected"}
-                  </strong>
-                </div>
-                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
-                  <span>Steam sync</span>
-                  <strong>
-                    {profile.steamAccount?.lastSyncedAt
-                      ? formatDate(profile.steamAccount.lastSyncedAt)
-                      : "Not synced yet"}
-                  </strong>
-                </div>
-                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
-                  <span>Steam profile</span>
-                  <strong>
-                    {profile.steamAccount?.profileUrl ? (
-                      <a
-                        href={profile.steamAccount.profileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="nav-link"
-                      >
-                        Open profile
-                      </a>
-                    ) : (
-                      "Unavailable"
-                    )}
-                  </strong>
-                </div>
-                <div className="flex items-center justify-between gap-3.5 max-lg:flex-col max-lg:items-start">
-                  <span>Config</span>
-                  <strong>
-                    Steam API {isSteamConfigured() ? "ready" : "missing key"} / IGDB{" "}
-                    {hasIgdbConfig() ? "ready" : "missing keys"}
-                  </strong>
-                </div>
+              <div className="grid gap-3">
+                <ConnectionRow label="Status">
+                  {profile.steamAccount ? "Connected" : "Not connected"}
+                </ConnectionRow>
+                <ConnectionRow label="Last sync">
+                  {profile.steamAccount?.lastSyncedAt
+                    ? formatDate(profile.steamAccount.lastSyncedAt)
+                    : "Not synced yet"}
+                </ConnectionRow>
+                <ConnectionRow label="Steam profile">
+                  {profile.steamAccount?.profileUrl ? (
+                    <a
+                      href={profile.steamAccount.profileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="nav-link"
+                    >
+                      Open profile
+                    </a>
+                  ) : (
+                    "Unavailable"
+                  )}
+                </ConnectionRow>
+                <ConnectionRow label="Config">
+                  Steam API {isSteamConfigured() ? "ready" : "missing key"} ·
+                  IGDB {hasIgdbConfig() ? "ready" : "missing keys"}
+                </ConnectionRow>
               </div>
             </article>
 
             <article className="panel">
-              <div className="flex items-center justify-between gap-3.5 mb-[22px] max-lg:flex-col max-lg:items-start">
-                <div>
-                  <span className="section-label">Xbox</span>
-                  <h2 className="text-[clamp(1.5rem,3vw,2.2rem)] leading-[1.05]">
-                    Achievement sync
-                  </h2>
-                </div>
-                {profile.xboxAccount ? (
-                  <SyncActionForm
-                    action={syncXboxLibraryAction}
-                    buttonLabel="Sync Xbox"
-                    pendingLabel="Syncing Xbox..."
-                    pendingNotice="Xbox sync is running. Keep this page open while achievement-history titles are attached to your catalog."
-                  />
-                ) : isXboxConfigured() ? (
-                  <a className="btn btn-primary" href="/api/auth/xbox">
-                    Connect Xbox
-                  </a>
-                ) : null}
-              </div>
+              <SectionHeader
+                eyebrow="Xbox"
+                title="Achievement sync"
+                aside={
+                  profile.xboxAccount ? (
+                    <SyncActionForm
+                      action={syncXboxLibraryAction}
+                      buttonLabel="Sync Xbox"
+                      pendingLabel="Syncing Xbox..."
+                      pendingNotice="Xbox sync is running. Keep this page open while achievement-history titles are attached to your catalog."
+                    />
+                  ) : isXboxConfigured() ? (
+                    <a className="btn btn-primary" href="/api/auth/xbox">
+                      Connect Xbox
+                    </a>
+                  ) : null
+                }
+              />
 
-              <div className="grid gap-3.5">
-                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
-                  <span>Status</span>
-                  <strong>
-                    {profile.xboxAccount ? "Connected" : "Not connected"}
-                  </strong>
-                </div>
-                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
-                  <span>Xbox sync</span>
-                  <strong>
-                    {profile.xboxAccount?.lastSyncedAt
-                      ? formatDate(profile.xboxAccount.lastSyncedAt)
-                      : "Not synced yet"}
-                  </strong>
-                </div>
+              <div className="grid gap-3">
+                <ConnectionRow label="Status">
+                  {profile.xboxAccount ? "Connected" : "Not connected"}
+                </ConnectionRow>
+                <ConnectionRow label="Last sync">
+                  {profile.xboxAccount?.lastSyncedAt
+                    ? formatDate(profile.xboxAccount.lastSyncedAt)
+                    : "Not synced yet"}
+                </ConnectionRow>
                 {profile.xboxAccount?.profileUrl ? (
-                  <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
-                    <span>Profile</span>
-                    <strong>
-                      <a
-                        href={profile.xboxAccount.profileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="nav-link"
-                      >
-                        Open profile
-                      </a>
-                    </strong>
-                  </div>
+                  <ConnectionRow label="Profile">
+                    <a
+                      href={profile.xboxAccount.profileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="nav-link"
+                    >
+                      Open profile
+                    </a>
+                  </ConnectionRow>
                 ) : null}
-                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
-                  <span>Config</span>
-                  <strong>
-                    OAuth {isXboxConfigured() ? "ready" : "missing client ID"}
-                  </strong>
-                </div>
-                <p className="text-sm text-ink/70 leading-relaxed">
-                  Xbox sync imports titles found through Xbox achievement
-                  history and recent title history. It may miss owned games
-                  without achievement activity.
+                <ConnectionRow label="Config">
+                  OAuth {isXboxConfigured() ? "ready" : "missing client ID"}
+                </ConnectionRow>
+                <p className="text-sm leading-relaxed text-ink-soft">
+                  Xbox sync imports titles found through achievement and recent
+                  title history. It may miss owned games without achievement
+                  activity.
                 </p>
                 {!profile.xboxAccount && !isXboxConfigured() ? (
-                  <p className="text-xs font-bold text-ink/60 leading-relaxed">
+                  <p className="text-xs leading-relaxed text-ink-soft">
                     Set XBOX_CLIENT_ID and XBOX_CLIENT_SECRET to enable
                     Microsoft account sign-in.
                   </p>
@@ -601,67 +616,56 @@ export default async function ProfilePage({
             </article>
 
             <article className="panel">
-              <div className="flex items-center justify-between gap-3.5 mb-[22px] max-lg:flex-col max-lg:items-start">
-                <div>
-                  <span className="section-label">PlayStation</span>
-                  <h2 className="text-[clamp(1.5rem,3vw,2.2rem)] leading-[1.05]">
-                    Played catalog sync
-                  </h2>
-                </div>
-                {profile.playStationAccount ? (
-                  <SyncActionForm
-                    action={syncPlayStationLibraryAction}
-                    buttonLabel="Sync PlayStation"
-                    pendingLabel="Syncing PSN..."
-                    pendingNotice="PlayStation sync is running. Keep this page open while purchased games and trophy titles are attached to your catalog."
-                  />
-                ) : null}
-              </div>
+              <SectionHeader
+                eyebrow="PlayStation"
+                title="Played catalog sync"
+                aside={
+                  profile.playStationAccount ? (
+                    <SyncActionForm
+                      action={syncPlayStationLibraryAction}
+                      buttonLabel="Sync PlayStation"
+                      pendingLabel="Syncing PSN..."
+                      pendingNotice="PlayStation sync is running. Keep this page open while purchased games and trophy titles are attached to your catalog."
+                    />
+                  ) : null
+                }
+              />
 
-              <div className="grid gap-3.5">
-                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
-                  <span>Status</span>
-                  <strong>
-                    {profile.playStationAccount ? "Connected" : "Not connected"}
-                  </strong>
-                </div>
-                <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
-                  <span>PlayStation sync</span>
-                  <strong>
-                    {profile.playStationAccount?.lastSyncedAt
-                      ? formatDate(profile.playStationAccount.lastSyncedAt)
-                      : "Not synced yet"}
-                  </strong>
-                </div>
+              <div className="grid gap-3">
+                <ConnectionRow label="Status">
+                  {profile.playStationAccount ? "Connected" : "Not connected"}
+                </ConnectionRow>
+                <ConnectionRow label="Last sync">
+                  {profile.playStationAccount?.lastSyncedAt
+                    ? formatDate(profile.playStationAccount.lastSyncedAt)
+                    : "Not synced yet"}
+                </ConnectionRow>
                 {profile.playStationAccount?.profileUrl ? (
-                  <div className="flex items-center justify-between gap-3.5 pb-3.5 border-b border-dashed border-ink/25 max-lg:flex-col max-lg:items-start">
-                    <span>Profile</span>
-                    <strong>
-                      <a
-                        href={profile.playStationAccount.profileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="nav-link"
-                      >
-                        Open profile
-                      </a>
-                    </strong>
-                  </div>
+                  <ConnectionRow label="Profile">
+                    <a
+                      href={profile.playStationAccount.profileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="nav-link"
+                    >
+                      Open profile
+                    </a>
+                  </ConnectionRow>
                 ) : null}
                 {profile.playStationAccount ? (
-                  <p className="text-sm text-ink/70 leading-relaxed">
+                  <p className="text-sm leading-relaxed text-ink-soft">
                     Sync imports PS4/PS5 purchased games and fills in trophy
                     progress for titles that appear on your trophy list.
                   </p>
                 ) : (
                   <form action={connectPlayStationAction} className="grid gap-4">
-                    <div className="grid gap-3 border-y border-dashed border-ink/25 py-3.5">
-                      <p className="text-sm font-bold leading-relaxed">
+                    <div className="grid gap-3 border-y border-edge py-3.5">
+                      <p className="text-sm font-semibold leading-relaxed">
                         This sync imports PS4/PS5 purchased games and titles
-                        that appear in your trophy list, then attaches them to
-                        the canonical catalog.
+                        from your trophy list, then attaches them to the
+                        catalog.
                       </p>
-                      <ol className="grid gap-2.5 text-sm text-ink/75 leading-relaxed">
+                      <ol className="grid gap-2.5 text-sm leading-relaxed text-ink-soft">
                         <li>
                           <strong>1.</strong>{" "}
                           <a
@@ -688,22 +692,22 @@ export default async function ProfilePage({
                         </li>
                         <li>
                           <strong>3.</strong> Copy only the value inside{" "}
-                          <code className="rounded-[6px] bg-ink/8 px-1.5 py-0.5 font-mono text-[0.8em]">
+                          <code className="rounded-[6px] bg-bg px-1.5 py-0.5 font-mono text-[0.8em]">
                             npsso
                           </code>
                           , paste it below, then connect.
                         </li>
                       </ol>
-                      <p className="text-xs font-bold text-ink/60 leading-relaxed">
+                      <p className="text-xs leading-relaxed text-ink-soft">
                         Treat NPSSO like a temporary login secret. filazo
                         exchanges it for PlayStation API tokens and does not
                         store the NPSSO itself.
                       </p>
                     </div>
                     <label className="grid gap-2">
-                      <span className="font-medium">NPSSO token</span>
+                      <span className="text-sm font-semibold">NPSSO token</span>
                       <input
-                        className="min-h-11 px-3 border-3 border-ink rounded-[16px] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+                        className="min-h-11 rounded-inner border border-edge bg-paper px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2"
                         name="npsso"
                         type="password"
                         autoComplete="off"
@@ -720,49 +724,46 @@ export default async function ProfilePage({
             </article>
 
             <article className="panel">
-              <div className="flex items-center justify-between gap-3.5 mb-[22px] max-lg:flex-col max-lg:items-start">
-                <div>
-                  <span className="section-label">CSV imports</span>
-                  <h2 className="text-[clamp(1.5rem,3vw,2.2rem)] leading-[1.05]">
-                    Bring in backlog exports
-                  </h2>
-                </div>
-                <div className="pill">
-                  {profile.latestImport
-                    ? `Latest: ${formatDate(profile.latestImport.createdAt)}`
-                    : "No imports yet"}
-                </div>
-              </div>
+              <SectionHeader
+                eyebrow="CSV imports"
+                title="Bring in backlog exports"
+                aside={
+                  <div className="pill">
+                    {profile.latestImport
+                      ? `Latest: ${formatDate(profile.latestImport.createdAt)}`
+                      : "No imports yet"}
+                  </div>
+                }
+              />
               <CsvImportWidget action={importCsvAction} />
             </article>
           </section>
         </>
       ) : null}
 
-      {/* ══════════════════════════════════════════════ */}
-      {/* ── GAMES TAB ── */}
-      {/* ══════════════════════════════════════════════ */}
+      {/* ── ASSISTANT TAB ── */}
       {activeTab === "assistant" && assistant ? (
         <>
-          <section className="flex items-center justify-between gap-4 border-3 border-ink rounded-[22px] bg-cyan/30 px-5 py-4 shadow-hard-xs max-md:flex-col max-md:items-start">
+          <section className="flex items-center justify-between gap-4 rounded-card border border-edge bg-lavender-soft px-6 py-5 shadow-hard-xs max-md:flex-col max-md:items-start">
             <div>
-              <p className="section-label !mb-1">Decision assistant</p>
-              <p className="text-sm font-bold leading-snug">
-                Refresh insights after Steam syncs, CSV imports, or status changes.
+              <p className="section-label !mb-1">Backlog companion</p>
+              <p className="text-sm font-semibold leading-snug">
+                Refresh insights after syncs, imports, or status changes.
               </p>
-              <p className="mt-1 text-xs text-ink/65">
-                AI explanations are optional. Rule-based scoring works without an API key.
+              <p className="mt-1 text-xs text-ink-soft">
+                AI explanations are optional — rule-based suggestions work
+                without an API key.
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-bold">
-                <span className="rounded-full border-2 border-ink bg-paper/90 px-3 py-1">
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-ink-soft">
+                <span className="rounded-full bg-paper px-3 py-1">
                   AI calls left today:{" "}
                   {formatNumber(assistant.aiUsage.effectiveRemainingToday)}
                 </span>
-                <span className="rounded-full border-2 border-ink bg-paper/90 px-3 py-1">
+                <span className="rounded-full bg-paper px-3 py-1">
                   Your use: {formatNumber(assistant.aiUsage.userUsedToday)} /{" "}
                   {formatNumber(assistant.aiUsage.userDailyLimit)}
                 </span>
-                <span className="rounded-full border-2 border-ink bg-paper/90 px-3 py-1">
+                <span className="rounded-full bg-paper px-3 py-1">
                   Next AI refresh:{" "}
                   {assistant.aiUsage.openAiConfigured
                     ? formatAssistantCooldown(
@@ -771,10 +772,6 @@ export default async function ProfilePage({
                     : "API key missing"}
                 </span>
               </div>
-              <p className="mt-2 text-xs text-ink/60">
-                Cached OpenAI picks and rule-only refreshes do not spend AI
-                calls. Library chat messages do.
-              </p>
             </div>
             <form action={refreshAssistantInsightsAction}>
               <button className="btn btn-primary" type="submit">
@@ -789,23 +786,22 @@ export default async function ProfilePage({
           <PlayNextPanel assistant={assistant} />
 
           <section className="panel">
-            <div className="mb-[22px]">
-              <span className="section-label">Buy decision helper</span>
-              <h2 className="text-[clamp(1.5rem,3vw,2.2rem)] leading-[1.05]">
-                Buy, wait, wishlist, or skip
-              </h2>
-            </div>
+            <SectionHeader
+              eyebrow="Thinking of buying?"
+              title="Buy, wait, wishlist, or skip"
+            />
             <BuyDecisionForm />
           </section>
         </>
       ) : null}
 
+      {/* ── GAMES TAB ── */}
       {activeTab === "games" ? (
         <>
           {/* View toggle toolbar */}
           <div className="flex items-center justify-between gap-3 max-md:flex-col max-md:items-start">
             <div>
-              <p className="text-sm text-ink/60">
+              <p className="text-sm text-ink-soft">
                 {gameEntries.length} games
                 {activeSignal ? ` matching ${activeSignal.toLowerCase()}` : ""}
               </p>
@@ -818,8 +814,8 @@ export default async function ProfilePage({
                 </Link>
               ) : null}
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex border-3 border-ink rounded-[14px] overflow-hidden">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex gap-1 rounded-pill border border-edge bg-paper p-1">
                 {[
                   ["added", "Newest"],
                   ["playtime", "Playtime"],
@@ -830,10 +826,10 @@ export default async function ProfilePage({
                       activeSignal ? `&signal=${activeSignal}` : ""
                     }`}
                     className={cn(
-                      "px-3 py-1.5 border-l-3 first:border-l-0 border-ink text-xs font-bold uppercase tracking-wide transition-colors",
+                      "rounded-pill px-3 py-1.5 text-xs font-bold transition-colors",
                       gamesSort === sort
-                        ? "bg-ink text-white"
-                        : "bg-paper/80 hover:bg-paper",
+                        ? "bg-ink text-paper"
+                        : "text-ink-soft hover:bg-bg hover:text-ink",
                     )}
                     key={sort}
                   >
@@ -841,21 +837,21 @@ export default async function ProfilePage({
                   </Link>
                 ))}
               </div>
-              <div className="flex border-3 border-ink rounded-[14px] overflow-hidden">
+              <div className="flex gap-1 rounded-pill border border-edge bg-paper p-1">
                 <Link
                   href={`/profile?tab=games&view=list&sort=${gamesSort}${
                     activeSignal ? `&signal=${activeSignal}` : ""
                   }`}
                   className={cn(
-                    "px-3 py-1.5 grid place-items-center transition-colors",
+                    "grid place-items-center rounded-pill px-3 py-1.5 transition-colors",
                     gamesView === "list"
-                      ? "bg-ink text-white"
-                      : "bg-paper/80 hover:bg-paper",
+                      ? "bg-ink text-paper"
+                      : "text-ink-soft hover:bg-bg hover:text-ink",
                   )}
                   aria-label="List view"
                   title="List view"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4.5 h-4.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4.5 w-4.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" />
                   </svg>
                 </Link>
@@ -864,15 +860,15 @@ export default async function ProfilePage({
                     activeSignal ? `&signal=${activeSignal}` : ""
                   }`}
                   className={cn(
-                    "px-3 py-1.5 grid place-items-center transition-colors border-l-3 border-ink",
+                    "grid place-items-center rounded-pill px-3 py-1.5 transition-colors",
                     gamesView === "grid"
-                      ? "bg-ink text-white"
-                      : "bg-paper/80 hover:bg-paper",
+                      ? "bg-ink text-paper"
+                      : "text-ink-soft hover:bg-bg hover:text-ink",
                   )}
                   aria-label="Grid view"
                   title="Grid view"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4.5 h-4.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="h-4.5 w-4.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                   </svg>
                 </Link>
@@ -880,14 +876,14 @@ export default async function ProfilePage({
             </div>
           </div>
 
-          <section className="flex items-center justify-between gap-4 border-3 border-ink rounded-[22px] bg-yellow/35 px-5 py-4 shadow-hard-xs max-md:flex-col max-md:items-start">
+          <section className="flex items-center justify-between gap-4 rounded-card border border-edge bg-sand-soft px-6 py-5 shadow-hard-xs max-md:flex-col max-md:items-start">
             <div>
               <p className="section-label !mb-1">Sync reminder</p>
-              <p className="text-sm font-bold leading-snug">
-                Steam playtime, last played, and completion only refresh after
-                a library sync.
+              <p className="text-sm font-semibold leading-snug">
+                Playtime, last played, and completion refresh after a library
+                sync.
               </p>
-              <p className="mt-1 text-xs text-ink/65">
+              <p className="mt-1 text-xs text-ink-soft">
                 Last sync:{" "}
                 {profile.steamAccount?.lastSyncedAt
                   ? formatDate(profile.steamAccount.lastSyncedAt)
@@ -908,80 +904,97 @@ export default async function ProfilePage({
             )}
           </section>
 
+          <section className="flex items-center justify-between gap-4 rounded-card border border-edge bg-lavender-soft px-6 py-5 shadow-hard-xs max-md:flex-col max-md:items-start">
+            <div>
+              <p className="section-label !mb-1">Finished games</p>
+              <p className="text-sm font-semibold leading-snug">
+                A game is finished when the credits roll — not at 100%
+                achievements.
+              </p>
+              <p className="mt-1 text-xs text-ink-soft">
+                Detection looks for each game&apos;s story-completion
+                achievement or trophy on Steam and PlayStation and marks the
+                ones you already unlocked.
+              </p>
+            </div>
+            {profile.steamAccount || profile.playStationAccount ? (
+              <SyncActionForm
+                action={detectFinishedGamesAction}
+                buttonLabel="Detect finished games"
+                pendingLabel="Detecting..."
+                pendingNotice="Checking story-completion achievements. Large libraries can take a few minutes; keep this page open."
+              />
+            ) : (
+              <p className="text-xs font-semibold text-ink-soft">
+                Connect Steam or PlayStation to use detection.
+              </p>
+            )}
+          </section>
+
           {/* ── List View ── */}
           {gamesView === "list" ? (
             <section className="panel !p-0 overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-[1fr_minmax(0,0.32fr)_minmax(0,0.32fr)_minmax(0,0.36fr)_minmax(0,0.36fr)_minmax(0,0.38fr)_minmax(0,0.38fr)_44px] gap-3 px-5 py-3 bg-ink text-white text-[0.72rem] font-bold uppercase tracking-widest max-md:grid-cols-[1fr_minmax(0,0.5fr)_44px] max-md:gap-2">
+              <div className="grid grid-cols-[1fr_minmax(0,0.32fr)_minmax(0,0.32fr)_minmax(0,0.36fr)_minmax(0,0.36fr)_minmax(0,0.38fr)_minmax(0,0.38fr)_44px] gap-3 border-b border-edge bg-bg px-5 py-3 text-[0.7rem] font-bold uppercase tracking-[0.12em] text-ink-soft max-md:grid-cols-[1fr_minmax(0,0.5fr)_44px] max-md:gap-2">
                 <span>Title</span>
                 <span>Platform</span>
                 <span className="max-md:hidden">Status</span>
                 <span className="max-md:hidden">Playtime</span>
                 <span className="max-md:hidden">Time left</span>
                 <span className="max-md:hidden">Last played</span>
-                <span className="max-md:hidden">Completion</span>
+                <span className="max-md:hidden">Achievements</span>
                 <span className="sr-only">Favorite</span>
               </div>
 
               {gameEntries.length ? (
-                <div className="divide-y divide-ink/10">
+                <div className="divide-y divide-edge">
                   {gameEntries.map(
                     (entry) => {
                       const remainingTime = estimateRemainingTime(entry);
 
                       return (
                       <div
-                        className="grid scroll-mt-6 grid-cols-[1fr_minmax(0,0.32fr)_minmax(0,0.32fr)_minmax(0,0.36fr)_minmax(0,0.36fr)_minmax(0,0.38fr)_minmax(0,0.38fr)_44px] gap-3 px-5 py-2.5 items-center hover:bg-yellow/10 target:bg-cyan/20 transition-colors max-md:grid-cols-[1fr_minmax(0,0.5fr)_44px] max-md:gap-2"
+                        className="grid scroll-mt-6 grid-cols-[1fr_minmax(0,0.32fr)_minmax(0,0.32fr)_minmax(0,0.36fr)_minmax(0,0.36fr)_minmax(0,0.38fr)_minmax(0,0.38fr)_44px] items-center gap-3 px-5 py-2.5 transition-colors hover:bg-bg target:bg-blue-soft max-md:grid-cols-[1fr_minmax(0,0.5fr)_44px] max-md:gap-2"
                         id={`entry-${entry.id}`}
                         key={`list-${entry.id}`}
                       >
                         <Link
                           href={`/games/${entry.game.slug}`}
-                          className="flex items-center gap-3 min-w-0"
+                          className="flex min-w-0 items-center gap-3"
                         >
-                          <div className="w-10 h-10 flex-none rounded-[10px] overflow-hidden border-2 border-ink/20 bg-gradient-to-b from-cyan/40 to-yellow/40">
+                          <div className="h-10 w-10 flex-none overflow-hidden rounded-[10px] bg-sage-soft">
                             {entry.game.coverUrl ? (
                               <img
                                 alt=""
                                 src={entry.game.coverUrl}
-                                className="w-full h-full object-cover"
+                                className="h-full w-full object-cover"
                               />
                             ) : (
-                              <div className="grid place-items-center w-full h-full font-display text-[0.6rem] uppercase">
+                              <div className="grid h-full w-full place-items-center font-display text-[0.6rem]">
                                 {entry.game.name.slice(0, 2)}
                               </div>
                             )}
                           </div>
-                          <span className="font-semibold text-sm truncate hover:text-peach transition-colors">
+                          <span className="truncate text-sm font-semibold transition-colors hover:text-peach">
                             {entry.game.name}
                           </span>
                         </Link>
 
-                        <span className="text-xs text-ink/60 truncate">
+                        <span className="truncate text-xs text-ink-soft">
                           {entry.platformName ?? "—"}
                         </span>
 
                         <span className="max-md:hidden">
-                          <span
-                            className={cn(
-                              "inline-block px-2.5 py-0.5 rounded-full text-[0.68rem] font-bold uppercase tracking-wide border-2",
-                              entry.status === "OWNED" &&
-                                "bg-lime/40 border-lime text-ink",
-                              entry.status === "WISHLIST" &&
-                                "bg-yellow/40 border-yellow text-ink",
-                              entry.status === "PLAYING" &&
-                                "bg-cyan/40 border-cyan text-ink",
-                              entry.status === "COMPLETED" &&
-                                "bg-peach/30 border-peach text-ink",
-                              entry.status === "BACKLOG" &&
-                                "bg-paper border-ink/20 text-ink/60",
-                            )}
-                          >
-                            {entry.status.toLowerCase()}
-                          </span>
+                          <StatusBadge
+                            status={
+                              entry.finishedAt && entry.status !== "COMPLETED"
+                                ? "FINISHED"
+                                : entry.status
+                            }
+                          />
                         </span>
 
-                        <span className="text-xs text-ink/60 max-md:hidden">
+                        <span className="text-xs text-ink-soft max-md:hidden">
                           {formatPlaytime(
                             entry.playtimeMinutes,
                             entry.completionPercent,
@@ -989,7 +1002,7 @@ export default async function ProfilePage({
                         </span>
 
                         <span
-                          className="text-xs font-bold text-ink/70 max-md:hidden"
+                          className="text-xs font-semibold text-ink-soft max-md:hidden"
                           title={
                             remainingTime
                               ? `Based on HLTB ${remainingTime.targetLabel}`
@@ -1001,14 +1014,14 @@ export default async function ProfilePage({
                             : "Unknown"}
                         </span>
 
-                        <span className="text-xs text-ink/60 max-md:hidden">
+                        <span className="text-xs text-ink-soft max-md:hidden">
                           {formatLastPlayed(
                             entry.lastPlayedAt,
                             entry.completionPercent,
                           )}
                         </span>
 
-                        <span className="text-xs text-ink/60 max-md:hidden">
+                        <span className="text-xs text-ink-soft max-md:hidden">
                           <span className="flex items-center gap-1.5">
                             {formatCompletionPercent(entry.completionPercent)}
                             {entry.provider === "STEAM" ? (
@@ -1021,7 +1034,7 @@ export default async function ProfilePage({
                           <input type="hidden" name="entryId" value={entry.id} />
                           <button
                             type="submit"
-                            className="w-8 h-8 grid place-items-center rounded-full hover:bg-peach/15 transition-colors cursor-pointer"
+                            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full transition-colors hover:bg-clay-soft"
                             aria-label={
                               entry.isFavorite
                                 ? `Remove ${entry.game.name} from favorites`
@@ -1033,15 +1046,13 @@ export default async function ProfilePage({
                                 : "Add to favorites"
                             }
                           >
-                            {entry.isFavorite ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-peach">
-                                <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-                              </svg>
-                            ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-ink/25">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                              </svg>
-                            )}
+                            <HeartIcon
+                              filled={Boolean(entry.isFavorite)}
+                              className={cn(
+                                "h-4 w-4",
+                                entry.isFavorite ? "text-peach" : "text-edge",
+                              )}
+                            />
                           </button>
                         </form>
                       </div>
@@ -1051,9 +1062,10 @@ export default async function ProfilePage({
                 </div>
               ) : (
                 <div className="p-10 text-center">
-                  <p className="font-bold">No games in your library yet.</p>
-                  <p className="text-ink/70 leading-relaxed mt-1">
-                    Sync Steam or import a CSV from the Overview tab.
+                  <p className="font-display text-lg">Nothing here yet.</p>
+                  <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+                    Sync Steam or import a CSV from the Overview tab whenever
+                    you&apos;re ready.
                   </p>
                 </div>
               )}
@@ -1071,46 +1083,39 @@ export default async function ProfilePage({
 
                       return (
                       <div
-                        className="group relative scroll-mt-6 rounded-[20px] overflow-hidden border-3 border-ink bg-white shadow-hard-sm target:bg-cyan/20 hover:shadow-hard hover:-translate-y-1.5 transition-all duration-200"
+                        className="card-hover group relative scroll-mt-6 overflow-hidden rounded-card border border-edge bg-paper shadow-hard-xs target:ring-2 target:ring-cyan"
                         id={`entry-${entry.id}`}
                         key={`grid-${entry.id}`}
                       >
                         {/* Cover art */}
                         <Link href={`/games/${entry.game.slug}`}>
-                          <div className="aspect-[3/4] overflow-hidden bg-ink/5 flex items-center justify-center">
+                          <div className="flex aspect-[3/4] items-center justify-center overflow-hidden bg-sage-soft">
                             {entry.game.coverUrl ? (
                               <img
                                 alt={entry.game.name}
                                 src={entry.game.coverUrl}
-                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                               />
                             ) : (
-                              <div className="grid place-items-center w-full h-full p-3 font-display text-lg uppercase text-center text-ink/50 bg-gradient-to-b from-cyan/30 to-yellow/30">
+                              <div className="grid h-full w-full place-items-center p-3 text-center font-display text-lg text-ink-soft">
                                 {entry.game.name}
                               </div>
                             )}
                           </div>
 
                           {/* Info overlay at bottom of cover */}
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/80 via-ink/50 to-transparent pt-10 pb-3 px-3">
-                            <h3 className="font-bold text-sm text-white leading-snug line-clamp-2">
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/75 via-ink/45 to-transparent px-3 pb-3 pt-10">
+                            <h3 className="line-clamp-2 text-sm font-bold leading-snug text-paper">
                               {entry.game.name}
                             </h3>
-                            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                              <span
-                                className={cn(
-                                  "inline-block px-2 py-px rounded-full text-[0.6rem] font-bold uppercase tracking-wide",
-                                  entry.status === "OWNED" && "bg-lime/80 text-ink",
-                                  entry.status === "WISHLIST" && "bg-yellow/80 text-ink",
-                                  entry.status === "PLAYING" && "bg-cyan/80 text-ink",
-                                  entry.status === "COMPLETED" && "bg-peach/80 text-ink",
-                                  entry.status === "BACKLOG" && "bg-white/60 text-ink",
-                                )}
-                              >
-                                {entry.status.toLowerCase()}
+                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                              <span className="inline-block rounded-full bg-paper/85 px-2 py-px text-[0.62rem] font-bold lowercase tracking-wide text-ink">
+                                {entry.finishedAt && entry.status !== "COMPLETED"
+                                  ? "finished"
+                                  : entry.status.toLowerCase()}
                               </span>
                               {entry.playtimeMinutes && entry.playtimeMinutes > 0 ? (
-                                <span className="text-[0.65rem] text-white/70">
+                                <span className="text-[0.65rem] text-paper/75">
                                   {formatPlaytime(
                                     entry.playtimeMinutes,
                                     entry.completionPercent,
@@ -1119,7 +1124,7 @@ export default async function ProfilePage({
                               ) : null}
                               {remainingTime ? (
                                 <span
-                                  className="rounded-full bg-white/15 px-2 py-px text-[0.65rem] font-bold text-white/85"
+                                  className="rounded-full bg-paper/20 px-2 py-px text-[0.65rem] font-semibold text-paper/90"
                                   title={`Based on HLTB ${remainingTime.targetLabel}`}
                                 >
                                   {formatRemainingTime(
@@ -1128,7 +1133,7 @@ export default async function ProfilePage({
                                 </span>
                               ) : null}
                               {entry.lastPlayedAt ? (
-                                <span className="text-[0.65rem] text-white/70">
+                                <span className="text-[0.65rem] text-paper/75">
                                   {formatLastPlayed(
                                     entry.lastPlayedAt,
                                     entry.completionPercent,
@@ -1136,14 +1141,14 @@ export default async function ProfilePage({
                                 </span>
                               ) : null}
                               {entry.completionPercent != null ? (
-                                <span className="flex items-center gap-1 text-[0.65rem] text-white/70">
-                                  {entry.completionPercent}% complete
+                                <span className="flex items-center gap-1 text-[0.65rem] text-paper/75">
+                                  {entry.completionPercent}% achievements
                                   {entry.provider === "STEAM" ? (
                                     <SteamCompletionInfoIcon />
                                   ) : null}
                                 </span>
                               ) : entry.provider === "STEAM" ? (
-                                <span className="flex items-center gap-1 text-[0.65rem] text-white/70">
+                                <span className="flex items-center gap-1 text-[0.65rem] text-paper/75">
                                   Not tracked
                                   <SteamCompletionInfoIcon />
                                 </span>
@@ -1153,15 +1158,15 @@ export default async function ProfilePage({
                         </Link>
 
                         {/* Favorite button */}
-                        <form action={toggleFavoriteAction} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                        <form action={toggleFavoriteAction} className="absolute right-2 top-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                           <input type="hidden" name="entryId" value={entry.id} />
                           <button
                             type="submit"
                             className={cn(
-                              "w-8 h-8 grid place-items-center rounded-full border-2 shadow-sm backdrop-blur-sm transition-colors cursor-pointer",
+                              "grid h-8 w-8 cursor-pointer place-items-center rounded-full shadow-hard-xs backdrop-blur-sm transition-colors",
                               entry.isFavorite
-                                ? "bg-peach/90 border-white/50 text-white opacity-100!"
-                                : "bg-ink/40 border-white/30 text-white hover:bg-peach/80",
+                                ? "bg-peach text-paper opacity-100!"
+                                : "bg-ink/35 text-paper hover:bg-peach/85",
                             )}
                             aria-label={
                               entry.isFavorite
@@ -1174,15 +1179,10 @@ export default async function ProfilePage({
                                 : "Add to favorites"
                             }
                           >
-                            {entry.isFavorite ? (
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3.5 h-3.5">
-                                <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z" />
-                              </svg>
-                            ) : (
-                              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                              </svg>
-                            )}
+                            <HeartIcon
+                              filled={Boolean(entry.isFavorite)}
+                              className="h-3.5 w-3.5"
+                            />
                           </button>
                         </form>
                       </div>
@@ -1191,17 +1191,16 @@ export default async function ProfilePage({
                   )}
                 </div>
               ) : (
-                <div className="panel p-10 text-center">
-                  <p className="font-bold">No games in your library yet.</p>
-                  <p className="text-ink/70 leading-relaxed mt-1">
-                    Sync Steam or import a CSV from the Overview tab.
-                  </p>
-                </div>
+                <EmptyState title="Nothing here yet.">
+                  Sync Steam or import a CSV from the Overview tab whenever
+                  you&apos;re ready.
+                </EmptyState>
               )}
             </section>
           ) : null}
         </>
       ) : null}
+      </div>
     </main>
   );
 }

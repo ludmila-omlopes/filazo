@@ -13,6 +13,7 @@ import {
 import { connectPlayStationAccountForUser } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
+import { detectFinishedGamesForUser } from "@/lib/story-completion";
 
 const importSchema = z.object({
   fileName: z.string().min(1),
@@ -158,6 +159,66 @@ export async function importCsvAction(formData: FormData) {
   revalidatePath("/profile");
   revalidatePath("/");
   redirect(`/profile?imported=${importedCount}`);
+}
+
+export async function detectFinishedGamesAction() {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/profile?error=Sign%20in%20before%20detecting%20finished%20games.");
+  }
+
+  let finishedCount: number;
+  let scannedCount: number;
+  try {
+    const result = await detectFinishedGamesForUser(userId);
+    finishedCount = result.finishedCount;
+    scannedCount = result.scannedCount;
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Finished-game detection failed.";
+    redirect(`/profile?error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect(`/profile?finishedDetected=${finishedCount}&finishedScanned=${scannedCount}`);
+}
+
+export async function markFinishedAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return;
+  }
+
+  const entryId = formData.get("entryId");
+  if (typeof entryId !== "string" || !entryId) {
+    return;
+  }
+
+  const entry = await prisma.userGameEntry.findUnique({
+    where: { id: entryId },
+  });
+
+  if (!entry || entry.userId !== userId) {
+    return;
+  }
+
+  await prisma.userGameEntry.update({
+    where: { id: entryId },
+    data: entry.finishedAt
+      ? { finishedAt: null, finishedSource: null }
+      : { finishedAt: new Date(), finishedSource: "manual" },
+  });
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+
+  const slug = formData.get("slug");
+  if (typeof slug === "string" && slug) {
+    revalidatePath(`/games/${slug}`);
+  }
 }
 
 export async function toggleFavoriteAction(formData: FormData) {

@@ -71,6 +71,10 @@ db.exec(`
     "providerGameId" TEXT NOT NULL,
     "storeUrl" TEXT,
     "rawData" TEXT,
+    "storyAchievementId" TEXT,
+    "storyAchievementName" TEXT,
+    "storyAchievementSource" TEXT,
+    "storyAchievementCheckedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY ("gameId") REFERENCES "Game"("id") ON DELETE CASCADE ON UPDATE CASCADE
@@ -88,6 +92,8 @@ db.exec(`
     "playtimeMinutes" INTEGER,
     "lastPlayedAt" DATETIME,
     "completionPercent" INTEGER,
+    "finishedAt" DATETIME,
+    "finishedSource" TEXT,
     "notes" TEXT,
     "isFavorite" BOOLEAN NOT NULL DEFAULT false,
     "startedAt" DATETIME,
@@ -221,6 +227,12 @@ addColumnIfMissing("UserGameEntry", "abandonReason", "TEXT");
 addColumnIfMissing("UserGameEntry", "activeBacklog", "BOOLEAN NOT NULL DEFAULT true");
 addColumnIfMissing("UserGameEntry", "userIntent", "TEXT");
 addColumnIfMissing("UserGameEntry", "desiredSessionMin", "INTEGER");
+addColumnIfMissing("UserGameEntry", "finishedAt", "DATETIME");
+addColumnIfMissing("UserGameEntry", "finishedSource", "TEXT");
+addColumnIfMissing("GameProviderLink", "storyAchievementId", "TEXT");
+addColumnIfMissing("GameProviderLink", "storyAchievementName", "TEXT");
+addColumnIfMissing("GameProviderLink", "storyAchievementSource", "TEXT");
+addColumnIfMissing("GameProviderLink", "storyAchievementCheckedAt", "DATETIME");
 addColumnIfMissing("ImportRow", "completionPercent", "INTEGER");
 addColumnIfMissing("Game", "hltbMainStoryMinutes", "INTEGER");
 addColumnIfMissing("Game", "hltbMainExtraMinutes", "INTEGER");

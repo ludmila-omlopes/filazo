@@ -85,6 +85,7 @@ function toAssistantEntry(
     playtimeMinutes: entry.playtimeMinutes,
     lastPlayedAt: entry.lastPlayedAt,
     completionPercent: entry.completionPercent,
+    finishedAt: entry.finishedAt,
     isFavorite: entry.isFavorite,
     activeBacklog: entry.activeBacklog,
     createdAt: entry.createdAt,

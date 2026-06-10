@@ -161,8 +161,8 @@ export function CsvImportWidget({
   return (
     <div className="grid gap-[18px]">
       {/* File upload zone */}
-      <div className="p-[18px] border-2 border-dashed border-ink/35 rounded-[24px] bg-white/60">
-        <label className="block mb-3 font-bold" htmlFor="csv-upload">
+      <div className="rounded-card border border-dashed border-edge bg-bg/60 p-[18px]">
+        <label className="mb-3 block font-semibold" htmlFor="csv-upload">
           Drop in a CSV export
         </label>
         <input
@@ -170,9 +170,9 @@ export function CsvImportWidget({
           type="file"
           accept=".csv,text/csv"
           onChange={handleFileChange}
-          className="w-full file:mr-3 file:px-4 file:py-2 file:border-3 file:border-ink file:rounded-pill file:bg-yellow file:font-bold file:cursor-pointer hover:file:bg-peach file:transition-colors"
+          className="w-full file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sage-soft file:px-4 file:py-2 file:font-semibold file:transition-colors hover:file:bg-sand-soft"
         />
-        <p className="text-ink/70 mt-2 text-sm leading-relaxed">
+        <p className="mt-2 text-sm leading-relaxed text-ink-soft">
           Supports generic, PlayStation, and Xbox exports. We will map your
           columns before import.
         </p>
@@ -180,7 +180,7 @@ export function CsvImportWidget({
 
       {/* Error display */}
       {error ? (
-        <p className="text-[#9b1f00] font-bold" aria-live="assertive">
+        <p className="font-semibold text-peach" aria-live="assertive">
           {error}
         </p>
       ) : null}
@@ -199,7 +199,7 @@ export function CsvImportWidget({
               onChange={(event) =>
                 setSource(event.target.value as ImportSource)
               }
-              className="min-h-11 px-3 border-3 border-ink rounded-[16px] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+              className="min-h-11 rounded-inner border border-edge bg-paper px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2"
             >
               <option value="GENERIC">Generic CSV</option>
               <option value="PLAYSTATION">PlayStation CSV</option>
@@ -223,7 +223,7 @@ export function CsvImportWidget({
                       [field.key]: event.target.value,
                     }))
                   }
-                  className="min-h-11 px-3 border-3 border-ink rounded-[16px] bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+                  className="min-h-11 rounded-inner border border-edge bg-paper px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2"
                 >
                   <option value="">Not mapped</option>
                   {headers.map((header) => (
@@ -239,7 +239,7 @@ export function CsvImportWidget({
           <div className="grid gap-2.5" aria-live="polite">
             <div className="section-label">Preview</div>
             {source !== "GENERIC" ? (
-              <p className="text-sm font-bold text-ink/70">
+              <p className="text-sm font-semibold text-ink-soft">
                 {sourceLabel} rows will be attached as {sourceLabel} provider
                 entries. External IDs are used as provider links when mapped.
               </p>
@@ -247,7 +247,7 @@ export function CsvImportWidget({
             {previewRows.length ? (
               previewRows.map((row, index) => (
                 <div
-                  className="grid grid-cols-[minmax(0,1.3fr)_repeat(4,minmax(0,1fr))] items-center gap-3.5 border-3 border-ink rounded-[24px] p-5 bg-white shadow-hard-sm max-md:grid-cols-2"
+                  className="grid grid-cols-[minmax(0,1.3fr)_repeat(4,minmax(0,1fr))] items-center gap-3.5 rounded-card border border-edge bg-paper p-4 shadow-hard-xs max-md:grid-cols-2"
                   key={`${row.title}-${index}`}
                 >
                   <strong>{row.title}</strong>
@@ -258,7 +258,7 @@ export function CsvImportWidget({
                 </div>
               ))
             ) : (
-              <p className="text-ink/70 leading-relaxed">
+              <p className="leading-relaxed text-ink-soft">
                 Map the title column to preview the normalized rows.
               </p>
             )}

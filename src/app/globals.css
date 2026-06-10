@@ -1,31 +1,105 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-/* ── Theme tokens ── */
+/* ── shadcn/ui variables, mapped onto the calm filazo palette ── */
+:root {
+  --background: #faf7f1;
+  --foreground: #3f443c;
+  --card: #fffdf9;
+  --card-foreground: #3f443c;
+  --popover: #fffdf9;
+  --popover-foreground: #3f443c;
+  --primary: #3f443c;
+  --primary-foreground: #fffdf9;
+  --secondary: #eef3ea;
+  --secondary-foreground: #3f443c;
+  --muted: #f1ece1;
+  --muted-foreground: #6f7468;
+  --accent: #eaf0f5;
+  --accent-foreground: #3f443c;
+  --destructive: #b56a52;
+  --border: #e9e2d4;
+  --input: #e9e2d4;
+  --ring: #9ab88e;
+  --radius: 1rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ── Theme tokens ─────────────────────────────────────────────
+   Calm, soft-minimal palette designed to lower backlog anxiety:
+   warm cream canvas, sage / dusty-blue / clay accents, hairline
+   borders, and diffuse shadows. Legacy token names (peach, lime,
+   cyan, yellow, shadow-hard*) are kept but remapped so every
+   surface inherits the calmer hues. */
 @theme {
-  --color-bg: #f4f0ff;
-  --color-ink: #151515;
-  --color-paper: #ffffff;
-  --color-peach: #ff6fa5;
-  --color-lime: #b6f36b;
-  --color-cyan: #58c7f3;
-  --color-yellow: #ffd93d;
+  --color-bg: #faf7f1;
+  --color-ink: #3f443c;
+  --color-ink-soft: #6f7468;
+  --color-paper: #fffdf9;
+  --color-edge: #e9e2d4;
 
-  --font-display: "Bungee", cursive;
-  --font-body: "Space Grotesk", sans-serif;
+  /* Accent hues (legacy names, calm values) */
+  --color-peach: #c98d76; /* soft clay — warmth, hearts, hover */
+  --color-lime: #9ab88e; /* sage — positive, owned, growth */
+  --color-cyan: #92aec6; /* dusty blue — info, playing */
+  --color-yellow: #e4d3ac; /* warm sand — highlights, wishlist */
+  --color-lavender: #b3a8cd; /* dusk — assistant, reflective */
 
-  --radius-card: 28px;
+  /* Dusk palette — atmospheric surfaces (landing hero, night sections) */
+  --color-dusk: #2e3831;
+  --color-dusk-deep: #222b25;
+  --color-dusk-mist: #46544b;
+  --color-glow: #e3c08d; /* lamp light */
+  --color-cream: #f6f1e6;
+
+  /* Soft tints for fills */
+  --color-sage-soft: #eef3ea;
+  --color-blue-soft: #eaf0f5;
+  --color-sand-soft: #f7f0e0;
+  --color-clay-soft: #f7eae3;
+  --color-lavender-soft: #f0edf6;
+
+  --font-display: "Fraunces", "Georgia", serif;
+  --font-body: "Nunito Sans", "Segoe UI", sans-serif;
+
+  --radius-card: 24px;
   --radius-pill: 999px;
-  --radius-inner: 22px;
+  --radius-inner: 18px;
 
-  --shadow-hard: 10px 10px 0 var(--color-ink);
-  --shadow-hard-sm: 8px 8px 0 rgba(21, 21, 21, 0.12);
-  --shadow-hard-xs: 4px 4px 0 var(--color-ink);
-  --shadow-soft: 0 30px 70px rgba(21, 21, 21, 0.12);
-  --shadow-header: 0 10px 0 rgba(21, 21, 21, 0.12);
-  --shadow-btn-primary: 4px 4px 0 rgba(255, 249, 239, 0.85);
-  --shadow-btn-primary-hover: 6px 6px 0 rgba(255, 249, 239, 0.85);
-  --shadow-btn-ghost: 4px 4px 0 rgba(21, 21, 21, 0.18);
-  --shadow-btn-ghost-hover: 6px 6px 0 rgba(21, 21, 21, 0.18);
+  /* Legacy shadow names remapped to soft, diffuse light */
+  --shadow-hard: 0 20px 44px rgba(63, 68, 60, 0.09);
+  --shadow-hard-sm: 0 10px 28px rgba(63, 68, 60, 0.07);
+  --shadow-hard-xs: 0 3px 10px rgba(63, 68, 60, 0.07);
+  --shadow-soft: 0 14px 36px rgba(63, 68, 60, 0.06);
+  --shadow-header: 0 8px 24px rgba(63, 68, 60, 0.05);
+  --shadow-btn-primary: 0 6px 18px rgba(63, 68, 60, 0.18);
+  --shadow-btn-primary-hover: 0 10px 24px rgba(63, 68, 60, 0.22);
+  --shadow-btn-ghost: 0 3px 10px rgba(63, 68, 60, 0.06);
+  --shadow-btn-ghost-hover: 0 6px 16px rgba(63, 68, 60, 0.1);
 }
 
 /* ── Base layer ── */
@@ -40,12 +114,20 @@
   body {
     color: var(--color-ink);
     background:
-      radial-gradient(circle at top left, rgba(182, 243, 107, 0.5), transparent 26%),
-      radial-gradient(circle at top right, rgba(88, 199, 243, 0.45), transparent 30%),
-      linear-gradient(180deg, #fbf6ff 0%, var(--color-bg) 54%, #e9e0ff 100%);
+      radial-gradient(circle at 12% -4%, rgba(154, 184, 142, 0.12), transparent 36%),
+      radial-gradient(circle at 92% 0%, rgba(146, 174, 198, 0.12), transparent 34%),
+      linear-gradient(180deg, #fbf8f3 0%, var(--color-bg) 60%, #f4efe5 100%);
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 500;
+    letter-spacing: -0.01em;
   }
 
   a {
@@ -67,25 +149,6 @@
 }
 
 /* ── Keyframe animations ── */
-@keyframes float-card {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-10px) rotate(1deg);
-  }
-}
-
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-110%);
-  }
-}
-
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -98,7 +161,7 @@
 @keyframes scale-in {
   from {
     opacity: 0;
-    transform: scale(0.92);
+    transform: scale(0.96);
   }
   to {
     opacity: 1;
@@ -109,7 +172,7 @@
 @keyframes slide-in-top {
   from {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-6px);
   }
   to {
     opacity: 1;
@@ -117,29 +180,61 @@
   }
 }
 
-/* ── Custom utilities ── */
-@utility animate-float-card {
-  animation: float-card 5s ease-in-out infinite;
-}
-
-@utility animate-marquee {
-  animation: marquee 18s linear infinite;
-}
-
-@utility animate-slide-in {
-  animation: slide-in-top 0.3s ease-out;
-}
-
-@utility hero-dashed-inset {
-  position: relative;
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 18px;
-    border: 2px dashed rgba(21, 21, 21, 0.45);
-    border-radius: 30px;
-    pointer-events: none;
+@keyframes drift {
+  0%,
+  100% {
+    transform: translateY(0);
   }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Slow inhale/exhale for ambient glow orbs */
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.85;
+  }
+}
+
+@keyframes drift-slow {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--card-tilt, 0deg));
+  }
+  50% {
+    transform: translateY(-9px) rotate(var(--card-tilt, 0deg));
+  }
+}
+
+/* ── Custom utilities ── */
+@utility animate-slide-in {
+  animation: slide-in-top 0.4s ease-out;
+}
+
+@utility animate-drift {
+  animation: drift 7s ease-in-out infinite;
+}
+
+@utility animate-breathe {
+  animation: breathe 9s ease-in-out infinite;
+}
+
+@utility animate-drift-slow {
+  animation: drift-slow 8s ease-in-out infinite;
+}
+
+/* Editorial serif accent — italic Fraunces for emotional emphasis */
+@utility serif-accent {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
 }
 
 @utility btn {
@@ -147,73 +242,77 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 48px;
-  padding: 0 18px;
-  border: 3px solid var(--color-ink);
+  min-height: 46px;
+  padding: 0 22px;
+  border: 1px solid transparent;
   border-radius: 999px;
   font-weight: 700;
   cursor: pointer;
   transition:
-    transform 160ms ease,
-    box-shadow 160ms ease,
-    background-color 160ms ease;
+    transform 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease;
   &:hover {
-    transform: translate(-2px, -2px);
+    transform: translateY(-1px);
   }
   &:active {
-    transform: translate(0, 0);
-    box-shadow: none !important;
+    transform: translateY(0);
   }
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-ink);
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-ink-soft);
   }
 }
 
 @utility btn-primary {
   background: var(--color-ink);
-  color: white;
+  color: var(--color-paper);
   box-shadow: var(--shadow-btn-primary);
   &:hover {
+    background: #4d5349;
     box-shadow: var(--shadow-btn-primary-hover);
   }
 }
 
 @utility btn-ghost {
-  background: rgba(255, 249, 239, 0.85);
+  background: var(--color-paper);
+  border-color: var(--color-edge);
   box-shadow: var(--shadow-btn-ghost);
   &:hover {
+    border-color: #d8cfbc;
     box-shadow: var(--shadow-btn-ghost-hover);
   }
 }
 
 @utility btn-sm {
-  min-height: 40px;
-  padding-inline: 14px;
+  min-height: 38px;
+  padding-inline: 16px;
+  font-size: 0.9rem;
 }
 
 @utility card {
-  border: 3px solid var(--color-ink);
-  border-radius: 24px;
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-card);
   padding: 20px;
-  background: white;
-  box-shadow: var(--shadow-hard-sm);
+  background: var(--color-paper);
+  box-shadow: var(--shadow-hard-xs);
 }
 
 @utility card-hover {
   transition:
-    transform 200ms ease,
-    box-shadow 200ms ease;
+    transform 250ms ease,
+    box-shadow 250ms ease;
   &:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-hard);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hard-sm);
   }
 }
 
 @utility panel {
-  padding: 26px;
-  background: rgba(255, 249, 239, 0.92);
-  border: 3px solid var(--color-ink);
+  padding: 28px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-edge);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-soft);
 }
@@ -222,11 +321,12 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 16px;
-  font-size: 0.82rem;
+  margin-bottom: 10px;
+  font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
+  color: var(--color-ink-soft);
 }
 
 @utility pill {
@@ -234,21 +334,24 @@
   align-items: center;
   justify-content: center;
   width: fit-content;
-  padding: 6px 12px;
-  border: 3px solid var(--color-ink);
+  padding: 6px 14px;
+  border: 1px solid var(--color-edge);
   border-radius: 999px;
-  background: var(--color-cyan);
+  background: var(--color-sage-soft);
   font-size: 0.78rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-ink);
 }
 
 @utility stat-label {
   display: block;
-  margin-bottom: 8px;
-  font-size: 0.8rem;
+  margin-bottom: 6px;
+  font-size: 0.74rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-soft);
 }
 
 @utility stat-value {
@@ -258,27 +361,29 @@
 
 @utility nav-link {
   position: relative;
-  font-weight: 500;
-  transition: color 150ms ease;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+  transition: color 200ms ease;
   &::after {
     content: "";
     position: absolute;
-    bottom: -2px;
+    bottom: -3px;
     left: 0;
     height: 2px;
     width: 0;
-    background: var(--color-peach);
-    transition: width 200ms ease;
+    border-radius: 2px;
+    background: var(--color-lime);
+    transition: width 250ms ease;
   }
   &:hover {
-    color: var(--color-peach);
+    color: var(--color-ink);
   }
   &:hover::after {
     width: 100%;
   }
   &:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-ink);
+    box-shadow: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-ink-soft);
     border-radius: 4px;
   }
 }

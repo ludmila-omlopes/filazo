@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { AssistantProfileData } from "@/lib/assistant/queries";
+import { Chip } from "@/components/ui/chip";
 import { estimateRemainingTime } from "@/lib/time-estimates";
 import { formatRemainingTime } from "@/lib/utils";
 
@@ -55,45 +56,44 @@ export function GameFrictionCard({ insight }: { insight: Insight }) {
 
   return (
     <Link
-      className="block rounded-[22px] border-3 border-ink bg-paper/95 p-4 shadow-hard-xs transition-all hover:-translate-y-0.5 hover:bg-yellow/15 hover:shadow-hard-sm focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-ink"
+      className="block rounded-card border border-edge bg-paper p-4 shadow-hard-xs transition-all hover:-translate-y-0.5 hover:shadow-hard-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-soft"
       href={`/profile?tab=games&view=list#entry-${insight.userGameEntry.id}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="section-label !mb-1">{insight.signalType.toLowerCase()}</p>
-          <h3 className="truncate text-lg font-black">
+          <p className="section-label !mb-1">
+            {insight.signalType.replaceAll("_", " ").toLowerCase()}
+          </p>
+          <h3 className="truncate font-display text-lg">
             {insight.userGameEntry.game.name}
           </h3>
         </div>
-        <span className="pill">{insight.score}</span>
+        <div className="pill">{insight.score}</div>
       </div>
       {genres.length ? (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {genres.map((genre) => (
-            <span
-              className="rounded-full border-2 border-ink bg-cyan/30 px-2 py-0.5 text-[0.62rem] font-black uppercase tracking-wide"
-              key={genre}
-            >
+            <Chip key={genre} tone="blue">
               {genre}
-            </span>
+            </Chip>
           ))}
         </div>
       ) : null}
       {remainingTime ? (
         <p
-          className="mt-3 inline-flex rounded-full border-2 border-ink bg-lime/30 px-2.5 py-0.5 text-xs font-black uppercase tracking-wide"
+          className="mt-3 inline-flex rounded-full bg-sage-soft px-2.5 py-0.5 text-xs font-bold"
           title={`Based on HLTB ${remainingTime.targetLabel}`}
         >
           {formatRemainingTime(remainingTime.remainingMinutes)}
         </p>
       ) : null}
       {reasons.length ? (
-        <p className="mt-3 text-sm leading-relaxed text-ink/75">
+        <p className="mt-3 text-sm leading-relaxed text-ink-soft">
           {reasons.join(" ")}
         </p>
       ) : null}
       {insight.suggestedAction ? (
-        <p className="mt-3 text-sm font-bold">{insight.suggestedAction}</p>
+        <p className="mt-3 text-sm font-semibold">{insight.suggestedAction}</p>
       ) : null}
     </Link>
   );

@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
-import "@fontsource/bungee";
-import "@fontsource/space-grotesk/300.css";
-import "@fontsource/space-grotesk/400.css";
-import "@fontsource/space-grotesk/500.css";
-import "@fontsource/space-grotesk/700.css";
+import "@fontsource/fraunces/400.css";
+import "@fontsource/fraunces/500.css";
+import "@fontsource/fraunces/600.css";
+import "@fontsource/fraunces/400-italic.css";
+import "@fontsource/fraunces/500-italic.css";
+import "@fontsource/nunito-sans/400.css";
+import "@fontsource/nunito-sans/600.css";
+import "@fontsource/nunito-sans/700.css";
 import Link from "next/link";
 import "./globals.css";
 import { SignOutForm } from "@/components/sign-out-form";
@@ -13,7 +16,7 @@ import { getSessionUserId } from "@/lib/session";
 export const metadata: Metadata = {
   title: "filazo",
   description:
-    "A game catalog that syncs Steam libraries, imports CSV data, and enriches titles with IGDB metadata.",
+    "A calm home for your game library. Sync Steam, import CSVs, and make peace with your backlog.",
 };
 
 async function getNavigationUser(userId: string | null) {
@@ -53,28 +56,29 @@ export default async function RootLayout({
           Skip to content
         </a>
 
-        <div className="min-h-screen p-6 max-md:p-4">
-          <header className="w-full max-w-[1200px] mx-auto mb-5 px-6 py-[18px] flex items-center justify-between gap-4 bg-paper/85 border-3 border-ink rounded-pill shadow-header backdrop-blur-[10px] max-lg:flex-col max-lg:rounded-card">
-            <Link href="/" className="inline-flex items-center gap-4">
-              <span className="px-3.5 py-2.5 bg-yellow border-3 border-ink rounded-pill shadow-hard-xs font-display text-[0.95rem] tracking-wide uppercase">
+        <div className="min-h-screen px-6 pb-6 max-md:px-4 max-md:pb-4">
+          <header className="mx-auto flex w-full max-w-[1100px] items-center justify-between gap-4 py-5 max-sm:flex-col max-sm:gap-3">
+            <Link href="/" className="group inline-flex items-baseline gap-2">
+              <span className="font-display text-[1.45rem] font-medium tracking-tight">
                 filazo
               </span>
-              <span className="max-w-[30ch] text-[0.92rem] max-sm:hidden">
-                Catalog your library like it deserves a museum wall.
-              </span>
+              <span
+                aria-hidden
+                className="h-2 w-2 translate-y-[-1px] rounded-full bg-glow transition-transform duration-300 group-hover:scale-125"
+              />
             </Link>
 
-            <nav className="flex items-center gap-3.5 flex-wrap" aria-label="Main">
-              <Link href="/" className="nav-link">
+            <nav className="flex flex-wrap items-center gap-6" aria-label="Main">
+              <Link href="/" className="nav-link text-sm">
                 Home
               </Link>
-              <Link href="/profile" className="nav-link">
-                Profile
+              <Link href="/profile" className="nav-link text-sm">
+                Library
               </Link>
               {navigationUser ? (
                 <div className="inline-flex items-center gap-3">
-                  <span className="font-medium max-w-[16ch] truncate">
-                    {navigationUser.displayName ?? "Collector"}
+                  <span className="max-w-[16ch] truncate text-sm font-semibold">
+                    {navigationUser.displayName ?? "Player"}
                   </span>
                   <SignOutForm />
                 </div>

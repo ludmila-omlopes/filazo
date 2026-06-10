@@ -31,7 +31,8 @@ The app is centered on a canonical `Game` record.
 
 - `Game` stores the normalized catalog entry plus shared IGDB, HLTB, and Metacritic metadata
 - `GameProviderLink` links a canonical game to an external provider ID like a Steam app ID
-- `UserGameEntry` stores user ownership, wishlist state, playtime, last played date, and completion percentage for a game
+- `UserGameEntry` stores user ownership, wishlist state, playtime, last played date, achievement progress (`completionPercent`), and a separate finished state (`finishedAt`/`finishedSource`) for a game; finished means the credits rolled, which is independent of 100% achievement completion
+- `GameProviderLink` also caches the detected story-completion ("credits roll") achievement per provider (`storyAchievementId`, `storyAchievementName`, `storyAchievementSource`, `storyAchievementCheckedAt`)
 - `UserGameInsight` stores per-game assistant signals such as untouched, sampled-dropped, wishlist risk, and release candidates
 - `AssistantRun` stores each assistant refresh summary and optional AI output metadata
 - `PlayerProfile` stores the AI-generated player profile (summary, preferences, patterns, internal recommendations) plus the agent's tool-call trace
@@ -53,6 +54,7 @@ This means multiple providers can eventually point to the same internal game ins
 - IGDB best-match enrichment during imports and sync
 - Best-effort HowLongToBeat enrichment during imports and sync
 - Estimated time remaining for user entries when HLTB data and playtime or progress are available
+- Finished-game detection that finds each game's story-completion achievement or trophy (Steam and PlayStation) and marks entries finished when it is unlocked, plus a manual "mark finished" toggle on game pages
 - Best-effort Metacritic score capture for Steam-linked catalog records
 - Collector profile page with owned and wishlist sections
 - Canonical game detail pages
@@ -249,6 +251,10 @@ Steam sync stores `lastPlayedAt` from Steam's `rtime_last_played` field when Ste
 HowLongToBeat stores completion estimates on the canonical `Game` as minutes and links the HLTB game ID through `GameProviderLink`. HLTB does not expose an official public API, so failures or search misses are ignored instead of blocking catalog resolution. User entries estimate remaining time from the default HLTB target, preferring main + extras, then main story, then completionist; completion percentage is used first, otherwise recorded playtime is subtracted.
 
 Metacritic stores the critic metascore on the canonical `Game` and links the Metacritic URL through `GameProviderLink` when Steam Store metadata provides it. This avoids scraping Metacritic directly and keeps missing scores non-blocking.
+
+### Finished vs 100%
+
+`completionPercent` is achievement/trophy progress and is never treated as story completion. A game counts as finished when its credits roll: either the user marks the entry finished, a CSV import says so, or detection finds the unlocked story-completion achievement. Detection ("Detect finished games" on the profile Games tab) fetches each game's achievement list (Steam schema or PSN trophy list), classifies the credits-roll achievement with OpenAI when `OPENAI_API_KEY` is set or with keyword heuristics otherwise, caches the result on `GameProviderLink`, and then checks whether the user unlocked it. Everything is best-effort: games without a detectable story achievement, missing API keys, or provider failures are skipped. Xbox detection is not supported yet. The assistant also raises a low-confidence "likely finished" signal when logged playtime exceeds ~90% of the HLTB main story and the game has gone idle, suggesting a manual confirmation rather than auto-marking.
 
 ### Assistant flow
 

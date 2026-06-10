@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { UserGameStatus } from "@prisma/client";
-import { estimateRemainingTime } from "../src/lib/time-estimates.ts";
+import {
+  estimateRemainingTime,
+  isEntryFinished,
+} from "../src/lib/time-estimates.ts";
 
 test("remaining time uses completion percent when available", () => {
   const estimate = estimateRemainingTime(
@@ -46,10 +49,49 @@ test("missing HLTB data returns no estimate", () => {
   assert.equal(estimateRemainingTime(createEntry({})), null);
 });
 
+test("entries with finishedAt have no remaining time", () => {
+  const estimate = estimateRemainingTime(
+    createEntry({
+      finishedAt: new Date("2026-01-01"),
+      playtimeMinutes: 60,
+      hltbMainStoryMinutes: 600,
+    }),
+  );
+
+  assert.equal(estimate?.remainingMinutes, 0);
+  assert.equal(estimate?.basis, "completed");
+});
+
+test("100% achievements alone does not mean finished", () => {
+  const entry = createEntry({
+    completionPercent: 100,
+    hltbMainExtraMinutes: 1200,
+  });
+
+  assert.equal(isEntryFinished(entry), false);
+
+  const estimate = estimateRemainingTime(entry);
+  assert.equal(estimate?.basis, "completion-percent");
+  assert.equal(estimate?.remainingMinutes, 0);
+});
+
+test("isEntryFinished accepts COMPLETED status or finishedAt", () => {
+  assert.equal(
+    isEntryFinished(createEntry({ status: UserGameStatus.COMPLETED })),
+    true,
+  );
+  assert.equal(
+    isEntryFinished(createEntry({ finishedAt: new Date() })),
+    true,
+  );
+  assert.equal(isEntryFinished(createEntry({})), false);
+});
+
 function createEntry({
   status = UserGameStatus.OWNED,
   playtimeMinutes = null,
   completionPercent = null,
+  finishedAt = null,
   hltbMainStoryMinutes = null,
   hltbMainExtraMinutes = null,
   hltbCompletionistMinutes = null,
@@ -58,6 +100,7 @@ function createEntry({
     status,
     playtimeMinutes,
     completionPercent,
+    finishedAt,
     game: {
       hltbMainStoryMinutes,
       hltbMainExtraMinutes,

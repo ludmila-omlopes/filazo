@@ -94,7 +94,7 @@ export function formatCompletionPercent(value: number | null | undefined) {
     return "Not tracked";
   }
 
-  return `${value}% complete`;
+  return `${value}% achievements`;
 }
 
 export function formatLastPlayed(

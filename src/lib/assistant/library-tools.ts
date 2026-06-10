@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { UserGameStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { isEntryFinished } from "../time-estimates.ts";
 import { readStringList } from "./scoring.ts";
 
 /**
@@ -42,7 +43,8 @@ function toGameSummary(entry: LibraryEntry) {
       ),
     ].slice(0, 4),
     playtimeMinutes: entry.playtimeMinutes,
-    completionPercent: entry.completionPercent,
+    achievementPercent: entry.completionPercent,
+    finished: isEntryFinished(entry),
     lastPlayedAt: entry.lastPlayedAt?.toISOString() ?? null,
     isFavorite: entry.isFavorite,
     aggregatedRating: entry.game.aggregatedRating,
@@ -185,7 +187,7 @@ export function runGenreStats(entries: LibraryEntry[]) {
       };
       stat.gameCount += 1;
       stat.playtimeMinutes += entry.playtimeMinutes ?? 0;
-      if (entry.status === UserGameStatus.COMPLETED) {
+      if (isEntryFinished(entry)) {
         stat.completedCount += 1;
       }
       if (entry.abandonedAt) {

@@ -17,6 +17,9 @@ const verdictLabels: Record<BuyDecision["verdict"], string> = {
   SKIP_FOR_NOW: "Skip for now",
 };
 
+const inputClassName =
+  "rounded-inner border border-edge bg-paper px-3 py-2 font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-lime focus-visible:ring-offset-2";
+
 export function BuyDecisionForm() {
   const [decision, setDecision] = useState<BuyDecision | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -56,80 +59,64 @@ export function BuyDecisionForm() {
       }}
     >
       <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-        <label className="grid gap-1.5 text-sm font-bold">
+        <label className="grid gap-1.5 text-sm font-semibold">
           Title
-          <input
-            className="border-3 border-ink rounded-[14px] bg-paper px-3 py-2 font-normal"
-            name="title"
-            required
-          />
+          <input className={inputClassName} name="title" required />
         </label>
-        <label className="grid gap-1.5 text-sm font-bold">
+        <label className="grid gap-1.5 text-sm font-semibold">
           Price
-          <input
-            className="border-3 border-ink rounded-[14px] bg-paper px-3 py-2 font-normal"
-            name="priceText"
-            placeholder="$19.99"
-          />
+          <input className={inputClassName} name="priceText" placeholder="$19.99" />
         </label>
       </div>
       <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-        <label className="grid gap-1.5 text-sm font-bold">
+        <label className="grid gap-1.5 text-sm font-semibold">
           Platform
-          <input
-            className="border-3 border-ink rounded-[14px] bg-paper px-3 py-2 font-normal"
-            name="platformName"
-            placeholder="Steam"
-          />
+          <input className={inputClassName} name="platformName" placeholder="Steam" />
         </label>
-        <label className="grid gap-1.5 text-sm font-bold">
+        <label className="grid gap-1.5 text-sm font-semibold">
           Genres
-          <input
-            className="border-3 border-ink rounded-[14px] bg-paper px-3 py-2 font-normal"
-            name="genres"
-            placeholder="RPG, Strategy"
-          />
+          <input className={inputClassName} name="genres" placeholder="RPG, Strategy" />
         </label>
       </div>
-      <label className="grid gap-1.5 text-sm font-bold">
+      <label className="grid gap-1.5 text-sm font-semibold">
         Why do you want it?
         <textarea
-          className="min-h-20 border-3 border-ink rounded-[14px] bg-paper px-3 py-2 font-normal"
+          className={`min-h-20 ${inputClassName}`}
           name="reasonUserWantsIt"
           placeholder="A friend recommended it, it is on sale, or it fits the mood."
         />
       </label>
       <button className="btn btn-primary justify-self-start" disabled={isPending}>
-        {isPending ? "Checking..." : "Check buy decision"}
+        {isPending ? "Thinking it over..." : "Help me decide"}
       </button>
 
       {error ? (
-        <div className="rounded-[18px] border-3 border-ink bg-[#ffd5ca] p-4 text-sm font-bold">
+        <div className="rounded-inner border border-edge bg-clay-soft p-4 text-sm font-semibold">
           {error}
         </div>
       ) : null}
 
       {decision ? (
-        <div className="rounded-[20px] border-3 border-ink bg-yellow/35 p-4 shadow-hard-xs">
+        <div className="rounded-card border border-edge bg-sand-soft p-5 shadow-hard-xs">
           <div className="flex items-center justify-between gap-3">
-            <strong className="font-display text-2xl uppercase">
+            <strong className="font-display text-xl">
               {verdictLabels[decision.verdict]}
             </strong>
             <span className="pill">{decision.confidence}% confidence</span>
           </div>
-          <ul className="mt-3 grid gap-1.5 text-sm">
+          <ul className="mt-3 grid gap-1.5 text-sm leading-relaxed">
             {decision.reasons.map((reason) => (
               <li key={reason}>{reason}</li>
             ))}
           </ul>
           {decision.risks.length ? (
-            <p className="mt-3 text-sm text-ink/70">
-              Risk: {decision.risks.join(" ")}
+            <p className="mt-3 text-sm text-ink-soft">
+              Worth knowing: {decision.risks.join(" ")}
             </p>
           ) : null}
           {decision.suggestedTrigger ? (
-            <p className="mt-3 text-sm font-bold">
-              Trigger: {decision.suggestedTrigger}
+            <p className="mt-3 text-sm font-semibold">
+              When to revisit: {decision.suggestedTrigger}
             </p>
           ) : null}
         </div>

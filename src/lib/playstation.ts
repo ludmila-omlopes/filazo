@@ -223,6 +223,13 @@ async function getAuthorizationForAccount(account: ExternalAccount) {
   };
 }
 
+export async function getPlayStationAuthorizationForAccount(
+  account: ExternalAccount,
+) {
+  const { authorization } = await getAuthorizationForAccount(account);
+  return authorization;
+}
+
 function pickAvatarUrl(profile: Awaited<ReturnType<typeof getProfileFromAccountId>> | null) {
   return profile?.avatars?.at(-1)?.url ?? profile?.avatars?.[0]?.url ?? null;
 }
