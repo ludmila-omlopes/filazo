@@ -1,21 +1,15 @@
 import { cn } from "@/lib/utils";
+import { getStatusDisplayLabel } from "@/lib/copy";
 
 const statusStyles: Record<string, string> = {
   OWNED: "bg-sage-soft text-ink",
   WISHLIST: "bg-sand-soft text-ink",
   PLAYING: "bg-sky-soft text-ink",
+  PAUSED: "bg-canvas text-ink-soft",
   COMPLETED: "bg-dusk-lavender-soft text-ink",
   FINISHED: "bg-dusk-lavender-soft text-ink",
   BACKLOG: "bg-canvas text-ink-soft",
-};
-
-const statusLabels: Record<string, string> = {
-  OWNED: "owned",
-  WISHLIST: "wishlist",
-  PLAYING: "playing",
-  COMPLETED: "completed",
-  FINISHED: "finished",
-  BACKLOG: "resting",
+  DROPPED: "bg-clay-soft text-ink",
 };
 
 /** Soft tinted badge for a UserGameEntry status. */
@@ -34,7 +28,7 @@ export function StatusBadge({
         className,
       )}
     >
-      {statusLabels[status] ?? status.toLowerCase()}
+      {getStatusDisplayLabel(status)}
     </span>
   );
 }

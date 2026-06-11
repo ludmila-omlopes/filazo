@@ -100,7 +100,7 @@ export async function verifySteamOpenIdCallback(
 
   const text = await response.text();
   if (!text.includes("is_valid:true")) {
-    throw new Error("Steam OpenID verification failed.");
+    throw new Error("Steam OpenID verification did not complete.");
   }
 
   const claimedId = searchParams.get("openid.claimed_id");

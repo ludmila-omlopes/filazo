@@ -11,10 +11,10 @@ type BuyDecision = {
 };
 
 const verdictLabels: Record<BuyDecision["verdict"], string> = {
-  BUY_NOW: "Buy now",
+  BUY_NOW: "Bring it home",
   WAIT_FOR_SALE: "Wait for sale",
-  WISHLIST_ONLY: "Wishlist only",
-  SKIP_FOR_NOW: "Skip for now",
+  WISHLIST_ONLY: "Stay curious",
+  SKIP_FOR_NOW: "Maybe later",
 };
 
 const inputClassName =
@@ -51,7 +51,7 @@ export function BuyDecisionForm() {
           });
           const payload = await response.json();
           if (!response.ok) {
-            setError(payload.error ?? "Could not evaluate this purchase.");
+            setError(payload.error ?? "This purchase needs another look.");
             return;
           }
           setDecision(payload.decision);
@@ -102,7 +102,7 @@ export function BuyDecisionForm() {
             <strong className="font-display text-xl">
               {verdictLabels[decision.verdict]}
             </strong>
-            <span className="pill">{decision.confidence}% confidence</span>
+            <span className="pill">{decision.confidence}% fit</span>
           </div>
           <ul className="mt-3 grid gap-1.5 text-sm leading-relaxed">
             {decision.reasons.map((reason) => (

@@ -22,7 +22,7 @@ import {
  */
 
 export const PLAYER_PROFILE_EMPTY_MESSAGE =
-  "Your library is empty. Sync a platform or import a CSV before generating a player profile.";
+  "Your shelf is quiet right now. Sync a platform or import a CSV before asking for a player profile.";
 
 export const PLAYER_PROFILE_AI_UNAVAILABLE_MESSAGE =
   "The AI module is unavailable. Set OPENAI_API_KEY to generate a player profile.";
@@ -100,7 +100,7 @@ const AGENT_TOOLS = [
     type: "function",
     name: "list_games",
     description:
-      "List games from the user's library with playtime, completion, genres, and ratings. Filter by status and sort to inspect different slices.",
+      "List games from the user's library with playtime, achievement progress, genres, and ratings. Filter by status and sort to inspect different slices.",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -141,7 +141,7 @@ const AGENT_TOOLS = [
     type: "function",
     name: "get_genre_stats",
     description:
-      "Per-genre aggregates: game count, total playtime, completed count, abandoned count, and favorite count.",
+      "Per-genre aggregates: game count, total playtime, credits-rolled count, released count, and favorite count.",
     parameters: {
       type: "object",
       additionalProperties: false,
@@ -192,7 +192,7 @@ const AGENT_TOOLS = [
           maxItems: 8,
           items: { type: "string" },
           description:
-            "Observed habits, e.g. samples then drops, finishes what they start, large untouched backlog.",
+            "Observed habits, e.g. samples then returns, follows long games, or keeps many choices on the shelf.",
         },
         recommendations: {
           type: "array",
@@ -237,7 +237,8 @@ const AGENT_INSTRUCTIONS = [
   "Use the tools to gather evidence before concluding. Always check get_player_feedback: explicit reviews, abandon reasons, and favorites outweigh raw playtime.",
   "Ground every claim in data you actually saw. If the data is thin, say so in dataNotes instead of inventing preferences.",
   "Recommendations must come from games returned by the tools, using their exact title and slug. Never invent games.",
-  "Avoid guilt language about backlog size. Be warm but concrete.",
+  "Voice rule: gentle over gamified. Treat large libraries as abundance, not debt.",
+  "Use shelf and curiosity language. Avoid pressure, deadline, and task-list language.",
   "When you have enough evidence, call submit_player_profile exactly once.",
 ].join(" ");
 
@@ -267,7 +268,7 @@ async function callResponsesApi(
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI request failed with status ${response.status}.`);
+    throw new Error(`OpenAI request did not complete with status ${response.status}.`);
   }
 
   return (await response.json()) as ResponsesApiResult;

@@ -75,14 +75,14 @@ export default async function Home() {
               For players with too many games
             </p>
             <h1 className="text-display font-normal leading-[1.04] tracking-[-0.015em]">
-              Stop fighting
+              Make peace with
               <br />
-              your backlog.
+              your shelf.
               <br />
               <em className="serif-accent text-glow">Befriend it.</em>
             </h1>
             <p className="max-w-[40ch] text-lg leading-relaxed text-cream/70">
-              filazo turns the pile of unplayed games into a quiet library —
+              filazo turns the games waiting for someday into a quiet library —
               and hands you one gentle pick for tonight.
             </p>
             <div className="mt-1 flex flex-wrap items-center gap-4">
@@ -128,7 +128,7 @@ export default async function Home() {
           number="02"
           align="right"
           title="Settle"
-          line="Duplicates merge into one canonical shelf. Every game gets a place — owned, wishlist, or simply resting."
+          line="Duplicates merge into one canonical shelf. Every game gets a place — owned, still curious, or simply resting."
         />
         <EveningStep
           number="03"
@@ -148,9 +148,9 @@ export default async function Home() {
           breathe
         </span>
         <blockquote className="relative mx-auto max-w-[24ch] font-display text-quote font-normal italic leading-snug">
-          “A backlog is a library,
+          “A shelf is a library,
           <br />
-          not a debt.”
+          not an assignment.”
         </blockquote>
         <p className="relative mt-5 text-sm text-ink-soft">
           Libraries are meant to be bigger than one lifetime. That&apos;s what

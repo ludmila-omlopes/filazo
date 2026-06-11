@@ -24,7 +24,7 @@ const fieldOptions: Array<{
   { key: "platform", label: "Platform" },
   { key: "status", label: "Status" },
   { key: "playtimeHours", label: "Hours Played" },
-  { key: "completionPercent", label: "Completion %" },
+  { key: "completionPercent", label: "Achievement %" },
   { key: "notes", label: "Notes" },
   { key: "externalId", label: "External ID" },
 ];
@@ -142,7 +142,7 @@ export function CsvImportWidget({
     });
 
     if (parsed.errors.length) {
-      setError(parsed.errors[0]?.message ?? "Could not parse CSV.");
+      setError(parsed.errors[0]?.message ?? "This CSV did not open cleanly.");
       setHeaders([]);
       setRows([]);
       setCsvText("");

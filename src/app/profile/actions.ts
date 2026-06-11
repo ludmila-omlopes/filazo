@@ -37,7 +37,7 @@ export async function syncSteamLibraryAction() {
     syncedCount = result.syncedCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Steam sync failed.";
+      error instanceof Error ? error.message : "Steam sync did not complete.";
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 
@@ -90,7 +90,7 @@ export async function syncPlayStationLibraryAction() {
     syncedCount = result.syncedCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "PlayStation sync failed.";
+      error instanceof Error ? error.message : "PlayStation sync did not complete.";
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 
@@ -111,7 +111,7 @@ export async function syncXboxLibraryAction() {
     syncedCount = result.syncedCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Xbox sync failed.";
+      error instanceof Error ? error.message : "Xbox sync did not complete.";
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 
@@ -152,7 +152,7 @@ export async function importCsvAction(formData: FormData) {
     importedCount = result.importedCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "CSV import failed.";
+      error instanceof Error ? error.message : "CSV import did not complete.";
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 
@@ -177,7 +177,7 @@ export async function detectFinishedGamesAction() {
     const message =
       error instanceof Error
         ? error.message
-        : "Finished-game detection failed.";
+        : "Credits-rolled check did not complete.";
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 

@@ -35,7 +35,7 @@ export async function refreshAssistantInsightsAction() {
     insightCount = result.insightCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Assistant refresh failed.";
+      error instanceof Error ? error.message : "Assistant refresh did not complete.";
     redirect(`/profile?tab=assistant&error=${encodeURIComponent(message)}`);
   }
 
@@ -56,7 +56,7 @@ export async function generatePlayerProfileAction() {
     const message =
       error instanceof Error
         ? error.message
-        : "Player profile generation failed.";
+        : "Player profile generation did not complete.";
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 

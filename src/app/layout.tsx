@@ -19,7 +19,7 @@ import { FILAZO_THEME_COOKIE, parseFilazoTheme } from "@/lib/theme";
 export const metadata: Metadata = {
   title: "filazo",
   description:
-    "A calm home for your game library. Sync Steam, import CSVs, and make peace with your backlog.",
+    "A calm home for your game library. Sync Steam, import CSVs, and make peace with your shelf.",
 };
 
 async function getNavigationUser(userId: string | null) {

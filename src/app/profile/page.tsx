@@ -14,6 +14,10 @@ import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/section-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getProfileData } from "@/lib/catalog";
+import {
+  getAssistantSignalDisplayLabel,
+  getStatusDisplayLabel,
+} from "@/lib/copy";
 import { getDatabaseErrorMessage } from "@/lib/database-errors";
 import {
   getAssistantProfileData,
@@ -72,7 +76,7 @@ type ProfileSearchParams = Promise<{
 }>;
 
 const STEAM_COMPLETION_TOOLTIP =
-  "This percentage is unlocked achievements divided by total achievements. It is not story completion — a game counts as finished when its credits-roll achievement is unlocked or you mark it finished.";
+  "This percentage is unlocked achievements divided by total achievements. Credits rolled can be detected from a story achievement or marked by you.";
 
 function parseAssistantSignal(value: string | undefined) {
   return Object.values(AssistantSignalType).includes(value as AssistantSignalType)
@@ -241,9 +245,9 @@ export default async function ProfilePage({
       : query.finishedDetected
         ? {
             tone: "success" as const,
-            message: `Finished-game detection scanned ${
+            message: `Credits-rolled detection checked ${
               query.finishedScanned ?? "your"
-            } entries and marked ${query.finishedDetected} as finished (credits rolled).`,
+            } entries and found ${query.finishedDetected} with credits rolled.`,
           }
       : query.imported
         ? {
@@ -283,7 +287,7 @@ export default async function ProfilePage({
                 ? {
                     tone: "error" as const,
                     message:
-                      "Your library is empty. Sync a platform or import a CSV before generating a player profile.",
+                      "Your shelf is quiet right now. Sync a platform or import a CSV before asking for a player profile.",
                   }
                 : null;
 
@@ -344,8 +348,8 @@ export default async function ProfilePage({
               {profile.user.displayName ?? "Player"}
             </h1>
             <p className="mt-1 text-xs leading-relaxed text-cream/55">
-              {formatNumber(profile.ownedEntries.length)} games resting ·{" "}
-              {formatNumber(profile.wishlistEntries.length)} wished for ·{" "}
+              {formatNumber(profile.ownedEntries.length)} on the shelf ·{" "}
+              {formatNumber(profile.wishlistEntries.length)} still curious ·{" "}
               {formatNumber(profile.user.externalAccounts.length)}{" "}
               {profile.user.externalAccounts.length === 1
                 ? "account"
@@ -401,7 +405,7 @@ export default async function ProfilePage({
         </nav>
 
         <p className="px-4 text-center font-display text-sm italic text-ink-soft/80 max-lg:hidden">
-          no streaks, no deadlines
+          your shelf, your pace
         </p>
       </aside>
 
@@ -726,7 +730,7 @@ export default async function ProfilePage({
             <article className="panel">
               <SectionHeader
                 eyebrow="CSV imports"
-                title="Bring in backlog exports"
+                title="Bring in library exports"
                 aside={
                   <div className="pill">
                     {profile.latestImport
@@ -746,7 +750,7 @@ export default async function ProfilePage({
         <>
           <section className="flex items-center justify-between gap-4 rounded-card border border-edge bg-dusk-lavender-soft px-6 py-5 shadow-rest max-md:flex-col max-md:items-start">
             <div>
-              <p className="section-label !mb-1">Backlog companion</p>
+              <p className="section-label !mb-1">Shelf companion</p>
               <p className="text-sm font-semibold leading-snug">
                 Refresh insights after syncs, imports, or status changes.
               </p>
@@ -788,7 +792,7 @@ export default async function ProfilePage({
           <section className="panel">
             <SectionHeader
               eyebrow="Thinking of buying?"
-              title="Buy, wait, wishlist, or skip"
+              title="Buy, wait, stay curious, or pass"
             />
             <BuyDecisionForm />
           </section>
@@ -803,7 +807,9 @@ export default async function ProfilePage({
             <div>
               <p className="text-sm text-ink-soft">
                 {gameEntries.length} games
-                {activeSignal ? ` matching ${activeSignal.toLowerCase()}` : ""}
+                {activeSignal
+                  ? ` matching ${getAssistantSignalDisplayLabel(activeSignal)}`
+                  : ""}
               </p>
               {activeSignal ? (
                 <Link
@@ -880,8 +886,8 @@ export default async function ProfilePage({
             <div>
               <p className="section-label !mb-1">Sync reminder</p>
               <p className="text-sm font-semibold leading-snug">
-                Playtime, last played, and completion refresh after a library
-                sync.
+                Playtime, last played, and achievement progress refresh after a
+                library sync.
               </p>
               <p className="mt-1 text-xs text-ink-soft">
                 Last sync:{" "}
@@ -912,7 +918,7 @@ export default async function ProfilePage({
                 achievements.
               </p>
               <p className="mt-1 text-xs text-ink-soft">
-                Detection looks for each game&apos;s story-completion
+                Detection looks for each game&apos;s story
                 achievement or trophy on Steam and PlayStation and marks the
                 ones you already unlocked.
               </p>
@@ -920,9 +926,9 @@ export default async function ProfilePage({
             {profile.steamAccount || profile.playStationAccount ? (
               <SyncActionForm
                 action={detectFinishedGamesAction}
-                buttonLabel="Detect finished games"
-                pendingLabel="Detecting..."
-                pendingNotice="Checking story-completion achievements. Large libraries can take a few minutes; keep this page open."
+                buttonLabel="Check credits rolled"
+                pendingLabel="Checking..."
+                pendingNotice="Checking story achievements. Large libraries can take a few minutes; keep this page open."
               />
             ) : (
               <p className="text-xs font-semibold text-ink-soft">
@@ -1111,8 +1117,8 @@ export default async function ProfilePage({
                             <div className="mt-1.5 flex flex-wrap items-center gap-2">
                               <span className="inline-block rounded-full bg-surface/85 px-2 py-px text-micro font-bold lowercase tracking-wide text-ink">
                                 {entry.finishedAt && entry.status !== "COMPLETED"
-                                  ? "finished"
-                                  : entry.status.toLowerCase()}
+                                  ? getStatusDisplayLabel("FINISHED")
+                                  : getStatusDisplayLabel(entry.status)}
                               </span>
                               {entry.playtimeMinutes && entry.playtimeMinutes > 0 ? (
                                 <span className="text-chip text-surface/75">

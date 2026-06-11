@@ -573,7 +573,7 @@ function buildRulePlayNextRecommendations(
         : "Low-decision catalog pick",
       reason:
         [reasons[0], insight.suggestedAction].filter(Boolean).join(" ") ||
-        "Selected from local backlog signals.",
+        "Selected from local shelf signals.",
       source: "rules",
       entry: insight.userGameEntry,
     };

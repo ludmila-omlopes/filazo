@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AssistantSignalType } from "@prisma/client";
 import type { AssistantProfileData } from "@/lib/assistant/queries";
 import { SectionHeader } from "@/components/ui/section-header";
+import { getAssistantSignalDisplayLabel } from "@/lib/copy";
 import { formatNumber } from "@/lib/utils";
 
 export function BacklogDiagnosis({
@@ -15,18 +16,18 @@ export function BacklogDiagnosis({
   }
 
   const items = [
-    ["Untouched", AssistantSignalType.UNTOUCHED],
-    ["Sampled then cold", AssistantSignalType.SAMPLED_DROPPED],
-    ["Stale playing", AssistantSignalType.STALE_PLAYING],
-    ["Finishable soon", AssistantSignalType.FINISHABLE_SOON],
-    ["Likely finished", AssistantSignalType.LIKELY_FINISHED],
-    ["Wishlist risk", AssistantSignalType.WISHLIST_RISK],
+    [getAssistantSignalDisplayLabel(AssistantSignalType.UNTOUCHED), AssistantSignalType.UNTOUCHED],
+    [getAssistantSignalDisplayLabel(AssistantSignalType.SAMPLED_DROPPED), AssistantSignalType.SAMPLED_DROPPED],
+    [getAssistantSignalDisplayLabel(AssistantSignalType.STALE_PLAYING), AssistantSignalType.STALE_PLAYING],
+    [getAssistantSignalDisplayLabel(AssistantSignalType.FINISHABLE_SOON), AssistantSignalType.FINISHABLE_SOON],
+    [getAssistantSignalDisplayLabel(AssistantSignalType.LIKELY_FINISHED), AssistantSignalType.LIKELY_FINISHED],
+    [getAssistantSignalDisplayLabel(AssistantSignalType.WISHLIST_RISK), AssistantSignalType.WISHLIST_RISK],
   ] as const;
 
   return (
     <section className="panel">
       <SectionHeader
-        eyebrow="A gentle look at your backlog"
+        eyebrow="A gentle shelf check"
         title="Where your games are resting"
         aside={
           <div className="pill">
@@ -56,7 +57,7 @@ export function BacklogDiagnosis({
 
       <p className="mt-4 text-sm leading-relaxed text-ink-soft">
         Based on {formatNumber(assistant.librarySummary.ownedCount)} owned games,
-        {` ${formatNumber(assistant.librarySummary.untouchedCount)} untouched games, `}
+        {` ${formatNumber(assistant.librarySummary.untouchedCount)} games ready when you are, `}
         and {formatNumber(assistant.librarySummary.sampledDroppedCount)} short samples.
         Every one of them can wait — that&apos;s what libraries are for.
       </p>

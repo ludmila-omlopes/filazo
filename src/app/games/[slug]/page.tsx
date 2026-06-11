@@ -313,13 +313,13 @@ export default async function GamePage({
                             className="ml-2 text-xs text-ink-soft"
                             title={
                               entry.finishedSource === "story_achievement"
-                                ? "Detected from the story-completion achievement"
+                                ? "Detected from the story achievement"
                                 : entry.finishedSource === "import"
                                   ? "Marked finished in an import"
                                   : "Marked finished manually"
                             }
                           >
-                            Finished {formatDate(entry.finishedAt)}
+                            Credits rolled {formatDate(entry.finishedAt)}
                           </span>
                         ) : null}
                       </div>
@@ -330,9 +330,9 @@ export default async function GamePage({
                           <button
                             className="cursor-pointer rounded-pill border border-edge bg-surface px-3 py-1 text-xs font-bold transition-colors hover:bg-canvas"
                             type="submit"
-                            title="Finished means the credits rolled — independent of achievements."
+                            title="Credits rolled is separate from achievement progress."
                           >
-                            {entry.finishedAt ? "Unmark finished" : "Mark finished"}
+                            {entry.finishedAt ? "Unmark credits rolled" : "Mark credits rolled"}
                           </button>
                         </form>
                       ) : null}
@@ -349,9 +349,9 @@ export default async function GamePage({
               </div>
             ) : (
               <div className="rounded-inner border border-dashed border-edge bg-surface/60 p-6 text-center">
-                <p className="text-sm font-semibold">No library activity yet.</p>
+                <p className="text-sm font-semibold">No shelf activity yet.</p>
                 <p className="mt-1 text-xs text-ink-soft">
-                  This page is a canonical metadata record ready for future ownership.
+                  This catalog record is ready whenever someone adds it.
                 </p>
               </div>
             )}
@@ -417,7 +417,7 @@ export default async function GamePage({
                   {formatTimeEstimate(game.hltbMainExtraMinutes)}
                 </span>
               </DetailRow>
-              <DetailRow label="Completionist">
+              <DetailRow label="100% route">
                 <span className="font-display text-lg leading-none">
                   {formatTimeEstimate(game.hltbCompletionistMinutes)}
                 </span>
@@ -466,12 +466,12 @@ export default async function GamePage({
           {/* Stats mini-cards */}
           <div className="grid grid-cols-2 gap-3">
             <StatCard
-              label="Owners"
+              label="Owned by"
               value={formatNumber(owners.length)}
               className="bg-sage-soft"
             />
             <StatCard
-              label="Wishlisted"
+              label="Still curious"
               value={formatNumber(wishlisters.length)}
               className="bg-sand-soft"
             />

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { AssistantProfileData } from "@/lib/assistant/queries";
 import { Chip } from "@/components/ui/chip";
+import { getAssistantSignalDisplayLabel } from "@/lib/copy";
 import { estimateRemainingTime } from "@/lib/time-estimates";
 import { formatRemainingTime } from "@/lib/utils";
 
@@ -62,13 +63,13 @@ export function GameFrictionCard({ insight }: { insight: Insight }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="section-label !mb-1">
-            {insight.signalType.replaceAll("_", " ").toLowerCase()}
+            {getAssistantSignalDisplayLabel(insight.signalType)}
           </p>
           <h3 className="truncate font-display text-lg">
             {insight.userGameEntry.game.name}
           </h3>
         </div>
-        <div className="pill">{insight.score}</div>
+        <div className="pill">gentle nudge</div>
       </div>
       {genres.length ? (
         <div className="mt-2 flex flex-wrap gap-1.5">

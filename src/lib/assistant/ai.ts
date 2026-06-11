@@ -393,7 +393,7 @@ export function buildFallbackAssistantSummary(input: AssistantAiInput): Assistan
   const topInsight = input.ruleInsights[0];
   if (!topInsight) {
     return {
-      headline: "No backlog pressure detected",
+      headline: "Your shelf is quiet",
       explanation: "There is not enough activity yet to produce a useful diagnosis.",
       actionLabel: "Sync or import more games",
       caveats: ["Steam and CSV data quality affect assistant accuracy."],
@@ -401,7 +401,7 @@ export function buildFallbackAssistantSummary(input: AssistantAiInput): Assistan
   }
 
   return {
-    headline: "Your backlog needs a smaller next step",
+    headline: "A smaller next step may help",
     explanation: topInsight.reasons.map((reason) => reason.evidence).join(" "),
     nextQuestion: "Was the blocker time, mood, difficulty, or another game pulling you away?",
     actionLabel: topInsight.suggestedAction,
@@ -448,7 +448,7 @@ export async function recommendPlayNextGames(
           {
             role: "system",
             content:
-              "You are a specialized neuroscientist and gamer focused on giving the user the best possible next-game experience from their existing backlog. Return concise JSON only. Recommend only games from the provided candidateGames list.",
+              "You are a calm game-library assistant focused on giving the user a good next-game experience from their existing shelf. Return concise JSON only. Recommend only games from the provided candidateGames list. Voice rule: gentle over gamified; treat large libraries as abundance, not debt.",
           },
           {
             role: "user",
@@ -457,10 +457,10 @@ export async function recommendPlayNextGames(
                 "Pick exactly 3 games from candidateGames.",
                 "Use entryId, gameId, slug, and title exactly as provided.",
                 "Do not invent games or recommend anything outside candidateGames.",
-                "Prefer games the user owns, is playing, or has in backlog before wishlist-only games.",
+                "Prefer games the user owns, is playing, or has on the shelf before curiosity-only games.",
                 "Maximize genre variety; choose different primary genres whenever the catalog data makes that possible.",
                 "Prioritize low activation energy, avoiding choice overload, progress/playtime signals, and variety of cognitive or emotional effort.",
-                "Write one short user-facing reason per pick.",
+                "Write one short user-facing reason per pick. Avoid pressure, deadline, and task-list language.",
               ],
               catalogContext: buildPlayNextContext(input),
             }),
@@ -515,7 +515,7 @@ export async function recommendPlayNextGames(
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI request failed with ${response.status}.`);
+      throw new Error(`OpenAI request did not complete with ${response.status}.`);
     }
 
     const json = await response.json();
@@ -577,7 +577,7 @@ export async function summarizeAssistantInsights(
           {
             role: "system",
             content:
-              "You are a calm game-library decision assistant. Return concise JSON only. Avoid guilt language.",
+              "You are a calm game-library decision assistant. Return concise JSON only. Voice rule: gentle over gamified; treat large libraries as abundance, not debt. Use shelf and curiosity language, and avoid pressure, deadline, and task-list language.",
           },
           {
             role: "user",
@@ -616,7 +616,7 @@ export async function summarizeAssistantInsights(
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI request failed with ${response.status}.`);
+      throw new Error(`OpenAI request did not complete with ${response.status}.`);
     }
 
     const json = await response.json();

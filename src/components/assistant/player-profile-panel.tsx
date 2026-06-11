@@ -37,8 +37,8 @@ export function PlayerProfilePanel({
           {hasGames && aiConfigured ? (
             <SyncActionForm
               action={action}
-              buttonLabel={profile ? "Regenerate profile" : "Generate profile"}
-              pendingLabel="Agent analyzing..."
+              buttonLabel={profile ? "Refresh profile" : "Generate profile"}
+              pendingLabel="Agent reading your shelf..."
               pendingNotice="The profile agent is querying your library, feedback, and reviews. Keep this page open."
             />
           ) : profile && !aiConfigured ? (
@@ -50,9 +50,9 @@ export function PlayerProfilePanel({
       </div>
 
       {!hasGames ? (
-        <EmptyState title="No library data to analyze yet.">
+        <EmptyState title="Your shelf is quiet right now.">
           Sync Steam, Xbox, or PlayStation, or import a CSV. The profile agent
-          needs a few games before it can say anything honest about you.
+          needs a few games before it can say anything useful about your taste.
         </EmptyState>
       ) : !profile && !aiConfigured ? (
         <div className="rounded-card border border-edge bg-clay-soft p-5">
@@ -64,7 +64,7 @@ export function PlayerProfilePanel({
         </div>
       ) : !profile ? (
         <EmptyState title="Your profile hasn't been written yet.">
-          Hit “Generate profile” and the agent will explore your games,
+          Use Generate profile and the agent will explore your games,
           playtime, favorites, and feedback to draft it.
         </EmptyState>
       ) : (

@@ -10,14 +10,14 @@ import { cn } from "@/lib/utils";
 const STARTER_PROMPTS = [
   "What should I play tonight in under 2 hours?",
   "What does my library say about my taste?",
-  "Which abandoned game deserves a second chance?",
+  "Which parked game might feel good again?",
 ];
 
 const TOOL_LABELS: Record<string, string> = {
   "tool-get_library_overview": "checked library overview",
   "tool-list_games": "listed games",
   "tool-get_player_feedback": "read your feedback",
-  "tool-get_genre_stats": "crunched genre stats",
+  "tool-get_genre_stats": "checked genre patterns",
 };
 
 export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
@@ -145,7 +145,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
 
           {error ? (
             <p className="rounded-inner border border-edge bg-clay-soft px-3 py-2 text-xs font-semibold">
-              Chat failed: {error.message || "unexpected error."} Try again.
+              Chat paused: {error.message || "unexpected error."} Try again when you&apos;re ready.
             </p>
           ) : null}
 

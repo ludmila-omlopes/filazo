@@ -31,7 +31,10 @@ const CHAT_SYSTEM_PROMPT = [
   "Use the tools to look at the user's real library before answering questions about it. Never invent games or stats.",
   "When you recommend playing something, recommend games already in their library and mention why, grounded in their playtime, feedback, or genre history.",
   "Reviews, abandon reasons, and favorites outweigh raw playtime when judging taste.",
-  "Keep answers short and skimmable. Avoid guilt language about backlog size.",
+  "Voice rule: gentle over gamified. Treat large libraries as abundance, not debt.",
+  "Use display labels like on the shelf, still curious, playing now, credits rolled, and released.",
+  "Avoid pressure, deadline, and task-list language, and never suggest that the user must finish a library.",
+  "Keep answers short and skimmable.",
 ].join(" ");
 
 export async function POST(request: Request) {
@@ -88,7 +91,7 @@ export async function POST(request: Request) {
       }),
       list_games: tool({
         description:
-          "List games from the user's library with playtime, completion, genres, and ratings. Filter by status and sort to inspect different slices.",
+          "List games from the user's library with playtime, achievement progress, genres, and ratings. Filter by status and sort to inspect different slices.",
         inputSchema: listGamesArgsSchema,
         execute: async (args) => runListGames(entries, args),
       }),
@@ -100,7 +103,7 @@ export async function POST(request: Request) {
       }),
       get_genre_stats: tool({
         description:
-          "Per-genre aggregates: game count, total playtime, completed count, abandoned count, and favorite count.",
+          "Per-genre aggregates: game count, total playtime, credits-rolled count, released count, and favorite count.",
         inputSchema: z.object({}),
         execute: async () => runGenreStats(entries),
       }),

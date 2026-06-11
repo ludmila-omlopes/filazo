@@ -93,8 +93,8 @@ export function decideBuy(
       verdict: "SKIP_FOR_NOW",
       confidence: 96,
       reasons: [`${ownedMatch.game.name} is already in your library.`],
-      risks: ["Buying again will not reduce backlog friction."],
-      suggestedTrigger: "Play or archive the copy you already own first.",
+      risks: ["You already have a copy waiting for you."],
+      suggestedTrigger: "Open or release the copy you already own first.",
     };
   }
 
@@ -128,12 +128,12 @@ export function decideBuy(
       reasons: [
         "It matches genres you actually play.",
         price === null
-          ? "No price risk was provided."
+          ? "No price was provided."
           : `The entered price is ${input.priceText}.`,
       ],
       risks:
-        untouchedCount > 20 ? ["Your untouched library is already large."] : [],
-      suggestedTrigger: "Buy only if you can start a first session this week.",
+        untouchedCount > 20 ? ["Your shelf already has plenty of choices."] : [],
+      suggestedTrigger: "Buy when you know the first session you want with it.",
     };
   }
 
@@ -142,7 +142,7 @@ export function decideBuy(
       verdict: "WAIT_FOR_SALE",
       confidence: 78,
       reasons: [
-        "It fits your played genres, but similar owned games are untouched.",
+        "It fits your played genres, and similar owned games are already waiting.",
       ],
       risks: [
         `${untouchedSimilar.length} similar owned games have no recorded playtime.`,
@@ -158,12 +158,12 @@ export function decideBuy(
       reasons: [
         hasCuriosityOnlyReason
           ? "Your stated reason sounds curiosity or sale driven."
-          : "The backlog risk is higher than the fit signal.",
+          : "Your current shelf may already cover this mood.",
       ],
       risks: backlogConflict
         ? [`${untouchedSimilar.length} similar owned games are already waiting.`]
-        : ["This may become another untouched purchase."],
-      suggestedTrigger: "Wishlist it and revisit after clearing one active backlog item.",
+        : ["This may be more curiosity than a game for now."],
+      suggestedTrigger: "Keep it as a curiosity and revisit when the mood returns.",
     };
   }
 
@@ -173,7 +173,7 @@ export function decideBuy(
     reasons: [
       "There is not enough evidence that this fits what you currently play.",
     ],
-    risks: ["Low match confidence usually turns into backlog growth."],
+    risks: ["There is not much evidence that this matches your current taste."],
     suggestedTrigger: "Skip unless you can name the exact first session you want to play.",
   };
 }

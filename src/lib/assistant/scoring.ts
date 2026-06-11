@@ -137,11 +137,11 @@ function buildReason(code: string, label: string, evidence: string): AssistantRe
 
 function formatRemainingMinutes(minutes: number) {
   if (minutes < 60) {
-    return `~${minutes}m left`;
+    return `~${minutes}m remaining`;
   }
 
   const hours = minutes / 60;
-  return `~${hours < 10 ? hours.toFixed(1) : Math.round(hours)}h left`;
+  return `~${hours < 10 ? hours.toFixed(1) : Math.round(hours)}h remaining`;
 }
 
 function getUntouchedInsight(entry: AssistantEntry, now: Date): AssistantInsight | null {
@@ -195,12 +195,12 @@ function getSampledDroppedInsight(entry: AssistantEntry, now: Date): AssistantIn
     reasons: [
       buildReason(
         "short_sample",
-        "Only sampled",
+        "Briefly sampled",
         `${entry.game.name} has ${playtime} recorded minutes.`,
       ),
       buildReason(
         "stale_sample",
-        "The sample went cold",
+        "The sample is resting",
         `Last played ${lastPlayedDays} days ago.`,
       ),
     ],
@@ -223,7 +223,7 @@ function getStalePlayingInsight(entry: AssistantEntry, now: Date): AssistantInsi
     confidence: 84,
     reasons: [
       buildReason(
-        "playing_stale",
+        "playing_paused",
         "In-progress but idle",
         `Marked playing, but last played ${lastPlayedDays} days ago.`,
       ),
@@ -248,14 +248,14 @@ function getFinishableSoonInsight(entry: AssistantEntry): AssistantInsight | nul
     completion >= 65
       ? buildReason(
           "completion_near",
-          "Close enough to finish",
+          "A short return could be enough",
           `${entry.game.name} has ${completion}% of its achievements unlocked.`,
         )
       : null,
     isShortFinish && remainingTime
       ? buildReason(
           "short_remaining_time",
-          "Short finish estimate",
+          "Short remaining path",
           `${entry.game.name} has ${formatRemainingMinutes(
             remainingTime.remainingMinutes,
           )} based on ${remainingTime.targetLabel}.`,
@@ -276,7 +276,7 @@ function getFinishableSoonInsight(entry: AssistantEntry): AssistantInsight | nul
     ),
     confidence: isShortFinish ? 80 : 74,
     reasons,
-    suggestedAction: "Schedule one focused session and decide if finishing still matters.",
+    suggestedAction: "Try one focused session, then decide whether this still matters to you.",
   };
 }
 
@@ -311,7 +311,7 @@ function getLikelyFinishedInsight(entry: AssistantEntry, now: Date): AssistantIn
       ),
     ],
     suggestedAction:
-      "If the credits already rolled, mark it finished so it stops counting as backlog.",
+      "If the credits already rolled, mark it that way so the shelf reflects what happened.",
   };
 }
 
@@ -341,11 +341,11 @@ function getWishlistRiskInsight(entry: AssistantEntry, entries: AssistantEntry[]
     reasons: [
       buildReason(
         "similar_untouched",
-        "Similar games are already waiting",
+        "Similar games are already on the shelf",
         `${similarUntouched.length} similar owned games have no playtime.`,
       ),
     ],
-    suggestedAction: "Keep it wishlisted until one similar game gets a real try.",
+    suggestedAction: "Keep it as a curiosity until one similar game gets a real try.",
   };
 }
 
@@ -379,14 +379,14 @@ function getReleaseCandidateInsight(entry: AssistantEntry, now: Date): Assistant
     confidence: entry.isFavorite ? 20 : 70,
     reasons: [
       buildReason(
-        untouched ? "long_untouched" : "sampled_cold",
-        untouched ? "Long untouched" : "Sample went cold",
+        untouched ? "resting_on_shelf" : "sample_resting",
+        untouched ? "Resting on the shelf" : "Sample is resting",
         untouched
           ? `${entry.game.name} has waited ${ageDays} days without playtime.`
           : `${entry.game.name} has a small sample and has been idle for ${lastPlayedDays} days.`,
       ),
     ],
-    suggestedAction: "Move it out of active backlog unless there is a specific reason to keep it.",
+    suggestedAction: "Release it from the active shelf unless there is a specific reason to keep it close.",
   };
 }
 
