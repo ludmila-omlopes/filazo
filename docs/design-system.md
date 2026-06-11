@@ -42,6 +42,12 @@ Soft fill tints are available as `--color-sage-soft`, `--color-sky-soft`, `--col
 | `--color-dusk-mist` | `#46544b` | Muted text or details on dusk surfaces. |
 | `--color-cream` | `#f6f1e6` | Warm text and objects on dusk backgrounds. |
 
+## Emotional Modes
+
+Day Mode is the default mode for planning, organizing, and browsing the shelf. It is clear, warm, fresh, and low-pressure.
+
+Night Mode is for choosing what to play tonight. It should feel cozy, dim, immersive, and reflective: a quiet save room rather than generic dark mode. Night Mode overrides semantic tokens under `[data-theme="night"]`; components should keep using the same token names instead of adding one-off dark classes.
+
 ## Shadows And Radius
 
 | Token | Use |

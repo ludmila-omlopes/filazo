@@ -8,10 +8,13 @@ import "@fontsource/nunito-sans/400.css";
 import "@fontsource/nunito-sans/600.css";
 import "@fontsource/nunito-sans/700.css";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { SignOutForm } from "@/components/sign-out-form";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
+import { FILAZO_THEME_COOKIE, parseFilazoTheme } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "filazo",
@@ -42,11 +45,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const theme = parseFilazoTheme(
+    cookieStore.get(FILAZO_THEME_COOKIE)?.value,
+  );
   const userId = await getSessionUserId();
   const navigationUser = await getNavigationUser(userId);
 
   return (
-    <html lang="en">
+    <html lang="en" data-theme={theme}>
       <body>
         {/* Skip to content */}
         <a
@@ -75,6 +82,7 @@ export default async function RootLayout({
               <Link href="/profile" className="nav-link text-sm">
                 Library
               </Link>
+              <ThemeToggle theme={theme} />
               {navigationUser ? (
                 <div className="inline-flex items-center gap-3">
                   <span className="max-w-[16ch] truncate text-sm font-semibold">

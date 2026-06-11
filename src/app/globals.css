@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@custom-variant night (&:where([data-theme="night"], [data-theme="night"] *));
+
 /* Filazo design tokens: calm, nostalgic, warm, and low-pressure. */
 @theme {
   --color-canvas: #faf7f1;
@@ -79,6 +81,57 @@
   --input: var(--color-edge);
   --ring: var(--color-sage);
   --radius: 1rem;
+  --background-body: radial-gradient(
+      circle at 12% -4%,
+      rgba(154, 184, 142, 0.12),
+      transparent 36%
+    ),
+    radial-gradient(
+      circle at 92% 0%,
+      rgba(146, 174, 198, 0.12),
+      transparent 34%
+    ),
+    linear-gradient(180deg, #fbf8f3 0%, var(--color-canvas) 60%, #f4efe5 100%);
+  color-scheme: light;
+}
+
+[data-theme="night"] {
+  --color-canvas: #1d2420;
+  --color-surface: #28312b;
+  --color-ink: #f0ebdf;
+  --color-ink-soft: #a8b0a4;
+  --color-edge: rgba(246, 241, 230, 0.1);
+  --color-sage: var(--color-glow);
+  --color-sky: #8fa6bc;
+  --color-clay: #d49a82;
+  --color-sand: #d9c18a;
+  --color-dusk-lavender: #b9acd6;
+  --color-sage-soft: rgba(227, 192, 141, 0.14);
+  --color-sky-soft: rgba(146, 174, 198, 0.14);
+  --color-sand-soft: rgba(228, 211, 172, 0.13);
+  --color-clay-soft: rgba(201, 141, 118, 0.14);
+  --color-dusk-lavender-soft: rgba(179, 168, 205, 0.14);
+  --shadow-rest: 0 3px 12px rgba(0, 0, 0, 0.18);
+  --shadow-lift: 0 12px 30px rgba(0, 0, 0, 0.24);
+  --shadow-float: 0 24px 52px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 14px 36px rgba(0, 0, 0, 0.22);
+  --shadow-header: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-btn-primary: 0 6px 18px rgba(227, 192, 141, 0.14);
+  --shadow-btn-primary-hover: 0 10px 24px rgba(227, 192, 141, 0.2);
+  --shadow-btn-ghost: 0 3px 10px rgba(0, 0, 0, 0.16);
+  --shadow-btn-ghost-hover: 0 6px 16px rgba(0, 0, 0, 0.22);
+  --background-body: radial-gradient(
+      circle at 14% -8%,
+      rgba(227, 192, 141, 0.16),
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 86% 2%,
+      rgba(179, 168, 205, 0.08),
+      transparent 30%
+    ),
+    linear-gradient(180deg, #202922 0%, var(--color-canvas) 56%, #151b18 100%);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -117,13 +170,14 @@
 
   body {
     color: var(--color-ink);
-    background:
-      radial-gradient(circle at 12% -4%, rgba(154, 184, 142, 0.12), transparent 36%),
-      radial-gradient(circle at 92% 0%, rgba(146, 174, 198, 0.12), transparent 34%),
-      linear-gradient(180deg, #fbf8f3 0%, var(--color-canvas) 60%, #f4efe5 100%);
+    background: var(--background-body);
+    background-color: var(--color-canvas);
     font-family: var(--font-body);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition:
+      background-color 400ms ease,
+      color 400ms ease;
   }
 
   h1,
@@ -149,6 +203,12 @@
   img {
     display: block;
     max-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
   }
 }
 
