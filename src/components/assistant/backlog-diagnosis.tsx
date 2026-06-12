@@ -41,7 +41,7 @@ export function BacklogDiagnosis({
       <div className="grid grid-cols-6 gap-3 max-lg:grid-cols-3 max-sm:grid-cols-2">
         {items.map(([label, signal]) => (
           <Link
-            className="rounded-inner border border-edge bg-canvas p-4 text-center transition-all hover:-translate-y-0.5 hover:bg-sage-soft hover:shadow-rest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-soft"
+            className="rounded-inner border border-edge bg-canvas p-4 text-center transition-[background-color,box-shadow] hover:bg-sage-soft hover:shadow-rest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-soft motion-safe:transition-[transform,background-color,box-shadow] motion-safe:hover:-translate-y-0.5"
             href={`/profile?tab=games&view=list&signal=${signal}`}
             key={signal}
           >

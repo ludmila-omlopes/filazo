@@ -132,7 +132,7 @@ export function PlayerProfilePanel({
               <div className="grid gap-2">
                 {profile.payload.recommendations.map((recommendation) => (
                   <Link
-                    className="rounded-inner border border-edge bg-sky-soft px-3.5 py-2.5 transition-all hover:-translate-y-0.5 hover:shadow-rest"
+                    className="rounded-inner border border-edge bg-sky-soft px-3.5 py-2.5 transition-[box-shadow] hover:shadow-rest motion-safe:transition-[transform,box-shadow] motion-safe:hover:-translate-y-0.5"
                     href={`/games/${recommendation.slug}`}
                     key={recommendation.slug}
                   >

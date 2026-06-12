@@ -61,7 +61,7 @@ export function ThemeToggle({ theme }: { theme: FilazoTheme }) {
             aria-label={label}
             aria-pressed={isActive}
             className={cn(
-              "grid h-8 w-8 cursor-pointer place-items-center rounded-pill transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70",
+              "grid h-8 w-8 cursor-pointer place-items-center rounded-pill transition-[background-color,box-shadow,color,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70",
               isActive
                 ? "bg-ink text-surface shadow-rest"
                 : "text-ink-soft hover:bg-sage-soft hover:text-ink",

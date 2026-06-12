@@ -10,7 +10,7 @@ export function SiteFooter() {
           </span>
           <span
             aria-hidden
-            className="h-2 w-2 translate-y-[-1px] rounded-full bg-glow transition-transform duration-300 group-hover:scale-125"
+            className="h-2 w-2 translate-y-[-1px] rounded-full bg-glow motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-125"
           />
         </Link>
 

@@ -62,7 +62,7 @@ export function formatPlaytime(
 
 export function formatTimeEstimate(minutes: number | null | undefined) {
   if (!minutes || minutes < 1) {
-    return "Unknown";
+    return "Time not logged";
   }
 
   if (minutes < 60) {
@@ -79,14 +79,14 @@ export function formatTimeEstimate(minutes: number | null | undefined) {
 
 export function formatRemainingTime(minutes: number | null | undefined) {
   if (minutes === null || minutes === undefined) {
-    return "Unknown";
+    return "Time not logged";
   }
 
   if (minutes < 1) {
-    return "Done";
+    return "Credits rolled";
   }
 
-  return `~${formatTimeEstimate(minutes)} left`;
+  return `~${formatTimeEstimate(minutes)} to credits`;
 }
 
 export function formatCompletionPercent(value: number | null | undefined) {

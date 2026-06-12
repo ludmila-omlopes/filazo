@@ -81,7 +81,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
                 <div className="flex flex-wrap gap-2">
                   {STARTER_PROMPTS.map((prompt) => (
                     <button
-                      className="cursor-pointer rounded-pill border border-edge bg-surface px-3.5 py-1.5 text-left text-xs font-semibold transition-all hover:-translate-y-0.5 hover:bg-sky-soft hover:shadow-rest"
+                      className="cursor-pointer rounded-pill border border-edge bg-surface px-3.5 py-1.5 text-left text-xs font-semibold transition-[background-color,box-shadow] hover:bg-sky-soft hover:shadow-rest motion-safe:transition-[transform,background-color,box-shadow] motion-safe:hover:-translate-y-0.5"
                       key={prompt}
                       onClick={() => submitPrompt(prompt)}
                       type="button"

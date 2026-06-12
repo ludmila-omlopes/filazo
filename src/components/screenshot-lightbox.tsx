@@ -57,7 +57,7 @@ export function ScreenshotLightbox({
           <button
             className={cn(
               "overflow-hidden rounded-inner border border-edge aspect-video bg-canvas cursor-pointer group relative",
-              "hover:shadow-lift transition-all duration-200",
+              "hover:shadow-lift transition-[box-shadow] duration-200",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2",
               index === 0 &&
                 screenshots.length > 2 &&
@@ -71,7 +71,7 @@ export function ScreenshotLightbox({
             <img
               alt={`Screenshot ${index + 1} of ${gameName}`}
               src={screenshot}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-105"
             />
             {/* Zoom hint overlay */}
             <div className="absolute inset-0 bg-ink/0 group-hover:bg-ink/20 transition-colors duration-200 grid place-items-center">

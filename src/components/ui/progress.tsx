@@ -30,7 +30,7 @@ function Progress({
       >
         <ProgressPrimitive.Indicator
           data-slot="progress-indicator"
-          className="h-full w-full flex-1 rounded-pill bg-sage transition-transform duration-[250ms] ease-out"
+          className="h-full w-full flex-1 rounded-pill bg-sage motion-safe:transition-transform motion-safe:duration-[250ms] motion-safe:ease-out"
           style={{ transform: `translateX(-${100 - normalizedValue}%)` }}
         />
       </ProgressPrimitive.Root>

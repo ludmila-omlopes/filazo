@@ -75,11 +75,11 @@ export function AssistantTab({ assistant }: { assistant: AssistantData }) {
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-ink-soft">
             <span className="rounded-full bg-surface px-3 py-1">
-              AI calls left today:{" "}
+              AI notes available today:{" "}
               {formatNumber(assistant.aiUsage.effectiveRemainingToday)}
             </span>
             <span className="rounded-full bg-surface px-3 py-1">
-              Your use: {formatNumber(assistant.aiUsage.userUsedToday)} /{" "}
+              Today&apos;s AI notes: {formatNumber(assistant.aiUsage.userUsedToday)} /{" "}
               {formatNumber(assistant.aiUsage.userDailyLimit)}
             </span>
             <span className="rounded-full bg-surface px-3 py-1">

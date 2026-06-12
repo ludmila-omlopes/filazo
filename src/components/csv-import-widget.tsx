@@ -252,7 +252,7 @@ export function CsvImportWidget({
                   key={`${row.title}-${index}`}
                 >
                   <strong>{row.title}</strong>
-                  <span>{row.platform || "Unknown platform"}</span>
+                  <span>{row.platform || "Platform not mapped"}</span>
                   <span>{row.status || "owned"}</span>
                   <span>{row.playtimeHours || "0"}h</span>
                   <span>{row.completionPercent || "Not tracked"}</span>

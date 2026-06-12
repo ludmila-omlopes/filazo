@@ -878,7 +878,9 @@ export async function importCsvForUser({
             externalId: row.externalId ?? undefined,
             outcome: ImportRowStatus.FAILED,
             error:
-              error instanceof Error ? error.message : "Unknown import error.",
+              error instanceof Error
+                ? error.message
+                : "Import paused before we could read the error.",
           },
         });
       }
@@ -909,7 +911,10 @@ export async function importCsvForUser({
         status: ImportJobStatus.FAILED,
         completedAt: new Date(),
         summary: {
-          error: error instanceof Error ? error.message : "Unknown import error.",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Import paused before we could read the error.",
         } as Prisma.InputJsonValue,
       },
     });
