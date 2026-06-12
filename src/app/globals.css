@@ -344,6 +344,10 @@
     var(--shadow-rest);
 }
 
+@utility printed-cover {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
 @utility section-label {
   display: inline-flex;
   align-items: center;

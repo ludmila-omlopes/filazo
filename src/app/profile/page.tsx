@@ -8,17 +8,14 @@ import { LibraryChat } from "@/components/assistant/library-chat";
 import { PlayNextPanel } from "@/components/assistant/play-next-panel";
 import { PlayerProfilePanel } from "@/components/assistant/player-profile-panel";
 import { CsvImportWidget } from "@/components/csv-import-widget";
+import { GameCard } from "@/components/game-card";
 import { SyncActionForm } from "@/components/sync-action-form";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/section-header";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { getProfileData } from "@/lib/catalog";
-import {
-  getAssistantSignalDisplayLabel,
-  getStatusDisplayLabel,
-} from "@/lib/copy";
+import { getAssistantSignalDisplayLabel } from "@/lib/copy";
 import { getDatabaseErrorMessage } from "@/lib/database-errors";
 import {
   getAssistantProfileData,
@@ -35,14 +32,9 @@ import { isSteamConfigured } from "@/lib/steam";
 import { isXboxConfigured } from "@/lib/xbox";
 import {
   cn,
-  formatCompletionPercent,
   formatDate,
-  formatLastPlayed,
   formatNumber,
-  formatPlaytime,
-  formatRemainingTime,
 } from "@/lib/utils";
-import { estimateRemainingTime } from "@/lib/time-estimates";
 import {
   generatePlayerProfileAction,
   refreshAssistantInsightsAction,
@@ -76,27 +68,10 @@ type ProfileSearchParams = Promise<{
   error?: string;
 }>;
 
-const STEAM_COMPLETION_TOOLTIP =
-  "This percentage is unlocked achievements divided by total achievements. Credits rolled can be detected from a story achievement or marked by you.";
-
 function parseAssistantSignal(value: string | undefined) {
   return Object.values(AssistantSignalType).includes(value as AssistantSignalType)
     ? (value as AssistantSignalType)
     : null;
-}
-
-function SteamCompletionInfoIcon() {
-  return (
-    <span
-      aria-label={STEAM_COMPLETION_TOOLTIP}
-      className="inline-grid h-4 w-4 flex-none place-items-center rounded-full border border-current text-micro font-black leading-none opacity-60"
-      role="img"
-      tabIndex={0}
-      title={STEAM_COMPLETION_TOOLTIP}
-    >
-      i
-    </span>
-  );
 }
 
 function formatAssistantCooldown(seconds: number) {
@@ -443,65 +418,34 @@ export default async function ProfilePage({
 
             {profile.favoriteEntries.length ? (
               <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
-                {profile.favoriteEntries.map((entry) => {
-                  const remainingTime = estimateRemainingTime(entry);
-
-                  return (
-                    <div
-                      className="card-hover group relative overflow-hidden rounded-card border border-edge bg-surface shadow-rest"
-                      key={`fav-${entry.id}`}
-                    >
-                      <Link href={`/games/${entry.game.slug}`}>
-                        <div className="aspect-[3/4] overflow-hidden bg-sage-soft">
-                          {entry.game.coverUrl ? (
-                            <img
-                              alt=""
-                              src={entry.game.coverUrl}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="grid h-full w-full place-items-center p-4 text-center font-display text-xl">
-                              {entry.game.name}
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-3.5">
-                          <h3 className="truncate text-sm font-bold">
-                            {entry.game.name}
-                          </h3>
-                          <p className="mt-1 text-xs text-ink-soft">
-                            {formatPlaytime(
-                              entry.playtimeMinutes,
-                              entry.completionPercent,
-                            )}
-                          </p>
-                          {remainingTime ? (
-                            <p
-                              className="text-xs font-semibold text-ink-soft"
-                              title={`Based on HLTB ${remainingTime.targetLabel}`}
-                            >
-                              {formatRemainingTime(remainingTime.remainingMinutes)}
-                            </p>
-                          ) : null}
-                        </div>
-                      </Link>
-                      <form
-                        action={toggleFavoriteAction}
-                        className="absolute right-2.5 top-2.5"
+                {profile.favoriteEntries.map((entry) => (
+                  <div className="grid gap-2" key={`fav-${entry.id}`}>
+                    <GameCard
+                      game={entry.game}
+                      platformName={entry.platformName}
+                      playtimeMinutes={entry.playtimeMinutes}
+                      completionPercent={entry.completionPercent}
+                      status={
+                        entry.finishedAt && entry.status !== "COMPLETED"
+                          ? "FINISHED"
+                          : entry.status
+                      }
+                      variant="shelf"
+                    />
+                    <form action={toggleFavoriteAction}>
+                      <input type="hidden" name="entryId" value={entry.id} />
+                      <button
+                        type="submit"
+                        className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-pill border border-edge bg-surface px-3 py-2 text-xs font-bold text-clay shadow-rest transition-colors hover:bg-clay-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                        aria-label={`Remove ${entry.game.name} from favorites`}
+                        title="Remove from favorites"
                       >
-                        <input type="hidden" name="entryId" value={entry.id} />
-                        <button
-                          type="submit"
-                          className="grid h-9 w-9 cursor-pointer place-items-center rounded-full bg-surface/90 text-clay shadow-rest transition-colors hover:bg-clay-soft"
-                          aria-label={`Remove ${entry.game.name} from favorites`}
-                          title="Remove from favorites"
-                        >
-                          <HeartIcon filled className="h-4.5 w-4.5" />
-                        </button>
-                      </form>
-                    </div>
-                  );
-                })}
+                        <HeartIcon filled className="h-4 w-4" />
+                        Favorite
+                      </button>
+                    </form>
+                  </div>
+                ))}
               </div>
             ) : (
               <EmptyState title="No favorites yet — and that's fine.">
@@ -940,132 +884,55 @@ export default async function ProfilePage({
 
           {/* ── List View ── */}
           {gamesView === "list" ? (
-            <section className="panel !p-0 overflow-hidden">
-              {/* Table header */}
-              <div className="grid grid-cols-[1fr_minmax(0,0.32fr)_minmax(0,0.32fr)_minmax(0,0.36fr)_minmax(0,0.36fr)_minmax(0,0.38fr)_minmax(0,0.38fr)_44px] gap-3 border-b border-edge bg-canvas px-5 py-3 text-caption font-bold uppercase tracking-[0.12em] text-ink-soft max-md:grid-cols-[1fr_minmax(0,0.5fr)_44px] max-md:gap-2">
-                <span>Title</span>
-                <span>Platform</span>
-                <span className="max-md:hidden">Status</span>
-                <span className="max-md:hidden">Playtime</span>
-                <span className="max-md:hidden">Time left</span>
-                <span className="max-md:hidden">Last played</span>
-                <span className="max-md:hidden">Achievements</span>
-                <span className="sr-only">Favorite</span>
-              </div>
-
+            <section className="panel">
               {gameEntries.length ? (
-                <div className="divide-y divide-edge">
-                  {gameEntries.map(
-                    (entry) => {
-                      const remainingTime = estimateRemainingTime(entry);
+                <div className="grid gap-3">
+                  {gameEntries.map((entry) => (
+                    <div
+                      className="grid scroll-mt-6 grid-cols-[minmax(0,1fr)_44px] items-center gap-3 target:rounded-card target:ring-2 target:ring-sky"
+                      id={`entry-${entry.id}`}
+                      key={`list-${entry.id}`}
+                    >
+                      <GameCard
+                        game={entry.game}
+                        platformName={entry.platformName}
+                        playtimeMinutes={entry.playtimeMinutes}
+                        completionPercent={entry.completionPercent}
+                        status={
+                          entry.finishedAt && entry.status !== "COMPLETED"
+                            ? "FINISHED"
+                            : entry.status
+                        }
+                        variant="row"
+                      />
 
-                      return (
-                      <div
-                        className="grid scroll-mt-6 grid-cols-[1fr_minmax(0,0.32fr)_minmax(0,0.32fr)_minmax(0,0.36fr)_minmax(0,0.36fr)_minmax(0,0.38fr)_minmax(0,0.38fr)_44px] items-center gap-3 px-5 py-2.5 transition-colors hover:bg-canvas target:bg-sky-soft max-md:grid-cols-[1fr_minmax(0,0.5fr)_44px] max-md:gap-2"
-                        id={`entry-${entry.id}`}
-                        key={`list-${entry.id}`}
-                      >
-                        <Link
-                          href={`/games/${entry.game.slug}`}
-                          className="flex min-w-0 items-center gap-3"
-                        >
-                          <div className="h-10 w-10 flex-none overflow-hidden rounded-[10px] bg-sage-soft">
-                            {entry.game.coverUrl ? (
-                              <img
-                                alt=""
-                                src={entry.game.coverUrl}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="grid h-full w-full place-items-center font-display text-[0.6rem]">
-                                {entry.game.name.slice(0, 2)}
-                              </div>
-                            )}
-                          </div>
-                          <span className="truncate text-sm font-semibold transition-colors hover:text-clay">
-                            {entry.game.name}
-                          </span>
-                        </Link>
-
-                        <span className="truncate text-xs text-ink-soft">
-                          {entry.platformName ?? "—"}
-                        </span>
-
-                        <span className="max-md:hidden">
-                          <StatusBadge
-                            status={
-                              entry.finishedAt && entry.status !== "COMPLETED"
-                                ? "FINISHED"
-                                : entry.status
-                            }
-                          />
-                        </span>
-
-                        <span className="text-xs text-ink-soft max-md:hidden">
-                          {formatPlaytime(
-                            entry.playtimeMinutes,
-                            entry.completionPercent,
-                          )}
-                        </span>
-
-                        <span
-                          className="text-xs font-semibold text-ink-soft max-md:hidden"
+                      <form action={toggleFavoriteAction}>
+                        <input type="hidden" name="entryId" value={entry.id} />
+                        <button
+                          type="submit"
+                          className="grid h-8 w-8 cursor-pointer place-items-center rounded-full transition-colors hover:bg-clay-soft"
+                          aria-label={
+                            entry.isFavorite
+                              ? `Remove ${entry.game.name} from favorites`
+                              : `Add ${entry.game.name} to favorites`
+                          }
                           title={
-                            remainingTime
-                              ? `Based on HLTB ${remainingTime.targetLabel}`
-                              : "No HLTB estimate yet"
+                            entry.isFavorite
+                              ? "Remove from favorites"
+                              : "Add to favorites"
                           }
                         >
-                          {remainingTime
-                            ? formatRemainingTime(remainingTime.remainingMinutes)
-                            : "Unknown"}
-                        </span>
-
-                        <span className="text-xs text-ink-soft max-md:hidden">
-                          {formatLastPlayed(
-                            entry.lastPlayedAt,
-                            entry.completionPercent,
-                          )}
-                        </span>
-
-                        <span className="text-xs text-ink-soft max-md:hidden">
-                          <span className="flex items-center gap-1.5">
-                            {formatCompletionPercent(entry.completionPercent)}
-                            {entry.provider === "STEAM" ? (
-                              <SteamCompletionInfoIcon />
-                            ) : null}
-                          </span>
-                        </span>
-
-                        <form action={toggleFavoriteAction}>
-                          <input type="hidden" name="entryId" value={entry.id} />
-                          <button
-                            type="submit"
-                            className="grid h-8 w-8 cursor-pointer place-items-center rounded-full transition-colors hover:bg-clay-soft"
-                            aria-label={
-                              entry.isFavorite
-                                ? `Remove ${entry.game.name} from favorites`
-                                : `Add ${entry.game.name} to favorites`
-                            }
-                            title={
-                              entry.isFavorite
-                                ? "Remove from favorites"
-                                : "Add to favorites"
-                            }
-                          >
-                            <HeartIcon
-                              filled={Boolean(entry.isFavorite)}
-                              className={cn(
-                                "h-4 w-4",
-                                entry.isFavorite ? "text-clay" : "text-edge",
-                              )}
-                            />
-                          </button>
-                        </form>
-                      </div>
-                      );
-                    },
-                  )}
+                          <HeartIcon
+                            filled={Boolean(entry.isFavorite)}
+                            className={cn(
+                              "h-4 w-4",
+                              entry.isFavorite ? "text-clay" : "text-edge",
+                            )}
+                          />
+                        </button>
+                      </form>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <div className="p-10 text-center">
@@ -1084,118 +951,52 @@ export default async function ProfilePage({
             <section>
               {gameEntries.length ? (
                 <div className="grid grid-cols-5 gap-4 max-lg:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2">
-                  {gameEntries.map(
-                    (entry) => {
-                      const remainingTime = estimateRemainingTime(entry);
-
-                      return (
-                      <div
-                        className="card-hover group relative scroll-mt-6 overflow-hidden rounded-card border border-edge bg-surface shadow-rest target:ring-2 target:ring-sky"
-                        id={`entry-${entry.id}`}
-                        key={`grid-${entry.id}`}
-                      >
-                        {/* Cover art */}
-                        <Link href={`/games/${entry.game.slug}`}>
-                          <div className="flex aspect-[3/4] items-center justify-center overflow-hidden bg-sage-soft">
-                            {entry.game.coverUrl ? (
-                              <img
-                                alt={entry.game.name}
-                                src={entry.game.coverUrl}
-                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                              />
-                            ) : (
-                              <div className="grid h-full w-full place-items-center p-3 text-center font-display text-lg text-ink-soft">
-                                {entry.game.name}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Info overlay at bottom of cover */}
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/75 via-ink/45 to-transparent px-3 pb-3 pt-10">
-                            <h3 className="line-clamp-2 text-sm font-bold leading-snug text-surface">
-                              {entry.game.name}
-                            </h3>
-                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                              <span className="inline-block rounded-full bg-surface/85 px-2 py-px text-micro font-bold lowercase tracking-wide text-ink">
-                                {entry.finishedAt && entry.status !== "COMPLETED"
-                                  ? getStatusDisplayLabel("FINISHED")
-                                  : getStatusDisplayLabel(entry.status)}
-                              </span>
-                              {entry.playtimeMinutes && entry.playtimeMinutes > 0 ? (
-                                <span className="text-chip text-surface/75">
-                                  {formatPlaytime(
-                                    entry.playtimeMinutes,
-                                    entry.completionPercent,
-                                  )}
-                                </span>
-                              ) : null}
-                              {remainingTime ? (
-                                <span
-                                  className="rounded-full bg-surface/20 px-2 py-px text-chip font-semibold text-surface/90"
-                                  title={`Based on HLTB ${remainingTime.targetLabel}`}
-                                >
-                                  {formatRemainingTime(
-                                    remainingTime.remainingMinutes,
-                                  )}
-                                </span>
-                              ) : null}
-                              {entry.lastPlayedAt ? (
-                                <span className="text-chip text-surface/75">
-                                  {formatLastPlayed(
-                                    entry.lastPlayedAt,
-                                    entry.completionPercent,
-                                  )}
-                                </span>
-                              ) : null}
-                              {entry.completionPercent != null ? (
-                                <span className="flex items-center gap-1 text-chip text-surface/75">
-                                  {entry.completionPercent}% achievements
-                                  {entry.provider === "STEAM" ? (
-                                    <SteamCompletionInfoIcon />
-                                  ) : null}
-                                </span>
-                              ) : entry.provider === "STEAM" ? (
-                                <span className="flex items-center gap-1 text-chip text-surface/75">
-                                  Not tracked
-                                  <SteamCompletionInfoIcon />
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </Link>
-
-                        {/* Favorite button */}
-                        <form action={toggleFavoriteAction} className="absolute right-2 top-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                          <input type="hidden" name="entryId" value={entry.id} />
-                          <button
-                            type="submit"
+                  {gameEntries.map((entry) => (
+                    <div
+                      className="grid scroll-mt-6 gap-2 target:rounded-card target:ring-2 target:ring-sky"
+                      id={`entry-${entry.id}`}
+                      key={`grid-${entry.id}`}
+                    >
+                      <GameCard
+                        game={entry.game}
+                        platformName={entry.platformName}
+                        playtimeMinutes={entry.playtimeMinutes}
+                        completionPercent={entry.completionPercent}
+                        status={
+                          entry.finishedAt && entry.status !== "COMPLETED"
+                            ? "FINISHED"
+                            : entry.status
+                        }
+                        variant="shelf"
+                      />
+                      <form action={toggleFavoriteAction}>
+                        <input type="hidden" name="entryId" value={entry.id} />
+                        <button
+                          type="submit"
+                          className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-pill border border-edge bg-surface px-3 py-1.5 text-xs font-bold text-ink-soft shadow-rest transition-colors hover:bg-clay-soft hover:text-clay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                          aria-label={
+                            entry.isFavorite
+                              ? `Remove ${entry.game.name} from favorites`
+                              : `Add ${entry.game.name} to favorites`
+                          }
+                          title={
+                            entry.isFavorite
+                              ? "Remove from favorites"
+                              : "Add to favorites"
+                          }
+                        >
+                          <HeartIcon
+                            filled={Boolean(entry.isFavorite)}
                             className={cn(
-                              "grid h-8 w-8 cursor-pointer place-items-center rounded-full shadow-rest backdrop-blur-sm transition-colors",
-                              entry.isFavorite
-                                ? "bg-clay text-surface opacity-100!"
-                                : "bg-ink/35 text-surface hover:bg-clay/85",
+                              "h-3.5 w-3.5",
+                              entry.isFavorite ? "text-clay" : "text-edge",
                             )}
-                            aria-label={
-                              entry.isFavorite
-                                ? `Remove ${entry.game.name} from favorites`
-                                : `Add ${entry.game.name} to favorites`
-                            }
-                            title={
-                              entry.isFavorite
-                                ? "Remove from favorites"
-                                : "Add to favorites"
-                            }
-                          >
-                            <HeartIcon
-                              filled={Boolean(entry.isFavorite)}
-                              className="h-3.5 w-3.5"
-                            />
-                          </button>
-                        </form>
-                      </div>
-                      );
-                    },
-                  )}
+                          />
+                          {entry.isFavorite ? "Favorite" : "Add favorite"}
+                        </button>
+                      </form>
+                    </div>
+                  ))}
                 </div>
               ) : (
                 <EmptyState title="Nothing here yet.">

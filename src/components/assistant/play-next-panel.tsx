@@ -1,7 +1,6 @@
-import Link from "next/link";
 import type { AssistantProfileData } from "@/lib/assistant/queries";
 import { GameFrictionCard } from "@/components/assistant/game-friction-card";
-import { Chip } from "@/components/ui/chip";
+import { GameCard } from "@/components/game-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 
@@ -19,34 +18,25 @@ function RecommendationCard({
     recommendation.primaryGenre,
     recommendation.expectedEffort,
     recommendation.moodFit,
-  ].filter(Boolean);
+  ].filter((item): item is string => Boolean(item));
 
   return (
-    <Link
-      className="block rounded-card border border-edge bg-surface p-4 shadow-rest transition-all hover:-translate-y-0.5 hover:shadow-lift focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-soft"
-      href={`/games/${recommendation.slug}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="section-label !mb-1">{sourceLabel}</p>
-          <h3 className="truncate font-display text-lg">
-            {recommendation.title}
-          </h3>
-        </div>
-      </div>
-      {genres.length ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {genres.map((genre) => (
-            <Chip key={genre} tone="blue">
-              {genre}
-            </Chip>
-          ))}
-        </div>
-      ) : null}
-      <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-        {recommendation.reason}
-      </p>
-    </Link>
+    <GameCard
+      chips={genres}
+      completionPercent={recommendation.entry.completionPercent}
+      description={recommendation.reason}
+      eyebrow={sourceLabel}
+      game={recommendation.entry.game}
+      platformName={recommendation.entry.platformName}
+      playtimeMinutes={recommendation.entry.playtimeMinutes}
+      status={
+        recommendation.entry.finishedAt &&
+        recommendation.entry.status !== "COMPLETED"
+          ? "FINISHED"
+          : recommendation.entry.status
+      }
+      variant="slot"
+    />
   );
 }
 

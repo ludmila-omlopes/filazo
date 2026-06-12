@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { GameCard } from "@/components/game-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,6 +49,18 @@ const statusSamples = [
   "PAUSED",
   "DROPPED",
 ] as const;
+
+const sampleGame = {
+  name: "Memory Garden Deluxe Edition",
+  slug: "memory-garden-deluxe",
+  coverUrl: null,
+};
+
+const longTitleGame = {
+  name: "The Remarkably Long Journey Across the Soft Library Shelf",
+  slug: "long-journey-soft-library",
+  coverUrl: null,
+};
 
 function ComponentShowcase({ label }: { label: string }) {
   return (
@@ -125,6 +138,50 @@ function ComponentShowcase({ label }: { label: string }) {
             {statusSamples.map((status) => (
               <StatusBadge key={status} status={status} />
             ))}
+          </div>
+        </div>
+
+        <div className="grid gap-5 rounded-card border border-edge bg-surface p-5 shadow-rest">
+          <h3 className="section-label !mb-0">Game cards</h3>
+          <div className="grid gap-4 md:grid-cols-[repeat(3,minmax(0,1fr))]">
+            <GameCard
+              completionPercent={24}
+              game={sampleGame}
+              platformName="PS5"
+              playtimeMinutes={720}
+              status="PLAYING"
+              variant="shelf"
+            />
+            <GameCard
+              game={longTitleGame}
+              status="WISHLIST"
+              variant="shelf"
+            />
+            <GameCard
+              chips={["cozy", "low setup"]}
+              description="A gentle pick for tonight when you want something familiar."
+              eyebrow="Tonight's pick"
+              game={{ ...sampleGame, name: "Lamp Save Slot", slug: "lamp-save-slot" }}
+              platformName="Switch"
+              playtimeMinutes={95}
+              status="BACKLOG"
+              variant="slot"
+            />
+          </div>
+          <div className="grid gap-3">
+            <GameCard
+              game={sampleGame}
+              platformName="Steam"
+              playtimeMinutes={240}
+              status="OWNED"
+              variant="row"
+            />
+            <GameCard
+              description="Missing cover, platform, and playtime are intentional quiet states."
+              game={{ ...longTitleGame, slug: "missing-data-row" }}
+              status="FINISHED"
+              variant="row"
+            />
           </div>
         </div>
 

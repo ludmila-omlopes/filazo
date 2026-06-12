@@ -1,9 +1,6 @@
-import Link from "next/link";
 import type { AssistantProfileData } from "@/lib/assistant/queries";
-import { Chip } from "@/components/ui/chip";
+import { GameCard } from "@/components/game-card";
 import { getAssistantSignalDisplayLabel } from "@/lib/copy";
-import { estimateRemainingTime } from "@/lib/time-estimates";
-import { formatRemainingTime } from "@/lib/utils";
 
 type Insight = AssistantProfileData["insights"][number];
 
@@ -53,49 +50,27 @@ function readGenres(genres: Insight["userGameEntry"]["game"]["genres"]) {
 export function GameFrictionCard({ insight }: { insight: Insight }) {
   const reasons = readReasons(insight.reasons);
   const genres = readGenres(insight.userGameEntry.game.genres);
-  const remainingTime = estimateRemainingTime(insight.userGameEntry);
+  const description = [
+    reasons.join(" "),
+    insight.suggestedAction,
+  ].filter(Boolean).join(" ");
 
   return (
-    <Link
-      className="block rounded-card border border-edge bg-surface p-4 shadow-rest transition-all hover:-translate-y-0.5 hover:shadow-lift focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-soft"
-      href={`/profile?tab=games&view=list#entry-${insight.userGameEntry.id}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="section-label !mb-1">
-            {getAssistantSignalDisplayLabel(insight.signalType)}
-          </p>
-          <h3 className="truncate font-display text-lg">
-            {insight.userGameEntry.game.name}
-          </h3>
-        </div>
-        <div className="pill">gentle nudge</div>
-      </div>
-      {genres.length ? (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {genres.map((genre) => (
-            <Chip key={genre} tone="blue">
-              {genre}
-            </Chip>
-          ))}
-        </div>
-      ) : null}
-      {remainingTime ? (
-        <p
-          className="mt-3 inline-flex rounded-full bg-sage-soft px-2.5 py-0.5 text-xs font-bold"
-          title={`Based on HLTB ${remainingTime.targetLabel}`}
-        >
-          {formatRemainingTime(remainingTime.remainingMinutes)}
-        </p>
-      ) : null}
-      {reasons.length ? (
-        <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-          {reasons.join(" ")}
-        </p>
-      ) : null}
-      {insight.suggestedAction ? (
-        <p className="mt-3 text-sm font-semibold">{insight.suggestedAction}</p>
-      ) : null}
-    </Link>
+    <GameCard
+      chips={genres}
+      completionPercent={insight.userGameEntry.completionPercent}
+      description={description}
+      eyebrow={getAssistantSignalDisplayLabel(insight.signalType)}
+      game={insight.userGameEntry.game}
+      platformName={insight.userGameEntry.platformName}
+      playtimeMinutes={insight.userGameEntry.playtimeMinutes}
+      status={
+        insight.userGameEntry.finishedAt &&
+        insight.userGameEntry.status !== "COMPLETED"
+          ? "FINISHED"
+          : insight.userGameEntry.status
+      }
+      variant="slot"
+    />
   );
 }
