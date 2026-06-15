@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuthDialog } from "@/components/auth-dialog";
 import { GameCard, type GameCardGame } from "@/components/game-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -134,13 +135,11 @@ export default async function Home() {
               calm library, then keeps tonight&apos;s choice close at hand.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <Button
-                asChild
-                size="lg"
-                className="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
-              >
-                <a href="/api/auth/steam">Connect Steam</a>
-              </Button>
+              <AuthDialog
+                triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+                triggerLabel="Sign in"
+                triggerSize="lg"
+              />
               <Button
                 asChild
                 variant="ghost"
@@ -244,13 +243,11 @@ export default async function Home() {
             Let the catalog stay legible.
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button
-              asChild
-              size="lg"
-              className="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
-            >
-              <a href="/api/auth/steam">Connect Steam</a>
-            </Button>
+            <AuthDialog
+              triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+              triggerLabel="Sign in"
+              triggerSize="lg"
+            />
             <Button
               asChild
               variant="ghost"

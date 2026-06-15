@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Armchair, LibraryBig, Sparkles } from "lucide-react";
+import { Armchair, Cable, LibraryBig, Sparkles } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
 import type { AssistantData, ProfileData, ProfileTab } from "./profile-types";
 
@@ -10,6 +10,13 @@ const railItems = [
     label: "Overview",
     hint: "Profile and sources",
     icon: Armchair,
+  },
+  {
+    tab: "integrations" as const,
+    href: "/profile?tab=integrations",
+    label: "Integrations",
+    hint: "Accounts and sync",
+    icon: Cable,
   },
   {
     tab: "games" as const,

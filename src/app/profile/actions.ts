@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ExternalProvider } from "@prisma/client";
 import { z } from "zod";
 import {
   importCsvForUser,
@@ -25,10 +26,20 @@ const playStationConnectSchema = z.object({
   npsso: z.string().trim().min(32).max(512),
 });
 
+const disconnectProviderSchema = z.enum([
+  ExternalProvider.STEAM,
+  ExternalProvider.PLAYSTATION,
+  ExternalProvider.XBOX,
+]);
+
+function getProviderQueryValue(provider: ExternalProvider) {
+  return provider.toLowerCase();
+}
+
 export async function syncSteamLibraryAction() {
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/profile?error=Sign%20in%20before%20syncing%20Steam.");
+    redirect("/login?error=Sign%20in%20before%20syncing%20Steam.");
   }
 
   let syncedCount: number;
@@ -38,18 +49,43 @@ export async function syncSteamLibraryAction() {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Steam sync did not complete.";
-    redirect(`/profile?error=${encodeURIComponent(message)}`);
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
 
   revalidatePath("/profile");
   revalidatePath("/");
-  redirect(`/profile?synced=${syncedCount}`);
+  redirect(`/profile?tab=integrations&synced=${syncedCount}`);
+}
+
+export async function disconnectProviderAction(provider: ExternalProvider) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20changing%20integrations.");
+  }
+
+  const parsed = disconnectProviderSchema.safeParse(provider);
+  if (!parsed.success) {
+    redirect("/profile?tab=integrations&error=That%20integration%20cannot%20be%20disconnected.");
+  }
+
+  await prisma.externalAccount.deleteMany({
+    where: {
+      userId,
+      provider: parsed.data,
+    },
+  });
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect(
+    `/profile?tab=integrations&disconnected=${getProviderQueryValue(parsed.data)}`,
+  );
 }
 
 export async function connectPlayStationAction(formData: FormData) {
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/profile?error=Sign%20in%20before%20connecting%20PlayStation.");
+    redirect("/login?error=Sign%20in%20before%20connecting%20PlayStation.");
   }
 
   const parsed = playStationConnectSchema.safeParse({
@@ -57,7 +93,7 @@ export async function connectPlayStationAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect("/profile?error=Enter%20a%20valid%20PlayStation%20NPSSO%20token.");
+    redirect("/profile?tab=integrations&error=Enter%20a%20valid%20PlayStation%20NPSSO%20token.");
   }
 
   try {
@@ -70,18 +106,18 @@ export async function connectPlayStationAction(formData: FormData) {
       error instanceof Error
         ? error.message
         : "Could not connect PlayStation.";
-    redirect(`/profile?error=${encodeURIComponent(message)}`);
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
 
   revalidatePath("/profile");
   revalidatePath("/");
-  redirect("/profile?playstation=connected");
+  redirect("/profile?tab=integrations&playstation=connected");
 }
 
 export async function syncPlayStationLibraryAction() {
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/profile?error=Sign%20in%20before%20syncing%20PlayStation.");
+    redirect("/login?error=Sign%20in%20before%20syncing%20PlayStation.");
   }
 
   let syncedCount: number;
@@ -91,18 +127,18 @@ export async function syncPlayStationLibraryAction() {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "PlayStation sync did not complete.";
-    redirect(`/profile?error=${encodeURIComponent(message)}`);
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
 
   revalidatePath("/profile");
   revalidatePath("/");
-  redirect(`/profile?playstationSynced=${syncedCount}`);
+  redirect(`/profile?tab=integrations&playstationSynced=${syncedCount}`);
 }
 
 export async function syncXboxLibraryAction() {
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/profile?error=Sign%20in%20before%20syncing%20Xbox.");
+    redirect("/login?error=Sign%20in%20before%20syncing%20Xbox.");
   }
 
   let syncedCount: number;
@@ -112,18 +148,18 @@ export async function syncXboxLibraryAction() {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Xbox sync did not complete.";
-    redirect(`/profile?error=${encodeURIComponent(message)}`);
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
 
   revalidatePath("/profile");
   revalidatePath("/");
-  redirect(`/profile?xboxSynced=${syncedCount}`);
+  redirect(`/profile?tab=integrations&xboxSynced=${syncedCount}`);
 }
 
 export async function importCsvAction(formData: FormData) {
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/profile?error=Sign%20in%20before%20importing%20CSV%20data.");
+    redirect("/login?error=Sign%20in%20before%20importing%20CSV%20data.");
   }
 
   const parsed = importSchema.safeParse({

@@ -17,7 +17,7 @@ export type PlayerProfileData = Awaited<
   ReturnType<typeof getPlayerProfileForUser>
 >;
 
-export type ProfileTab = "overview" | "games" | "assistant";
+export type ProfileTab = "overview" | "integrations" | "games" | "assistant";
 
 export type StatusMessage = {
   tone: "success" | "error";

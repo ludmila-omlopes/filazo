@@ -12,6 +12,8 @@ export type ProfileSearchParams = Promise<{
   connected?: string;
   synced?: string;
   imported?: string;
+  disconnected?: string;
+  login?: string;
   playstation?: string;
   playstationSynced?: string;
   xbox?: string;
@@ -40,6 +42,10 @@ export function parseActiveTab(value: string | undefined): ProfileTab {
     return "games";
   }
 
+  if (value === "integrations" || value === "sources") {
+    return "integrations";
+  }
+
   if (value === "assistant" || value === "coach") {
     return "assistant";
   }
@@ -58,6 +64,34 @@ export function getStatusMessage(
     return {
       tone: "success",
       message: `Steam sync finished. ${query.synced} titles refreshed.`,
+    };
+  }
+
+  if (query.login === "created") {
+    return {
+      tone: "success",
+      message: "Profile created. Connect a provider or import a CSV whenever you are ready.",
+    };
+  }
+
+  if (query.login === "signed-in") {
+    return {
+      tone: "success",
+      message: "Signed in. Your catalog is ready.",
+    };
+  }
+
+  if (query.login === "google") {
+    return {
+      tone: "success",
+      message: "Google login connected. Your catalog is ready.",
+    };
+  }
+
+  if (query.disconnected) {
+    return {
+      tone: "success",
+      message: "Integration disconnected. Existing catalog entries stayed in place.",
     };
   }
 

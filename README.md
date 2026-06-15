@@ -14,7 +14,7 @@ It is designed around a canonical local game catalog that can absorb data from m
 - Metacritic metascore enrichment when Steam Store metadata exposes a score
 - Optional rule-based and AI-assisted backlog assistance
 
-The current app already includes a landing page, a collector profile, Steam authentication, Steam sync, PlayStation library sync, Xbox authentication and achievement-history sync, CSV mapping/import, and per-game catalog pages.
+The current app already includes a landing page, a modal sign-in flow, a collector profile with a dedicated integrations area, Steam authentication, Steam sync, PlayStation library sync, Xbox authentication and achievement-history sync, CSV mapping/import, and per-game catalog pages.
 
 ## Stack
 
@@ -36,7 +36,7 @@ The app is centered on a canonical `Game` record.
 - `UserGameInsight` stores per-game assistant signals such as untouched, sampled-dropped, wishlist risk, and release candidates
 - `AssistantRun` stores each assistant refresh summary and optional AI output metadata
 - `PlayerProfile` stores the AI-generated player profile (summary, preferences, patterns, internal recommendations) plus the agent's tool-call trace
-- `ExternalAccount` stores connected provider accounts like Steam
+- `ExternalAccount` stores connected provider accounts like Steam, PlayStation, and Xbox
 - PlayStation refresh tokens are encrypted in `ExternalAccount.metadata`; NPSSO values are exchanged and then discarded
 - `ImportJob` and `ImportRow` keep an audit trail of CSV imports
 
@@ -44,6 +44,8 @@ This means multiple providers can eventually point to the same internal game ins
 
 ## Features
 
+- Modal sign-in with first-party email/password accounts and Google OAuth
+- Dedicated profile integrations area for connecting, syncing, and disconnecting external accounts
 - Steam OpenID sign-in
 - Steam owned games sync with playtime, last played date, and achievement-based completion percentages when Steam exposes the data
 - PlayStation connection through NPSSO with sync for PS4/PS5 purchased games, played trophy titles, and trophy progress
@@ -68,6 +70,7 @@ This means multiple providers can eventually point to the same internal game ins
 Optional, depending on what you want to use:
 
 - Steam Web API key for owned library sync
+- Google OAuth credentials for Google login
 - Microsoft OAuth app credentials for Xbox account sync
 - IGDB client credentials for metadata enrichment
 
@@ -88,6 +91,10 @@ AUTH_SECRET="replace-with-a-long-random-string"
 # Steam
 STEAM_API_KEY=""
 
+# Google login
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+
 # Xbox / Microsoft OAuth
 XBOX_CLIENT_ID=""
 XBOX_CLIENT_SECRET=""
@@ -106,6 +113,7 @@ Notes:
 - `AUTH_SECRET` should be a long random string in any non-local environment.
 - `DATABASE_URL` is required for catalog features. The default SQLite value is
   intended for local development.
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable the Google button in the login popup. Add `${APP_URL}/api/auth/google/callback` as an authorized redirect URI in Google Cloud.
 - `STEAM_API_KEY` is required for owned library sync. Steam sign-in itself uses OpenID.
 - PlayStation sync does not require an app key. Users provide an NPSSO token in the profile page; the app exchanges it for PlayStation API tokens, stores encrypted refresh/access tokens, and does not store the NPSSO.
 - `XBOX_CLIENT_ID` is required for Xbox account sync. Register a Microsoft OAuth app for personal Microsoft accounts and add `${APP_URL}/api/auth/xbox/callback` as a web redirect URI. `XBOX_CLIENT_SECRET` is recommended for web app token exchange.
@@ -199,29 +207,29 @@ sync after Steam sign-in.
 
 ### Steam flow
 
-1. The user starts at `/api/auth/steam`.
+1. The user starts from `/login` or directly at `/api/auth/steam`.
 2. The app redirects to Steam OpenID.
 3. Steam returns to `/api/auth/steam/callback`.
 4. The callback verifies the OpenID response, creates or reuses a local user, stores the Steam account, and sets a signed session cookie.
-5. From the profile page, the user can run a Steam sync to fetch owned games and attach them to canonical catalog entries.
+5. From the profile integrations tab, the user can run a Steam sync to fetch owned games and attach them to canonical catalog entries.
 
 ### PlayStation flow
 
 1. The user signs in to PlayStation in a browser and retrieves their NPSSO token.
 2. The profile page exchanges the NPSSO for PlayStation access and refresh tokens through `psn-api`.
 3. The app stores encrypted PlayStation API tokens in `ExternalAccount.metadata` and discards the NPSSO.
-4. From the profile page, the user can sync PS4/PS5 purchased games through `getPurchasedGames` and played trophy titles through `getUserTitles`.
+4. From the profile integrations tab, the user can sync PS4/PS5 purchased games through `getPurchasedGames` and played trophy titles through `getUserTitles`.
 5. Each title is attached to a canonical `Game` with `PLAYSTATION` `GameProviderLink` records keyed by available IDs such as `titleId`, `productId`, `conceptId`, `entitlementId`, and `npCommunicationId`.
 6. Trophy progress is stored as `UserGameEntry.completionPercent` when PSN exposes it.
 
 ### Xbox flow
 
-1. The user starts at `/api/auth/xbox`.
+1. The user starts from `/login`, the profile integrations tab, or directly at `/api/auth/xbox`.
 2. The app redirects to Microsoft OAuth with `Xboxlive.signin` and `Xboxlive.offline_access` scopes.
 3. Microsoft returns to `/api/auth/xbox/callback`.
 4. The callback exchanges the authorization code for Microsoft OAuth tokens, then exchanges those for Xbox Live user and XSTS tokens.
 5. The app stores encrypted Microsoft OAuth tokens in `ExternalAccount.metadata`; short-lived Xbox Live/XSTS tokens are regenerated during sync.
-6. From the profile page, the user can sync Xbox achievement-history titles and recent title history.
+6. From the profile integrations tab, the user can sync Xbox achievement-history titles and recent title history.
 7. Each title is attached to a canonical `Game` with `XBOX` `GameProviderLink` records keyed by available IDs such as `titleId`, `scid`, and `pfn`.
 8. Achievement progress is stored as `UserGameEntry.completionPercent` when Xbox exposes enough achievement or gamerscore data.
 
@@ -234,6 +242,14 @@ sync after Steam sign-in.
 5. When PlayStation CSV is selected, `UserGameEntry.provider` is set to `PLAYSTATION`, the platform defaults to PlayStation when no platform column is mapped, and any mapped external ID is stored as a PlayStation `GameProviderLink`.
 6. When Xbox CSV is selected, `UserGameEntry.provider` is set to `XBOX`, the platform defaults to Xbox when no platform column is mapped, and any mapped external ID is stored as an Xbox `GameProviderLink`.
 7. Import results are recorded in `ImportJob` and `ImportRow`.
+
+### Account and integration management
+
+1. Logged-out users open the login popup from the header, home page, or `/login`.
+2. Users can create or enter a first-party filazo account with email and password, or continue with Google when Google OAuth credentials are configured.
+3. Logged-in users manage Steam, PlayStation, and Xbox from `/profile?tab=integrations`.
+4. Disconnecting a provider deletes the `ExternalAccount` row and removes stored external credentials or account links.
+5. Existing `UserGameEntry` records remain in the user's catalog. Their provider/source history remains intact, and the nullable `externalAccountId` relation is cleared by the database relation.
 
 ### Catalog resolution
 

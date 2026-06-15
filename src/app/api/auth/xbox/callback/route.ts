@@ -46,7 +46,7 @@ export async function GET(request: Request) {
     await setUserSession(user.id);
 
     return NextResponse.redirect(
-      new URL("/profile?xbox=connected", request.url),
+      new URL("/profile?tab=integrations&xbox=connected", request.url),
     );
   } catch (error) {
     const message =

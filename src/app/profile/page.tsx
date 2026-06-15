@@ -3,6 +3,7 @@ import { AddGamesPanel } from "./_components/add-games-panel";
 import { AssistantCorner, AssistantTab } from "./_components/assistant-tab";
 import { FavoriteGames } from "./_components/favorite-games";
 import { GreetingStrip } from "./_components/greeting-strip";
+import { IntegrationsPanel } from "./_components/integrations-panel";
 import {
   ProfileErrorPanel,
   SignedOutPanel,
@@ -112,6 +113,10 @@ export default async function ProfilePage({
 
         {activeTab === "assistant" && assistant ? (
           <AssistantTab assistant={assistant} />
+        ) : null}
+
+        {activeTab === "integrations" ? (
+          <IntegrationsPanel profile={profile} />
         ) : null}
 
         {activeTab === "games" ? (
