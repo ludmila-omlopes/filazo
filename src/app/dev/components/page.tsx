@@ -87,7 +87,7 @@ function ComponentShowcase({ label }: { label: string }) {
           <CardContent className="grid gap-3 sm:grid-cols-2">
             <Card className="p-5" tactile>
               <CardTitle>Resting surface</CardTitle>
-              <CardDescription>Soft edge, warm surface, quiet depth.</CardDescription>
+              <CardDescription>Printed edge, quiet surface, catalog depth.</CardDescription>
             </Card>
             <Card className="p-5" interactive tactile>
               <CardTitle>Interactive surface</CardTitle>
@@ -159,7 +159,7 @@ function ComponentShowcase({ label }: { label: string }) {
             />
             <GameCard
               chips={["cozy", "low setup"]}
-              description="A gentle pick for tonight when you want something familiar."
+              description="A catalog pick for tonight when you want something familiar."
               eyebrow="Tonight's pick"
               game={{ ...sampleGame, name: "Lamp Save Slot", slug: "lamp-save-slot" }}
               platformName="Switch"
@@ -203,7 +203,7 @@ function ComponentShowcase({ label }: { label: string }) {
         </div>
 
         <EmptyState
-          title="Your shelf is quiet right now."
+          title="Your catalog is quiet right now."
           illustration={<span aria-hidden>+</span>}
         >
           Add a few games whenever it feels useful. The shelf can start small.

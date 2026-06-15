@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
-import "@fontsource/fraunces/400.css";
-import "@fontsource/fraunces/500.css";
-import "@fontsource/fraunces/600.css";
-import "@fontsource/fraunces/400-italic.css";
-import "@fontsource/fraunces/500-italic.css";
-import "@fontsource/nunito-sans/400.css";
-import "@fontsource/nunito-sans/600.css";
-import "@fontsource/nunito-sans/700.css";
+import "@fontsource/instrument-sans/400.css";
+import "@fontsource/instrument-sans/500.css";
+import "@fontsource/instrument-sans/600.css";
+import "@fontsource/instrument-sans/700.css";
+import "@fontsource/instrument-sans/400-italic.css";
+import "@fontsource/instrument-sans/500-italic.css";
+import "@fontsource/atkinson-hyperlegible/400.css";
+import "@fontsource/atkinson-hyperlegible/700.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
@@ -22,7 +22,7 @@ import { FILAZO_THEME_COOKIE, parseFilazoTheme } from "@/lib/theme";
 export const metadata: Metadata = {
   title: "filazo",
   description:
-    "A calm home for your game library. Sync Steam, import CSVs, and make peace with your shelf.",
+    "A calm catalog for your game library. Sync Steam, import CSVs, and keep every title easy to find.",
 };
 
 async function getNavigationUser(userId: string | null) {
@@ -73,12 +73,12 @@ export default async function RootLayout({
         <div className="min-h-screen px-6 pb-6 max-md:px-4 max-md:pb-4">
           <SiteHeaderFrame>
             <Link href="/" className="group inline-flex items-baseline gap-2">
-              <span className="font-display text-[1.45rem] font-medium tracking-tight">
+              <span className="font-display text-[1.45rem] font-medium">
                 filazo
               </span>
               <span
                 aria-hidden
-                className="h-2 w-2 translate-y-[-1px] rounded-full bg-glow motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-125"
+                className="h-5 w-1.5 translate-y-1 rounded-[2px] bg-glow motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-y-110"
               />
             </Link>
 

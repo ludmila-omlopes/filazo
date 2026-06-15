@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/** Quiet stat tile: a serif number over a small muted label. */
+/** Quiet stat tile: a display number over a small muted label. */
 export function StatCard({
   value,
   label,

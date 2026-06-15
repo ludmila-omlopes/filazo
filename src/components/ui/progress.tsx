@@ -18,7 +18,7 @@ function Progress({
   return (
     <div className={cn("grid gap-1.5", className)}>
       {label ? (
-        <div className="text-caption font-bold lowercase tracking-wide text-ink-soft">
+        <div className="text-caption font-bold lowercase text-ink-soft">
           {label}
         </div>
       ) : null}

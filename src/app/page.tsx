@@ -11,8 +11,8 @@ import { formatNumber } from "@/lib/utils";
 
 const fallbackGames: GameCardGame[] = [
   {
-    name: "Neon Drift",
-    slug: "neon-drift",
+    name: "Harbor Index",
+    slug: "harbor-index",
     coverUrl: null,
   },
   {
@@ -41,8 +41,8 @@ const fallbackGames: GameCardGame[] = [
     coverUrl: null,
   },
   {
-    name: "Tiny Engines at Dusk",
-    slug: "tiny-engines-at-dusk",
+    name: "Tiny Engines After Hours",
+    slug: "tiny-engines-after-hours",
     coverUrl: null,
   },
   {
@@ -112,41 +112,32 @@ export default async function Home() {
         </Notice>
       ) : null}
 
-      <section className="relative overflow-hidden rounded-[36px] bg-dusk-deep text-cream shadow-float">
+      <section className="relative min-h-[560px] overflow-hidden rounded-card border border-edge bg-dusk-deep text-cream shadow-float">
         <div
           aria-hidden
-          className="pointer-events-none absolute -left-32 -top-40 h-[480px] w-[480px] rounded-full bg-glow/25 blur-[110px] animate-breathe"
+          className="absolute inset-0 bg-[linear-gradient(135deg,rgba(159,153,209,0.18),rgba(134,186,218,0.1)_45%,rgba(255,227,179,0.14))]"
         />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-48 right-[18%] h-[420px] w-[420px] rounded-full bg-sage/15 blur-[110px] animate-breathe [animation-delay:-4.5s]"
-        />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute right-[-90px] top-[-60px] h-[300px] w-[300px] rounded-full bg-sky/10 blur-[90px]"
-        />
+        <CatalogHeroArtifacts games={shelfGames.slice(0, 3)} />
 
-        <div className="relative z-10 grid grid-cols-[minmax(0,1.1fr)_minmax(280px,0.9fr)] items-center gap-12 px-14 py-20 max-lg:grid-cols-1 max-lg:gap-14 max-md:px-7 max-md:py-12">
-          <div className="flex min-w-0 flex-col items-start gap-7">
-            <p className="text-kicker font-bold uppercase tracking-[0.28em] text-glow/90">
-              For players with too many games
+        <div className="relative z-10 flex min-h-[560px] items-center px-14 py-20 max-md:px-7 max-md:py-12">
+          <div className="max-w-[620px]">
+            <p className="text-kicker font-bold uppercase text-glow/90">
+              Canonical catalog for large libraries
             </p>
-            <h1 className="text-display font-normal leading-[1.04] tracking-normal">
-              Make peace with
+            <h1 className="mt-5 text-display font-normal leading-[1.03]">
+              Every game list,
               <br />
-              your shelf.
-              <br />
-              <em className="serif-accent text-glow">Befriend it.</em>
+              one readable catalog.
             </h1>
-            <p className="max-w-[40ch] text-lg leading-relaxed text-cream/70">
-              filazo turns the games waiting for someday into a quiet library
-              and hands you one gentle pick for tonight.
+            <p className="mt-6 max-w-[45ch] text-lg leading-relaxed text-cream/75">
+              filazo brings Steam, CSVs, PlayStation, and Xbox records into one
+              calm library, then keeps tonight&apos;s choice close at hand.
             </p>
-            <div className="mt-1 flex flex-wrap items-center gap-4">
+            <div className="mt-8 flex flex-wrap items-center gap-4">
               <Button
                 asChild
                 size="lg"
-                className="h-12 rounded-full bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+                className="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
               >
                 <a href="/api/auth/steam">Connect Steam</a>
               </Button>
@@ -154,7 +145,7 @@ export default async function Home() {
                 asChild
                 variant="ghost"
                 size="lg"
-                className="h-12 rounded-full border border-cream/25 px-7 text-base font-semibold text-cream hover:bg-cream/10 hover:text-cream"
+                className="h-12 border border-cream/25 bg-cream/8 px-7 text-base font-semibold text-cream hover:bg-cream/14 hover:text-cream"
               >
                 <Link href="/tonight">Open tonight</Link>
               </Button>
@@ -162,41 +153,39 @@ export default async function Home() {
                 asChild
                 variant="ghost"
                 size="lg"
-                className="h-12 rounded-full border border-cream/15 px-7 text-base font-semibold text-cream/80 hover:bg-cream/10 hover:text-cream"
+                className="h-12 border border-cream/15 bg-transparent px-7 text-base font-semibold text-cream/85 hover:bg-cream/12 hover:text-cream"
               >
-                <Link href="/profile">Bring a CSV instead</Link>
+                <Link href="/profile">Import a CSV</Link>
               </Button>
             </div>
-            <p className="mt-2 text-sm text-cream/45">
-              {formatNumber(catalogCount)} games already rest here. None of
-              them are deadlines.
+            <p className="mt-5 text-sm text-cream/55">
+              {formatNumber(catalogCount)} games indexed here. Browse, sort, or
+              leave them waiting.
             </p>
           </div>
-
-          <TonightStack games={shelfGames.slice(0, 3)} />
         </div>
       </section>
 
       <section className="grid gap-8 px-4">
-        <p className="text-center text-kicker font-bold uppercase tracking-[0.28em] text-ink-soft">
-          An evening with filazo
+        <p className="text-center text-kicker font-bold uppercase text-ink-soft">
+          How the catalog settles
         </p>
 
         <div className="grid grid-cols-3 gap-5 max-lg:grid-cols-1">
           <EveningStep
             number="01"
-            title="Bring the games over"
-            line="Steam can walk in by itself. CSV, PlayStation, and Xbox lists have a place too."
+            title="Bring records in"
+            line="Steam can sync directly. CSV, PlayStation, and Xbox lists have a place too."
           />
           <EveningStep
             number="02"
-            title="Let them settle"
-            line="The catalog folds duplicates together and turns scattered lists into one calm shelf."
+            title="Resolve the catalog"
+            line="Provider IDs, IGDB matches, and normalized titles fold scattered lists into one game entry."
           />
           <EveningStep
             number="03"
-            title="Choose tonight gently"
-            line="When the room is quiet, filazo offers one pick that fits the time and mood you have."
+            title="Choose without pressure"
+            line="When you want to play, filazo keeps one fitting pick nearby without turning the rest into chores."
           />
         </div>
       </section>
@@ -204,14 +193,14 @@ export default async function Home() {
       <section className="grid gap-8">
         <div className="flex flex-wrap items-end justify-between gap-4 px-4">
           <div>
-            <p className="section-label">The shelf</p>
+            <p className="section-label">The catalog</p>
             <h2 className="text-section-title">
-              A Day Mode library with room to breathe.
+              One library surface for every source.
             </h2>
           </div>
           <p className="max-w-[40ch] text-sm leading-relaxed text-ink-soft">
-            {formatNumber(catalogCount)} games already rest here. A few of them
-            are enough to show the shape of the room.
+            {formatNumber(catalogCount)} games are already indexed. A few of
+            them are enough to show how the collection reads.
           </p>
         </div>
 
@@ -231,35 +220,34 @@ export default async function Home() {
       <section className="relative px-4 py-6 text-center">
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 select-none font-display text-[clamp(5rem,16vw,11rem)] font-medium italic leading-none text-ink/4"
+          className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 select-none font-display text-[7rem] font-medium italic leading-none text-ink/4 max-md:text-[4.5rem]"
         >
-          breathe
+          index
         </span>
         <blockquote className="relative mx-auto max-w-[24ch] font-display text-quote font-normal italic leading-snug">
-          Your backlog isn&apos;t a debt.
+          A library is allowed
           <br />
-          It&apos;s a library you get to live in.
+          to be unfinished.
           <br />
-          We&apos;ll never count what&apos;s left.
+          Keep it readable.
+          <br />
+          Pick what fits.
         </blockquote>
       </section>
 
-      <section className="relative overflow-hidden rounded-[36px] bg-dusk text-cream">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -right-24 -top-32 h-[380px] w-[380px] rounded-full bg-glow/20 blur-[100px] animate-breathe"
-        />
+      <section className="relative overflow-hidden rounded-card border border-edge bg-dusk text-cream shadow-rest">
+        <div aria-hidden className="absolute inset-x-0 top-0 h-2 bg-glow" />
         <div className="relative z-10 flex flex-col items-center gap-6 px-10 py-16 text-center max-md:px-6">
-          <h2 className="max-w-[22ch] text-[clamp(1.6rem,3.4vw,2.4rem)] font-normal leading-snug">
-            Bring your games over.
+          <h2 className="max-w-[22ch] text-section-title font-normal leading-snug">
+            Bring your records in.
             <br />
-            Let the shelf become quiet.
+            Let the catalog stay legible.
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button
               asChild
               size="lg"
-              className="h-12 rounded-full bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+              className="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
             >
               <a href="/api/auth/steam">Connect Steam</a>
             </Button>
@@ -267,9 +255,9 @@ export default async function Home() {
               asChild
               variant="ghost"
               size="lg"
-              className="h-12 rounded-full border border-cream/25 px-7 text-base font-semibold text-cream hover:bg-cream/10 hover:text-cream"
+              className="h-12 border border-cream/25 px-7 text-base font-semibold text-cream hover:bg-cream/10 hover:text-cream"
             >
-              <Link href="/profile">Bring a CSV instead</Link>
+              <Link href="/profile">Import a CSV</Link>
             </Button>
           </div>
           <p className="text-xs text-cream/40">
@@ -282,41 +270,79 @@ export default async function Home() {
   );
 }
 
-function TonightStack({ games }: { games: GameCardGame[] }) {
+function CatalogHeroArtifacts({ games }: { games: GameCardGame[] }) {
   const stackedGames = [...games, ...fallbackGames].slice(0, 3);
   const [frontGame, secondGame, thirdGame] = stackedGames;
 
   return (
-    <div
-      className="relative mx-auto h-[390px] w-[300px] max-lg:h-[360px]"
-      aria-label="Example: tonight's gentle pick"
-    >
-      <div className="absolute left-0 top-9 w-[230px] rotate-[-7deg] opacity-50">
-        <GameCard
-          className="bg-cream text-dusk-deep"
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute right-0 top-0 h-full w-[36%] min-w-[300px] border-l border-cream/10 bg-dusk/45 max-md:w-[54%] max-sm:opacity-45">
+        <div className="grid h-full grid-cols-6 gap-2 p-5 opacity-85">
+          {[
+            "bg-sage",
+            "bg-sky",
+            "bg-sand",
+            "bg-clay",
+            "bg-dusk-lavender",
+            "bg-cream/80",
+          ].map((tone, index) => (
+            <div
+              className={`${tone} rounded-inner border border-cream/12 opacity-70`}
+              key={`${tone}-${index}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="absolute bottom-10 right-14 h-[330px] w-[280px] max-lg:right-7 max-md:bottom-6 max-md:opacity-60 max-sm:hidden">
+        <CatalogCard
+          className="absolute left-1 top-10 rotate-[-7deg] opacity-55"
           game={secondGame}
-          variant="slot"
+          marker="CSV"
         />
-      </div>
-      <div className="absolute right-0 top-2 w-[238px] rotate-[5deg] opacity-70">
-        <GameCard
-          className="bg-cream text-dusk-deep"
+        <CatalogCard
+          className="absolute right-0 top-0 rotate-[5deg] opacity-70"
           game={thirdGame}
-          variant="slot"
+          marker="IGDB"
         />
-      </div>
-      <div className="absolute left-1/2 top-1/2 w-[260px] -translate-x-1/2 -translate-y-1/2">
-        <GameCard
-          chips={["quiet evening", "short return"]}
-          className="bg-cream text-dusk-deep shadow-float"
-          description="A gentle pick that fits your evening with room to spare."
-          eyebrow="Tonight's gentle pick"
+        <CatalogCard
+          className="absolute left-8 top-20 shadow-float"
           game={frontGame}
-          platformName="Your shelf"
-          status="PLAYING"
-          variant="slot"
+          marker="Tonight"
+          note="short return"
         />
       </div>
+    </div>
+  );
+}
+
+function CatalogCard({
+  className,
+  game,
+  marker,
+  note = "catalog entry",
+}: {
+  className?: string;
+  game: GameCardGame;
+  marker: string;
+  note?: string;
+}) {
+  return (
+    <div
+      className={`w-[230px] rounded-card border border-cream/25 bg-cream p-4 text-dusk-deep shadow-lift ${className ?? ""}`}
+    >
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-dusk-deep/15 pb-3">
+        <span className="text-xs font-bold uppercase text-dusk-deep/65">
+          {marker}
+        </span>
+        <span className="h-3 w-8 rounded-[2px] bg-glow" />
+      </div>
+      <div className="aspect-[3/4] rounded-inner border border-dusk-deep/15 bg-sage-soft p-3">
+        <div className="grid h-full place-items-center rounded-[6px] border border-dusk-deep/10 bg-cream/85 text-center font-display text-xl leading-tight text-dusk-deep">
+          {game.name}
+        </div>
+      </div>
+      <p className="mt-3 text-sm font-bold">{note}</p>
     </div>
   );
 }
@@ -333,7 +359,7 @@ function EveningStep({
   return (
     <Card tactile className="py-0">
       <CardContent className="flex items-start gap-5 p-6">
-        <span className="font-display text-[clamp(3rem,7vw,4.6rem)] font-normal italic leading-none text-sage/70">
+          <span className="font-display text-[4rem] font-normal italic leading-none text-sage/70 max-sm:text-[3rem]">
           {number}
         </span>
         <div className="pt-2">

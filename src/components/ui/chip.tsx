@@ -22,7 +22,7 @@ export function Chip({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-pill border border-edge px-2.5 py-0.5 text-caption font-bold lowercase tracking-wide",
+        "inline-flex items-center rounded-pill border border-edge px-2.5 py-0.5 text-caption font-bold lowercase",
         tones[tone],
         className,
       )}

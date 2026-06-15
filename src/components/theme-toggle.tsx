@@ -16,12 +16,12 @@ type ThemeOption = {
 const themeOptions: ThemeOption[] = [
   {
     value: "day",
-    label: "Day — plan your shelf",
+    label: "Day - browse the catalog",
     icon: Sun,
   },
   {
     value: "night",
-    label: "Night — pick something to play",
+    label: "Night - pick something to play",
     icon: Moon,
   },
 ];

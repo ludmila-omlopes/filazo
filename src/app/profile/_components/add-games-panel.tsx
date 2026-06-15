@@ -32,10 +32,10 @@ function ConnectionRow({
 
 export function AddGamesPanel({ profile }: { profile: ProfileData }) {
   return (
-    <section className="panel bg-sand-soft/50">
+    <section className="panel bg-sand-soft/55">
       <SectionHeader
-        eyebrow="Add to your shelf"
-        title="Bring more games in"
+        eyebrow="Add records"
+        title="Bring more games into the catalog"
         aside={
           <div className="pill">
             {profile.latestImport
@@ -46,7 +46,7 @@ export function AddGamesPanel({ profile }: { profile: ProfileData }) {
       />
 
       <div className="grid grid-cols-2 gap-6 max-lg:grid-cols-1">
-        <article className="rounded-inner border border-edge bg-surface p-5">
+        <article className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
           <SectionHeader
             eyebrow="Steam"
             title="Library sync"
@@ -81,7 +81,7 @@ export function AddGamesPanel({ profile }: { profile: ProfileData }) {
           </div>
         </article>
 
-        <article className="rounded-inner border border-edge bg-surface p-5">
+        <article className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
           <SectionHeader
             eyebrow="Xbox"
             title="Achievement-history sync"
@@ -114,12 +114,12 @@ export function AddGamesPanel({ profile }: { profile: ProfileData }) {
             </ConnectionRow>
             <p className="text-sm leading-relaxed text-ink-soft">
               Xbox brings in games found through achievement and recent title
-              history, then attaches them to the shared catalog.
+              history, then attaches them to the canonical catalog.
             </p>
           </div>
         </article>
 
-        <article className="rounded-inner border border-edge bg-surface p-5">
+        <article className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
           <SectionHeader
             eyebrow="PlayStation"
             title="Played catalog sync"
@@ -145,8 +145,8 @@ export function AddGamesPanel({ profile }: { profile: ProfileData }) {
             </ConnectionRow>
             {profile.playStationAccount ? (
               <p className="text-sm leading-relaxed text-ink-soft">
-                Sync imports PS4/PS5 purchased games and fills in trophy
-                progress for titles that appear on your trophy list.
+                Sync imports PS4/PS5 purchased games and trophy-list titles,
+                then attaches them to the shared catalog.
               </p>
             ) : (
               <form action={connectPlayStationAction} className="grid gap-4">
@@ -171,7 +171,7 @@ export function AddGamesPanel({ profile }: { profile: ProfileData }) {
           </div>
         </article>
 
-        <article className="rounded-inner border border-edge bg-surface p-5">
+        <article className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
           <SectionHeader eyebrow="CSV" title="Library exports" />
           <CsvImportWidget action={importCsvAction} />
         </article>

@@ -142,8 +142,8 @@ export function ShelfGrid({
     <>
       <section className="panel">
         <SectionHeader
-          eyebrow="The shelf"
-          title="Browse without pressure"
+          eyebrow="The catalog"
+          title="Browse every entry"
           aside={
             <div className="pill">
               {visibleEntries.length}{" "}
@@ -170,7 +170,7 @@ export function ShelfGrid({
               <input type="hidden" name="platform" value={activePlatform} />
             ) : null}
             <label className="relative">
-              <span className="sr-only">Search your shelf</span>
+              <span className="sr-only">Search your catalog</span>
               <Search
                 aria-hidden
                 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft"
@@ -179,7 +179,7 @@ export function ShelfGrid({
                 className="min-h-11 w-full rounded-pill border border-edge bg-surface px-10 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                 defaultValue={queryText}
                 name="q"
-                placeholder="Search your shelf"
+                placeholder="Search your catalog"
                 type="search"
               />
             </label>
@@ -271,7 +271,7 @@ export function ShelfGrid({
                   {getAssistantSignalDisplayLabel(activeSignal)}
                 </Link>
               ) : (
-                "Default sort keeps the newest additions close."
+                "Default sort keeps the newest catalog additions close."
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -337,7 +337,7 @@ export function ShelfGrid({
 
       <section className="flex items-center justify-between gap-4 rounded-card border border-edge bg-sand-soft px-6 py-5 shadow-rest max-md:flex-col max-md:items-start">
         <div>
-          <p className="section-label !mb-1">Fresh shelf data</p>
+          <p className="section-label !mb-1">Fresh catalog data</p>
           <p className="text-sm font-semibold leading-snug">
             Playtime, last played, and achievement progress refresh after a
             library sync.
@@ -403,7 +403,7 @@ export function ShelfGrid({
           </div>
         ) : (
           <EmptyState title="Your shelf is ready. Bring some games over.">
-            Sync a platform or import a CSV, then this space becomes browsable.
+            Sync a platform or import a CSV, then the catalog becomes browsable.
           </EmptyState>
         )}
       </section>

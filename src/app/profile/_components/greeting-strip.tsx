@@ -6,14 +6,14 @@ function getGreetingLine() {
   const hour = new Date().getHours();
 
   if (hour < 12) {
-    return "Good morning. The shelf is patient.";
+    return "Good morning. The catalog is ready when you are.";
   }
 
   if (hour < 18) {
-    return "Good afternoon. Everything here can wait.";
+    return "Good afternoon. Every entry can wait.";
   }
 
-  return "Good evening. Pick gently, or just browse.";
+  return "Good evening. Pick one, or just browse.";
 }
 
 function ProviderChip({
@@ -32,16 +32,16 @@ function ProviderChip({
 
 export function GreetingStrip({ profile }: { profile: ProfileData }) {
   return (
-    <section className="panel bg-sage-soft/70">
+    <section className="panel bg-sky-soft/70">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <p className="section-label">Your library</p>
+          <p className="section-label">Your catalog</p>
           <h2 className="text-page-title leading-tight">
             {profile.user.displayName ?? "Player"}
           </h2>
           <p className="mt-2 max-w-[52ch] leading-relaxed text-ink-soft">
             {getGreetingLine()} {formatNumber(profile.user.gameEntries.length)}{" "}
-            games have a place here.
+            games have a readable place here.
           </p>
         </div>
         <div className="flex max-w-[420px] flex-wrap justify-end gap-2 max-md:justify-start">

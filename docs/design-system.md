@@ -1,35 +1,39 @@
 # Filazo Design System
 
-Filazo should feel like a personal game shelf or cozy save room: calm, nostalgic, adult, soft, tactile, warm, organized, forgiving, library-like, game-shelf, save-room, and low-pressure.
+Filazo should feel like a personal game catalog: calm, adult, legible, editorial, collected, and unhurried. The product should feel closer to a reading room, archive card, or well-kept media shelf than to an AI productivity console.
 
-It should not feel neon, cyberpunk, arcade, childish, corporate, completionist, or task-manager-like.
+It should not feel neon, cyberpunk, arcade, childish, corporate, beige SaaS, completionist, or task-manager-like.
 
 ## Product Identity
 
-Filazo helps players live with a large library without turning play into a quota. The interface should lower pressure, make collections feel cared for, and avoid achievement-chasing language unless the feature is explicitly about achievement data.
+Filazo helps players live with a large library without turning play into a quota. The interface should lower pressure, make collections feel cared for, and keep canonical catalog context visible: a game, its provider links, and the user's relationship to it.
 
-Use warm surfaces, diffuse shadows, tactile rounded objects, and clear organization. Prefer gentle language such as "resting", "library", "shelf", "tonight", "finished", and "wishlist" over productivity framing like "tasks", "deadlines", "streaks", or "targets".
+Use pearled paper surfaces, soft iridescent gradients, printed-card borders, catalog-label details, and clear organization. Prefer language such as "catalog", "shelf", "library", "entry", "credits rolled", "still curious", and "tonight" over productivity framing like "tasks", "deadlines", "streaks", or "targets".
+
+## Distinct From Anthropic-Adjacent Design
+
+Avoid combining warm cream backgrounds, near-charcoal ink, muted gray, orange/green/blue accents, large rounded soft cards, and AI-product glow orbs. Filazo can stay warm and humane, but its visual signature should come from catalog craft plus the attached iridescent palette: Dreamy Lilac, Crystal Blue, Fairy Pink, peach, and Honey Milk.
 
 ## Surfaces And Ink
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `--color-canvas` | `#faf7f1` | Page background and broad quiet areas. |
-| `--color-surface` | `#fffdf9` | Cards, panels, controls, and paper-like objects. |
-| `--color-ink` | `#3f443c` | Primary text and strong UI fills. |
-| `--color-ink-soft` | `#6e7367` | Secondary text, labels, helper copy. |
-| `--color-edge` | `#e9e2d4` | Hairline borders and soft separators. |
+| `--color-canvas` | `#f7f5f0` | Pearled page background and broad quiet areas. |
+| `--color-surface` | `#fffdf8` | Cards, panels, controls, and paper-like objects. |
+| `--color-ink` | `#343542` | Primary text and strong UI fills. |
+| `--color-ink-soft` | `#747088` | Secondary text, labels, helper copy. |
+| `--color-edge` | `#e7dfef` | Borders and quiet separators. |
 
 ## Accent Hues
 
 | Token | Value | Meaning |
 | --- | --- | --- |
-| `--color-sage` | `#9ab88e` | Growth, owned games, positive states. |
-| `--color-sky` | `#92aec6` | Currently playing, information, active context. |
-| `--color-clay` | `#c98d76` | Warmth, favorites, affectionate emphasis. |
-| `--color-sand` | `#e4d3ac` | Wishlist, highlights, gentle attention. |
-| `--color-dusk-lavender` | `#b3a8cd` | Assistant, reflection, inner-life moments. |
-| `--color-glow` | `#e3c08d` | Lamp light and future Night Mode accent. |
+| `--color-sage` | `#9f99d1` | Dreamy Lilac; owned or settled games. |
+| `--color-sky` | `#86bada` | Crystal Blue; playing, active context, and information. |
+| `--color-clay` | `#f6beb0` | Peach; favorites, release, and soft errors. |
+| `--color-sand` | `#ffe3b3` | Honey Milk; wishlist and gentle attention. |
+| `--color-dusk-lavender` | `#dbaad7` | Fairy Pink; assistant and reflective moments. |
+| `--color-glow` | `#ffe3b3` | Honey Milk highlight and Night Mode accent. |
 
 Soft fill tints are available as `--color-sage-soft`, `--color-sky-soft`, `--color-sand-soft`, `--color-clay-soft`, and `--color-dusk-lavender-soft`.
 
@@ -37,43 +41,45 @@ Soft fill tints are available as `--color-sage-soft`, `--color-sky-soft`, `--col
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `--color-dusk` | `#2e3831` | Atmospheric dark sections. |
-| `--color-dusk-deep` | `#222b25` | Deep hero surfaces and high-contrast zones. |
-| `--color-dusk-mist` | `#46544b` | Muted text or details on dusk surfaces. |
-| `--color-cream` | `#f6f1e6` | Warm text and objects on dusk backgrounds. |
+| `--color-dusk` | `#3a315c` | Atmospheric dark sections. |
+| `--color-dusk-deep` | `#25243f` | Hero surfaces and high-contrast zones. |
+| `--color-dusk-mist` | `#bdb3d9` | Muted text or details on dusk surfaces. |
+| `--color-cream` | `#fff6e5` | Honey-paper text and objects on dusk backgrounds. |
 
 ## Emotional Modes
 
-Day Mode is the default mode for planning, organizing, and browsing the shelf. It is clear, warm, fresh, and low-pressure.
+Day Mode is the default mode for planning, organizing, and browsing the catalog. It is clear, fresh, quiet, and low-pressure.
 
-Night Mode is for choosing what to play tonight. It should feel cozy, dim, immersive, and reflective: a quiet save room rather than generic dark mode. Night Mode overrides semantic tokens under `[data-theme="night"]`; components should keep using the same token names instead of adding one-off dark classes.
+Night Mode is for choosing what to play tonight. It should feel like the same iridescent palette seen through low light: deep violet-blue surfaces, Honey Milk text, and brighter lilac/blue/pink accents. Night Mode overrides semantic tokens under `[data-theme="night"]`; components should keep using the same token names instead of adding one-off dark classes.
 
-## Shadows And Radius
+## Shadows, Radius, And Borders
 
 | Token | Use |
 | --- | --- |
 | `--shadow-rest` | Cards and controls at rest. |
 | `--shadow-lift` | Hovered or raised objects. |
-| `--shadow-float` | Modals, heroes, and prominent floating objects. |
+| `--shadow-float` | Heroes and prominent objects. |
 
-Shadows should stay diffuse and warm-tinted with `rgba(63, 68, 60, ...)`. Do not use pure black, sharp, hard-edged shadows for core UI.
+Shadows should feel printed and layered, with a small hard contact edge plus diffuse depth. Avoid pure black, heavy blur, and decorative glow orbs for core UI.
 
-Use `--radius-card: 24px`, `--radius-inner: 18px`, and `--radius-pill: 999px`. Rounded corners are part of the "physical objects on a shelf" feeling.
+Use `--radius-card: 14px`, `--radius-inner: 8px`, and `--radius-pill: 999px`. Cards should read like printed catalog objects; pills are reserved for tags, compact controls, and buttons.
 
 ## Typography
 
-Filazo uses `--font-display` for editorial headings and emotional emphasis, and `--font-body` for readable interface text.
+Filazo uses `--font-display` for editorial headings and emotional emphasis, and `--font-body` for readable interface text. Both faces are sans-serif so the identity stays elegant without returning to a literary serif look.
 
 | Token | Use |
 | --- | --- |
+| `--font-display` | Instrument Sans, an elegant humanist sans for catalog and editorial moments. |
+| `--font-body` | Atkinson Hyperlegible, a clear humanist sans for interface text. |
 | `--text-display` | Landing hero display text. |
 | `--text-page-title` | Large page titles. |
 | `--text-section-title` | Section headings and panel titles. |
 | `--text-quote` | Editorial quote moments. |
-| `--text-kicker` | Uppercase eyebrow labels. |
+| `--text-kicker` | Compact eyebrow labels. |
 | `--text-label` | Compact labels. |
 | `--text-caption` | Small metadata text. |
 | `--text-chip` | Compact chips and overlays. |
 | `--text-micro` | Tiny badges and constrained UI. |
 
-Prefer these tokens over ad hoc arbitrary values when adding new UI.
+Prefer these tokens over ad hoc arbitrary values when adding new UI. Use breakpoint-specific token values instead of viewport-fluid type so labels and controls remain predictable.

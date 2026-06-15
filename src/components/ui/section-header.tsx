@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /**
- * Calm section intro: small eyebrow label, a quiet serif heading, and an
+ * Calm section intro: small eyebrow label, a quiet display heading, and an
  * optional aside (action button or pill) that wraps below on small screens.
  */
 export function SectionHeader({

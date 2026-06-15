@@ -11,13 +11,13 @@ export function SignedOutPanel() {
         <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-inner border border-edge bg-canvas text-ink-soft">
           <ControllerIllustration className="h-14 w-14" />
         </div>
-        <p className="section-label justify-center">Your library</p>
+        <p className="section-label justify-center">Your catalog</p>
         <h1 className="mb-3 text-page-title leading-snug">
           Connect an account to begin.
         </h1>
         <p className="mx-auto max-w-[42ch] leading-relaxed text-ink-soft">
-          Link Steam or Xbox to bring your games here. CSV and PlayStation
-          imports are waiting too. Start wherever feels easiest.
+          Link Steam or Xbox to start the catalog. CSV and PlayStation imports
+          are waiting too. Start wherever feels easiest.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
           <Button asChild>

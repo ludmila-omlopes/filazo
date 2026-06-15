@@ -3,61 +3,61 @@
 
 @custom-variant night (&:where([data-theme="night"], [data-theme="night"] *));
 
-/* Filazo design tokens: calm, nostalgic, warm, and low-pressure. */
+/* Filazo design tokens: calm catalog, printed labels, low pressure. */
 @theme {
-  --color-canvas: #faf7f1;
-  --color-surface: #fffdf9;
-  --color-ink: #3f443c;
-  --color-ink-soft: #6e7367;
-  --color-edge: #e9e2d4;
+  --color-canvas: #f7f5f0;
+  --color-surface: #fffdf8;
+  --color-ink: #343542;
+  --color-ink-soft: #747088;
+  --color-edge: #e7dfef;
 
   /* Accent hues */
-  --color-sage: #9ab88e; /* growth, owned, positive */
-  --color-sky: #92aec6; /* currently playing, info */
-  --color-clay: #c98d76; /* warmth, favorites */
-  --color-sand: #e4d3ac; /* wishlist, highlights */
-  --color-dusk-lavender: #b3a8cd; /* assistant, reflective */
-  --color-glow: #e3c08d; /* lamp light, Night Mode accent */
+  --color-sage: #9f99d1; /* Dreamy Lilac, owned and settled */
+  --color-sky: #86bada; /* Crystal Blue, playing and active context */
+  --color-clay: #f6beb0; /* Peach, favorites and release */
+  --color-sand: #ffe3b3; /* Honey Milk, wishlist and attention */
+  --color-dusk-lavender: #dbaad7; /* Fairy Pink, assistant and reflective */
+  --color-glow: #ffe3b3; /* Honey Milk highlight, Night Mode accent */
 
-  /* Dusk palette for atmospheric surfaces */
-  --color-dusk: #2e3831;
-  --color-dusk-deep: #222b25;
-  --color-dusk-mist: #46544b;
-  --color-cream: #f6f1e6;
+  /* Dusk palette for catalog-room surfaces */
+  --color-dusk: #3a315c;
+  --color-dusk-deep: #25243f;
+  --color-dusk-mist: #bdb3d9;
+  --color-cream: #fff6e5;
 
   /* Soft tints for fills */
-  --color-sage-soft: #eef3ea;
-  --color-sky-soft: #eaf0f5;
-  --color-sand-soft: #f7f0e0;
-  --color-clay-soft: #f7eae3;
-  --color-dusk-lavender-soft: #f0edf6;
+  --color-sage-soft: #ebe9f7;
+  --color-sky-soft: #e5f2f8;
+  --color-sand-soft: #fff1cf;
+  --color-clay-soft: #fde7e1;
+  --color-dusk-lavender-soft: #f5e3f4;
 
-  --font-display: "Fraunces", "Georgia", serif;
-  --font-body: "Nunito Sans", "Segoe UI", sans-serif;
+  --font-display: "Instrument Sans", "Segoe UI", sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", sans-serif;
 
-  --text-display: clamp(2.6rem, 6vw, 4.4rem);
-  --text-page-title: clamp(1.8rem, 4vw, 2.6rem);
-  --text-section-title: clamp(1.35rem, 2.6vw, 1.9rem);
-  --text-quote: clamp(1.7rem, 3.6vw, 2.6rem);
+  --text-display: 3.15rem;
+  --text-page-title: 2.1rem;
+  --text-section-title: 1.55rem;
+  --text-quote: 1.9rem;
   --text-kicker: 0.78rem;
   --text-label: 0.72rem;
   --text-caption: 0.7rem;
   --text-chip: 0.65rem;
   --text-micro: 0.62rem;
 
-  --radius-card: 24px;
+  --radius-card: 14px;
   --radius-pill: 999px;
-  --radius-inner: 18px;
+  --radius-inner: 8px;
 
-  --shadow-rest: 0 3px 10px rgba(63, 68, 60, 0.07);
-  --shadow-lift: 0 10px 28px rgba(63, 68, 60, 0.07);
-  --shadow-float: 0 20px 44px rgba(63, 68, 60, 0.09);
-  --shadow-soft: 0 14px 36px rgba(63, 68, 60, 0.06);
-  --shadow-header: 0 8px 24px rgba(63, 68, 60, 0.05);
-  --shadow-btn-primary: 0 6px 18px rgba(63, 68, 60, 0.18);
-  --shadow-btn-primary-hover: 0 10px 24px rgba(63, 68, 60, 0.22);
-  --shadow-btn-ghost: 0 3px 10px rgba(63, 68, 60, 0.06);
-  --shadow-btn-ghost-hover: 0 6px 16px rgba(63, 68, 60, 0.1);
+  --shadow-rest: 0 2px 0 rgba(52, 53, 66, 0.08), 0 10px 24px rgba(159, 153, 209, 0.12);
+  --shadow-lift: 0 2px 0 rgba(52, 53, 66, 0.1), 0 16px 34px rgba(159, 153, 209, 0.18);
+  --shadow-float: 0 3px 0 rgba(52, 53, 66, 0.12), 0 22px 46px rgba(159, 153, 209, 0.2);
+  --shadow-soft: 0 1px 0 rgba(52, 53, 66, 0.06), 0 12px 28px rgba(219, 170, 215, 0.12);
+  --shadow-header: 0 1px 0 rgba(52, 53, 66, 0.08), 0 10px 24px rgba(159, 153, 209, 0.1);
+  --shadow-btn-primary: 0 2px 0 rgba(52, 53, 66, 0.18), 0 8px 18px rgba(159, 153, 209, 0.18);
+  --shadow-btn-primary-hover: 0 2px 0 rgba(52, 53, 66, 0.2), 0 12px 24px rgba(159, 153, 209, 0.24);
+  --shadow-btn-ghost: 0 1px 0 rgba(52, 53, 66, 0.08), 0 5px 14px rgba(159, 153, 209, 0.1);
+  --shadow-btn-ghost-hover: 0 1px 0 rgba(52, 53, 66, 0.1), 0 8px 18px rgba(159, 153, 209, 0.15);
 }
 
 /* shadcn/ui variables, mapped onto the semantic Filazo palette. */
@@ -76,62 +76,63 @@
   --muted-foreground: var(--color-ink-soft);
   --accent: var(--color-sky-soft);
   --accent-foreground: var(--color-ink);
-  --destructive: #b56a52;
+  --destructive: #b94e67;
   --border: var(--color-edge);
   --input: var(--color-edge);
   --ring: var(--color-sage);
   --radius: 1rem;
-  --background-body: radial-gradient(
-      circle at 12% -4%,
-      rgba(154, 184, 142, 0.12),
-      transparent 36%
-    ),
-    radial-gradient(
-      circle at 92% 0%,
-      rgba(146, 174, 198, 0.12),
-      transparent 34%
-    ),
-    linear-gradient(180deg, #fbf8f3 0%, var(--color-canvas) 60%, #f4efe5 100%);
+  --background-body: linear-gradient(
+    135deg,
+    #fffaf0 0%,
+    #f8f1f8 34%,
+    var(--color-canvas) 62%,
+    #edf6fb 100%
+  );
   color-scheme: light;
 }
 
 [data-theme="night"] {
-  --color-canvas: #1d2420;
-  --color-surface: #28312b;
-  --color-ink: #f0ebdf;
-  --color-ink-soft: #a8b0a4;
-  --color-edge: rgba(246, 241, 230, 0.1);
-  --color-sage: var(--color-glow);
-  --color-sky: #8fa6bc;
-  --color-clay: #d49a82;
-  --color-sand: #d9c18a;
-  --color-dusk-lavender: #b9acd6;
-  --color-sage-soft: rgba(227, 192, 141, 0.14);
-  --color-sky-soft: rgba(146, 174, 198, 0.14);
-  --color-sand-soft: rgba(228, 211, 172, 0.13);
-  --color-clay-soft: rgba(201, 141, 118, 0.14);
-  --color-dusk-lavender-soft: rgba(179, 168, 205, 0.14);
-  --shadow-rest: 0 3px 12px rgba(0, 0, 0, 0.18);
-  --shadow-lift: 0 12px 30px rgba(0, 0, 0, 0.24);
-  --shadow-float: 0 24px 52px rgba(0, 0, 0, 0.3);
-  --shadow-soft: 0 14px 36px rgba(0, 0, 0, 0.22);
-  --shadow-header: 0 8px 24px rgba(0, 0, 0, 0.18);
-  --shadow-btn-primary: 0 6px 18px rgba(227, 192, 141, 0.14);
-  --shadow-btn-primary-hover: 0 10px 24px rgba(227, 192, 141, 0.2);
-  --shadow-btn-ghost: 0 3px 10px rgba(0, 0, 0, 0.16);
-  --shadow-btn-ghost-hover: 0 6px 16px rgba(0, 0, 0, 0.22);
-  --background-body: radial-gradient(
-      circle at 14% -8%,
-      rgba(227, 192, 141, 0.16),
-      transparent 32%
-    ),
-    radial-gradient(
-      circle at 86% 2%,
-      rgba(179, 168, 205, 0.08),
-      transparent 30%
-    ),
-    linear-gradient(180deg, #202922 0%, var(--color-canvas) 56%, #151b18 100%);
+  --color-canvas: #211f36;
+  --color-surface: #2c2945;
+  --color-ink: #fff7ea;
+  --color-ink-soft: #d4cce8;
+  --color-edge: rgba(255, 227, 179, 0.16);
+  --color-sage: #b9b3ef;
+  --color-sky: #9fd0ed;
+  --color-clay: #ffc7bd;
+  --color-sand: #ffe7b8;
+  --color-dusk-lavender: #efbde8;
+  --color-sage-soft: rgba(159, 153, 209, 0.2);
+  --color-sky-soft: rgba(134, 186, 218, 0.18);
+  --color-sand-soft: rgba(255, 227, 179, 0.18);
+  --color-clay-soft: rgba(246, 190, 176, 0.18);
+  --color-dusk-lavender-soft: rgba(219, 170, 215, 0.2);
+  --shadow-rest: 0 1px 0 rgba(255, 227, 179, 0.06), 0 12px 26px rgba(12, 10, 28, 0.32);
+  --shadow-lift: 0 1px 0 rgba(255, 227, 179, 0.08), 0 18px 36px rgba(12, 10, 28, 0.42);
+  --shadow-float: 0 2px 0 rgba(255, 227, 179, 0.08), 0 26px 54px rgba(12, 10, 28, 0.48);
+  --shadow-soft: 0 1px 0 rgba(255, 227, 179, 0.05), 0 14px 32px rgba(12, 10, 28, 0.34);
+  --shadow-header: 0 1px 0 rgba(255, 227, 179, 0.05), 0 12px 28px rgba(12, 10, 28, 0.28);
+  --shadow-btn-primary: 0 2px 0 rgba(12, 10, 28, 0.34), 0 8px 18px rgba(255, 227, 179, 0.16);
+  --shadow-btn-primary-hover: 0 2px 0 rgba(12, 10, 28, 0.38), 0 12px 24px rgba(255, 227, 179, 0.24);
+  --shadow-btn-ghost: 0 1px 0 rgba(255, 227, 179, 0.05), 0 8px 18px rgba(12, 10, 28, 0.24);
+  --shadow-btn-ghost-hover: 0 1px 0 rgba(255, 227, 179, 0.07), 0 12px 22px rgba(12, 10, 28, 0.32);
+  --background-body: linear-gradient(
+    135deg,
+    #302a4f 0%,
+    var(--color-canvas) 48%,
+    #24354e 72%,
+    #18172a 100%
+  );
   color-scheme: dark;
+}
+
+@media (min-width: 768px) {
+  :root {
+    --text-display: 4.2rem;
+    --text-page-title: 2.55rem;
+    --text-section-title: 1.85rem;
+    --text-quote: 2.35rem;
+  }
 }
 
 @theme inline {
@@ -184,8 +185,8 @@
   h2,
   h3 {
     font-family: var(--font-display);
-    font-weight: 500;
-    letter-spacing: -0.01em;
+    font-weight: 600;
+    letter-spacing: 0;
   }
 
   a {
@@ -212,7 +213,7 @@
   }
 }
 
-/* ── Keyframe animations ── */
+/* Keyframe animations */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -254,19 +255,6 @@
   }
 }
 
-/* Slow inhale/exhale for ambient glow orbs */
-@keyframes breathe {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.55;
-  }
-  50% {
-    transform: scale(1.18);
-    opacity: 0.85;
-  }
-}
-
 @keyframes drift-slow {
   0%,
   100% {
@@ -287,7 +275,7 @@
   }
 }
 
-/* ── Custom utilities ── */
+/* Custom utilities */
 @utility animate-slide-in {
   @media (prefers-reduced-motion: no-preference) {
     animation: slide-in-top 0.4s ease-out;
@@ -297,12 +285,6 @@
 @utility animate-drift {
   @media (prefers-reduced-motion: no-preference) {
     animation: drift 7s ease-in-out infinite;
-  }
-}
-
-@utility animate-breathe {
-  @media (prefers-reduced-motion: no-preference) {
-    animation: breathe 9s ease-in-out infinite;
   }
 }
 
@@ -318,8 +300,8 @@
   }
 }
 
-/* Editorial serif accent — italic Fraunces for emotional emphasis */
-@utility serif-accent {
+/* Editorial display accent for quiet emphasis */
+@utility display-accent {
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
@@ -329,7 +311,9 @@
   border: 1px solid var(--color-edge);
   border-radius: var(--radius-card);
   padding: 20px;
-  background: var(--color-surface);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, white), var(--color-surface)),
+    var(--color-surface);
   box-shadow: var(--shadow-rest);
 }
 
@@ -350,7 +334,9 @@
 
 @utility panel {
   padding: 28px;
-  background: var(--color-surface);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--color-surface) 94%, white), var(--color-surface)),
+    var(--color-surface);
   border: 1px solid var(--color-edge);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-soft);
@@ -358,7 +344,7 @@
 
 @utility tactile-surface {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
     var(--shadow-rest);
 }
 
@@ -379,7 +365,7 @@
   margin-bottom: 10px;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--color-ink-soft);
 }
@@ -405,7 +391,7 @@
   font-size: 0.74rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   color: var(--color-ink-soft);
 }
 
