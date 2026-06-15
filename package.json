@@ -17,8 +17,8 @@
   "dependencies": {
     "@ai-sdk/openai": "^3.0.69",
     "@ai-sdk/react": "^3.0.201",
-    "@fontsource/fraunces": "^5.2.9",
-    "@fontsource/nunito-sans": "^5.2.7",
+    "@fontsource/atkinson-hyperlegible": "^5.2.8",
+    "@fontsource/instrument-sans": "^5.2.8",
     "@prisma/client": "^6.19.0",
     "@tailwindcss/postcss": "^4.2.2",
     "ai": "^6.0.199",

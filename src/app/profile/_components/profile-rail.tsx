@@ -8,21 +8,21 @@ const railItems = [
     tab: "overview" as const,
     href: "/profile",
     label: "Overview",
-    hint: "Profile and connections",
+    hint: "Profile and sources",
     icon: Armchair,
   },
   {
     tab: "games" as const,
     href: "/profile?tab=games",
-    label: "Shelf",
-    hint: "Browse every game",
+    label: "Catalog",
+    hint: "Browse every entry",
     icon: LibraryBig,
   },
   {
     tab: "assistant" as const,
     href: "/profile?tab=assistant",
-    label: "Assistant",
-    hint: "Gentle suggestions",
+    label: "Guide",
+    hint: "Suggestions and notes",
     icon: Sparkles,
   },
 ];
@@ -41,13 +41,14 @@ export function ProfileRail({
 
   return (
     <aside className="sticky top-28 grid gap-4 self-start max-lg:static">
-      <div className="relative overflow-hidden rounded-[28px] bg-dusk-deep p-6 text-cream">
+      <div className="relative overflow-hidden rounded-card border border-edge bg-dusk-deep p-6 text-cream shadow-rest">
+        <div aria-hidden className="absolute inset-x-0 top-0 h-2 bg-glow" />
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-16 -top-20 h-[200px] w-[200px] rounded-full bg-glow/25 blur-[70px] animate-breathe"
+          className="absolute inset-0 bg-[linear-gradient(135deg,rgba(159,153,209,0.16),rgba(219,170,215,0.1)_54%,rgba(255,227,179,0.12))]"
         />
         <div className="relative">
-          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-cream/15 font-display text-2xl ring-2 ring-cream/20">
+          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-inner border border-cream/25 bg-cream/12 font-display text-2xl">
             {profile.user.avatarUrl ? (
               <img
                 alt={`${profile.user.displayName ?? "User"} avatar`}
@@ -62,14 +63,14 @@ export function ProfileRail({
             {profile.user.displayName ?? "Player"}
           </h1>
           <p className="mt-1 text-xs leading-relaxed text-cream/55">
-            {formatNumber(profile.ownedEntries.length)} on the shelf {" / "}
+            {formatNumber(profile.ownedEntries.length)} owned {" / "}
             {formatNumber(profile.wishlistEntries.length)} still curious
           </p>
         </div>
       </div>
 
       <nav
-        className="grid gap-1 rounded-[28px] border border-edge bg-surface p-2 shadow-rest"
+        className="grid gap-1 rounded-card border border-edge bg-surface p-2 shadow-rest"
         aria-label="Profile sections"
       >
         {railItems.map(({ tab, href, label, hint, icon: Icon }) => {
@@ -88,7 +89,7 @@ export function ProfileRail({
               className={cn(
                 "flex items-center gap-3 rounded-[20px] px-4 py-3 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas",
                 activeTab === tab
-                  ? "bg-ink text-surface"
+                  ? "bg-ink text-surface shadow-rest"
                   : "text-ink-soft hover:bg-canvas hover:text-ink",
               )}
             >
@@ -124,7 +125,7 @@ export function ProfileRail({
       </nav>
 
       <p className="px-4 text-center font-display text-sm italic text-ink-soft/80 max-lg:hidden">
-        your shelf, your pace
+        your catalog, your pace
       </p>
     </aside>
   );

@@ -55,7 +55,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
         </h2>
         <p className="mt-1.5 max-w-[56ch] text-sm leading-relaxed text-ink-soft">
           Answers come from live lookups into your own games, playtime, and
-          reviews — nothing invented.
+          reviews - nothing invented.
         </p>
       </div>
 
@@ -119,7 +119,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
                       if (toolLabel) {
                         return (
                           <span
-                            className="mb-1 mr-1 inline-block rounded-pill bg-sky-soft px-2 py-0.5 text-[0.64rem] font-bold tracking-wide text-ink-soft"
+                            className="mb-1 mr-1 inline-block rounded-pill bg-sky-soft px-2 py-0.5 text-[0.64rem] font-bold text-ink-soft"
                             key={index}
                           >
                             {toolLabel}

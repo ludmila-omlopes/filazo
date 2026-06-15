@@ -17,7 +17,7 @@ export function ShelfStats({ profile }: { profile: ProfileData }) {
     <section className="grid grid-cols-4 gap-4 max-lg:grid-cols-2 max-sm:grid-cols-1">
       <StatCard
         value={formatNumber(entries.length)}
-        label="games on the shelf"
+        label="catalog entries"
       />
       <StatCard value={formatNumber(playingNow)} label="playing now" />
       <StatCard value={formatNumber(finished)} label="credits rolled" />

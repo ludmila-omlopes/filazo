@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Moon, Sparkles } from "lucide-react";
+import { Check, Moon } from "lucide-react";
 import { GameCard } from "@/components/game-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -57,13 +57,13 @@ export function TonightRoom({
 }) {
   if (!pick) {
     return (
-      <div className="relative grid min-h-[62vh] place-items-center overflow-hidden rounded-[36px] border border-edge bg-dusk-deep p-8 text-cream shadow-float">
-        <NightGlow />
-        <EmptyState title="Your nightstand is quiet.">
-          Add a few games to your shelf, then come back when the room is dim.
+      <div className="relative grid min-h-[62vh] place-items-center overflow-hidden rounded-card border border-edge bg-dusk-deep p-8 text-cream shadow-float">
+        <NightCatalogLines />
+        <EmptyState title="No evening pick yet.">
+          Add a few games to your catalog, then come back when the room is dim.
           <div className="mt-5">
             <Button asChild>
-              <Link href="/profile">Bring games to the shelf</Link>
+              <Link href="/profile">Add games to the catalog</Link>
             </Button>
           </div>
         </EmptyState>
@@ -72,8 +72,8 @@ export function TonightRoom({
   }
 
   return (
-    <section className="relative overflow-hidden rounded-[36px] border border-edge bg-dusk-deep p-8 text-cream shadow-float max-md:p-5">
-      <NightGlow />
+    <section className="relative overflow-hidden rounded-card border border-edge bg-dusk-deep p-8 text-cream shadow-float max-md:p-5">
+      <NightCatalogLines />
       <div className="relative z-10 mx-auto grid max-w-[960px] gap-10">
         {!isNight ? (
           <form
@@ -103,17 +103,17 @@ export function TonightRoom({
           <div className="rounded-card border border-glow/20 bg-glow/10 p-5">
             <p className="section-label !mb-1 text-glow">Back to an old save?</p>
             <p className="text-sm leading-relaxed text-cream/75">
-              {playingPick.entry.game.name} is already open on the shelf.
+              {playingPick.entry.game.name} is already open in the catalog.
               Continuity beats novelty at night.
             </p>
           </div>
         ) : null}
 
         <div className="grid gap-5 text-center">
-          <p className="text-kicker font-bold uppercase tracking-[0.24em] text-glow/85">
+          <p className="text-kicker font-bold uppercase text-glow/85">
             Tonight
           </p>
-          <h1 className="font-display text-[clamp(2.1rem,6vw,4rem)] font-normal leading-none tracking-normal">
+          <h1 className="font-display text-display font-normal leading-none">
             What kind of night is it?
           </h1>
           <div className="flex flex-wrap justify-center gap-2">
@@ -136,7 +136,7 @@ export function TonightRoom({
 
         <div className="mx-auto grid w-full max-w-[460px] gap-4">
           <GameCard
-            chips={[pick.source === "openai" ? "AI pick" : "shelf signals"]}
+            chips={[pick.source === "openai" ? "AI pick" : "catalog signals"]}
             className="bg-cream text-dusk-deep shadow-float"
             completionPercent={pick.entry.completionPercent}
             description={pick.reason}
@@ -156,8 +156,8 @@ export function TonightRoom({
             <form action={chooseTonightGameAction}>
               <input type="hidden" name="entryId" value={pick.entryId} />
               <Button className="w-full" type="submit">
-                <Sparkles aria-hidden />
-                Sounds right
+                <Check aria-hidden />
+                Choose this
               </Button>
             </form>
             <Button
@@ -174,8 +174,8 @@ export function TonightRoom({
 
         {alternatives.length ? (
           <div className="grid gap-3">
-            <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-cream/45">
-              also on the nightstand
+            <p className="text-center text-xs font-bold uppercase text-cream/45">
+              also nearby
             </p>
             <div className="grid grid-cols-2 gap-3 opacity-75 max-sm:grid-cols-1">
               {alternatives.map((alternative) => (
@@ -198,16 +198,17 @@ export function TonightRoom({
   );
 }
 
-function NightGlow() {
+function NightCatalogLines() {
   return (
     <>
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-2 bg-glow" />
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-24 -top-32 h-[420px] w-[420px] rounded-full bg-glow/20 blur-[110px] animate-breathe"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(159,153,209,0.18),rgba(134,186,218,0.1)_44%,rgba(219,170,215,0.13)_72%,rgba(255,227,179,0.1))]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute bottom-[-160px] right-[16%] h-[360px] w-[360px] rounded-full bg-dusk-lavender/10 blur-[100px] animate-breathe [animation-delay:-5s]"
+        className="pointer-events-none absolute right-6 top-8 h-[calc(100%-4rem)] w-10 rounded-inner border border-cream/10 bg-cream/8 max-md:hidden"
       />
     </>
   );

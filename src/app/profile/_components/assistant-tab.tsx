@@ -36,8 +36,8 @@ export function AssistantCorner({
   return (
     <section className="grid gap-5 rounded-card border border-edge bg-dusk-lavender-soft p-6 shadow-rest">
       <SectionHeader
-        eyebrow="Assistant corner"
-        title="A librarian for the shelf"
+        eyebrow="Guide notes"
+        title="A quieter read on your catalog"
         aside={
           <Button asChild size="sm" variant="ghost">
             <Link href="/tonight">Open tonight</Link>
@@ -65,7 +65,7 @@ export function AssistantTab({ assistant }: { assistant: AssistantData }) {
     <>
       <section className="flex items-center justify-between gap-4 rounded-card border border-edge bg-dusk-lavender-soft px-6 py-5 shadow-rest max-md:flex-col max-md:items-start">
         <div>
-          <p className="section-label !mb-1">Shelf companion</p>
+          <p className="section-label !mb-1">Guide refresh</p>
           <p className="text-sm font-semibold leading-snug">
             Refresh insights after syncs, imports, or status changes.
           </p>

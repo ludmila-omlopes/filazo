@@ -27,7 +27,7 @@ export function BacklogDiagnosis({
   return (
     <section className="panel">
       <SectionHeader
-        eyebrow="A gentle shelf check"
+        eyebrow="Catalog check"
         title="Where your games are resting"
         aside={
           <div className="pill">
@@ -48,7 +48,7 @@ export function BacklogDiagnosis({
             <strong className="block font-display text-2xl font-medium">
               {formatNumber(counts.get(signal) ?? 0)}
             </strong>
-            <span className="mt-1.5 block text-caption font-bold tracking-wide text-ink-soft">
+            <span className="mt-1.5 block text-caption font-bold text-ink-soft">
               {label}
             </span>
           </Link>
@@ -59,7 +59,7 @@ export function BacklogDiagnosis({
         Based on {formatNumber(assistant.librarySummary.ownedCount)} owned games,
         {` ${formatNumber(assistant.librarySummary.untouchedCount)} games ready when you are, `}
         and {formatNumber(assistant.librarySummary.sampledDroppedCount)} short samples.
-        Every one of them can wait — that&apos;s what libraries are for.
+        Every one of them can wait - that&apos;s what libraries are for.
       </p>
     </section>
   );

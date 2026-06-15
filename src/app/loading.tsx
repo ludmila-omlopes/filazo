@@ -6,7 +6,7 @@ export default function Loading() {
       id="main-content"
       className="mx-auto grid w-full max-w-[1100px] gap-8 pb-20"
     >
-      <section className="rounded-[36px] border border-edge bg-surface p-8 shadow-soft">
+      <section className="rounded-card border border-edge bg-surface p-8 shadow-soft">
         <div className="grid grid-cols-[1fr_280px] gap-8 max-lg:grid-cols-1">
           <div className="grid content-center gap-4">
             <div className="animate-soft-pulse h-5 w-44 rounded-pill bg-surface shadow-rest" />

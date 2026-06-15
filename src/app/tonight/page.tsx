@@ -138,16 +138,16 @@ export default async function TonightPage({
           <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-inner border border-edge bg-canvas text-ink-soft">
             <ControllerIllustration className="h-14 w-14" />
           </div>
-          <p className="section-label justify-center">Save room</p>
+          <p className="section-label justify-center">Tonight</p>
           <h1 className="text-page-title leading-tight">
-            Sign in before opening the nightstand.
+            Sign in before choosing from the catalog.
           </h1>
           <p className="mx-auto mt-3 max-w-[44ch] leading-relaxed text-ink-soft">
-            Your shelf will be here when you are ready.
+            Your library will be here when you are ready.
           </p>
           <div className="mt-6 flex justify-center">
             <Button asChild>
-              <Link href="/profile">Go to the shelf</Link>
+              <Link href="/profile">Go to the catalog</Link>
             </Button>
           </div>
         </section>
@@ -177,7 +177,7 @@ export default async function TonightPage({
     .map((entry) =>
       toRuleTonightPick(
         entry,
-        "A quiet shelf pick from the games already resting here.",
+        "A quiet pick from the games already in your catalog.",
       ),
     );
   const basePicks = assistant.playNextRecommendations.length

@@ -61,7 +61,7 @@ function getReceptionLabel(score: number) {
   }
 
   if (score >= 75) {
-    return "warm reception";
+    return "strong reception";
   }
 
   if (score >= 60) {
@@ -108,10 +108,11 @@ function CaseHeader({
   const year = getYear(game.releaseDate);
 
   return (
-    <section className="relative overflow-hidden rounded-card border border-edge bg-sage-soft/70 p-8 shadow-soft">
+    <section className="relative overflow-hidden rounded-card border border-edge bg-sky-soft/70 p-8 shadow-soft">
+      <div aria-hidden className="absolute inset-x-0 top-0 h-2 bg-glow" />
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-glow/25 blur-[100px] animate-breathe"
+        className="absolute inset-0 bg-[linear-gradient(135deg,rgba(159,153,209,0.16),rgba(134,186,218,0.12)_52%,rgba(255,227,179,0.1))]"
       />
       <div className="relative grid grid-cols-[240px_minmax(0,1fr)] items-end gap-8 max-md:grid-cols-1">
         <GameCover game={game} />
@@ -125,14 +126,14 @@ function CaseHeader({
             </Link>
             <span aria-hidden>/</span>
             <Link className="nav-link" href="/profile?tab=games">
-              Shelf
+              Catalog
             </Link>
             <span aria-hidden>/</span>
             <span className="max-w-[24ch] truncate text-ink">{game.name}</span>
           </nav>
 
           <div>
-            <h1 className="text-[clamp(2rem,5vw,3.5rem)] leading-[1.03] tracking-normal">
+            <h1 className="text-page-title leading-[1.03]">
               {game.name}
             </h1>
             <div className="mt-4 flex flex-wrap items-center gap-2 max-md:justify-center">
@@ -186,7 +187,7 @@ function SaveSlot({
   return (
     <section className="panel bg-dusk-lavender-soft/70">
       <SectionHeader
-        eyebrow="Save slot"
+        eyebrow="Catalog entry"
         title="Your relationship with this game"
       />
 
@@ -257,7 +258,7 @@ function GuidePages({ game }: { game: GameDetail }) {
     <div className="grid gap-7">
       {game.summary ? (
         <section className="panel">
-          <SectionHeader eyebrow="Guide page" title="What this one remembers" />
+          <SectionHeader eyebrow="Catalog note" title="What this one remembers" />
           <p className="text-[1.02rem] leading-relaxed text-ink/90">
             {game.summary}
           </p>
@@ -266,7 +267,7 @@ function GuidePages({ game }: { game: GameDetail }) {
 
       {hasMetacritic ? (
         <section className="panel">
-          <SectionHeader eyebrow="Critics said" title="A note, not a grade" />
+          <SectionHeader eyebrow="Reception" title="A note, not a grade" />
           <p className="font-display text-4xl font-medium leading-none">
             {game.metacriticScore}
           </p>
@@ -280,7 +281,7 @@ function GuidePages({ game }: { game: GameDetail }) {
       {hasCompletionTimes ? (
         <section className="panel">
           <SectionHeader
-            eyebrow="How long it tends to live"
+            eyebrow="Time estimates"
             title="Player guide notes"
           />
           <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
@@ -355,7 +356,7 @@ function ProviderLinks({ game }: { game: GameDetail }) {
 
   return (
     <section className="flex flex-wrap items-center gap-2 border-t border-edge pt-5">
-      <span className="text-caption font-bold uppercase tracking-[0.14em] text-ink-soft">
+      <span className="text-caption font-bold uppercase text-ink-soft">
         Where it lives
       </span>
       {links.map((link) => (
@@ -381,7 +382,7 @@ function ShelfActivity({ game }: { game: GameDetail }) {
   return (
     <section className="panel">
       <SectionHeader
-        eyebrow="Other save files"
+        eyebrow="Other entries"
         title="How it sits on nearby shelves"
         aside={
           <span className="pill">
@@ -449,7 +450,7 @@ export function GameMemoryCard({
           <ShelfActivity game={game} />
           <ProviderLinks game={game} />
           <Button asChild variant="ghost" className="justify-center text-sm">
-            <Link href="/profile?tab=games">Back to the shelf</Link>
+            <Link href="/profile?tab=games">Back to catalog</Link>
           </Button>
         </aside>
       </div>

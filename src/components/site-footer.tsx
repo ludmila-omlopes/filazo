@@ -10,12 +10,12 @@ export function SiteFooter() {
           </span>
           <span
             aria-hidden
-            className="h-2 w-2 translate-y-[-1px] rounded-full bg-glow motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-125"
+            className="h-5 w-1.5 translate-y-1 rounded-[2px] bg-glow motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-y-110"
           />
         </Link>
 
         <p className="font-display text-base italic text-ink">
-          Your shelf, your pace.
+          Your catalog, your pace.
         </p>
 
         <nav
@@ -35,7 +35,7 @@ export function SiteFooter() {
           </a>
         </nav>
 
-        <p className="text-caption font-semibold uppercase tracking-[0.12em]">
+        <p className="text-caption font-semibold uppercase">
           made for players with too many games
         </p>
       </div>

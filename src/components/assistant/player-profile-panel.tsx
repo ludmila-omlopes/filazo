@@ -38,7 +38,7 @@ export function PlayerProfilePanel({
             <SyncActionForm
               action={action}
               buttonLabel={profile ? "Refresh profile" : "Generate profile"}
-              pendingLabel="Agent reading your shelf..."
+              pendingLabel="Agent reading your catalog..."
               pendingNotice="The profile agent is querying your library, feedback, and reviews. Keep this page open."
             />
           ) : profile && !aiConfigured ? (
@@ -50,7 +50,7 @@ export function PlayerProfilePanel({
       </div>
 
       {!hasGames ? (
-        <EmptyState title="Your shelf is quiet right now.">
+        <EmptyState title="Your catalog is quiet right now.">
           Sync Steam, Xbox, or PlayStation, or import a CSV. The profile agent
           needs a few games before it can say anything useful about your taste.
         </EmptyState>
@@ -100,7 +100,7 @@ export function PlayerProfilePanel({
                   {profile.payload.playStyles.map((style) => (
                     <li className="flex gap-2" key={style}>
                       <span aria-hidden className="text-sage">
-                        •
+                        -
                       </span>
                       {style}
                     </li>
@@ -116,7 +116,7 @@ export function PlayerProfilePanel({
                   {profile.payload.behaviorPatterns.map((pattern) => (
                     <li className="flex gap-2" key={pattern}>
                       <span aria-hidden className="text-sage">
-                        •
+                        -
                       </span>
                       {pattern}
                     </li>
@@ -128,7 +128,7 @@ export function PlayerProfilePanel({
 
           {profile.payload.recommendations.length ? (
             <div>
-              <h3 className="section-label !mb-2">From your own shelf</h3>
+              <h3 className="section-label !mb-2">From your own catalog</h3>
               <div className="grid gap-2">
                 {profile.payload.recommendations.map((recommendation) => (
                   <Link
@@ -151,21 +151,21 @@ export function PlayerProfilePanel({
           {profile.payload.dataNotes.length ? (
             <ul className="grid gap-1 text-xs text-ink-soft">
               {profile.payload.dataNotes.map((note) => (
-                <li key={note}>· {note}</li>
+                <li key={note}>- {note}</li>
               ))}
             </ul>
           ) : null}
 
           {profile.toolTrace.length ? (
             <details className="text-xs text-ink-soft">
-              <summary className="cursor-pointer font-bold tracking-wide">
+              <summary className="cursor-pointer font-bold">
                 How the agent built this ({profile.toolTrace.length} tool calls)
               </summary>
               <ol className="mt-2 grid gap-1">
                 {profile.toolTrace.map((step, index) => (
                   <li key={`${step.tool}-${index}`}>
                     {index + 1}. <code>{step.tool}</code>
-                    {step.resultSummary ? ` — ${step.resultSummary}` : ""}
+                    {step.resultSummary ? ` - ${step.resultSummary}` : ""}
                   </li>
                 ))}
               </ol>

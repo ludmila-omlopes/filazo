@@ -23,7 +23,7 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-block rounded-full px-2.5 py-0.5 text-caption font-bold lowercase tracking-wide",
+        "inline-block rounded-full px-2.5 py-0.5 text-caption font-bold lowercase",
         "border border-edge",
         statusStyles[status] ?? "bg-canvas text-ink-soft",
         className,
