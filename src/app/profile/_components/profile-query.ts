@@ -20,6 +20,8 @@ export type ProfileSearchParams = Promise<{
   xboxSynced?: string;
   assistant?: string;
   playerProfile?: string;
+  currentPlaying?: string;
+  manualAdded?: string;
   finishedDetected?: string;
   finishedScanned?: string;
   error?: string;
@@ -122,6 +124,27 @@ export function getStatusMessage(
     return {
       tone: "success",
       message: `CSV import finished. ${query.imported} games were added or updated.`,
+    };
+  }
+
+  if (query.manualAdded) {
+    return {
+      tone: "success",
+      message: "Game added to your shelf.",
+    };
+  }
+
+  if (query.currentPlaying === "updated") {
+    return {
+      tone: "success",
+      message: "Current playing updated. Your overview now reflects your picks.",
+    };
+  }
+
+  if (query.currentPlaying === "cleared") {
+    return {
+      tone: "success",
+      message: "Current playing cleared. Suggested picks are ready whenever you want them.",
     };
   }
 

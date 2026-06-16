@@ -1,104 +1,187 @@
 import Link from "next/link";
+import type { Prisma } from "@prisma/client";
 import { AuthDialog } from "@/components/auth-dialog";
 import { GameCard, type GameCardGame } from "@/components/game-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
-import { getProfileData } from "@/lib/catalog";
 import { getDatabaseErrorMessage } from "@/lib/database-errors";
 import { prisma } from "@/lib/prisma";
-import { getSessionUserId } from "@/lib/session";
 import { formatNumber } from "@/lib/utils";
 
-const fallbackGames: GameCardGame[] = [
-  {
-    name: "Harbor Index",
-    slug: "harbor-index",
-    coverUrl: null,
+const homeShowcaseSelect = {
+  aggregatedRating: true,
+  coverUrl: true,
+  igdbId: true,
+  metacriticScore: true,
+  name: true,
+  platforms: true,
+  slug: true,
+  summary: true,
+  totalRatingCount: true,
+  updatedAt: true,
+  providerLinks: {
+    select: {
+      provider: true,
+    },
   },
-  {
-    name: "Mosslight Valley",
-    slug: "mosslight-valley",
-    coverUrl: null,
+  userEntries: {
+    select: {
+      provider: true,
+      source: true,
+    },
   },
-  {
-    name: "Station After Rain",
-    slug: "station-after-rain",
-    coverUrl: null,
-  },
-  {
-    name: "Letters From Low Orbit",
-    slug: "letters-from-low-orbit",
-    coverUrl: null,
-  },
-  {
-    name: "The Long Garden",
-    slug: "the-long-garden",
-    coverUrl: null,
-  },
-  {
-    name: "Pocket Harbor",
-    slug: "pocket-harbor",
-    coverUrl: null,
-  },
-  {
-    name: "Tiny Engines After Hours",
-    slug: "tiny-engines-after-hours",
-    coverUrl: null,
-  },
-  {
-    name: "After the Credits",
-    slug: "after-the-credits",
-    coverUrl: null,
-  },
-];
+} satisfies Prisma.GameSelect;
+
+type HomeShowcaseCandidate = Prisma.GameGetPayload<{
+  select: typeof homeShowcaseSelect;
+}>;
+
+function asStringArray(value: Prisma.JsonValue | null | undefined) {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function hasPlayStationPlatform(platforms: string[]) {
+  return platforms.some((platform) => /playstation|ps[1-5v]/i.test(platform));
+}
+
+function hasOnlyPlayStationShelfEntries(candidate: HomeShowcaseCandidate) {
+  return (
+    candidate.userEntries.length > 0 &&
+    candidate.userEntries.every(
+      (entry) => entry.provider === "PLAYSTATION" || entry.source === "PLAYSTATION",
+    )
+  );
+}
+
+function isSuspiciousCatalogCandidate(candidate: HomeShowcaseCandidate) {
+  const platforms = asStringArray(candidate.platforms);
+  const normalizedName = candidate.name.toLowerCase();
+  const normalizedSummary = candidate.summary?.toLowerCase() ?? "";
+
+  if (
+    /\b(troph(?:y|ies)|skin|soundtrack|avatar|theme|add[\s-]?on|dlc|bundle)\b/i.test(
+      normalizedName,
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    /\b(unofficial|mobile port|easter egg|costume|addon|add-on)\b/i.test(
+      normalizedSummary,
+    )
+  ) {
+    return true;
+  }
+
+  if (
+    hasOnlyPlayStationShelfEntries(candidate) &&
+    platforms.length > 0 &&
+    !hasPlayStationPlatform(platforms)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function hasStrongCatalogSignal(candidate: HomeShowcaseCandidate) {
+  return candidate.aggregatedRating !== null || candidate.metacriticScore !== null;
+}
+
+function scoreCatalogCandidate(candidate: HomeShowcaseCandidate) {
+  return (
+    (candidate.aggregatedRating ?? 0) * 10 +
+    (candidate.metacriticScore ?? 0) * 5 +
+    Math.min(candidate.totalRatingCount ?? 0, 25) * 4
+  );
+}
+
+function toShowcaseGame(candidate: HomeShowcaseCandidate): GameCardGame {
+  return {
+    coverUrl: candidate.coverUrl,
+    name: candidate.name,
+    slug: candidate.slug,
+  };
+}
+
+function selectHomeShowcaseGames(candidates: HomeShowcaseCandidate[]) {
+  const safeCandidates = candidates.filter(
+    (candidate) => !isSuspiciousCatalogCandidate(candidate),
+  );
+  const orderedCandidates = [...safeCandidates].sort((left, right) => {
+    const scoreDelta =
+      scoreCatalogCandidate(right) - scoreCatalogCandidate(left);
+    if (scoreDelta !== 0) {
+      return scoreDelta;
+    }
+
+    return right.updatedAt.getTime() - left.updatedAt.getTime();
+  });
+
+  const strongCandidates = orderedCandidates.filter(hasStrongCatalogSignal);
+  const showcaseGames = strongCandidates.slice(0, 8);
+
+  if (showcaseGames.length >= 8) {
+    return showcaseGames.map(toShowcaseGame);
+  }
+
+  const seenSlugs = new Set(showcaseGames.map((candidate) => candidate.slug));
+  const fallbackCandidates = orderedCandidates.filter(
+    (candidate) => !seenSlugs.has(candidate.slug),
+  );
+
+  return [...showcaseGames, ...fallbackCandidates]
+    .slice(0, 8)
+    .map(toShowcaseGame);
+}
 
 async function getHomeData() {
-  const userId = await getSessionUserId();
-
   try {
-    const [catalogStats, enrichedStats, sampleGames, profile] =
+    const [catalogStats, enrichedStats, showcaseCandidates] =
       await Promise.all([
         prisma.game.aggregate({ _count: { id: true } }),
         prisma.game.aggregate({ _count: { igdbId: true } }),
         prisma.game.findMany({
-          orderBy: { updatedAt: "desc" },
-          select: {
-            coverUrl: true,
-            name: true,
-            slug: true,
+          where: {
+            coverUrl: { not: null },
+            igdbId: { not: null },
+            userEntries: {
+              some: {},
+            },
           },
-          take: 8,
+          orderBy: {
+            updatedAt: "desc",
+          },
+          select: homeShowcaseSelect,
+          take: 48,
         }),
-        userId ? getProfileData(userId) : Promise.resolve(null),
       ]);
 
     return {
-      userId,
-      profile,
       catalogCount: catalogStats._count.id,
       enrichedCount: enrichedStats._count.igdbId,
-      sampleGames,
+      showcaseGames: selectHomeShowcaseGames(showcaseCandidates),
       databaseError: null,
     };
   } catch (error) {
     console.error("Could not load home catalog data.", error);
 
     return {
-      userId,
-      profile: null,
       catalogCount: 0,
       enrichedCount: 0,
-      sampleGames: fallbackGames,
+      showcaseGames: [],
       databaseError: getDatabaseErrorMessage(error),
     };
   }
 }
 
 export default async function Home() {
-  const { catalogCount, enrichedCount, sampleGames, databaseError } =
+  const { catalogCount, enrichedCount, showcaseGames, databaseError } =
     await getHomeData();
-  const shelfGames = sampleGames.length ? sampleGames : fallbackGames;
 
   return (
     <main
@@ -118,7 +201,9 @@ export default async function Home() {
           aria-hidden
           className="absolute inset-0 bg-[linear-gradient(135deg,rgba(159,153,209,0.18),rgba(134,186,218,0.1)_45%,rgba(255,227,179,0.14))]"
         />
-        <CatalogHeroArtifacts games={shelfGames.slice(0, 3)} />
+        {showcaseGames.length ? (
+          <CatalogHeroArtifacts games={showcaseGames.slice(0, 3)} />
+        ) : null}
 
         <div className="relative z-10 flex min-h-[560px] items-center px-14 py-20 max-md:px-7 max-md:py-12">
           <div className="max-w-[620px]">
@@ -198,22 +283,35 @@ export default async function Home() {
             </h2>
           </div>
           <p className="max-w-[40ch] text-sm leading-relaxed text-ink-soft">
-            {formatNumber(catalogCount)} games are already indexed. A few of
-            them are enough to show how the collection reads.
+            {formatNumber(catalogCount)} games are already indexed. These are
+            real catalog entries with enough metadata to represent the shelf
+            cleanly.
           </p>
         </div>
 
-        <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-3 max-md:grid-cols-2">
-          {shelfGames.slice(0, 8).map((game) => (
-            <GameCard
-              game={game}
-              key={game.slug}
-              platformName="Catalog"
-              status="OWNED"
-              variant="shelf"
-            />
-          ))}
-        </div>
+        {showcaseGames.length ? (
+          <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-3 max-md:grid-cols-2">
+            {showcaseGames.map((game) => (
+              <GameCard
+                game={game}
+                key={game.slug}
+                platformName="Catalog"
+                status="OWNED"
+                variant="shelf"
+              />
+            ))}
+          </div>
+        ) : (
+          <Card tactile className="mx-4">
+            <CardContent className="p-6">
+              <p className="font-semibold text-ink">No catalog showcase yet.</p>
+              <p className="mt-2 max-w-[52ch] text-sm leading-relaxed text-ink-soft">
+                Once real catalog entries have enough metadata, they appear
+                here automatically.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </section>
 
       <section className="relative px-4 py-6 text-center">
@@ -268,8 +366,13 @@ export default async function Home() {
 }
 
 function CatalogHeroArtifacts({ games }: { games: GameCardGame[] }) {
-  const stackedGames = [...games, ...fallbackGames].slice(0, 3);
-  const [frontGame, secondGame, thirdGame] = stackedGames;
+  if (!games.length) {
+    return null;
+  }
+
+  const frontGame = games[0];
+  const secondGame = games[1] ?? games[0];
+  const thirdGame = games[2] ?? games[0];
 
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -300,7 +403,7 @@ function CatalogHeroArtifacts({ games }: { games: GameCardGame[] }) {
         <CatalogCard
           className="absolute right-0 top-0 rotate-[5deg] opacity-70"
           game={thirdGame}
-          marker="IGDB"
+          marker="Metadata"
         />
         <CatalogCard
           className="absolute left-8 top-20 shadow-float"

@@ -34,6 +34,10 @@ test("generated Prisma client includes synced Steam user game fields", () => {
     model.fields.some((field) => field.name === "activeBacklog"),
     "Run npm run db:generate after changing prisma/schema.prisma.",
   );
+  assert.ok(
+    model.fields.some((field) => field.name === "currentPlayingSlot"),
+    "Run npm run db:generate after changing prisma/schema.prisma.",
+  );
   assert.ok(gameModel, "Game model should exist in generated Prisma client");
   assert.ok(
     gameModel.fields.some((field) => field.name === "hltbMainStoryMinutes"),
@@ -103,6 +107,7 @@ test("SQLite bootstrap creates synced Steam user game columns", () => {
       assertTableHasColumn(db, "UserGameEntry", "activeBacklog");
       assertTableHasColumn(db, "UserGameEntry", "abandonReason");
       assertTableHasColumn(db, "UserGameEntry", "desiredSessionMin");
+      assertTableHasColumn(db, "UserGameEntry", "currentPlayingSlot");
       assertTableHasColumn(db, "ImportRow", "completionPercent");
       assertTableHasColumn(db, "UserGameInsight", "signalType");
       assertTableHasColumn(db, "UserGameInsight", "friction");
