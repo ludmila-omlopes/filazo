@@ -10,6 +10,7 @@ import "@fontsource/atkinson-hyperlegible/700.css";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
+import { AuthDialog } from "@/components/auth-dialog";
 import { SignOutForm } from "@/components/sign-out-form";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeaderFrame } from "@/components/site-header-frame";
@@ -104,9 +105,7 @@ export default async function RootLayout({
                   <SignOutForm />
                 </div>
               ) : (
-                <Button asChild size="sm">
-                  <a href="/api/auth/steam">Connect Steam</a>
-                </Button>
+                <AuthDialog triggerLabel="Sign in" triggerSize="sm" />
               )}
             </nav>
           </SiteHeaderFrame>

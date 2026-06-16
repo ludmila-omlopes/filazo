@@ -65,35 +65,34 @@ export function AssistantTab({ assistant }: { assistant: AssistantData }) {
     <>
       <section className="flex items-center justify-between gap-4 rounded-card border border-edge bg-dusk-lavender-soft px-6 py-5 shadow-rest max-md:flex-col max-md:items-start">
         <div>
-          <p className="section-label !mb-1">Guide refresh</p>
+          <p className="section-label !mb-1">Guide</p>
           <p className="text-sm font-semibold leading-snug">
-            Refresh insights after syncs, imports, or status changes.
+            Refresh suggestions after adding games or changing your shelf.
           </p>
-          <p className="mt-1 text-xs text-ink-soft">
-            AI explanations are optional. Rule-based suggestions work without an
-            API key.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-ink-soft">
-            <span className="rounded-full bg-surface px-3 py-1">
-              AI notes available today:{" "}
-              {formatNumber(assistant.aiUsage.effectiveRemainingToday)}
-            </span>
-            <span className="rounded-full bg-surface px-3 py-1">
-              Today&apos;s AI notes: {formatNumber(assistant.aiUsage.userUsedToday)} /{" "}
-              {formatNumber(assistant.aiUsage.userDailyLimit)}
-            </span>
-            <span className="rounded-full bg-surface px-3 py-1">
-              Next AI refresh:{" "}
-              {assistant.aiUsage.openAiConfigured
-                ? formatAssistantCooldown(
-                    assistant.aiUsage.cooldownRemainingSeconds,
-                  )
-                : "API key missing"}
-            </span>
-          </div>
+          <details className="mt-3 text-xs font-semibold text-ink-soft">
+            <summary className="cursor-pointer">Usage details</summary>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-surface px-3 py-1">
+                Notes available today:{" "}
+                {formatNumber(assistant.aiUsage.effectiveRemainingToday)}
+              </span>
+              <span className="rounded-full bg-surface px-3 py-1">
+                Used today: {formatNumber(assistant.aiUsage.userUsedToday)} /{" "}
+                {formatNumber(assistant.aiUsage.userDailyLimit)}
+              </span>
+              <span className="rounded-full bg-surface px-3 py-1">
+                Next refresh:{" "}
+                {assistant.aiUsage.openAiConfigured
+                  ? formatAssistantCooldown(
+                      assistant.aiUsage.cooldownRemainingSeconds,
+                    )
+                  : "unavailable"}
+              </span>
+            </div>
+          </details>
         </div>
         <form action={refreshAssistantInsightsAction}>
-          <Button type="submit">Refresh assistant</Button>
+          <Button type="submit">Refresh guide</Button>
         </form>
       </section>
 

@@ -1,8 +1,8 @@
 import Link from "next/link";
+import { AuthDialog } from "@/components/auth-dialog";
 import { ControllerIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
 import { getDatabaseErrorMessage } from "@/lib/database-errors";
-import { isXboxConfigured } from "@/lib/xbox";
 
 export function SignedOutPanel() {
   return (
@@ -16,18 +16,11 @@ export function SignedOutPanel() {
           Connect an account to begin.
         </h1>
         <p className="mx-auto max-w-[42ch] leading-relaxed text-ink-soft">
-          Link Steam or Xbox to start the catalog. CSV and PlayStation imports
-          are waiting too. Start wherever feels easiest.
+          Sign in first, then connect Steam, PlayStation, Xbox, or start with a
+          CSV-only local profile. Start wherever feels easiest.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
-          <Button asChild>
-            <a href="/api/auth/steam">Connect Steam</a>
-          </Button>
-          {isXboxConfigured() ? (
-            <Button asChild variant="ghost">
-              <a href="/api/auth/xbox">Connect Xbox</a>
-            </Button>
-          ) : null}
+          <AuthDialog triggerLabel="Sign in" triggerSize="default" />
           <Button asChild variant="ghost">
             <Link href="/">Back home</Link>
           </Button>

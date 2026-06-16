@@ -14,6 +14,9 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS "User" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "displayName" TEXT,
+    "email" TEXT,
+    "passwordHash" TEXT,
+    "googleSubject" TEXT,
     "avatarUrl" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -218,6 +221,13 @@ function addColumnIfMissing(tableName, columnName, definition) {
   }
 }
 
+addColumnIfMissing("User", "email", "TEXT");
+addColumnIfMissing("User", "passwordHash", "TEXT");
+addColumnIfMissing("User", "googleSubject", "TEXT");
+db.exec(`
+  CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
+  CREATE UNIQUE INDEX IF NOT EXISTS "User_googleSubject_key" ON "User"("googleSubject");
+`);
 addColumnIfMissing("UserGameEntry", "completionPercent", "INTEGER");
 addColumnIfMissing("UserGameEntry", "lastPlayedAt", "DATETIME");
 addColumnIfMissing("UserGameEntry", "isFavorite", "BOOLEAN NOT NULL DEFAULT false");

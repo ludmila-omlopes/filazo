@@ -3,6 +3,7 @@ import { AddGamesPanel } from "./_components/add-games-panel";
 import { AssistantCorner, AssistantTab } from "./_components/assistant-tab";
 import { FavoriteGames } from "./_components/favorite-games";
 import { GreetingStrip } from "./_components/greeting-strip";
+import { IntegrationsPanel } from "./_components/integrations-panel";
 import {
   ProfileErrorPanel,
   SignedOutPanel,
@@ -17,7 +18,6 @@ import {
   type ProfileSearchParams,
 } from "./_components/profile-query";
 import { ShelfGrid } from "./_components/shelf-grid";
-import { ShelfStats } from "./_components/shelf-stats";
 import { Notice } from "@/components/ui/notice";
 import {
   getAssistantProfileData,
@@ -100,18 +100,21 @@ export default async function ProfilePage({
         {activeTab === "overview" ? (
           <>
             <GreetingStrip profile={profile} />
-            <ShelfStats profile={profile} />
             <FavoriteGames profile={profile} />
-            <AddGamesPanel profile={profile} />
             <AssistantCorner
               playerProfile={playerProfile}
               profile={profile}
             />
+            <AddGamesPanel profile={profile} />
           </>
         ) : null}
 
         {activeTab === "assistant" && assistant ? (
           <AssistantTab assistant={assistant} />
+        ) : null}
+
+        {activeTab === "integrations" ? (
+          <IntegrationsPanel profile={profile} />
         ) : null}
 
         {activeTab === "games" ? (
@@ -125,7 +128,6 @@ export default async function ProfilePage({
             }}
             gamesSort={gamesSort}
             gamesView={gamesView}
-            profile={profile}
             visibleEntries={visibleEntries}
           />
         ) : null}

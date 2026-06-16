@@ -12,8 +12,6 @@ function RecommendationCard({
 }: {
   recommendation: PlayNextRecommendation;
 }) {
-  const sourceLabel =
-    recommendation.source === "openai" ? "AI pick" : "Rule-based pick";
   const genres = [
     recommendation.primaryGenre,
     recommendation.expectedEffort,
@@ -25,7 +23,7 @@ function RecommendationCard({
       chips={genres}
       completionPercent={recommendation.entry.completionPercent}
       description={recommendation.reason}
-      eyebrow={sourceLabel}
+      eyebrow="Suggested for you"
       game={recommendation.entry.game}
       platformName={recommendation.entry.platformName}
       playtimeMinutes={recommendation.entry.playtimeMinutes}

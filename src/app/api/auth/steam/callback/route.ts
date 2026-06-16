@@ -45,7 +45,7 @@ export async function GET(request: Request) {
     await setUserSession(user.id);
 
     return NextResponse.redirect(
-      new URL("/profile?connected=steam", request.url),
+      new URL("/profile?tab=integrations&connected=steam", request.url),
     );
   } catch (error) {
     const message =

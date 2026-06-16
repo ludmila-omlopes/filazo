@@ -12,6 +12,8 @@ export type ProfileSearchParams = Promise<{
   connected?: string;
   synced?: string;
   imported?: string;
+  disconnected?: string;
+  login?: string;
   playstation?: string;
   playstationSynced?: string;
   xbox?: string;
@@ -40,6 +42,10 @@ export function parseActiveTab(value: string | undefined): ProfileTab {
     return "games";
   }
 
+  if (value === "integrations" || value === "sources") {
+    return "integrations";
+  }
+
   if (value === "assistant" || value === "coach") {
     return "assistant";
   }
@@ -57,37 +63,65 @@ export function getStatusMessage(
   if (query.synced) {
     return {
       tone: "success",
-      message: `Steam sync finished. ${query.synced} titles refreshed.`,
+      message: `Steam refreshed. ${query.synced} games updated.`,
+    };
+  }
+
+  if (query.login === "created") {
+    return {
+      tone: "success",
+      message: "Profile created. Add games whenever you are ready.",
+    };
+  }
+
+  if (query.login === "signed-in") {
+    return {
+      tone: "success",
+      message: "Signed in. Your catalog is ready.",
+    };
+  }
+
+  if (query.login === "google") {
+    return {
+      tone: "success",
+      message: "Google login connected. Your catalog is ready.",
+    };
+  }
+
+  if (query.disconnected) {
+    return {
+      tone: "success",
+      message: "Source disconnected. Existing games stayed on your shelf.",
     };
   }
 
   if (query.playstationSynced) {
     return {
       tone: "success",
-      message: `PlayStation sync finished. ${query.playstationSynced} played titles refreshed.`,
+      message: `PlayStation refreshed. ${query.playstationSynced} games updated.`,
     };
   }
 
   if (query.xboxSynced) {
     return {
       tone: "success",
-      message: `Xbox sync finished. ${query.xboxSynced} played titles refreshed.`,
+      message: `Xbox refreshed. ${query.xboxSynced} games updated.`,
     };
   }
 
   if (query.finishedDetected) {
     return {
       tone: "success",
-      message: `Credits-rolled detection checked ${
+      message: `Finished-game check looked at ${
         query.finishedScanned ?? "your"
-      } entries and found ${query.finishedDetected} with credits rolled.`,
+      } entries and found ${query.finishedDetected} finished games.`,
     };
   }
 
   if (query.imported) {
     return {
       tone: "success",
-      message: `CSV import finished. ${query.imported} rows were added or updated.`,
+      message: `CSV import finished. ${query.imported} games were added or updated.`,
     };
   }
 
@@ -98,14 +132,14 @@ export function getStatusMessage(
   ) {
     return {
       tone: "success",
-      message: "Account connected. Run a sync whenever you are ready.",
+      message: "Source connected. Refresh it whenever you are ready.",
     };
   }
 
   if (query.assistant) {
     return {
       tone: "success",
-      message: `Assistant refreshed. ${query.assistant} insights updated.`,
+      message: `Guide refreshed. ${query.assistant} suggestions updated.`,
     };
   }
 
@@ -121,7 +155,7 @@ export function getStatusMessage(
     return {
       tone: "error",
       message:
-        "Your shelf is quiet right now. Sync a platform or import a CSV before asking for a player profile.",
+        "Your shelf is quiet right now. Add a few games before asking for a player profile.",
     };
   }
 

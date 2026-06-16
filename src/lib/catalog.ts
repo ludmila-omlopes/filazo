@@ -52,6 +52,88 @@ type NormalizedImportRow = {
   rawData: Record<string, unknown>;
 };
 
+function isJsonRecord(
+  value: Prisma.JsonValue | null | undefined,
+): value is Prisma.JsonObject {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isPlayStationNonGameCategory(category: string | null | undefined) {
+  if (!category) {
+    return false;
+  }
+
+  const normalized = category.toLowerCase();
+  return (
+    normalized.includes("app") ||
+    normalized.includes("media") ||
+    normalized.includes("videoservice") ||
+    normalized.includes("nongame")
+  );
+}
+
+function getPlayStationSyncSources(rawData: Prisma.JsonValue | null | undefined) {
+  if (!isJsonRecord(rawData)) {
+    return [];
+  }
+
+  const value = rawData.playStationSyncSources;
+  return Array.isArray(value)
+    ? value.filter((item): item is Prisma.JsonObject => isJsonRecord(item))
+    : [];
+}
+
+async function prunePlayStationNonGameEntries(externalAccountId: string) {
+  const entries = await prisma.userGameEntry.findMany({
+    where: {
+      provider: ExternalProvider.PLAYSTATION,
+      externalAccountId,
+    },
+    select: {
+      id: true,
+      rawData: true,
+    },
+  });
+
+  const entryIdsToDelete = entries
+    .filter((entry) => {
+      const sources = getPlayStationSyncSources(entry.rawData);
+      if (!sources.length) {
+        return false;
+      }
+
+      const hasPlayedSource = sources.some(
+        (source) => source.syncSource === "played-game",
+      );
+      const hasNonPlayedSource = sources.some(
+        (source) => source.syncSource !== "played-game",
+      );
+      const hasNonGameCategory = sources.some(
+        (source) =>
+          source.syncSource === "played-game" &&
+          typeof source.category === "string" &&
+          isPlayStationNonGameCategory(source.category),
+      );
+
+      return hasPlayedSource && !hasNonPlayedSource && hasNonGameCategory;
+    })
+    .map((entry) => entry.id);
+
+  if (!entryIdsToDelete.length) {
+    return 0;
+  }
+
+  const result = await prisma.userGameEntry.deleteMany({
+    where: {
+      id: {
+        in: entryIdsToDelete,
+      },
+    },
+  });
+
+  return result.count;
+}
+
 function getProviderArtworkFallback(input: ResolveGameInput) {
   if (
     input.provider === ExternalProvider.STEAM &&
@@ -524,6 +606,8 @@ export async function syncPlayStationLibraryForUser(userId: string) {
         provider: ExternalProvider.PLAYSTATION,
         externalAccountId: playStationAccount.id,
         platformName: syncedGame.platformName ?? undefined,
+        playtimeMinutes: syncedGame.playtimeMinutes ?? undefined,
+        lastPlayedAt: syncedGame.lastPlayedAt ?? null,
         completionPercent: syncedGame.completionPercent ?? null,
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
         lastSyncedAt: new Date(),
@@ -536,6 +620,8 @@ export async function syncPlayStationLibraryForUser(userId: string) {
         provider: ExternalProvider.PLAYSTATION,
         externalAccountId: playStationAccount.id,
         platformName: syncedGame.platformName ?? undefined,
+        playtimeMinutes: syncedGame.playtimeMinutes ?? undefined,
+        lastPlayedAt: syncedGame.lastPlayedAt ?? null,
         completionPercent: syncedGame.completionPercent ?? null,
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
         lastSyncedAt: new Date(),
@@ -544,6 +630,8 @@ export async function syncPlayStationLibraryForUser(userId: string) {
 
     syncedCount += 1;
   }
+
+  await prunePlayStationNonGameEntries(playStationAccount.id);
 
   return {
     syncedCount,

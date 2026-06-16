@@ -5,6 +5,7 @@ import {
   exchangeRefreshTokenForAuthTokens,
   getProfileFromAccountId,
   getPurchasedGames,
+  getUserPlayedGames,
   getUserTitles,
   getUserTrophyProfileSummary,
   type AuthTokensResponse,
@@ -19,6 +20,7 @@ import { normalizeTitle } from "@/lib/utils";
 
 const PLAYSTATION_TITLES_PAGE_SIZE = 800;
 const PLAYSTATION_PURCHASED_PAGE_SIZE = 100;
+const PLAYSTATION_PLAYED_PAGE_SIZE = 200;
 
 type EncryptedSecret = {
   ciphertext: string;
@@ -295,12 +297,92 @@ function parsePlayStationDate(value: string | null | undefined) {
   return Number.isFinite(timestamp) ? new Date(timestamp) : null;
 }
 
+function parsePlayStationDurationMinutes(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(
+    /^P(?:(\d+(?:[.,]\d+)?)D)?(?:T(?:(\d+(?:[.,]\d+)?)H)?(?:(\d+(?:[.,]\d+)?)M)?(?:(\d+(?:[.,]\d+)?)S)?)?$/,
+  );
+  if (!match) {
+    return null;
+  }
+
+  const [, days = "0", hours = "0", minutes = "0", seconds = "0"] = match;
+  const totalMinutes =
+    Number(days.replace(",", ".")) * 24 * 60 +
+    Number(hours.replace(",", ".")) * 60 +
+    Number(minutes.replace(",", ".")) +
+    Number(seconds.replace(",", ".")) / 60;
+
+  return Number.isFinite(totalMinutes) ? Math.round(totalMinutes) : null;
+}
+
+function isPlayStationNonGameCategory(category: string | null | undefined) {
+  if (!category) {
+    return false;
+  }
+
+  const normalized = category.toLowerCase();
+  return (
+    normalized.includes("app") ||
+    normalized.includes("media") ||
+    normalized.includes("videoservice") ||
+    normalized.includes("nongame")
+  );
+}
+
+function getPlayStationPlayedPlatformName(category: string | null | undefined) {
+  if (!category) {
+    return "PlayStation";
+  }
+
+  const normalized = category.toLowerCase();
+  if (normalized.includes("ps5")) {
+    return normalizePlayStationPlatformName("PS5");
+  }
+
+  if (normalized.includes("ps4")) {
+    return normalizePlayStationPlatformName("PS4");
+  }
+
+  if (normalized.includes("pspc")) {
+    return normalizePlayStationPlatformName("PSPC");
+  }
+
+  return "PlayStation";
+}
+
+function normalizePlayStationPlatformName(value: string) {
+  const normalized = value.trim().toUpperCase();
+
+  if (normalized === "PS5") {
+    return "PlayStation PS5";
+  }
+
+  if (normalized === "PS4") {
+    return "PlayStation PS4";
+  }
+
+  if (normalized === "PSPC") {
+    return "PlayStation PC";
+  }
+
+  if (normalized === "PSVR2") {
+    return "PlayStation VR2";
+  }
+
+  return value.trim();
+}
+
 function formatPlayStationPlatform(value: string) {
-  return value
-    .split(",")
-    .map((platform) => platform.trim())
-    .filter(Boolean)
-    .join(", ");
+  return uniqueValues(
+    value
+      .split(",")
+      .map((platform) => normalizePlayStationPlatformName(platform))
+      .filter(Boolean),
+  ).join(", ");
 }
 
 function createConceptStoreUrl(conceptId: string | null | undefined) {
@@ -385,7 +467,9 @@ function mapPurchasedGameToSyncedGame(game: PurchasedGame): SyncedLibraryGame {
       `productId:${game.productId}`,
     providerGameIds,
     title: game.name,
-    platformName: game.platform ? `PlayStation ${game.platform}` : "PlayStation",
+    platformName: game.platform
+      ? normalizePlayStationPlatformName(game.platform)
+      : "PlayStation",
     storeUrl: createConceptStoreUrl(game.conceptId),
     rawData: {
       syncSource: "purchased-game",
@@ -398,6 +482,42 @@ function mapPurchasedGameToSyncedGame(game: PurchasedGame): SyncedLibraryGame {
       membership: game.membership,
       platform: game.platform,
       productId: game.productId,
+      titleId: game.titleId,
+    },
+  };
+}
+
+type PlayStationPlayedGame = Awaited<
+  ReturnType<typeof getUserPlayedGames>
+>["titles"][number];
+
+function mapPlayedGameToSyncedGame(game: PlayStationPlayedGame): SyncedLibraryGame {
+  const conceptId = game.concept?.id ? String(game.concept.id) : null;
+  const providerGameIds = createProviderGameIds({
+    conceptId,
+    titleId: game.titleId,
+  });
+  const playtimeMinutes = parsePlayStationDurationMinutes(game.playDuration);
+
+  return {
+    providerGameId: providerGameIds[0] ?? `titleId:${game.titleId}`,
+    providerGameIds,
+    title: game.localizedName || game.name,
+    platformName: getPlayStationPlayedPlatformName(game.category),
+    playtimeMinutes,
+    lastPlayedAt: parsePlayStationDate(game.lastPlayedDateTime),
+    storeUrl: createConceptStoreUrl(conceptId),
+    rawData: {
+      syncSource: "played-game",
+      category: game.category,
+      concept: game.concept,
+      firstPlayedDateTime: game.firstPlayedDateTime,
+      imageUrl: game.localizedImageUrl || game.imageUrl || null,
+      lastPlayedDateTime: game.lastPlayedDateTime,
+      media: game.media,
+      playCount: game.playCount,
+      playDuration: game.playDuration,
+      service: game.service,
       titleId: game.titleId,
     },
   };
@@ -427,6 +547,33 @@ async function fetchPlayedTitles(authorization: AuthorizationPayload) {
   return titles.map(mapTitleToSyncedGame);
 }
 
+async function fetchPlayedGames(authorization: AuthorizationPayload) {
+  const games: PlayStationPlayedGame[] = [];
+  let offset = 0;
+  let totalItemCount = Number.POSITIVE_INFINITY;
+
+  while (offset < totalItemCount) {
+    const page = await getUserPlayedGames(authorization, "me", {
+      limit: PLAYSTATION_PLAYED_PAGE_SIZE,
+      offset,
+    });
+    const rawPageGames = page.titles ?? [];
+    const pageGames = rawPageGames.filter(
+      (game) => !isPlayStationNonGameCategory(game.category),
+    );
+    games.push(...pageGames);
+    totalItemCount = page.totalItemCount ?? games.length;
+
+    if (rawPageGames.length === 0) {
+      break;
+    }
+
+    offset += rawPageGames.length;
+  }
+
+  return games.map(mapPlayedGameToSyncedGame);
+}
+
 async function fetchPurchasedGames(authorization: AuthorizationPayload) {
   const games: PurchasedGame[] = [];
   let start = 0;
@@ -452,10 +599,11 @@ async function fetchPurchasedGames(authorization: AuthorizationPayload) {
 function mergePlayStationSyncedGames(
   purchasedGames: SyncedLibraryGame[],
   trophyGames: SyncedLibraryGame[],
+  playedGames: SyncedLibraryGame[],
 ) {
   const mergedGames = new Map<string, SyncedLibraryGame>();
 
-  for (const game of [...purchasedGames, ...trophyGames]) {
+  for (const game of [...purchasedGames, ...trophyGames, ...playedGames]) {
     const titleKey = normalizeTitle(game.title);
     const providerIds = getSyncedGameProviderGameIds(game);
     const existing =
@@ -492,6 +640,16 @@ function mergePlayStationSyncedGames(
     existing.storeUrl = existing.storeUrl ?? game.storeUrl ?? null;
     existing.completionPercent =
       existing.completionPercent ?? game.completionPercent ?? null;
+    existing.playtimeMinutes =
+      game.playtimeMinutes !== undefined
+        ? game.playtimeMinutes
+        : existing.playtimeMinutes;
+    existing.lastPlayedAt =
+      game.lastPlayedAt && existing.lastPlayedAt
+        ? new Date(
+            Math.max(game.lastPlayedAt.getTime(), existing.lastPlayedAt.getTime()),
+          )
+        : game.lastPlayedAt ?? existing.lastPlayedAt ?? null;
     existing.rawData = {
       playStationSyncSources: [
         ...(
@@ -581,12 +739,17 @@ export async function syncPlayStationLibraryForAccount(
   account: ExternalAccount,
 ) {
   const { authorization, metadata } = await getAuthorizationForAccount(account);
-  const [profileResult, purchasedGames, trophyGames] = await Promise.all([
+  const [profileResult, purchasedGames, trophyGames, playedGames] = await Promise.all([
     fetchPlayStationProfile(authorization),
     fetchPurchasedGames(authorization),
     fetchPlayedTitles(authorization),
+    fetchPlayedGames(authorization),
   ]);
-  const games = mergePlayStationSyncedGames(purchasedGames, trophyGames);
+  const games = mergePlayStationSyncedGames(
+    purchasedGames,
+    trophyGames,
+    playedGames,
+  );
 
   const nextMetadata: PlayStationAccountMetadata = {
     ...metadata,

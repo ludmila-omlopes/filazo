@@ -54,17 +54,15 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
           Ask your collection anything
         </h2>
         <p className="mt-1.5 max-w-[56ch] text-sm leading-relaxed text-ink-soft">
-          Answers come from live lookups into your own games, playtime, and
-          reviews - nothing invented.
+          Answers come from your own games, playtime, and notes.
         </p>
       </div>
 
       {!aiConfigured ? (
         <div className="rounded-card border border-edge bg-clay-soft p-5">
-          <p className="font-semibold">AI module unavailable.</p>
+          <p className="font-semibold">Chat is unavailable right now.</p>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-            Library chat needs OPENAI_API_KEY. The rule-based assistant panels
-            keep working without it.
+            The rest of the guide still works.
           </p>
         </div>
       ) : (

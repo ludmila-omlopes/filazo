@@ -29,6 +29,7 @@ const fieldOptions: Array<{
   { key: "notes", label: "Notes" },
   { key: "externalId", label: "External ID" },
 ];
+const optionalFieldOptions = fieldOptions.filter((field) => !field.required);
 
 function createInitialMapping(headers: string[]): ColumnMapping {
   const lowerHeaders = headers.map((header) => header.toLowerCase());
@@ -164,7 +165,7 @@ export function CsvImportWidget({
       {/* File upload zone */}
       <div className="rounded-card border border-dashed border-edge bg-canvas/60 p-[18px]">
         <label className="mb-3 block font-semibold" htmlFor="csv-upload">
-          Drop in a CSV export
+          Choose a CSV file
         </label>
         <input
           id="csv-upload"
@@ -174,8 +175,8 @@ export function CsvImportWidget({
           className="w-full file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sage-soft file:px-4 file:py-2 file:font-semibold file:transition-colors hover:file:bg-sand-soft"
         />
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-          Supports generic, PlayStation, and Xbox exports. We will map your
-          columns before import.
+          Filazo will read the columns it recognizes and show you a preview
+          before anything is added.
         </p>
       </div>
 
@@ -194,7 +195,7 @@ export function CsvImportWidget({
           <input type="hidden" name="mapping" value={serializedMapping} />
 
           <label className="grid gap-2">
-            <span className="font-medium">Import source</span>
+            <span className="font-medium">Where did this file come from?</span>
             <select
               value={source}
               onChange={(event) =>
@@ -208,41 +209,64 @@ export function CsvImportWidget({
             </select>
           </label>
 
-          <div className="grid grid-cols-2 gap-3.5 max-lg:grid-cols-1">
-            {fieldOptions.map((field) => (
-              <label className="grid gap-2" key={field.key}>
-                <span className="font-medium">
-                  {field.label}
-                  {field.required ? " *" : ""}
-                </span>
-                <select
-                  value={mapping[field.key]}
-                  aria-required={field.required ? "true" : undefined}
-                  onChange={(event) =>
-                    setMapping((current) => ({
-                      ...current,
-                      [field.key]: event.target.value,
-                    }))
-                  }
-                  className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
-                >
-                  <option value="">Not mapped</option>
-                  {headers.map((header) => (
-                    <option key={header} value={header}>
-                      {header}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ))}
-          </div>
+          <label className="grid gap-2">
+            <span className="font-medium">Game title column</span>
+            <select
+              value={mapping.title}
+              aria-required="true"
+              onChange={(event) =>
+                setMapping((current) => ({
+                  ...current,
+                  title: event.target.value,
+                }))
+              }
+              className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
+            >
+              <option value="">Choose the title column</option>
+              {headers.map((header) => (
+                <option key={header} value={header}>
+                  {header}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <details className="rounded-inner border border-edge bg-canvas/60 p-4">
+            <summary className="cursor-pointer text-sm font-bold">
+              Adjust optional columns
+            </summary>
+            <div className="mt-4 grid grid-cols-2 gap-3.5 max-lg:grid-cols-1">
+              {optionalFieldOptions.map((field) => (
+                <label className="grid gap-2" key={field.key}>
+                  <span className="font-medium">{field.label}</span>
+                  <select
+                    value={mapping[field.key]}
+                    onChange={(event) =>
+                      setMapping((current) => ({
+                        ...current,
+                        [field.key]: event.target.value,
+                      }))
+                    }
+                    className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
+                  >
+                    <option value="">Skip this</option>
+                    {headers.map((header) => (
+                      <option key={header} value={header}>
+                        {header}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ))}
+            </div>
+          </details>
 
           <div className="grid gap-2.5" aria-live="polite">
             <div className="section-label">Preview</div>
             {source !== "GENERIC" ? (
               <p className="text-sm font-semibold text-ink-soft">
-                {sourceLabel} rows will be attached as {sourceLabel} provider
-                entries. External IDs are used as provider links when mapped.
+                These rows will be treated as {sourceLabel} games when a matching
+                identifier is present.
               </p>
             ) : null}
             {previewRows.length ? (
@@ -252,15 +276,15 @@ export function CsvImportWidget({
                   key={`${row.title}-${index}`}
                 >
                   <strong>{row.title}</strong>
-                  <span>{row.platform || "Platform not mapped"}</span>
+                  <span>{row.platform || "No platform"}</span>
                   <span>{row.status || "owned"}</span>
                   <span>{row.playtimeHours || "0"}h</span>
-                  <span>{row.completionPercent || "Not tracked"}</span>
+                  <span>{row.completionPercent || "No progress"}</span>
                 </div>
               ))
             ) : (
               <p className="leading-relaxed text-ink-soft">
-                Map the title column to preview the normalized rows.
+                Choose the title column to preview the rows.
               </p>
             )}
           </div>
@@ -269,7 +293,7 @@ export function CsvImportWidget({
             type="submit"
             disabled={!mapping.title || !csvText}
           >
-            Import catalog data
+            Import games
           </Button>
         </form>
       ) : null}
