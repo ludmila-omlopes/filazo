@@ -3,21 +3,17 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
-  EntrySource,
   ExternalProvider,
-  Prisma,
   UserGameStatus,
 } from "@prisma/client";
 import { z } from "zod";
 import {
   importCsvForUser,
   type CsvColumnMapping,
-  resolveCatalogGame,
   syncPlayStationLibraryForUser,
   syncSteamLibraryForUser,
   syncXboxLibraryForUser,
 } from "@/lib/catalog";
-import { getIgdbGameById } from "@/lib/igdb";
 import { connectPlayStationAccountForUser } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
@@ -81,29 +77,6 @@ const currentPlayingSchema = z.object({
   slot1EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
   slot2EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
   slot3EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
-});
-
-const manualGameAddSchema = z.object({
-  igdbId: z.coerce.number().int().positive(),
-  title: z.string().trim().min(1).max(200),
-  platformName: z.preprocess(
-    (value) => {
-      const rawValue = String(value ?? "").trim();
-      return rawValue || null;
-    },
-    z.string().trim().min(1).max(120).nullable(),
-  ),
-  status: z.preprocess(
-    (value) => String(value ?? "").trim() || UserGameStatus.PLAYING,
-    z.nativeEnum(UserGameStatus),
-  ),
-  query: z.preprocess(
-    (value) => {
-      const rawValue = String(value ?? "").trim();
-      return rawValue || null;
-    },
-    z.string().trim().nullable(),
-  ),
 });
 
 export async function syncSteamLibraryAction() {
@@ -265,91 +238,6 @@ export async function importCsvAction(formData: FormData) {
   revalidatePath("/profile");
   revalidatePath("/");
   redirect(`/profile?imported=${importedCount}`);
-}
-
-export async function addManualGameAction(formData: FormData) {
-  const userId = await getSessionUserId();
-  if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20adding%20games.");
-  }
-
-  const parsed = manualGameAddSchema.safeParse({
-    igdbId: formData.get("igdbId"),
-    title: formData.get("title"),
-    platformName: formData.get("platformName"),
-    status: formData.get("status"),
-    query: formData.get("query"),
-  });
-
-  if (!parsed.success) {
-    redirect("/profile?tab=integrations&error=Choose%20a%20game%20result%20before%20adding.");
-  }
-
-  const metadata = await getIgdbGameById(parsed.data.igdbId);
-  if (!metadata) {
-    redirect("/profile?tab=integrations&error=That%20game%20could%20not%20be%20loaded.");
-  }
-
-  const game = await resolveCatalogGame({
-    title: metadata.name,
-    platformName: parsed.data.platformName,
-    provider: ExternalProvider.IGDB,
-    providerGameId: String(metadata.igdbId),
-    metadata,
-    rawData: {
-      source: "manual-igdb-search",
-      igdbId: metadata.igdbId,
-      title: metadata.name,
-    },
-  });
-  const finishedData =
-    parsed.data.status === UserGameStatus.COMPLETED
-      ? {
-          finishedAt: new Date(),
-          finishedSource: "manual",
-        }
-      : {};
-
-  await prisma.userGameEntry.upsert({
-    where: {
-      userId_gameId_status: {
-        userId,
-        gameId: game.id,
-        status: parsed.data.status,
-      },
-    },
-    update: {
-      source: EntrySource.MANUAL,
-      provider: ExternalProvider.IGDB,
-      platformName: parsed.data.platformName ?? undefined,
-      ...finishedData,
-      rawData: {
-        source: "manual-igdb-search",
-        igdbId: metadata.igdbId,
-        title: metadata.name,
-      } as Prisma.InputJsonValue,
-    },
-    create: {
-      userId,
-      gameId: game.id,
-      status: parsed.data.status,
-      source: EntrySource.MANUAL,
-      provider: ExternalProvider.IGDB,
-      platformName: parsed.data.platformName ?? undefined,
-      ...finishedData,
-      rawData: {
-        source: "manual-igdb-search",
-        igdbId: metadata.igdbId,
-        title: metadata.name,
-      } as Prisma.InputJsonValue,
-    },
-  });
-
-  revalidatePath("/profile");
-  revalidatePath("/");
-  revalidatePath(`/games/${game.slug}`);
-
-  redirect(`/profile?tab=integrations&manualAdded=${game.slug}`);
 }
 
 export async function saveCurrentPlayingAction(formData: FormData) {
