@@ -136,11 +136,10 @@ export function TonightRoom({
 
         <div className="mx-auto grid w-full max-w-[460px] gap-4">
           <GameCard
-            chips={[pick.source === "openai" ? "AI pick" : "catalog signals"]}
             className="bg-cream text-dusk-deep shadow-float"
             completionPercent={pick.entry.completionPercent}
             description={pick.reason}
-            eyebrow="The room points here"
+            eyebrow="Suggested for tonight"
             game={pick.entry.game}
             platformName={pick.entry.platformName}
             playtimeMinutes={pick.entry.playtimeMinutes}

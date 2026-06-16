@@ -1,4 +1,5 @@
-import { Chip } from "@/components/ui/chip";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/utils";
 import type { ProfileData } from "./profile-types";
 
@@ -16,26 +17,14 @@ function getGreetingLine() {
   return "Good evening. Pick one, or just browse.";
 }
 
-function ProviderChip({
-  label,
-  connected,
-}: {
-  label: string;
-  connected: boolean;
-}) {
-  return (
-    <Chip tone={connected ? "sage" : "neutral"}>
-      {label}: {connected ? "connected" : "resting"}
-    </Chip>
-  );
-}
-
 export function GreetingStrip({ profile }: { profile: ProfileData }) {
+  const connectedCount = profile.user.externalAccounts.length;
+
   return (
     <section className="panel bg-sky-soft/70">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
-          <p className="section-label">Your catalog</p>
+          <p className="section-label">Library home</p>
           <h2 className="text-page-title leading-tight">
             {profile.user.displayName ?? "Player"}
           </h2>
@@ -43,14 +32,22 @@ export function GreetingStrip({ profile }: { profile: ProfileData }) {
             {getGreetingLine()} {formatNumber(profile.user.gameEntries.length)}{" "}
             games have a readable place here.
           </p>
+          <p className="mt-2 text-sm font-semibold text-ink-soft">
+            {connectedCount
+              ? `${formatNumber(connectedCount)} source${connectedCount === 1 ? "" : "s"} connected.`
+              : "No sources connected yet."}
+          </p>
         </div>
-        <div className="flex max-w-[420px] flex-wrap justify-end gap-2 max-md:justify-start">
-          <ProviderChip label="Steam" connected={Boolean(profile.steamAccount)} />
-          <ProviderChip
-            label="PlayStation"
-            connected={Boolean(profile.playStationAccount)}
-          />
-          <ProviderChip label="Xbox" connected={Boolean(profile.xboxAccount)} />
+        <div className="flex flex-wrap justify-end gap-3 max-md:justify-start">
+          <Button asChild>
+            <Link href="/tonight">Pick for tonight</Link>
+          </Button>
+          <Button asChild variant="ghost">
+            <Link href="/profile?tab=games">Browse shelf</Link>
+          </Button>
+          <Button asChild variant="ghost">
+            <Link href="/profile?tab=integrations">Add games</Link>
+          </Button>
         </div>
       </div>
     </section>

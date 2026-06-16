@@ -123,7 +123,7 @@ export default async function Home() {
         <div className="relative z-10 flex min-h-[560px] items-center px-14 py-20 max-md:px-7 max-md:py-12">
           <div className="max-w-[620px]">
             <p className="text-kicker font-bold uppercase text-glow/90">
-              Canonical catalog for large libraries
+              Calm library for large game collections
             </p>
             <h1 className="mt-5 text-display font-normal leading-[1.03]">
               Every game list,
@@ -131,8 +131,8 @@ export default async function Home() {
               one readable catalog.
             </h1>
             <p className="mt-6 max-w-[45ch] text-lg leading-relaxed text-cream/75">
-              filazo brings Steam, CSVs, PlayStation, and Xbox records into one
-              calm library, then keeps tonight&apos;s choice close at hand.
+              filazo brings your game lists into one calm library, then keeps
+              tonight&apos;s choice close at hand.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <AuthDialog
@@ -154,7 +154,7 @@ export default async function Home() {
                 size="lg"
                 className="h-12 border border-cream/15 bg-transparent px-7 text-base font-semibold text-cream/85 hover:bg-cream/12 hover:text-cream"
               >
-                <Link href="/profile">Import a CSV</Link>
+                <Link href="/profile">Add games</Link>
               </Button>
             </div>
             <p className="mt-5 text-sm text-cream/55">
@@ -167,19 +167,19 @@ export default async function Home() {
 
       <section className="grid gap-8 px-4">
         <p className="text-center text-kicker font-bold uppercase text-ink-soft">
-          How the catalog settles
+          How it works
         </p>
 
         <div className="grid grid-cols-3 gap-5 max-lg:grid-cols-1">
           <EveningStep
             number="01"
-            title="Bring records in"
-            line="Steam can sync directly. CSV, PlayStation, and Xbox lists have a place too."
+            title="Bring games in"
+            line="Connect a source or upload a CSV when you want to fill the shelf."
           />
           <EveningStep
             number="02"
-            title="Resolve the catalog"
-            line="Provider IDs, IGDB matches, and normalized titles fold scattered lists into one game entry."
+            title="Keep one clean shelf"
+            line="The same game stays together even when it came from more than one place."
           />
           <EveningStep
             number="03"
@@ -254,7 +254,7 @@ export default async function Home() {
               size="lg"
               className="h-12 border border-cream/25 px-7 text-base font-semibold text-cream hover:bg-cream/10 hover:text-cream"
             >
-              <Link href="/profile">Import a CSV</Link>
+              <Link href="/profile">Add games</Link>
             </Button>
           </div>
           <p className="text-xs text-cream/40">

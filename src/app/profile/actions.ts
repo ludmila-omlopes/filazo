@@ -22,8 +22,37 @@ const importSchema = z.object({
   mapping: z.string().min(1),
 });
 
+function extractNpssoToken(value: unknown) {
+  const rawValue = String(value ?? "").trim();
+  if (!rawValue) {
+    return rawValue;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as unknown;
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "npsso" in parsed &&
+      typeof parsed.npsso === "string"
+    ) {
+      return parsed.npsso.trim();
+    }
+  } catch {
+    // The field also accepts the bare token, so invalid JSON is fine here.
+  }
+
+  return rawValue
+    .replace(/^npsso=/i, "")
+    .replace(/^"|"$/g, "")
+    .trim();
+}
+
 const playStationConnectSchema = z.object({
-  npsso: z.string().trim().min(32).max(512),
+  npsso: z.preprocess(
+    extractNpssoToken,
+    z.string().trim().min(32).max(512),
+  ),
 });
 
 const disconnectProviderSchema = z.enum([

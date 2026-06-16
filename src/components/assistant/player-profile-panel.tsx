@@ -24,8 +24,8 @@ export function PlayerProfilePanel({
             Who you are as a player
           </h2>
           <p className="mt-1.5 max-w-[52ch] text-sm leading-relaxed text-ink-soft">
-            Written by an AI agent from your library, playtime, and reviews.
-            Regenerate it after adding feedback.
+            A short read on your taste, based on your library, playtime, and
+            notes. Refresh it after adding feedback.
           </p>
         </div>
         <div className="flex flex-col items-end gap-2 max-lg:items-start">
@@ -38,12 +38,12 @@ export function PlayerProfilePanel({
             <SyncActionForm
               action={action}
               buttonLabel={profile ? "Refresh profile" : "Generate profile"}
-              pendingLabel="Agent reading your catalog..."
-              pendingNotice="The profile agent is querying your library, feedback, and reviews. Keep this page open."
+              pendingLabel="Reading your shelf..."
+              pendingNotice="Filazo is reading your library and notes. Keep this page open."
             />
           ) : profile && !aiConfigured ? (
             <p className="text-xs font-semibold text-ink-soft">
-              Set OPENAI_API_KEY to regenerate.
+              Refresh is unavailable right now.
             </p>
           ) : null}
         </div>
@@ -51,21 +51,20 @@ export function PlayerProfilePanel({
 
       {!hasGames ? (
         <EmptyState title="Your catalog is quiet right now.">
-          Sync Steam, Xbox, or PlayStation, or import a CSV. The profile agent
-          needs a few games before it can say anything useful about your taste.
+          Add a few games first, then Filazo can say something useful about
+          your taste.
         </EmptyState>
       ) : !profile && !aiConfigured ? (
         <div className="rounded-card border border-edge bg-clay-soft p-5">
-          <p className="font-semibold">AI module unavailable.</p>
+          <p className="font-semibold">Profile writing is unavailable right now.</p>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-            Player profile generation needs OPENAI_API_KEY. The rest of the
-            assistant keeps working with rule-based signals.
+            The rest of the guide still works.
           </p>
         </div>
       ) : !profile ? (
         <EmptyState title="Your profile hasn't been written yet.">
-          Use Generate profile and the agent will explore your games,
-          playtime, favorites, and feedback to draft it.
+          Use Generate profile and Filazo will read your games, playtime,
+          favorites, and feedback.
         </EmptyState>
       ) : (
         <div className="grid gap-5">

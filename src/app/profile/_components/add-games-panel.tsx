@@ -11,8 +11,8 @@ export function AddGamesPanel({ profile }: { profile: ProfileData }) {
   return (
     <section className="panel bg-sand-soft/55">
       <SectionHeader
-        eyebrow="Add records"
-        title="Bring more games into the catalog"
+        eyebrow="Add games"
+        title="Bring another shelf in"
         aside={
           <div className="pill">
             {profile.latestImport
@@ -25,22 +25,22 @@ export function AddGamesPanel({ profile }: { profile: ProfileData }) {
       <div className="grid grid-cols-[0.9fr_1.1fr] gap-6 max-lg:grid-cols-1">
         <article className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
           <SectionHeader
-            eyebrow="Accounts"
-            title="Provider connections"
-            aside={<Button asChild><a href="/profile?tab=integrations">Manage integrations</a></Button>}
+            eyebrow="Sources"
+            title="Steam, PlayStation, and Xbox"
+            aside={<Button asChild><a href="/profile?tab=integrations">Manage sources</a></Button>}
           />
           <p className="text-sm leading-relaxed text-ink-soft">
-            Steam, PlayStation, and Xbox now live in a dedicated integrations
-            area with connection, sync, and disconnect controls.
+            Connect a source once, then refresh it when you want newer playtime
+            or recently played games.
           </p>
           <p className="mt-4 text-sm font-semibold">
-            {profile.user.externalAccounts.length} connected provider
+            {profile.user.externalAccounts.length} connected source
             {profile.user.externalAccounts.length === 1 ? "" : "s"}
           </p>
         </article>
 
         <article className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
-          <SectionHeader eyebrow="CSV" title="Library exports" />
+          <SectionHeader eyebrow="File import" title="Upload a CSV" />
           <CsvImportWidget action={importCsvAction} />
         </article>
       </div>

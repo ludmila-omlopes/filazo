@@ -71,8 +71,12 @@ function getReceptionLabel(score: number) {
   return "a quieter reception";
 }
 
-function getPlaytimeSoFar(minutes: number | null | undefined) {
-  return formatPlaytime(minutes).replace(" played", " so far");
+function getPlaytimeSoFar(entry: GameEntry) {
+  if (entry.playtimeMinutes === null || entry.playtimeMinutes === undefined) {
+    return "No playtime data";
+  }
+
+  return formatPlaytime(entry.playtimeMinutes).replace(" played", " so far");
 }
 
 function GameCover({ game }: { game: GameDetail }) {
@@ -205,9 +209,9 @@ function SaveSlot({
           </div>
         </div>
         <div className="rounded-inner border border-edge bg-surface p-4">
-          <span className="stat-label">Time together</span>
+          <span className="stat-label">Recorded playtime</span>
           <strong className="mt-2 block font-display text-2xl font-medium">
-            {getPlaytimeSoFar(currentEntry.playtimeMinutes)}
+            {getPlaytimeSoFar(currentEntry)}
           </strong>
         </div>
         {hasStoryTime ? (
@@ -405,7 +409,7 @@ function ShelfActivity({ game }: { game: GameDetail }) {
                 {entry.user.displayName ?? "Player"}
               </p>
               <p className="text-xs text-ink-soft">
-                {getPlaytimeSoFar(entry.playtimeMinutes)}
+                {getPlaytimeSoFar(entry)}
               </p>
             </div>
             <StatusBadge

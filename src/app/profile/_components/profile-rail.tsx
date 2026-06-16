@@ -7,15 +7,15 @@ const railItems = [
   {
     tab: "overview" as const,
     href: "/profile",
-    label: "Overview",
-    hint: "Profile and sources",
+    label: "Home",
+    hint: "What matters now",
     icon: Armchair,
   },
   {
     tab: "integrations" as const,
     href: "/profile?tab=integrations",
-    label: "Integrations",
-    hint: "Accounts and sync",
+    label: "Sources",
+    hint: "Add or refresh",
     icon: Cable,
   },
   {
@@ -29,7 +29,7 @@ const railItems = [
     tab: "assistant" as const,
     href: "/profile?tab=assistant",
     label: "Guide",
-    hint: "Suggestions and notes",
+    hint: "Gentle suggestions",
     icon: Sparkles,
   },
 ];

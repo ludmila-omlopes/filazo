@@ -163,6 +163,7 @@ export function GameCard({
   const playtimeLabel = getPlaytimeLabel(playtimeMinutes, completionPercent);
   const displayStatus = getDisplayStatus(status, finished);
   const targetHref = href ?? `/games/${game.slug}`;
+  const showDetails = resolvedVariant !== "shelf";
 
   if (resolvedVariant === "row") {
     return (
@@ -212,15 +213,19 @@ export function GameCard({
         >
           {game.name}
         </h3>
-        <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
-        <div className="flex flex-wrap items-center gap-2">
-          {displayStatus ? <StatusBadge status={displayStatus} /> : null}
-          {chips.slice(0, 3).map((chip) => (
-            <Chip key={chip} tone="blue">
-              {chip}
-            </Chip>
-          ))}
-        </div>
+        {showDetails ? (
+          <>
+            <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
+            <div className="flex flex-wrap items-center gap-2">
+              {displayStatus ? <StatusBadge status={displayStatus} /> : null}
+              {chips.slice(0, 2).map((chip) => (
+                <Chip key={chip} tone="blue">
+                  {chip}
+                </Chip>
+              ))}
+            </div>
+          </>
+        ) : null}
         {description ? (
           <p className="line-clamp-3 text-sm leading-relaxed text-ink-soft">
             {description}
