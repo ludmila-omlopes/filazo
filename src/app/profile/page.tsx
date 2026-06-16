@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AddGamesPanel } from "./_components/add-games-panel";
 import { AssistantCorner, AssistantTab } from "./_components/assistant-tab";
+import { CurrentPlayingPanel } from "./_components/current-playing-panel";
 import { FavoriteGames } from "./_components/favorite-games";
 import { GreetingStrip } from "./_components/greeting-strip";
 import { IntegrationsPanel } from "./_components/integrations-panel";
@@ -100,6 +101,10 @@ export default async function ProfilePage({
         {activeTab === "overview" ? (
           <>
             <GreetingStrip profile={profile} />
+            <CurrentPlayingPanel
+              playerProfile={playerProfile}
+              profile={profile}
+            />
             <FavoriteGames profile={profile} />
             <AssistantCorner
               playerProfile={playerProfile}

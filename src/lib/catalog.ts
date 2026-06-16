@@ -24,6 +24,7 @@ import {
 type ResolveGameInput = {
   title: string;
   platformName?: string | null;
+  metadata?: Awaited<ReturnType<typeof igdbAdapter.searchBestMatch>> | null;
   provider?: ExternalProvider;
   providerGameId?: string | null;
   storeUrl?: string | null;
@@ -347,10 +348,12 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
     });
   }
 
-  const metadata = await igdbAdapter.searchBestMatch({
-    title: searchTitle,
-    platformName: input.platformName,
-  });
+  const metadata =
+    input.metadata ??
+    (await igdbAdapter.searchBestMatch({
+      title: searchTitle,
+      platformName: input.platformName,
+    }));
 
   if (metadata?.igdbId) {
     const gameByIgdb = await prisma.game.findUnique({
@@ -439,6 +442,29 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
         providerGameId: input.providerGameId,
         storeUrl: input.storeUrl ?? undefined,
         rawData: input.rawData as Prisma.InputJsonValue | undefined,
+      },
+    });
+  }
+
+  if (
+    metadata?.igdbId &&
+    (input.provider !== ExternalProvider.IGDB ||
+      input.providerGameId !== String(metadata.igdbId))
+  ) {
+    await prisma.gameProviderLink.upsert({
+      where: {
+        provider_providerGameId: {
+          provider: ExternalProvider.IGDB,
+          providerGameId: String(metadata.igdbId),
+        },
+      },
+      update: {
+        gameId: game.id,
+      },
+      create: {
+        gameId: game.id,
+        provider: ExternalProvider.IGDB,
+        providerGameId: String(metadata.igdbId),
       },
     });
   }
@@ -1048,6 +1074,10 @@ export async function getProfileData(userId: string) {
       return right.updatedAt.getTime() - left.updatedAt.getTime();
     });
 
+  const shelfEntries = user.gameEntries.filter(
+    (entry) => entry.status !== UserGameStatus.WISHLIST,
+  );
+
   const wishlistEntries = user.gameEntries.filter(
     (entry) => entry.status === UserGameStatus.WISHLIST,
   );
@@ -1056,11 +1086,21 @@ export async function getProfileData(userId: string) {
     (entry) => entry.isFavorite,
   );
 
+  const currentPlayingEntries = shelfEntries
+    .filter((entry) => entry.currentPlayingSlot !== null)
+    .sort(
+      (left, right) =>
+        (left.currentPlayingSlot ?? Number.MAX_SAFE_INTEGER) -
+        (right.currentPlayingSlot ?? Number.MAX_SAFE_INTEGER),
+    );
+
   return {
     user,
     ownedEntries,
+    shelfEntries,
     wishlistEntries,
     favoriteEntries,
+    currentPlayingEntries,
     recentlyUpdated: ownedEntries.slice(0, 4),
     latestImport: user.importJobs[0] ?? null,
     steamAccount:

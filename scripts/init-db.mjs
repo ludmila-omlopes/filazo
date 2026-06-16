@@ -105,6 +105,7 @@ db.exec(`
     "activeBacklog" BOOLEAN NOT NULL DEFAULT true,
     "userIntent" TEXT,
     "desiredSessionMin" INTEGER,
+    "currentPlayingSlot" INTEGER,
     "lastSyncedAt" DATETIME,
     "rawData" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -237,8 +238,13 @@ addColumnIfMissing("UserGameEntry", "abandonReason", "TEXT");
 addColumnIfMissing("UserGameEntry", "activeBacklog", "BOOLEAN NOT NULL DEFAULT true");
 addColumnIfMissing("UserGameEntry", "userIntent", "TEXT");
 addColumnIfMissing("UserGameEntry", "desiredSessionMin", "INTEGER");
+addColumnIfMissing("UserGameEntry", "currentPlayingSlot", "INTEGER");
 addColumnIfMissing("UserGameEntry", "finishedAt", "DATETIME");
 addColumnIfMissing("UserGameEntry", "finishedSource", "TEXT");
+db.exec(`
+  CREATE UNIQUE INDEX IF NOT EXISTS "UserGameEntry_userId_currentPlayingSlot_key"
+  ON "UserGameEntry"("userId", "currentPlayingSlot");
+`);
 addColumnIfMissing("GameProviderLink", "storyAchievementId", "TEXT");
 addColumnIfMissing("GameProviderLink", "storyAchievementName", "TEXT");
 addColumnIfMissing("GameProviderLink", "storyAchievementSource", "TEXT");

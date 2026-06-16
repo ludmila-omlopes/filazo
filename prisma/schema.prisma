@@ -187,6 +187,7 @@ model UserGameEntry {
   activeBacklog     Boolean           @default(true)
   userIntent        String?
   desiredSessionMin Int?
+  currentPlayingSlot Int?
   lastSyncedAt      DateTime?
   rawData           Json?
   createdAt         DateTime          @default(now())
@@ -197,6 +198,7 @@ model UserGameEntry {
   insights          UserGameInsight[]
 
   @@unique([userId, gameId, status])
+  @@unique([userId, currentPlayingSlot])
   @@index([userId, status])
 }
 

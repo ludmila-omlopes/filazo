@@ -2,7 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ExternalProvider } from "@prisma/client";
+import {
+  ExternalProvider,
+  UserGameStatus,
+} from "@prisma/client";
 import { z } from "zod";
 import {
   importCsvForUser,
@@ -64,6 +67,17 @@ const disconnectProviderSchema = z.enum([
 function getProviderQueryValue(provider: ExternalProvider) {
   return provider.toLowerCase();
 }
+
+function parseOptionalEntryId(value: unknown) {
+  const entryId = String(value ?? "").trim();
+  return entryId || null;
+}
+
+const currentPlayingSchema = z.object({
+  slot1EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
+  slot2EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
+  slot3EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
+});
 
 export async function syncSteamLibraryAction() {
   const userId = await getSessionUserId();
@@ -224,6 +238,105 @@ export async function importCsvAction(formData: FormData) {
   revalidatePath("/profile");
   revalidatePath("/");
   redirect(`/profile?imported=${importedCount}`);
+}
+
+export async function saveCurrentPlayingAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20changing%20Current%20playing.");
+  }
+
+  const parsed = currentPlayingSchema.safeParse({
+    slot1EntryId: formData.get("slot1EntryId"),
+    slot2EntryId: formData.get("slot2EntryId"),
+    slot3EntryId: formData.get("slot3EntryId"),
+  });
+
+  if (!parsed.success) {
+    redirect("/profile?error=Choose%20up%20to%20three%20games%20for%20Current%20playing.");
+  }
+
+  const selections = [
+    { slot: 1, entryId: parsed.data.slot1EntryId },
+    { slot: 2, entryId: parsed.data.slot2EntryId },
+    { slot: 3, entryId: parsed.data.slot3EntryId },
+  ];
+  const selectedEntryIds = selections
+    .map((selection) => selection.entryId)
+    .filter((entryId): entryId is string => Boolean(entryId));
+
+  if (new Set(selectedEntryIds).size !== selectedEntryIds.length) {
+    redirect("/profile?error=Choose%20three%20different%20games%20for%20Current%20playing.");
+  }
+
+  if (selectedEntryIds.length) {
+    const entries = await prisma.userGameEntry.findMany({
+      where: {
+        id: { in: selectedEntryIds },
+        userId,
+        status: {
+          not: UserGameStatus.WISHLIST,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (entries.length !== selectedEntryIds.length) {
+      redirect("/profile?error=Only%20games%20already%20on%20your%20shelf%20can%20be%20featured.");
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.userGameEntry.updateMany({
+      where: {
+        userId,
+        currentPlayingSlot: {
+          not: null,
+        },
+      },
+      data: {
+        currentPlayingSlot: null,
+      },
+    });
+
+    for (const selection of selections) {
+      if (!selection.entryId) {
+        continue;
+      }
+
+      await tx.userGameEntry.update({
+        where: { id: selection.entryId },
+        data: { currentPlayingSlot: selection.slot },
+      });
+    }
+  });
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect("/profile?currentPlaying=updated");
+}
+
+export async function clearCurrentPlayingAction() {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20changing%20Current%20playing.");
+  }
+
+  await prisma.userGameEntry.updateMany({
+    where: {
+      userId,
+      currentPlayingSlot: {
+        not: null,
+      },
+    },
+    data: {
+      currentPlayingSlot: null,
+    },
+  });
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect("/profile?currentPlaying=cleared");
 }
 
 export async function detectFinishedGamesAction() {
