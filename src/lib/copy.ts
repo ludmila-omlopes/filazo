@@ -4,7 +4,7 @@ export const statusDisplayLabels: Record<string, string> = {
   WISHLIST: "still curious",
   PLAYING: "playing now",
   PAUSED: "paused",
-  COMPLETED: "loved enough",
+  COMPLETED: "credits rolled",
   FINISHED: "credits rolled",
   DROPPED: "released",
 };

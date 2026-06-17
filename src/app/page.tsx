@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import { getDatabaseErrorMessage } from "@/lib/database-errors";
 import { prisma } from "@/lib/prisma";
+import { getSessionUserId } from "@/lib/session";
 import { formatNumber } from "@/lib/utils";
 
 const homeShowcaseSelect = {
@@ -180,8 +181,13 @@ async function getHomeData() {
 }
 
 export default async function Home() {
+  const [homeData, sessionUserId] = await Promise.all([
+    getHomeData(),
+    getSessionUserId(),
+  ]);
   const { catalogCount, enrichedCount, showcaseGames, databaseError } =
-    await getHomeData();
+    homeData;
+  const isSignedIn = Boolean(sessionUserId);
 
   return (
     <main
@@ -220,11 +226,21 @@ export default async function Home() {
               tonight&apos;s choice close at hand.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <AuthDialog
-                triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
-                triggerLabel="Sign in"
-                triggerSize="lg"
-              />
+              {isSignedIn ? (
+                <Button
+                  asChild
+                  size="lg"
+                  className="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+                >
+                  <Link href="/profile">Open library</Link>
+                </Button>
+              ) : (
+                <AuthDialog
+                  triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+                  triggerLabel="Sign in"
+                  triggerSize="lg"
+                />
+              )}
               <Button
                 asChild
                 variant="ghost"
@@ -239,7 +255,7 @@ export default async function Home() {
                 size="lg"
                 className="h-12 border border-cream/15 bg-transparent px-7 text-base font-semibold text-cream/85 hover:bg-cream/12 hover:text-cream"
               >
-                <Link href="/profile">Add games</Link>
+                <Link href="/profile?tab=integrations">Add games</Link>
               </Button>
             </div>
             <p className="mt-5 text-sm text-cream/55">
@@ -341,18 +357,28 @@ export default async function Home() {
             Let the catalog stay legible.
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <AuthDialog
-              triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
-              triggerLabel="Sign in"
-              triggerSize="lg"
-            />
+            {isSignedIn ? (
+              <Button
+                asChild
+                size="lg"
+                className="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+              >
+                <Link href="/profile">Open library</Link>
+              </Button>
+            ) : (
+              <AuthDialog
+                triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+                triggerLabel="Sign in"
+                triggerSize="lg"
+              />
+            )}
             <Button
               asChild
               variant="ghost"
               size="lg"
               className="h-12 border border-cream/25 px-7 text-base font-semibold text-cream hover:bg-cream/10 hover:text-cream"
             >
-              <Link href="/profile">Add games</Link>
+              <Link href="/profile?tab=integrations">Add games</Link>
             </Button>
           </div>
           <p className="text-xs text-cream/40">

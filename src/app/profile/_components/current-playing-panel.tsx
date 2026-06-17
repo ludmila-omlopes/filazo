@@ -1,4 +1,7 @@
+"use client";
+
 import { Sparkles } from "lucide-react";
+import { useState } from "react";
 import { GameCard } from "@/components/game-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -7,12 +10,14 @@ import { getStatusDisplayLabel } from "@/lib/copy";
 import {
   clearCurrentPlayingAction,
   saveCurrentPlayingAction,
+  saveCurrentPlayingSelectionAction,
 } from "../actions";
 import type { PlayerProfileData, ProfileData } from "./profile-types";
 
 const CURRENT_PLAYING_SLOTS = [1, 2, 3] as const;
 const collator = new Intl.Collator("en-US", { sensitivity: "base" });
 
+type CurrentPlayingSlotNumber = (typeof CURRENT_PLAYING_SLOTS)[number];
 type ShelfEntry = ProfileData["shelfEntries"][number];
 type SuggestedCurrentPlayingEntry = {
   entry: ShelfEntry;
@@ -26,7 +31,7 @@ function isFinishedEntry(entry: ShelfEntry) {
 
 function getCurrentPlayingEntry(
   profile: ProfileData,
-  slot: (typeof CURRENT_PLAYING_SLOTS)[number],
+  slot: CurrentPlayingSlotNumber,
 ) {
   return (
     profile.currentPlayingEntries.find(
@@ -52,7 +57,7 @@ function getPlayingStatusEntries(profile: ProfileData) {
 function getDefaultCurrentPlayingEntry(
   profile: ProfileData,
   playingStatusEntries: ShelfEntry[],
-  slot: (typeof CURRENT_PLAYING_SLOTS)[number],
+  slot: CurrentPlayingSlotNumber,
 ) {
   return (
     getCurrentPlayingEntry(profile, slot) ??
@@ -152,15 +157,21 @@ function getShelfSuggestionReason(entry: ShelfEntry) {
 }
 
 function getSuggestedCurrentPlayingEntries({
+  excludedEntryIds = new Set<string>(),
+  limit = CURRENT_PLAYING_SLOTS.length,
   playerProfile,
   profile,
 }: {
+  excludedEntryIds?: Set<string>;
+  limit?: number;
   playerProfile: PlayerProfileData;
   profile: ProfileData;
 }) {
   const suggestions: SuggestedCurrentPlayingEntry[] = [];
-  const seenEntryIds = new Set<string>();
-  const unfinishedEntries = profile.shelfEntries.filter((entry) => !isFinishedEntry(entry));
+  const seenEntryIds = new Set(excludedEntryIds);
+  const unfinishedEntries = profile.shelfEntries.filter(
+    (entry) => !isFinishedEntry(entry),
+  );
 
   for (const recommendation of playerProfile?.payload.recommendations ?? []) {
     const matchingEntry = unfinishedEntries.find(
@@ -179,7 +190,7 @@ function getSuggestedCurrentPlayingEntries({
     });
     seenEntryIds.add(matchingEntry.id);
 
-    if (suggestions.length === CURRENT_PLAYING_SLOTS.length) {
+    if (suggestions.length === limit) {
       return suggestions;
     }
   }
@@ -203,7 +214,7 @@ function getSuggestedCurrentPlayingEntries({
     });
     seenEntryIds.add(entry.id);
 
-    if (suggestions.length === CURRENT_PLAYING_SLOTS.length) {
+    if (suggestions.length === limit) {
       break;
     }
   }
@@ -212,11 +223,13 @@ function getSuggestedCurrentPlayingEntries({
 }
 
 function CurrentPlayingSlot({
+  animated,
   entry,
   slot,
 }: {
+  animated: boolean;
   entry: ShelfEntry | null;
-  slot: (typeof CURRENT_PLAYING_SLOTS)[number];
+  slot: CurrentPlayingSlotNumber;
 }) {
   if (!entry) {
     return (
@@ -234,24 +247,34 @@ function CurrentPlayingSlot({
   }
 
   return (
-    <GameCard
-      chips={[`Spot ${slot}`]}
-      className="h-full"
-      completionPercent={entry.completionPercent}
-      finished={Boolean(entry.finishedAt)}
-      game={entry.game}
-      platformName={entry.platformName}
-      playtimeMinutes={entry.playtimeMinutes}
-      status={entry.status}
-      variant="slot"
-    />
+    <div className={animated ? "animate-current-playing-place" : undefined}>
+      <GameCard
+        chips={[`Spot ${slot}`]}
+        className="h-full"
+        completionPercent={entry.completionPercent}
+        finished={false}
+        game={entry.game}
+        platformName={entry.platformName}
+        playtimeMinutes={entry.playtimeMinutes}
+        status="PLAYING"
+        variant="slot"
+      />
+    </div>
   );
 }
 
 function SuggestedPicks({
   entries,
+  isSaving,
+  onFillOpenSpots,
+  onPick,
+  selectedEntryIds,
 }: {
   entries: SuggestedCurrentPlayingEntry[];
+  isSaving: boolean;
+  onFillOpenSpots: () => void;
+  onPick: (entryId: string) => void;
+  selectedEntryIds: Set<string>;
 }) {
   if (!entries.length) {
     return null;
@@ -266,20 +289,10 @@ function SuggestedPicks({
             A calm place to start
           </h3>
         </div>
-        <form action={saveCurrentPlayingAction}>
-          {entries.map((suggestion, index) => (
-            <input
-              key={suggestion.entry.id}
-              name={`slot${index + 1}EntryId`}
-              type="hidden"
-              value={suggestion.entry.id}
-            />
-          ))}
-          <Button type="submit">
-            <Sparkles className="h-4 w-4" />
-            Use these picks
-          </Button>
-        </form>
+        <Button disabled={isSaving} onClick={onFillOpenSpots} type="button">
+          <Sparkles className="h-4 w-4" />
+          Fill open spots
+        </Button>
       </div>
 
       <div className="mt-5 grid gap-4 lg:grid-cols-3">
@@ -289,6 +302,7 @@ function SuggestedPicks({
               className="h-full"
               completionPercent={suggestion.entry.completionPercent}
               description={suggestion.reason}
+              disabled={isSaving || selectedEntryIds.has(suggestion.entry.id)}
               finished={Boolean(suggestion.entry.finishedAt)}
               game={suggestion.entry.game}
               eyebrow={
@@ -298,6 +312,7 @@ function SuggestedPicks({
               }
               platformName={suggestion.entry.platformName}
               playtimeMinutes={suggestion.entry.playtimeMinutes}
+              onClick={() => onPick(suggestion.entry.id)}
               status={suggestion.entry.status}
               variant="shelf"
             />
@@ -331,21 +346,164 @@ export function CurrentPlayingPanel({
   const selectableEntries = getSelectableEntries(profile);
   const currentPlayingEntries = profile.currentPlayingEntries;
   const playingStatusEntries = getPlayingStatusEntries(profile);
-  const defaultCurrentPlayingEntries =
-    currentPlayingEntries.length > 0
-      ? currentPlayingEntries
-      : playingStatusEntries;
-  const suggestedEntries =
-    currentPlayingEntries.length === 0
-      ? getSuggestedCurrentPlayingEntries({ playerProfile, profile })
-      : [];
+  const initialEntriesBySlot = new Map(
+    CURRENT_PLAYING_SLOTS.flatMap((slot) => {
+      const entry = getDefaultCurrentPlayingEntry(
+        profile,
+        playingStatusEntries,
+        slot,
+      );
+
+      return entry ? [[slot, entry] as const] : [];
+    }),
+  );
+  const [selectedEntryIdsBySlot, setSelectedEntryIdsBySlot] = useState(
+    () =>
+      new Map(
+        CURRENT_PLAYING_SLOTS.flatMap((slot) => {
+          const entry = initialEntriesBySlot.get(slot);
+          return entry ? [[slot, entry.id] as const] : [];
+        }),
+      ),
+  );
+  const [animatedSlot, setAnimatedSlot] =
+    useState<CurrentPlayingSlotNumber | null>(null);
+  const [autosaveCount, setAutosaveCount] = useState(0);
+  const [autosaveError, setAutosaveError] = useState<string | null>(null);
+  const selectableEntryById = new Map(
+    selectableEntries.map((entry) => [entry.id, entry]),
+  );
+  const selectedEntriesBySlot = new Map(
+    CURRENT_PLAYING_SLOTS.flatMap((slot) => {
+      const entryId = selectedEntryIdsBySlot.get(slot);
+      const entry = entryId ? selectableEntryById.get(entryId) : null;
+
+      return entry ? [[slot, entry] as const] : [];
+    }),
+  );
+  const selectedEntryIds = new Set(selectedEntryIdsBySlot.values());
+  const openSlots = CURRENT_PLAYING_SLOTS.filter(
+    (slot) => !selectedEntriesBySlot.has(slot),
+  );
+  const isAutosaving = autosaveCount > 0;
+  const suggestedEntries = openSlots.length
+    ? getSuggestedCurrentPlayingEntries({
+        excludedEntryIds: selectedEntryIds,
+        limit: openSlots.length,
+        playerProfile,
+        profile,
+      })
+    : [];
+
+  function animateSlot(slot: CurrentPlayingSlotNumber) {
+    setAnimatedSlot(slot);
+    window.setTimeout(() => setAnimatedSlot(null), 620);
+  }
+
+  function buildCurrentPlayingFormData(
+    selection: Map<CurrentPlayingSlotNumber, string>,
+  ) {
+    const formData = new FormData();
+    for (const slot of CURRENT_PLAYING_SLOTS) {
+      formData.set(`slot${slot}EntryId`, selection.get(slot) ?? "");
+    }
+
+    return formData;
+  }
+
+  function autosaveSelection(selection: Map<CurrentPlayingSlotNumber, string>) {
+    const formData = buildCurrentPlayingFormData(selection);
+    setAutosaveError(null);
+    setAutosaveCount((count) => count + 1);
+
+    void saveCurrentPlayingSelectionAction(formData)
+      .then((result) => {
+        if (!result.ok) {
+          setAutosaveError(result.message);
+        }
+      })
+      .finally(() => {
+        setAutosaveCount((count) => Math.max(0, count - 1));
+      });
+  }
+
+  function getSelectionWithSlotEntry({
+    entryId,
+    selection,
+    slot,
+  }: {
+    entryId: string | null;
+    selection: Map<CurrentPlayingSlotNumber, string>;
+    slot: CurrentPlayingSlotNumber;
+  }) {
+    const next = new Map(selection);
+    if (entryId) {
+      for (const [existingSlot, existingEntryId] of next) {
+        if (existingSlot !== slot && existingEntryId === entryId) {
+          next.delete(existingSlot);
+        }
+      }
+      next.set(slot, entryId);
+    } else {
+      next.delete(slot);
+    }
+
+    return next;
+  }
+
+  function setSlotEntry(
+    slot: CurrentPlayingSlotNumber,
+    entryId: string | null,
+    shouldAnimate = false,
+  ) {
+    const next = getSelectionWithSlotEntry({
+      entryId,
+      selection: selectedEntryIdsBySlot,
+      slot,
+    });
+
+    setSelectedEntryIdsBySlot(next);
+    autosaveSelection(next);
+
+    if (shouldAnimate) {
+      animateSlot(slot);
+    }
+  }
+
+  function addSuggestedEntry(entryId: string) {
+    const slot = openSlots[0];
+    if (!slot) {
+      return;
+    }
+
+    setSlotEntry(slot, entryId, true);
+  }
+
+  function fillOpenSpots() {
+    const nextPicks = suggestedEntries.slice(0, openSlots.length);
+    if (!nextPicks.length) {
+      return;
+    }
+
+    const next = new Map(selectedEntryIdsBySlot);
+    for (const [index, suggestion] of nextPicks.entries()) {
+      const slot = openSlots[index];
+      if (slot) {
+        next.set(slot, suggestion.entry.id);
+      }
+    }
+
+    setSelectedEntryIdsBySlot(next);
+    autosaveSelection(next);
+    animateSlot(openSlots[0]);
+  }
 
   return (
     <section className="panel bg-sage-soft/40">
       <SectionHeader
         aside={
           <div className="pill">
-            {defaultCurrentPlayingEntries.length} of {CURRENT_PLAYING_SLOTS.length} in view
+            {selectedEntriesBySlot.size} of {CURRENT_PLAYING_SLOTS.length} in view
           </div>
         }
         eyebrow="Current playing"
@@ -353,19 +511,25 @@ export function CurrentPlayingPanel({
         description="Choose up to three shelf entries and pin them to the top of your overview."
       />
 
-      {defaultCurrentPlayingEntries.length ? (
-        <div className="grid gap-4 lg:grid-cols-3">
-          {CURRENT_PLAYING_SLOTS.map((slot) => (
-            <CurrentPlayingSlot
-              entry={getDefaultCurrentPlayingEntry(
-                profile,
-                playingStatusEntries,
-                slot,
-              )}
-              key={slot}
-              slot={slot}
-            />
-          ))}
+      {selectedEntriesBySlot.size ? (
+        <div className="grid gap-5">
+          <div className="grid gap-4 lg:grid-cols-3">
+            {CURRENT_PLAYING_SLOTS.map((slot) => (
+              <CurrentPlayingSlot
+                animated={animatedSlot === slot}
+                entry={selectedEntriesBySlot.get(slot) ?? null}
+                key={slot}
+                slot={slot}
+              />
+            ))}
+          </div>
+          <SuggestedPicks
+            entries={suggestedEntries}
+            isSaving={isAutosaving}
+            onFillOpenSpots={fillOpenSpots}
+            onPick={addSuggestedEntry}
+            selectedEntryIds={selectedEntryIds}
+          />
         </div>
       ) : (
         <div className="grid gap-5">
@@ -373,7 +537,13 @@ export function CurrentPlayingPanel({
             Pick up to three games to keep your current rotation visible at a
             glance.
           </EmptyState>
-          <SuggestedPicks entries={suggestedEntries} />
+          <SuggestedPicks
+            entries={suggestedEntries}
+            isSaving={isAutosaving}
+            onFillOpenSpots={fillOpenSpots}
+            onPick={addSuggestedEntry}
+            selectedEntryIds={selectedEntryIds}
+          />
         </div>
       )}
 
@@ -390,11 +560,7 @@ export function CurrentPlayingPanel({
         <form action={saveCurrentPlayingAction} className="mt-4">
           <div className="grid gap-4 lg:grid-cols-3">
             {CURRENT_PLAYING_SLOTS.map((slot) => {
-              const currentEntry = getDefaultCurrentPlayingEntry(
-                profile,
-                playingStatusEntries,
-                slot,
-              );
+              const currentEntry = selectedEntriesBySlot.get(slot) ?? null;
 
               return (
                 <label
@@ -407,9 +573,12 @@ export function CurrentPlayingPanel({
                   </span>
                   <select
                     className="min-h-11 w-full rounded-inner border border-edge bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
-                    defaultValue={currentEntry?.id ?? ""}
-                    key={`${slot}-${currentEntry?.id ?? "empty"}`}
+                    disabled={isAutosaving}
                     name={`slot${slot}EntryId`}
+                    onChange={(event) =>
+                      setSlotEntry(slot, event.target.value || null)
+                    }
+                    value={currentEntry?.id ?? ""}
                   >
                     <option value="">Leave this open</option>
                     {selectableEntries.map((entry) => {
@@ -429,8 +598,15 @@ export function CurrentPlayingPanel({
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button type="submit">Save current playing</Button>
+            <Button disabled={isAutosaving} type="submit">
+              {isAutosaving ? "Saving..." : "Save current playing"}
+            </Button>
           </div>
+          {autosaveError ? (
+            <p className="mt-3 text-sm font-semibold text-red-200">
+              {autosaveError}
+            </p>
+          ) : null}
           <p className="mt-3 text-sm text-ink-soft">
             Leave any slot empty to clear it. You can feature fewer than three
             games if that feels better.
@@ -439,7 +615,7 @@ export function CurrentPlayingPanel({
 
         {currentPlayingEntries.length ? (
           <form action={clearCurrentPlayingAction} className="mt-3">
-            <Button type="submit" variant="ghost">
+            <Button disabled={isAutosaving} type="submit" variant="ghost">
               Clear all
             </Button>
           </form>

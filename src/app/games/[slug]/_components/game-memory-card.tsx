@@ -47,7 +47,7 @@ function getProviderLabel(provider: ExternalProvider) {
     STEAM: "Steam",
     PLAYSTATION: "PlayStation",
     XBOX: "Xbox",
-    IGDB: "IGDB",
+    IGDB: "Metadata",
     HLTB: "HowLongToBeat",
     METACRITIC: "Metacritic",
   };
