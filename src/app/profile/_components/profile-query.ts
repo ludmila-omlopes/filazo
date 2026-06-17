@@ -23,6 +23,7 @@ export type ProfileSearchParams = Promise<{
   currentPlaying?: string;
   finishedDetected?: string;
   finishedScanned?: string;
+  manualAdded?: string;
   error?: string;
 }>;
 
@@ -123,6 +124,13 @@ export function getStatusMessage(
     return {
       tone: "success",
       message: `CSV import finished. ${query.imported} games were added or updated.`,
+    };
+  }
+
+  if (query.manualAdded) {
+    return {
+      tone: "success",
+      message: "Game added. You can adjust it from your catalog whenever you want.",
     };
   }
 

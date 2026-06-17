@@ -4,6 +4,7 @@ import {
   ExternalLink,
   Unplug,
 } from "lucide-react";
+import { CsvImportWidget } from "@/components/csv-import-widget";
 import { SyncActionForm } from "@/components/sync-action-form";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -15,10 +16,12 @@ import {
   connectPlayStationAction,
   detectFinishedGamesAction,
   disconnectProviderAction,
+  importCsvAction,
   syncPlayStationLibraryAction,
   syncSteamLibraryAction,
   syncXboxLibraryAction,
 } from "../actions";
+import { ManualGameLookupPanel } from "./manual-game-lookup-panel";
 import type { ProfileData } from "./profile-types";
 
 type ProviderAccount =
@@ -269,6 +272,25 @@ function CompletionStatusRow({ profile }: { profile: ProfileData }) {
   );
 }
 
+function CsvImportRow({ profile }: { profile: ProfileData }) {
+  return (
+    <div className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
+      <SectionHeader
+        eyebrow="File import"
+        title="Upload a CSV"
+        aside={
+          profile.latestImport ? (
+            <div className="pill">
+              Latest import: {formatDate(profile.latestImport.createdAt)}
+            </div>
+          ) : null
+        }
+      />
+      <CsvImportWidget action={importCsvAction} />
+    </div>
+  );
+}
+
 export function IntegrationsPanel({ profile }: { profile: ProfileData }) {
   return (
     <section className="panel bg-sky-soft/55">
@@ -321,7 +343,7 @@ export function IntegrationsPanel({ profile }: { profile: ProfileData }) {
             </summary>
             <p className="mt-2">
               Steam API {isSteamConfigured() ? "ready" : "missing key"} {" / "}
-              IGDB {hasIgdbConfig() ? "ready" : "missing keys"}
+              Game metadata {hasIgdbConfig() ? "ready" : "missing keys"}
             </p>
           </details>
         </ProviderRow>
@@ -405,11 +427,10 @@ export function IntegrationsPanel({ profile }: { profile: ProfileData }) {
         </ProviderRow>
 
         <CompletionStatusRow profile={profile} />
-      </div>
 
-      <div className="mt-6 rounded-inner border border-edge bg-surface p-5 text-sm leading-relaxed text-ink-soft">
-        CSV uploads live on the home tab because they are one-time file imports
-        rather than connected sources.
+        <ManualGameLookupPanel enabled={hasIgdbConfig()} />
+
+        <CsvImportRow profile={profile} />
       </div>
     </section>
   );

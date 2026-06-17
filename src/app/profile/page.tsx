@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { AddGamesPanel } from "./_components/add-games-panel";
 import { AssistantCorner, AssistantTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
 import { FavoriteGames } from "./_components/favorite-games";
@@ -105,17 +104,18 @@ export default async function ProfilePage({
               playerProfile={playerProfile}
               profile={profile}
             />
-            <FavoriteGames profile={profile} />
             <AssistantCorner
               playerProfile={playerProfile}
               profile={profile}
             />
-            <AddGamesPanel profile={profile} />
           </>
         ) : null}
 
         {activeTab === "assistant" && assistant ? (
-          <AssistantTab assistant={assistant} />
+          <>
+            <FavoriteGames profile={profile} />
+            <AssistantTab assistant={assistant} />
+          </>
         ) : null}
 
         {activeTab === "integrations" ? (
