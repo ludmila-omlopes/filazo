@@ -5,6 +5,7 @@ It is designed around a canonical local game catalog that can absorb data from m
 
 - Steam account sign-in and owned library sync
 - CSV imports for backlog and wishlist exports
+- Photo imports for screenshots or photos of catalog pages/shelves
 - PlayStation NPSSO-based sync for PS4/PS5 purchased games and played trophy titles
 - PlayStation CSV imports for library and backlog data
 - Xbox Microsoft account sign-in and achievement-history sync
@@ -13,6 +14,7 @@ It is designed around a canonical local game catalog that can absorb data from m
 - HowLongToBeat completion-time enrichment for main story, main + extras, and completionist estimates
 - Metacritic metascore enrichment when Steam Store metadata exposes a score
 - Optional rule-based and AI-assisted backlog assistance
+- Optional user review import, game journaling, and onboarding preferences
 
 The current app already includes a landing page, a modal sign-in flow, a collector profile with a dedicated integrations area, Steam authentication, Steam sync, PlayStation library sync, Xbox authentication and achievement-history sync, CSV mapping/import, and per-game catalog pages.
 
@@ -31,14 +33,16 @@ The app is centered on a canonical `Game` record.
 
 - `Game` stores the normalized catalog entry plus shared IGDB, HLTB, and Metacritic metadata
 - `GameProviderLink` links a canonical game to an external provider ID like a Steam app ID
-- `UserGameEntry` stores user ownership, wishlist state, playtime, last played date, achievement progress (`completionPercent`), up to one optional current-playing slot (`currentPlayingSlot`), and a separate finished state (`finishedAt`/`finishedSource`) for a game; finished means the credits rolled, which is independent of 100% achievement completion
+- `UserGameEntry` stores user ownership, wishlist state, playtime, dropped state, last played date, achievement progress (`completionPercent`), up to one optional current-playing slot (`currentPlayingSlot`), and a separate finished state (`finishedAt`/`finishedSource`) for a game; finished means the credits rolled, which is independent of 100% achievement completion
 - `GameProviderLink` also caches the detected story-completion ("credits roll") achievement per provider (`storyAchievementId`, `storyAchievementName`, `storyAchievementSource`, `storyAchievementCheckedAt`)
 - `UserGameInsight` stores per-game assistant signals such as untouched, sampled-dropped, wishlist risk, and release candidates
 - `AssistantRun` stores each assistant refresh summary and optional AI output metadata
 - `PlayerProfile` stores the AI-generated player profile (summary, preferences, patterns, internal recommendations) plus the agent's tool-call trace
+- `UserGameReview` stores imported provider reviews tied to both a user entry and canonical game
+- `GameJournalEntry` and `JournalMedia` store per-game journal notes, screenshots, voice-note metadata, transcripts, and generated recaps
 - `ExternalAccount` stores connected provider accounts like Steam, PlayStation, and Xbox
 - PlayStation refresh tokens are encrypted in `ExternalAccount.metadata`; NPSSO values are exchanged and then discarded
-- `ImportJob` and `ImportRow` keep an audit trail of CSV imports
+- `ImportJob` and `ImportRow` keep an audit trail of CSV and photo imports
 
 This means multiple providers can eventually point to the same internal game instead of creating duplicate records.
 
@@ -51,12 +55,17 @@ This means multiple providers can eventually point to the same internal game ins
 - PlayStation connection through NPSSO with sync for PS4/PS5 purchased games, played trophy titles, and trophy progress
 - Xbox connection through Microsoft OAuth with sync for achievement-history titles, recent title history, and achievement progress
 - CSV upload with in-browser column mapping for titles, status, playtime, completion percentage, notes, and external IDs
+- Photo upload in Sources that uses AI vision, when configured, to extract visible games from catalog screenshots/photos and merge them into the canonical catalog
 - PlayStation CSV mode that stores entries as PlayStation provider data and links mapped external IDs through `GameProviderLink`
 - Xbox CSV mode that stores entries as Xbox provider data and links mapped external IDs through `GameProviderLink`
 - IGDB best-match enrichment during imports and sync
 - Best-effort HowLongToBeat enrichment during imports and sync
 - Estimated time remaining for user entries when HLTB data and playtime or progress are available
 - Finished-game detection that finds each game's story-completion achievement or trophy (Steam and PlayStation) and marks entries finished when it is unlocked, plus a manual "mark finished" toggle on game pages
+- Manual controls on game pages to mark credits rolled or mark/restore dropped games; dropped and not-started games are hidden from the catalog by default unless the user includes them
+- Manual game journal entries on canonical game pages with screenshot upload, audio upload, transcription, translated transcript storage, recap text, and achievement-aware progress notes
+- Best-effort Steam public review import into per-user review records; PlayStation and Xbox reviews are treated as unsupported by the current source flows
+- Optional onboarding preferences for play frequency, usual play windows, current platforms, and source guidance
 - Best-effort Metacritic score capture for Steam-linked catalog records
 - Collector profile page with overview, current-playing picks, and owned/wishlist sections
 - Canonical game detail pages
@@ -106,6 +115,7 @@ IGDB_CLIENT_SECRET=""
 # Optional AI assistant
 OPENAI_API_KEY=""
 OPENAI_MODEL="gpt-5.4-mini"
+OPENAI_TRANSCRIPTION_MODEL="gpt-4o-mini-transcribe"
 ```
 
 Notes:
@@ -122,6 +132,8 @@ Notes:
 - HowLongToBeat enrichment is optional and best-effort. If the website-backed search is unavailable, imports and Steam sync continue without completion-time estimates.
 - Metacritic enrichment is optional and best-effort. If Steam Store app metadata does not expose a Metacritic score, the canonical game keeps an empty metascore.
 - The Assistant tab works without AI. If `OPENAI_API_KEY` is set, the app can use OpenAI's Responses API to recommend three low-friction play-next picks and turn rule-based insights into short explanations. Only library summaries, selected game metadata, progress/playtime signals, source/provider labels, and rule outputs are sent.
+- Photo catalog import and voice transcription also use `OPENAI_API_KEY` when configured. Photo import uses vision-capable Responses API calls to extract visible titles. Voice journal uploads use `OPENAI_TRANSCRIPTION_MODEL` for transcription and `OPENAI_MODEL` for transcript translation. Without the API key, manual journaling and normal imports still work; photo extraction is recorded as skipped in the import audit.
+- Uploaded journal media and photo-import source images are stored under `public/uploads/` in local development, with only file references and metadata persisted in SQLite. Use durable object storage before relying on this for production deployments.
 - The Overview tab includes an agentic player profile. When `OPENAI_API_KEY` is set, an agent loop gives the model read-only tools over the user's own catalog (`get_library_overview`, `list_games`, `get_player_feedback`, `get_genre_stats`); it investigates and then submits a structured profile (`submit_player_profile`) with preferred genres, play styles, behavior patterns, and recommendations drawn only from games already in the library. Tool payloads are minimized projections of `UserGameEntry` and `Game` metadata; no secrets, tokens, or provider account IDs are sent. Without the API key, profile generation fails with a clear message while the rest of the app keeps working.
 - The Assistant tab also includes a streaming library chat built on the Vercel AI SDK (`/api/assistant/chat`). It reuses the same read-only tool layer (`src/lib/assistant/library-tools.ts`) as the profile agent, so answers come from live lookups into the user's own catalog. It requires `OPENAI_API_KEY` and returns a clear 503 message without it. Each chat exchange is logged as an `AssistantRun` (status `COMPLETED_CHAT_AI`) with step, tool-call, and token usage, counts against the same per-user and app-wide daily AI quotas as assistant refreshes, and is rejected with a 429 once the quota is spent.
 - Assistant AI calls are app-gated before hitting OpenAI: unchanged catalog context reuses the latest OpenAI recommendations, otherwise each user is limited to one AI refresh every 10 minutes and 20 AI refreshes per rolling 24 hours, with a 100 AI-refresh rolling daily cap across the app. When a gate blocks AI, the deterministic rules fallback is used.
@@ -267,6 +279,14 @@ Steam sync stores `lastPlayedAt` from Steam's `rtime_last_played` field when Ste
 HowLongToBeat stores completion estimates on the canonical `Game` as minutes and links the HLTB game ID through `GameProviderLink`. HLTB does not expose an official public API, so failures or search misses are ignored instead of blocking catalog resolution. User entries estimate remaining time from the default HLTB target, preferring main + extras, then main story, then completionist; completion percentage is used first, otherwise recorded playtime is subtracted.
 
 Metacritic stores the critic metascore on the canonical `Game` and links the Metacritic URL through `GameProviderLink` when Steam Store metadata provides it. This avoids scraping Metacritic directly and keeps missing scores non-blocking.
+
+### Reviews, journals, and photo imports
+
+Steam public recommendations can be imported from the Sources tab after Steam is connected. Imported reviews are matched back to Steam-linked canonical games and stored as `UserGameReview` records. PlayStation and Xbox review import is not supported by the current provider flows and is shown as such in the UI.
+
+Game pages include a journal timeline for the signed-in user's own catalog entry. Manual notes, uploaded screenshots, uploaded audio, transcripts, translated transcripts, generated mechanics recaps, and achievement-aware summaries are stored against `GameJournalEntry` and `JournalMedia` records.
+
+Photo import lives in the Sources tab. It creates an `ImportJob`, stores the uploaded source image under `public/uploads/imports/`, asks the configured AI model to extract visible game candidates, skips uncertain candidates for audit review, and resolves imported titles through the existing canonical catalog flow before updating or creating `UserGameEntry` records.
 
 ### Finished vs 100%
 

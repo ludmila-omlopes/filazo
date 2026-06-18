@@ -17,7 +17,13 @@ export type PlayerProfileData = Awaited<
   ReturnType<typeof getPlayerProfileForUser>
 >;
 
-export type ProfileTab = "overview" | "integrations" | "games" | "assistant";
+export type ProfileTab =
+  | "overview"
+  | "integrations"
+  | "games"
+  | "journal"
+  | "assistant"
+  | "setup";
 
 export type StatusMessage = {
   tone: "success" | "error";
@@ -28,5 +34,6 @@ export type ShelfFilters = {
   activeSignal: AssistantSignalType | null;
   activeStatus: string | null;
   activePlatform: string | null;
+  includeDormant: boolean;
   queryText: string;
 };

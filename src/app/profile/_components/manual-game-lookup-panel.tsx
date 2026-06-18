@@ -24,6 +24,7 @@ const statusOptions = [
   { value: "OWNED", label: "Owned" },
   { value: "BACKLOG", label: "Backlog" },
   { value: "COMPLETED", label: "Credits rolled" },
+  { value: "DROPPED", label: "Dropped" },
   { value: "WISHLIST", label: "Wishlist" },
 ] as const;
 

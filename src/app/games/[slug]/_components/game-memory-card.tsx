@@ -1,7 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ExternalProvider } from "@prisma/client";
-import { markFinishedAction } from "@/app/profile/actions";
+import { BookOpen, ChevronRight } from "lucide-react";
+import {
+  markDroppedAction,
+  markFinishedAction,
+} from "@/app/profile/actions";
 import { ScreenshotLightbox } from "@/components/screenshot-lightbox";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -227,23 +231,166 @@ function SaveSlot({
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-inner border border-edge bg-surface p-4">
         <p className="max-w-[58ch] text-sm leading-relaxed text-ink-soft">
-          {currentEntry.finishedAt
+          {currentEntry.status === "DROPPED"
+            ? currentEntry.abandonedAt
+              ? `Released from the active shelf ${formatDate(currentEntry.abandonedAt)}.`
+              : "Released from the active shelf."
+            : currentEntry.finishedAt
             ? `Credits rolled ${formatDate(currentEntry.finishedAt)}. This is separate from achievement collecting.`
             : currentEntry.completionPercent
               ? "Some achievement signals are on the record, but credits are not marked yet."
               : currentEntry.status === "WISHLIST"
                 ? "Still curious. Keep it close until the moment feels right."
-                : "The story has not been marked as credits rolled yet."}
+              : "The story has not been marked as credits rolled yet."}
         </p>
-        <form action={markFinishedAction}>
-          <input type="hidden" name="entryId" value={currentEntry.id} />
-          <input type="hidden" name="slug" value={game.slug} />
-          <Button type="submit" variant="ghost" size="sm">
-            {currentEntry.finishedAt
-              ? "Unmark credits rolled"
-              : "Mark credits rolled"}
-          </Button>
-        </form>
+        <div className="flex flex-wrap gap-2">
+          <form action={markFinishedAction}>
+            <input type="hidden" name="entryId" value={currentEntry.id} />
+            <input type="hidden" name="slug" value={game.slug} />
+            <Button
+              disabled={currentEntry.status === "DROPPED"}
+              type="submit"
+              variant="ghost"
+              size="sm"
+            >
+              {currentEntry.finishedAt
+                ? "Unmark credits rolled"
+                : "Mark credits rolled"}
+            </Button>
+          </form>
+          <form action={markDroppedAction}>
+            <input type="hidden" name="entryId" value={currentEntry.id} />
+            <input type="hidden" name="slug" value={game.slug} />
+            <Button type="submit" variant="ghost" size="sm">
+              {currentEntry.status === "DROPPED"
+                ? "Return to shelf"
+                : "Mark dropped"}
+            </Button>
+          </form>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function UserReviews({
+  game,
+  sessionUserId,
+}: {
+  game: GameDetail;
+  sessionUserId: string | null;
+}) {
+  const reviews = sessionUserId
+    ? game.userReviews.filter((review) => review.userId === sessionUserId)
+    : [];
+
+  if (!reviews.length) {
+    return null;
+  }
+
+  return (
+    <section className="panel bg-sage-soft/60">
+      <SectionHeader
+        eyebrow="Player review"
+        title="What you said elsewhere"
+      />
+      <div className="grid gap-3">
+        {reviews.slice(0, 3).map((review) => (
+          <article
+            className="rounded-inner border border-edge bg-surface p-4"
+            key={review.id}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              {review.provider ? (
+                <Chip tone="blue">{getProviderLabel(review.provider)}</Chip>
+              ) : null}
+              {review.recommended !== null ? (
+                <Chip tone={review.recommended ? "sage" : "sand"}>
+                  {review.recommended ? "Recommended" : "Not recommended"}
+                </Chip>
+              ) : null}
+              {review.reviewedAt ? (
+                <span className="text-xs font-semibold text-ink-soft">
+                  {formatDate(review.reviewedAt)}
+                </span>
+              ) : null}
+            </div>
+            {review.body ? (
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/90">
+                {review.body}
+              </p>
+            ) : (
+              <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+                The provider exposed the review record, but not the review text.
+              </p>
+            )}
+            {review.sourceUrl ? (
+              <a
+                className="nav-link mt-3 inline-flex text-xs"
+                href={review.sourceUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                Open source review
+              </a>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function JournalPanel({
+  currentEntry,
+  game,
+  sessionUserId,
+}: {
+  currentEntry: GameEntry | null;
+  game: GameDetail;
+  sessionUserId: string | null;
+}) {
+  const journalEntries = sessionUserId
+    ? game.journalEntries.filter((entry) => entry.userId === sessionUserId)
+    : [];
+  const journalHref = currentEntry
+    ? `/profile?tab=journal&entryId=${currentEntry.id}`
+    : "/profile?tab=games";
+
+  return (
+    <section className="panel bg-sky-soft/55">
+      <SectionHeader
+        eyebrow="Diary"
+        title="Open Your Play Diary"
+        description="Voice notes, screenshots, and longer pages are waiting in the profile journal."
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-edge bg-surface p-5 shadow-rest">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="grid h-14 w-14 flex-none place-items-center rounded-inner border border-edge bg-sand-soft text-ink">
+            <BookOpen className="h-6 w-6" />
+          </div>
+          <div className="min-w-0">
+            <p className="section-label !mb-1">
+              {journalEntries.length
+                ? `${journalEntries.length} saved page${
+                    journalEntries.length === 1 ? "" : "s"
+                  }`
+                : "No diary pages yet"}
+            </p>
+            <p className="text-pretty text-sm font-semibold text-ink-soft">
+              {currentEntry
+                ? "Open the profile journal to record a quick voice note or browse past pages."
+                : "Add this game to your shelf before writing diary pages for it."}
+            </p>
+          </div>
+        </div>
+        <Button asChild size="lg" variant={currentEntry ? "default" : "ghost"}>
+          <Link href={journalHref}>
+            {currentEntry ? "Open Journal" : "Open Catalog"}
+            <ChevronRight />
+          </Link>
+        </Button>
       </div>
     </section>
   );
@@ -446,6 +593,12 @@ export function GameMemoryCard({
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-7 max-lg:grid-cols-1">
         <div className="grid content-start gap-7">
           <SaveSlot currentEntry={currentEntry} game={game} />
+          <JournalPanel
+            currentEntry={currentEntry}
+            game={game}
+            sessionUserId={sessionUserId}
+          />
+          <UserReviews game={game} sessionUserId={sessionUserId} />
           <GuidePages game={game} />
           <ScreenshotStrip game={game} />
         </div>

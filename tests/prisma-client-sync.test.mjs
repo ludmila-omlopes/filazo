@@ -5,7 +5,12 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
 import { DatabaseSync } from "node:sqlite";
-import { EntrySource, ExternalProvider, Prisma } from "@prisma/client";
+import {
+  EntrySource,
+  ExternalProvider,
+  Prisma,
+  UserGameStatus,
+} from "@prisma/client";
 
 test("generated Prisma client includes synced Steam user game fields", () => {
   const model = Prisma.dmmf.datamodel.models.find(
@@ -19,6 +24,18 @@ test("generated Prisma client includes synced Steam user game fields", () => {
   );
   const AssistantRunModel = Prisma.dmmf.datamodel.models.find(
     (item) => item.name === "AssistantRun",
+  );
+  const userModel = Prisma.dmmf.datamodel.models.find(
+    (item) => item.name === "User",
+  );
+  const reviewModel = Prisma.dmmf.datamodel.models.find(
+    (item) => item.name === "UserGameReview",
+  );
+  const journalModel = Prisma.dmmf.datamodel.models.find(
+    (item) => item.name === "GameJournalEntry",
+  );
+  const journalMediaModel = Prisma.dmmf.datamodel.models.find(
+    (item) => item.name === "JournalMedia",
   );
 
   assert.ok(model, "UserGameEntry model should exist in generated Prisma client");
@@ -57,6 +74,14 @@ test("generated Prisma client includes synced Steam user game fields", () => {
   );
   assert.ok(insightModel, "UserGameInsight model should exist.");
   assert.ok(AssistantRunModel, "AssistantRun model should exist.");
+  assert.ok(userModel, "User model should exist.");
+  assert.ok(reviewModel, "UserGameReview model should exist.");
+  assert.ok(journalModel, "GameJournalEntry model should exist.");
+  assert.ok(journalMediaModel, "JournalMedia model should exist.");
+  assert.ok(
+    userModel.fields.some((field) => field.name === "onboardingAnswers"),
+    "Run npm run db:generate after changing prisma/schema.prisma.",
+  );
   assert.equal(
     ExternalProvider.PLAYSTATION,
     "PLAYSTATION",
@@ -76,6 +101,16 @@ test("generated Prisma client includes synced Steam user game fields", () => {
     EntrySource.XBOX,
     "XBOX",
     "Run npm run db:generate after adding Xbox sync to prisma/schema.prisma.",
+  );
+  assert.equal(
+    EntrySource.PHOTO,
+    "PHOTO",
+    "Run npm run db:generate after adding photo imports to prisma/schema.prisma.",
+  );
+  assert.equal(
+    UserGameStatus.DROPPED,
+    "DROPPED",
+    "Run npm run db:generate after adding dropped status to prisma/schema.prisma.",
   );
 });
 
@@ -108,9 +143,18 @@ test("SQLite bootstrap creates synced Steam user game columns", () => {
       assertTableHasColumn(db, "UserGameEntry", "abandonReason");
       assertTableHasColumn(db, "UserGameEntry", "desiredSessionMin");
       assertTableHasColumn(db, "UserGameEntry", "currentPlayingSlot");
+      assertTableHasColumn(db, "User", "onboardingAnswers");
+      assertTableHasColumn(db, "User", "onboardingCompletedAt");
+      assertTableHasColumn(db, "User", "onboardingSkippedAt");
       assertTableHasColumn(db, "ImportRow", "completionPercent");
       assertTableHasColumn(db, "UserGameInsight", "signalType");
       assertTableHasColumn(db, "UserGameInsight", "friction");
+      assertTableHasColumn(db, "UserGameReview", "externalReviewId");
+      assertTableHasColumn(db, "UserGameReview", "recommended");
+      assertTableHasColumn(db, "GameJournalEntry", "mechanicsRecap");
+      assertTableHasColumn(db, "GameJournalEntry", "audioTranscript");
+      assertTableHasColumn(db, "JournalMedia", "storageKey");
+      assertTableHasColumn(db, "JournalMedia", "mimeType");
       assertTableHasColumn(db, "AssistantRun", "outputSummary");
       assertTableHasColumn(db, "Game", "hltbMainStoryMinutes");
       assertTableHasColumn(db, "Game", "hltbMainExtraMinutes");

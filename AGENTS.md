@@ -75,6 +75,7 @@ The core architectural rule is: external providers should attach to one internal
 
 - Preserve the existing visual direction unless the task is explicitly a redesign.
 - Do not casually replace the current brutalist/editorial styling with generic dashboard UI.
+- Keep the primary catalog interface calm and low-busy. Secondary information and less-frequent actions should use progressive disclosure: separate tabs, filters, details panels, mode buttons such as "Update status", expandable sections, or other controls that reveal functionality only when needed.
 - Keep source syncing, CSV import, and manual game add flows in the Sources tab. Do not repeat source syncing flows on the profile Home tab.
 - Do not expose IGDB as a user-facing feature name. Treat it as the internal metadata/search provider and use plain product language such as "game search" or "metadata".
 - When extending features, prefer fitting them into the current canonical catalog model instead of adding isolated one-off screens or tables.
