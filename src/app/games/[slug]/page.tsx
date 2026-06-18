@@ -1,17 +1,20 @@
 import { notFound } from "next/navigation";
 import { GameMemoryCard } from "./_components/game-memory-card";
 import { getGameBySlug } from "@/lib/catalog";
+import { createTranslator } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/games/[slug]">) {
   const { slug } = await params;
-  const game = await getGameBySlug(slug);
+  const [game, locale] = await Promise.all([getGameBySlug(slug), getRequestLocale()]);
+  const t = createTranslator(locale);
 
   if (!game) {
     return {
-      title: "Game not found | filazo",
+      title: t("game.notFound"),
     };
   }
 
@@ -19,7 +22,7 @@ export async function generateMetadata({
     title: `${game.name} | filazo`,
     description:
       game.summary ??
-      `A filazo memory-card page for ${game.name}, with library context and guide notes.`,
+      t("game.metadataFallback", { name: game.name }),
   };
 }
 
@@ -27,8 +30,9 @@ export default async function GamePage({
   params,
 }: PageProps<"/games/[slug]">) {
   const { slug } = await params;
-  const [game, sessionUserId] = await Promise.all([
+  const [game, locale, sessionUserId] = await Promise.all([
     getGameBySlug(slug),
+    getRequestLocale(),
     getSessionUserId(),
   ]);
 
@@ -36,5 +40,7 @@ export default async function GamePage({
     notFound();
   }
 
-  return <GameMemoryCard game={game} sessionUserId={sessionUserId} />;
+  return (
+    <GameMemoryCard game={game} locale={locale} sessionUserId={sessionUserId} />
+  );
 }

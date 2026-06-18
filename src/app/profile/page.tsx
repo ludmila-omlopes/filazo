@@ -20,6 +20,7 @@ import {
 } from "./_components/profile-query";
 import { ShelfGrid } from "./_components/shelf-grid";
 import { Notice } from "@/components/ui/notice";
+import { getRequestLocale } from "@/lib/request-locale";
 import {
   getAssistantProfileData,
   getAssistantSignalEntryIds,
@@ -35,10 +36,11 @@ import { getSessionUserId } from "@/lib/session";
 export default async function ProfilePage({
   searchParams,
 }: PageProps<"/profile"> & { searchParams: ProfileSearchParams }) {
+  const locale = await getRequestLocale();
   const userId = await getSessionUserId();
 
   if (!userId) {
-    return <SignedOutPanel />;
+    return <SignedOutPanel locale={locale} />;
   }
 
   let profile: Awaited<ReturnType<typeof getProfileData>>;
@@ -46,7 +48,7 @@ export default async function ProfilePage({
     profile = await getProfileData(userId);
   } catch (error) {
     console.error("Could not load profile data.", error);
-    return <ProfileErrorPanel error={error} />;
+    return <ProfileErrorPanel error={error} locale={locale} />;
   }
 
   if (!profile) {
@@ -80,7 +82,7 @@ export default async function ProfilePage({
     }),
     gamesSort,
   );
-  const statusMessage = getStatusMessage(query);
+  const statusMessage = getStatusMessage(locale, query);
 
   return (
     <main
@@ -90,6 +92,7 @@ export default async function ProfilePage({
       <ProfileRail
         activeTab={activeTab}
         assistant={assistant}
+        locale={locale}
         profile={profile}
       />
 
@@ -100,17 +103,18 @@ export default async function ProfilePage({
 
         {activeTab === "overview" ? (
           <>
-            <GreetingStrip profile={profile} />
+            <GreetingStrip locale={locale} profile={profile} />
             <CurrentPlayingPanel
+              locale={locale}
               playerProfile={playerProfile}
               profile={profile}
             />
-            <FavoriteGames profile={profile} />
+            <FavoriteGames locale={locale} profile={profile} />
             <AssistantCorner
               playerProfile={playerProfile}
               profile={profile}
             />
-            <AddGamesPanel profile={profile} />
+            <AddGamesPanel locale={locale} profile={profile} />
           </>
         ) : null}
 
@@ -119,7 +123,7 @@ export default async function ProfilePage({
         ) : null}
 
         {activeTab === "integrations" ? (
-          <IntegrationsPanel profile={profile} />
+          <IntegrationsPanel locale={locale} profile={profile} />
         ) : null}
 
         {activeTab === "games" ? (
@@ -133,6 +137,7 @@ export default async function ProfilePage({
             }}
             gamesSort={gamesSort}
             gamesView={gamesView}
+            locale={locale}
             visibleEntries={visibleEntries}
           />
         ) : null}

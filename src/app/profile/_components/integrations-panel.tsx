@@ -8,9 +8,10 @@ import { SyncActionForm } from "@/components/sync-action-form";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import { hasIgdbConfig } from "@/lib/igdb";
+import { createTranslator, type Locale } from "@/lib/i18n";
 import { isSteamConfigured } from "@/lib/steam";
 import { isXboxConfigured } from "@/lib/xbox";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatNumber } from "@/lib/utils";
 import {
   connectPlayStationAction,
   detectFinishedGamesAction,
@@ -47,26 +48,31 @@ function ConnectionRow({
 }
 
 function DisconnectForm({
+  locale,
   provider,
 }: {
+  locale: Locale;
   provider: ExternalProvider;
 }) {
+  const t = createTranslator(locale);
   const action = disconnectProviderAction.bind(null, provider);
 
   return (
     <form action={action}>
       <Button type="submit" variant="ghost" size="sm">
         <Unplug className="h-4 w-4" />
-        Disconnect
+        {t("profile.sources.disconnect")}
       </Button>
     </form>
   );
 }
 
-function getSourceState(account: ProviderAccount) {
+function getSourceState(account: ProviderAccount, locale: Locale) {
+  const t = createTranslator(locale);
+
   if (!account) {
     return {
-      label: "Disconnected",
+      label: t("profile.sources.disconnected"),
       tone: "bg-clay-soft text-ink border-clay/35",
       dot: "bg-clay",
     };
@@ -74,14 +80,16 @@ function getSourceState(account: ProviderAccount) {
 
   if (!account.lastSyncedAt) {
     return {
-      label: "Not synced",
+      label: t("profile.sources.notSynced"),
       tone: "bg-sand-soft text-ink border-sand/70",
       dot: "bg-sand",
     };
   }
 
   return {
-    label: `Synced ${formatDate(account.lastSyncedAt)}`,
+    label: t("profile.sources.synced", {
+      date: formatDate(account.lastSyncedAt, locale),
+    }),
     tone: "bg-sage-soft text-ink border-sage/50",
     dot: "bg-sage",
   };
@@ -96,7 +104,7 @@ const providerLogoSrc: Record<SourceProvider, string> = {
 function ProviderLogo({ provider }: { provider: SourceProvider }) {
   return (
     <Image
-      alt={`${provider} logo`}
+      alt=""
       className="h-7 w-7 object-contain"
       height={28}
       src={providerLogoSrc[provider]}
@@ -106,14 +114,16 @@ function ProviderLogo({ provider }: { provider: SourceProvider }) {
   );
 }
 
-function PlayStationConnectionGuide() {
+function PlayStationConnectionGuide({ locale }: { locale: Locale }) {
+  const t = createTranslator(locale);
+
   return (
     <div className="rounded-inner border border-edge bg-canvas/70 p-4 text-sm leading-relaxed text-ink-soft">
-      <p className="font-semibold text-ink">How to get the token</p>
+      <p className="font-semibold text-ink">{t("profile.sources.tokenGuide")}</p>
       <ol className="mt-3 grid gap-2">
-        <li>1. Sign in to PlayStation in your browser.</li>
+        <li>{t("profile.sources.tokenStep1")}</li>
         <li>
-          2. Open{" "}
+          {t("profile.sources.tokenStep2Lead")}{" "}
           <a
             className="inline-flex items-center gap-1 font-semibold text-ink underline underline-offset-4"
             href="https://ca.account.sony.com/api/v1/ssocookie"
@@ -125,15 +135,9 @@ function PlayStationConnectionGuide() {
           </a>
           .
         </li>
-        <li>
-          3. Copy the token value from the response and paste it below. Pasting
-          the whole response works too.
-        </li>
+        <li>{t("profile.sources.tokenStep3")}</li>
       </ol>
-      <p className="mt-3 text-xs">
-        The token is temporary. Filazo exchanges it for a secure connection and
-        does not keep the pasted value.
-      </p>
+      <p className="mt-3 text-xs">{t("profile.sources.tokenBody")}</p>
     </div>
   );
 }
@@ -144,6 +148,7 @@ function ProviderRow({
   children,
   description,
   eyebrow,
+  locale,
   provider,
   title,
 }: {
@@ -152,10 +157,12 @@ function ProviderRow({
   children: React.ReactNode;
   description: string;
   eyebrow: string;
+  locale: Locale;
   provider: SourceProvider;
   title: string;
 }) {
-  const state = getSourceState(account);
+  const t = createTranslator(locale);
+  const state = getSourceState(account, locale);
 
   return (
     <details
@@ -196,13 +203,13 @@ function ProviderRow({
           {description}
         </p>
         {account ? (
-          <ConnectionRow label="Account">
+          <ConnectionRow label={t("profile.sources.account")}>
             {account.displayName ?? account.username ?? account.providerAccountId}
           </ConnectionRow>
         ) : null}
         <div className="flex flex-wrap gap-2">
           {actions}
-          {account ? <DisconnectForm provider={provider} /> : null}
+          {account ? <DisconnectForm locale={locale} provider={provider} /> : null}
         </div>
         {children}
       </div>
@@ -210,7 +217,14 @@ function ProviderRow({
   );
 }
 
-function CompletionStatusRow({ profile }: { profile: ProfileData }) {
+function CompletionStatusRow({
+  locale,
+  profile,
+}: {
+  locale: Locale;
+  profile: ProfileData;
+}) {
+  const t = createTranslator(locale);
   const canUpdateCompletion = Boolean(
     profile.steamAccount || profile.playStationAccount,
   );
@@ -224,13 +238,12 @@ function CompletionStatusRow({ profile }: { profile: ProfileData }) {
     >
       <div className="grid grid-cols-[1fr_auto] items-center gap-4 max-sm:grid-cols-1">
         <div>
-          <p className="section-label !mb-1">Completion status</p>
+          <p className="section-label !mb-1">{t("profile.completion.label")}</p>
           <h2 className="font-display text-xl font-medium leading-tight">
-            Update finished games
+            {t("profile.completion.title")}
           </h2>
           <p className="mt-2 max-w-[62ch] text-sm leading-relaxed text-ink-soft">
-            Check connected achievements and trophies for games that look
-            complete.
+            {t("profile.completion.body")}
           </p>
         </div>
         <span
@@ -247,7 +260,9 @@ function CompletionStatusRow({ profile }: { profile: ProfileData }) {
               canUpdateCompletion ? "bg-sage" : "bg-clay",
             )}
           />
-          {canUpdateCompletion ? "Ready" : "Needs Steam or PlayStation"}
+          {canUpdateCompletion
+            ? t("profile.completion.ready")
+            : t("profile.completion.needsSource")}
         </span>
       </div>
 
@@ -255,13 +270,13 @@ function CompletionStatusRow({ profile }: { profile: ProfileData }) {
         {canUpdateCompletion ? (
           <SyncActionForm
             action={detectFinishedGamesAction}
-            buttonLabel="Update completion"
-            pendingLabel="Checking..."
-            pendingNotice="Checking completion status. Large libraries can take a few minutes."
+            buttonLabel={t("profile.completion.update")}
+            pendingLabel={t("profile.completion.checking")}
+            pendingNotice={t("profile.completion.pending")}
           />
         ) : (
           <p className="text-sm font-semibold text-ink-soft">
-            Connect Steam or PlayStation first.
+            {t("profile.completion.connectFirst")}
           </p>
         )}
       </div>
@@ -269,59 +284,73 @@ function CompletionStatusRow({ profile }: { profile: ProfileData }) {
   );
 }
 
-export function IntegrationsPanel({ profile }: { profile: ProfileData }) {
+export function IntegrationsPanel({
+  locale,
+  profile,
+}: {
+  locale: Locale;
+  profile: ProfileData;
+}) {
+  const t = createTranslator(locale);
+
   return (
     <section className="panel bg-sky-soft/55">
       <SectionHeader
-        eyebrow="Sources"
-        title="Add or refresh your games"
-        description="Connect the places where you already play. Your shelf stays intact if a source is removed later."
+        eyebrow={t("profile.sources.label")}
+        title={t("profile.sources.title")}
+        description={t("profile.sources.description")}
         aside={
           <div className="pill">
-            {profile.user.externalAccounts.length} connected
+            {t("profile.sources.connectedCount", {
+              count: formatNumber(profile.user.externalAccounts.length, locale),
+            })}
           </div>
         }
       />
 
       <details className="mb-6 rounded-inner border border-edge bg-surface px-5 py-4 text-sm leading-relaxed text-ink-soft">
         <summary className="cursor-pointer font-bold text-ink">
-          What happens when a source is disconnected?
+          {t("profile.sources.disconnectQuestion")}
         </summary>
-        <p className="mt-2">
-          Filazo removes the account connection, but keeps the games already on
-          your shelf.
-        </p>
+        <p className="mt-2">{t("profile.sources.disconnectAnswer")}</p>
       </details>
 
       <div className="grid gap-5">
         <ProviderRow
           account={profile.steamAccount}
           eyebrow="Steam"
+          locale={locale}
           provider={ExternalProvider.STEAM}
-          title="Steam library"
-          description="Bring in owned games, playtime, recently played dates, and progress."
+          title={t("profile.sources.steamTitle")}
+          description={t("profile.sources.steamBody")}
           actions={
             profile.steamAccount ? (
               <SyncActionForm
                 action={syncSteamLibraryAction}
-                buttonLabel="Refresh Steam"
-                pendingLabel="Refreshing..."
-                pendingNotice="Steam is refreshing your library. Keep this page open."
+                buttonLabel={t("profile.sources.refreshSteam")}
+                pendingLabel={t("profile.sources.refreshing")}
+                pendingNotice={t("profile.sources.steamPending")}
               />
             ) : (
               <Button asChild>
-                <a href="/api/auth/steam">Connect Steam</a>
+                <a href="/api/auth/steam">{t("profile.sources.connectSteam")}</a>
               </Button>
             )
           }
         >
           <details className="text-sm text-ink-soft">
             <summary className="cursor-pointer font-semibold text-ink">
-              Technical status
+              {t("profile.sources.technicalStatus")}
             </summary>
             <p className="mt-2">
-              Steam API {isSteamConfigured() ? "ready" : "missing key"} {" / "}
-              IGDB {hasIgdbConfig() ? "ready" : "missing keys"}
+              {t("profile.sources.steamApiStatus", {
+                steam: isSteamConfigured()
+                  ? t("profile.sources.steamReady")
+                  : t("profile.sources.steamMissingKey"),
+                metadata: hasIgdbConfig()
+                  ? t("profile.sources.steamReady")
+                  : t("profile.sources.igdbMissingKeys"),
+              })}
             </p>
           </details>
         </ProviderRow>
@@ -329,16 +358,17 @@ export function IntegrationsPanel({ profile }: { profile: ProfileData }) {
         <ProviderRow
           account={profile.playStationAccount}
           eyebrow="PlayStation"
+          locale={locale}
           provider={ExternalProvider.PLAYSTATION}
-          title="PlayStation library"
-          description="Bring in purchased games and trophy-title history."
+          title={t("profile.sources.playstationTitle")}
+          description={t("profile.sources.playstationBody")}
           actions={
             profile.playStationAccount ? (
               <SyncActionForm
                 action={syncPlayStationLibraryAction}
-                buttonLabel="Refresh PlayStation"
-                pendingLabel="Refreshing..."
-                pendingNotice="PlayStation is refreshing your library."
+                buttonLabel={t("profile.sources.refreshPlayStation")}
+                pendingLabel={t("profile.sources.refreshing")}
+                pendingNotice={t("profile.sources.playstationPending")}
               />
             ) : null
           }
@@ -346,25 +376,25 @@ export function IntegrationsPanel({ profile }: { profile: ProfileData }) {
           {profile.playStationAccount ? (
             <details className="text-sm text-ink-soft">
               <summary className="cursor-pointer font-semibold text-ink">
-                Technical status
+                {t("profile.sources.technicalStatus")}
               </summary>
-              <p className="mt-2">Connected token stored securely.</p>
+              <p className="mt-2">{t("profile.sources.connectedSecurely")}</p>
             </details>
           ) : (
             <form action={connectPlayStationAction} className="grid gap-4 pt-1">
-              <PlayStationConnectionGuide />
+              <PlayStationConnectionGuide locale={locale} />
               <label className="grid gap-2">
-                <span className="text-sm font-semibold">NPSSO token</span>
+                <span className="text-sm font-semibold">{t("profile.sources.npsso")}</span>
                 <input
                   className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                   name="npsso"
                   type="password"
                   autoComplete="off"
-                  placeholder="Paste token or {&quot;npsso&quot;:&quot;...&quot;}"
+                  placeholder={t("profile.sources.npssoPlaceholder")}
                   required
                 />
               </label>
-              <Button type="submit">Connect PlayStation</Button>
+              <Button type="submit">{t("profile.sources.connectPlayStation")}</Button>
             </form>
           )}
         </ProviderRow>
@@ -372,44 +402,48 @@ export function IntegrationsPanel({ profile }: { profile: ProfileData }) {
         <ProviderRow
           account={profile.xboxAccount}
           eyebrow="Xbox"
+          locale={locale}
           provider={ExternalProvider.XBOX}
-          title="Xbox library"
-          description="Bring in achievement-title and recently played history."
+          title={t("profile.sources.xboxTitle")}
+          description={t("profile.sources.xboxBody")}
           actions={
             profile.xboxAccount ? (
               <SyncActionForm
                 action={syncXboxLibraryAction}
-                buttonLabel="Refresh Xbox"
-                pendingLabel="Refreshing..."
-                pendingNotice="Xbox is refreshing your library."
+                buttonLabel={t("profile.sources.refreshXbox")}
+                pendingLabel={t("profile.sources.refreshing")}
+                pendingNotice={t("profile.sources.xboxPending")}
               />
             ) : isXboxConfigured() ? (
               <Button asChild>
-                <a href="/api/auth/xbox">Connect Xbox</a>
+                <a href="/api/auth/xbox">{t("profile.sources.connectXbox")}</a>
               </Button>
             ) : (
               <Button disabled variant="ghost">
-                Xbox unavailable
+                {t("profile.sources.xboxUnavailable")}
               </Button>
             )
           }
         >
           <details className="text-sm text-ink-soft">
             <summary className="cursor-pointer font-semibold text-ink">
-              Technical status
+              {t("profile.sources.technicalStatus")}
             </summary>
             <p className="mt-2">
-              OAuth {isXboxConfigured() ? "ready" : "missing client ID"}
+              {t("profile.sources.oauthStatus", {
+                status: isXboxConfigured()
+                  ? t("profile.sources.oauthReady")
+                  : t("profile.sources.oauthMissing"),
+              })}
             </p>
           </details>
         </ProviderRow>
 
-        <CompletionStatusRow profile={profile} />
+        <CompletionStatusRow locale={locale} profile={profile} />
       </div>
 
       <div className="mt-6 rounded-inner border border-edge bg-surface p-5 text-sm leading-relaxed text-ink-soft">
-        CSV uploads live on the home tab because they are one-time file imports
-        rather than connected sources.
+        {t("profile.sources.csvNotice")}
       </div>
     </section>
   );

@@ -1,4 +1,5 @@
 import { Heart } from "lucide-react";
+import { createTranslator, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { toggleFavoriteAction } from "../actions";
 
@@ -6,13 +7,17 @@ export function FavoriteButton({
   entryId,
   gameName,
   isFavorite,
+  locale,
   fullWidth = false,
 }: {
   entryId: string;
   gameName: string;
   isFavorite: boolean;
+  locale: Locale;
   fullWidth?: boolean;
 }) {
+  const t = createTranslator(locale);
+
   return (
     <form action={toggleFavoriteAction}>
       <input type="hidden" name="entryId" value={entryId} />
@@ -26,10 +31,14 @@ export function FavoriteButton({
         )}
         aria-label={
           isFavorite
-            ? `Remove ${gameName} from favorites`
-            : `Add ${gameName} to favorites`
+            ? t("favorite.removeTitle", { name: gameName })
+            : t("favorite.addTitle", { name: gameName })
         }
-        title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        title={
+          isFavorite
+            ? t("favorite.removeTitle", { name: gameName })
+            : t("favorite.addTitle", { name: gameName })
+        }
       >
         <Heart
           aria-hidden
@@ -38,7 +47,7 @@ export function FavoriteButton({
             isFavorite ? "fill-current text-clay" : "text-edge",
           )}
         />
-        {fullWidth ? (isFavorite ? "Favorite" : "Add favorite") : null}
+        {fullWidth ? (isFavorite ? t("favorite.current") : t("favorite.add")) : null}
       </button>
     </form>
   );

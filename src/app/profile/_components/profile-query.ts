@@ -1,4 +1,5 @@
 import { AssistantSignalType, UserGameStatus } from "@prisma/client";
+import { createTranslator, type Locale } from "@/lib/i18n";
 import type { ProfileEntry, ProfileTab, StatusMessage } from "./profile-types";
 
 export type ProfileSearchParams = Promise<{
@@ -55,8 +56,11 @@ export function parseActiveTab(value: string | undefined): ProfileTab {
 }
 
 export function getStatusMessage(
+  locale: Locale,
   query: Awaited<ProfileSearchParams>,
 ): StatusMessage {
+  const t = createTranslator(locale);
+
   if (query.error) {
     return { tone: "error", message: query.error };
   }
@@ -64,79 +68,82 @@ export function getStatusMessage(
   if (query.synced) {
     return {
       tone: "success",
-      message: `Steam refreshed. ${query.synced} games updated.`,
+      message: t("statusMessage.steamRefreshed", { count: query.synced }),
     };
   }
 
   if (query.login === "created") {
     return {
       tone: "success",
-      message: "Profile created. Add games whenever you are ready.",
+      message: t("statusMessage.profileCreated"),
     };
   }
 
   if (query.login === "signed-in") {
     return {
       tone: "success",
-      message: "Signed in. Your catalog is ready.",
+      message: t("statusMessage.signedIn"),
     };
   }
 
   if (query.login === "google") {
     return {
       tone: "success",
-      message: "Google login connected. Your catalog is ready.",
+      message: t("statusMessage.googleConnected"),
     };
   }
 
   if (query.disconnected) {
     return {
       tone: "success",
-      message: "Source disconnected. Existing games stayed on your shelf.",
+      message: t("statusMessage.sourceDisconnected"),
     };
   }
 
   if (query.playstationSynced) {
     return {
       tone: "success",
-      message: `PlayStation refreshed. ${query.playstationSynced} games updated.`,
+      message: t("statusMessage.playstationRefreshed", {
+        count: query.playstationSynced,
+      }),
     };
   }
 
   if (query.xboxSynced) {
     return {
       tone: "success",
-      message: `Xbox refreshed. ${query.xboxSynced} games updated.`,
+      message: t("statusMessage.xboxRefreshed", { count: query.xboxSynced }),
     };
   }
 
   if (query.finishedDetected) {
     return {
       tone: "success",
-      message: `Finished-game check looked at ${
-        query.finishedScanned ?? "your"
-      } entries and found ${query.finishedDetected} finished games.`,
+      message: t("statusMessage.finishedCheck", {
+        scanned: query.finishedScanned ?? "your",
+        count: query.finishedDetected,
+      }),
     };
   }
 
   if (query.imported) {
     return {
       tone: "success",
-      message: `CSV import finished. ${query.imported} games were added or updated.`,
+      message: t("statusMessage.csvImported", { count: query.imported }),
     };
   }
 
   if (query.currentPlaying === "updated") {
     return {
       tone: "success",
-      message: "Current playing updated. Your overview now reflects your picks.",
+      message: t("statusMessage.currentPlayingUpdated"),
     };
   }
 
   if (query.currentPlaying === "cleared") {
     return {
       tone: "success",
-      message: "Current playing cleared. Suggested picks are ready whenever you want them.",
+      message: t("statusMessage.currentPlayingCleared"),
     };
   }
 
@@ -147,30 +154,28 @@ export function getStatusMessage(
   ) {
     return {
       tone: "success",
-      message: "Source connected. Refresh it whenever you are ready.",
+      message: t("statusMessage.sourceConnected"),
     };
   }
 
   if (query.assistant) {
     return {
       tone: "success",
-      message: `Guide refreshed. ${query.assistant} suggestions updated.`,
+      message: t("statusMessage.guideRefreshed", { count: query.assistant }),
     };
   }
 
   if (query.playerProfile === "updated") {
     return {
       tone: "success",
-      message:
-        "Player profile refreshed from your games, feedback, and reviews.",
+      message: t("statusMessage.playerProfileUpdated"),
     };
   }
 
   if (query.playerProfile === "empty") {
     return {
       tone: "error",
-      message:
-        "Your shelf is quiet right now. Add a few games before asking for a player profile.",
+      message: t("statusMessage.playerProfileEmpty"),
     };
   }
 

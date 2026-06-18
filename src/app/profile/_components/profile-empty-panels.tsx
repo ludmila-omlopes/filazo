@@ -3,26 +3,30 @@ import { AuthDialog } from "@/components/auth-dialog";
 import { ControllerIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
 import { getDatabaseErrorMessage } from "@/lib/database-errors";
+import { createTranslator, type Locale } from "@/lib/i18n";
 
-export function SignedOutPanel() {
+export function SignedOutPanel({ locale }: { locale: Locale }) {
+  const t = createTranslator(locale);
   return (
     <main id="main-content" className="mx-auto w-full max-w-[760px]">
       <section className="panel p-10 text-center">
         <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-inner border border-edge bg-canvas text-ink-soft">
           <ControllerIllustration className="h-14 w-14" />
         </div>
-        <p className="section-label justify-center">Your catalog</p>
+        <p className="section-label justify-center">{t("profile.signedOut.label")}</p>
         <h1 className="mb-3 text-page-title leading-snug">
-          Connect an account to begin.
+          {t("profile.signedOut.title")}
         </h1>
         <p className="mx-auto max-w-[42ch] leading-relaxed text-ink-soft">
-          Sign in first, then connect Steam, PlayStation, Xbox, or start with a
-          CSV-only local profile. Start wherever feels easiest.
+          {t("profile.signedOut.body")}
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
-          <AuthDialog triggerLabel="Sign in" triggerSize="default" />
+          <AuthDialog
+            triggerLabel={t("auth.trigger.signIn")}
+            triggerSize="default"
+          />
           <Button asChild variant="ghost">
-            <Link href="/">Back home</Link>
+            <Link href="/">{t("common.backHome")}</Link>
           </Button>
         </div>
       </section>
@@ -30,22 +34,29 @@ export function SignedOutPanel() {
   );
 }
 
-export function ProfileErrorPanel({ error }: { error: unknown }) {
+export function ProfileErrorPanel({
+  error,
+  locale,
+}: {
+  error: unknown;
+  locale: Locale;
+}) {
+  const t = createTranslator(locale);
   return (
     <main id="main-content" className="mx-auto w-full max-w-[760px]">
       <section className="panel bg-clay-soft p-10 text-center">
-        <p className="section-label justify-center">Database unavailable</p>
+        <p className="section-label justify-center">{t("profile.error.label")}</p>
         <h1 className="mb-3 text-page-title leading-snug">
-          Your library can&apos;t load right now.
+          {t("profile.error.title")}
         </h1>
         <p className="mx-auto max-w-[44ch] leading-relaxed text-ink-soft">
-          {getDatabaseErrorMessage(error)} Vercel deployments need a production
-          database connection; this repo&apos;s SQLite file setup is intended for
-          local development.
+          {t("profile.error.body", {
+            message: getDatabaseErrorMessage(error),
+          })}
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
           <Button asChild>
-            <Link href="/">Back home</Link>
+            <Link href="/">{t("common.backHome")}</Link>
           </Button>
         </div>
       </section>

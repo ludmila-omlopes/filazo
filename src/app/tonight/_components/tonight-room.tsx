@@ -5,6 +5,7 @@ import { Check, Moon } from "lucide-react";
 import { GameCard } from "@/components/game-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { createTranslator, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
   chooseTonightGameAction,
@@ -40,6 +41,7 @@ export function TonightRoom({
   alternatives,
   currentMood,
   isNight,
+  locale,
   message,
   moods,
   offset,
@@ -49,21 +51,24 @@ export function TonightRoom({
   alternatives: TonightPick[];
   currentMood: string;
   isNight: boolean;
+  locale: Locale;
   message?: string;
   moods: TonightMood[];
   offset: number;
   pick: TonightPick | null;
   playingPick: TonightPick | null;
 }) {
+  const t = createTranslator(locale);
+
   if (!pick) {
     return (
       <div className="relative grid min-h-[62vh] place-items-center overflow-hidden rounded-card border border-edge bg-dusk-deep p-8 text-cream shadow-float">
         <NightCatalogLines />
-        <EmptyState title="No evening pick yet.">
-          Add a few games to your catalog, then come back when the room is dim.
+        <EmptyState title={t("tonight.emptyTitle")}>
+          {t("tonight.emptyBody")}
           <div className="mt-5">
             <Button asChild>
-              <Link href="/profile">Add games to the catalog</Link>
+              <Link href="/profile">{t("tonight.addCatalog")}</Link>
             </Button>
           </div>
         </EmptyState>
@@ -80,7 +85,7 @@ export function TonightRoom({
             action={dimTheLightsAction}
             className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-cream/10 bg-cream/8 px-4 py-3 text-sm text-cream/75"
           >
-            <span>Dim the lights?</span>
+            <span>{t("tonight.dimLights")}</span>
             <Button
               className="border-cream/20 bg-cream/10 text-cream hover:bg-cream/15"
               size="sm"
@@ -88,7 +93,7 @@ export function TonightRoom({
               variant="ghost"
             >
               <Moon aria-hidden />
-              Night Mode
+              {t("tonight.nightMode")}
             </Button>
           </form>
         ) : null}
@@ -101,20 +106,23 @@ export function TonightRoom({
 
         {playingPick ? (
           <div className="rounded-card border border-glow/20 bg-glow/10 p-5">
-            <p className="section-label !mb-1 text-glow">Back to an old save?</p>
+            <p className="section-label !mb-1 text-glow">
+              {t("tonight.oldSaveLabel")}
+            </p>
             <p className="text-sm leading-relaxed text-cream/75">
-              {playingPick.entry.game.name} is already open in the catalog.
-              Continuity beats novelty at night.
+              {t("tonight.oldSaveBody", {
+                name: playingPick.entry.game.name,
+              })}
             </p>
           </div>
         ) : null}
 
         <div className="grid gap-5 text-center">
           <p className="text-kicker font-bold uppercase text-glow/85">
-            Tonight
+            {t("common.tonight")}
           </p>
           <h1 className="font-display text-display font-normal leading-none">
-            What kind of night is it?
+            {t("tonight.title")}
           </h1>
           <div className="flex flex-wrap justify-center gap-2">
             {moods.map((mood) => (
@@ -139,8 +147,9 @@ export function TonightRoom({
             className="bg-cream text-dusk-deep shadow-float"
             completionPercent={pick.entry.completionPercent}
             description={pick.reason}
-            eyebrow="Suggested for tonight"
+            eyebrow={t("tonight.suggested")}
             game={pick.entry.game}
+            locale={locale}
             platformName={pick.entry.platformName}
             playtimeMinutes={pick.entry.playtimeMinutes}
             status={
@@ -156,7 +165,7 @@ export function TonightRoom({
               <input type="hidden" name="entryId" value={pick.entryId} />
               <Button className="w-full" type="submit">
                 <Check aria-hidden />
-                Choose this
+                {t("tonight.chooseThis")}
               </Button>
             </form>
             <Button
@@ -165,7 +174,7 @@ export function TonightRoom({
               variant="ghost"
             >
               <Link href={`/tonight?mood=${currentMood}&skip=${offset + 1}`}>
-                Not tonight
+                {t("tonight.notTonight")}
               </Link>
             </Button>
           </div>
@@ -174,7 +183,7 @@ export function TonightRoom({
         {alternatives.length ? (
           <div className="grid gap-3">
             <p className="text-center text-xs font-bold uppercase text-cream/45">
-              also nearby
+              {t("tonight.alsoNearby")}
             </p>
             <div className="grid grid-cols-2 gap-3 opacity-75 max-sm:grid-cols-1">
               {alternatives.map((alternative) => (
@@ -183,6 +192,7 @@ export function TonightRoom({
                   description={alternative.reason}
                   game={alternative.entry.game}
                   key={alternative.entryId}
+                  locale={locale}
                   platformName={alternative.entry.platformName}
                   playtimeMinutes={alternative.entry.playtimeMinutes}
                   status={alternative.entry.status}

@@ -45,6 +45,7 @@ This means multiple providers can eventually point to the same internal game ins
 ## Features
 
 - Modal sign-in with first-party email/password accounts and Google OAuth
+- English and Portuguese (Brazil) UI with a header language switcher
 - Dedicated profile integrations area for connecting, syncing, and disconnecting external accounts
 - Steam OpenID sign-in
 - Steam owned games sync with playtime, last played date, and achievement-based completion percentages when Steam exposes the data
@@ -155,6 +156,13 @@ npm run dev
 ```
 
 Open `http://localhost:3001`.
+
+## Localization
+
+- filazo currently ships with `en` and `pt-BR` UI copy.
+- The header language switcher stores the selected locale in the `filazo-locale` cookie.
+- When that cookie is missing, the app falls back to the request `Accept-Language` header and prefers `pt-BR` for Portuguese requests.
+- Routes do not use locale prefixes. `/`, `/profile`, `/tonight`, and `/games/[slug]` stay the same in every language.
 
 ## Database Notes
 

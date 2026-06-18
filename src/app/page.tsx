@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import { getDatabaseErrorMessage } from "@/lib/database-errors";
+import { createTranslator } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
+import { getRequestLocale } from "@/lib/request-locale";
 import { formatNumber } from "@/lib/utils";
 
 const homeShowcaseSelect = {
@@ -180,6 +182,8 @@ async function getHomeData() {
 }
 
 export default async function Home() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const { catalogCount, enrichedCount, showcaseGames, databaseError } =
     await getHomeData();
 
@@ -190,9 +194,7 @@ export default async function Home() {
     >
       {databaseError ? (
         <Notice tone="error">
-          {databaseError} Vercel deployments need a production database
-          connection; this repo&apos;s SQLite file setup is intended for local
-          development.
+          {t("landing.notice.database", { message: databaseError })}
         </Notice>
       ) : null}
 
@@ -202,27 +204,26 @@ export default async function Home() {
           className="absolute inset-0 bg-[linear-gradient(135deg,rgba(159,153,209,0.18),rgba(134,186,218,0.1)_45%,rgba(255,227,179,0.14))]"
         />
         {showcaseGames.length ? (
-          <CatalogHeroArtifacts games={showcaseGames.slice(0, 3)} />
+          <CatalogHeroArtifacts games={showcaseGames.slice(0, 3)} locale={locale} />
         ) : null}
 
         <div className="relative z-10 flex min-h-[560px] items-center px-14 py-20 max-md:px-7 max-md:py-12">
           <div className="max-w-[620px]">
             <p className="text-kicker font-bold uppercase text-glow/90">
-              Calm library for large game collections
+              {t("landing.kicker")}
             </p>
             <h1 className="mt-5 text-display font-normal leading-[1.03]">
-              Every game list,
+              {t("landing.title").split("\n")[0]},
               <br />
-              one readable catalog.
+              {t("landing.title").split("\n")[1]}
             </h1>
             <p className="mt-6 max-w-[45ch] text-lg leading-relaxed text-cream/75">
-              filazo brings your game lists into one calm library, then keeps
-              tonight&apos;s choice close at hand.
+              {t("landing.body")}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <AuthDialog
                 triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
-                triggerLabel="Sign in"
+                triggerLabel={t("auth.trigger.signIn")}
                 triggerSize="lg"
               />
               <Button
@@ -231,7 +232,7 @@ export default async function Home() {
                 size="lg"
                 className="h-12 border border-cream/25 bg-cream/8 px-7 text-base font-semibold text-cream hover:bg-cream/14 hover:text-cream"
               >
-                <Link href="/tonight">Open tonight</Link>
+                <Link href="/tonight">{t("landing.openTonight")}</Link>
               </Button>
               <Button
                 asChild
@@ -239,12 +240,13 @@ export default async function Home() {
                 size="lg"
                 className="h-12 border border-cream/15 bg-transparent px-7 text-base font-semibold text-cream/85 hover:bg-cream/12 hover:text-cream"
               >
-                <Link href="/profile">Add games</Link>
+                <Link href="/profile">{t("common.addGames")}</Link>
               </Button>
             </div>
             <p className="mt-5 text-sm text-cream/55">
-              {formatNumber(catalogCount)} games indexed here. Browse, sort, or
-              leave them waiting.
+              {t("landing.indexedCount", {
+                count: formatNumber(catalogCount, locale),
+              })}
             </p>
           </div>
         </div>
@@ -252,24 +254,24 @@ export default async function Home() {
 
       <section className="grid gap-8 px-4">
         <p className="text-center text-kicker font-bold uppercase text-ink-soft">
-          How it works
+          {t("landing.howItWorks")}
         </p>
 
         <div className="grid grid-cols-3 gap-5 max-lg:grid-cols-1">
           <EveningStep
             number="01"
-            title="Bring games in"
-            line="Connect a source or upload a CSV when you want to fill the shelf."
+            title={t("landing.step1Title")}
+            line={t("landing.step1Body")}
           />
           <EveningStep
             number="02"
-            title="Keep one clean shelf"
-            line="The same game stays together even when it came from more than one place."
+            title={t("landing.step2Title")}
+            line={t("landing.step2Body")}
           />
           <EveningStep
             number="03"
-            title="Choose without pressure"
-            line="When you want to play, filazo keeps one fitting pick nearby without turning the rest into chores."
+            title={t("landing.step3Title")}
+            line={t("landing.step3Body")}
           />
         </div>
       </section>
@@ -277,16 +279,11 @@ export default async function Home() {
       <section className="grid gap-8">
         <div className="flex flex-wrap items-end justify-between gap-4 px-4">
           <div>
-            <p className="section-label">The catalog</p>
+            <p className="section-label">{t("landing.catalogLabel")}</p>
             <h2 className="text-section-title">
-              One library surface for every source.
+              {t("landing.catalogTitle")}
             </h2>
           </div>
-          <p className="max-w-[40ch] text-sm leading-relaxed text-ink-soft">
-            {formatNumber(catalogCount)} games are already indexed. These are
-            real catalog entries with enough metadata to represent the shelf
-            cleanly.
-          </p>
         </div>
 
         {showcaseGames.length ? (
@@ -304,10 +301,11 @@ export default async function Home() {
         ) : (
           <Card tactile className="mx-4">
             <CardContent className="p-6">
-              <p className="font-semibold text-ink">No catalog showcase yet.</p>
+              <p className="font-semibold text-ink">
+                {t("landing.noShowcaseTitle")}
+              </p>
               <p className="mt-2 max-w-[52ch] text-sm leading-relaxed text-ink-soft">
-                Once real catalog entries have enough metadata, they appear
-                here automatically.
+                {t("landing.noShowcaseBody")}
               </p>
             </CardContent>
           </Card>
@@ -322,13 +320,11 @@ export default async function Home() {
           index
         </span>
         <blockquote className="relative mx-auto max-w-[24ch] font-display text-quote font-normal italic leading-snug">
-          A library is allowed
-          <br />
-          to be unfinished.
-          <br />
-          Keep it readable.
-          <br />
-          Pick what fits.
+          {t("landing.quote").split("\n").map((line) => (
+            <span className="block" key={line}>
+              {line}
+            </span>
+          ))}
         </blockquote>
       </section>
 
@@ -336,14 +332,14 @@ export default async function Home() {
         <div aria-hidden className="absolute inset-x-0 top-0 h-2 bg-glow" />
         <div className="relative z-10 flex flex-col items-center gap-6 px-10 py-16 text-center max-md:px-6">
           <h2 className="max-w-[22ch] text-section-title font-normal leading-snug">
-            Bring your records in.
+            {t("landing.ctaTitle").split("\n")[0]}
             <br />
-            Let the catalog stay legible.
+            {t("landing.ctaTitle").split("\n")[1]}
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <AuthDialog
               triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
-              triggerLabel="Sign in"
+              triggerLabel={t("auth.trigger.signIn")}
               triggerSize="lg"
             />
             <Button
@@ -352,12 +348,13 @@ export default async function Home() {
               size="lg"
               className="h-12 border border-cream/25 px-7 text-base font-semibold text-cream hover:bg-cream/10 hover:text-cream"
             >
-              <Link href="/profile">Add games</Link>
+              <Link href="/profile">{t("common.addGames")}</Link>
             </Button>
           </div>
           <p className="text-xs text-cream/40">
-            {formatNumber(enrichedCount)} games here already carry cover art,
-            play times, and stories.
+            {t("landing.ctaFoot", {
+              count: formatNumber(enrichedCount, locale),
+            })}
           </p>
         </div>
       </section>
@@ -365,7 +362,15 @@ export default async function Home() {
   );
 }
 
-function CatalogHeroArtifacts({ games }: { games: GameCardGame[] }) {
+function CatalogHeroArtifacts({
+  games,
+  locale,
+}: {
+  games: GameCardGame[];
+  locale: "en" | "pt-BR";
+}) {
+  const t = createTranslator(locale);
+
   if (!games.length) {
     return null;
   }
@@ -398,18 +403,18 @@ function CatalogHeroArtifacts({ games }: { games: GameCardGame[] }) {
         <CatalogCard
           className="absolute left-1 top-10 rotate-[-7deg] opacity-55"
           game={secondGame}
-          marker="CSV"
+          marker={t("landing.marker.csv")}
         />
         <CatalogCard
           className="absolute right-0 top-0 rotate-[5deg] opacity-70"
           game={thirdGame}
-          marker="Metadata"
+          marker={t("landing.marker.metadata")}
         />
         <CatalogCard
           className="absolute left-8 top-20 shadow-float"
           game={frontGame}
-          marker="Tonight"
-          note="short return"
+          marker={t("landing.marker.tonight")}
+          note={t("landing.shortReturn")}
         />
       </div>
     </div>

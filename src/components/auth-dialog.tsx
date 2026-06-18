@@ -5,6 +5,7 @@ import { Check, Eye, EyeOff, Lock, Mail, UserRound, X } from "lucide-react";
 import { emailAuthAction } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "./locale-provider";
 
 type AuthMode = "signup" | "signin";
 
@@ -32,6 +33,7 @@ export function AuthDialog({
   const [mode, setMode] = useState<AuthMode>("signup");
   const [showPassword, setShowPassword] = useState(false);
   const titleId = useId();
+  const t = useTranslations();
 
   useEffect(() => {
     if (!isOpen) {
@@ -65,7 +67,7 @@ export function AuthDialog({
       {isOpen ? (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-dusk-deep/72 px-4 py-8 backdrop-blur-md">
           <button
-            aria-label="Close login"
+            aria-label={t("auth.dialog.close")}
             className="absolute inset-0 cursor-default"
             onClick={() => setIsOpen(false)}
             type="button"
@@ -77,7 +79,7 @@ export function AuthDialog({
             role="dialog"
           >
             <button
-              aria-label="Close login"
+              aria-label={t("auth.dialog.close")}
               className="absolute right-4 top-4 grid h-9 w-9 place-items-center rounded-inner border border-cream/10 bg-cream/8 text-cream/70 transition-colors hover:bg-cream/14 hover:text-cream"
               onClick={() => setIsOpen(false)}
               type="button"
@@ -87,13 +89,13 @@ export function AuthDialog({
 
             <div className="mb-6 text-center">
               <p className="text-kicker font-bold uppercase text-glow/80">
-                filazo account
+                {t("auth.dialog.account")}
               </p>
               <h2
                 className="mt-2 font-display text-3xl font-medium leading-tight"
                 id={titleId}
               >
-                Start your game journey
+                {t("auth.dialog.title")}
               </h2>
             </div>
 
@@ -116,7 +118,9 @@ export function AuthDialog({
                   onClick={() => setMode(nextMode)}
                   type="button"
                 >
-                  {nextMode === "signup" ? "Create account" : "Sign in"}
+                  {nextMode === "signup"
+                    ? t("auth.dialog.createAccount")
+                    : t("auth.dialog.signIn")}
                 </button>
               ))}
             </div>
@@ -127,7 +131,7 @@ export function AuthDialog({
               {mode === "signup" ? (
                 <label className="grid gap-2">
                   <span className="text-sm font-semibold text-cream/80">
-                    Name
+                    {t("auth.dialog.name")}
                   </span>
                   <span className="relative block">
                     <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cream/42" />
@@ -137,7 +141,7 @@ export function AuthDialog({
                       maxLength={48}
                       minLength={2}
                       name="displayName"
-                      placeholder="Type your name"
+                      placeholder={t("auth.dialog.namePlaceholder")}
                       required={mode === "signup"}
                     />
                   </span>
@@ -146,7 +150,7 @@ export function AuthDialog({
 
               <label className="grid gap-2">
                 <span className="text-sm font-semibold text-cream/80">
-                  Email
+                  {t("auth.dialog.email")}
                 </span>
                 <span className="relative block">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cream/42" />
@@ -154,7 +158,7 @@ export function AuthDialog({
                     autoComplete="email"
                     className="min-h-13 w-full rounded-inner border border-cream/8 bg-cream/8 px-11 text-cream placeholder:text-cream/38 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow"
                     name="email"
-                    placeholder="Type your email"
+                    placeholder={t("auth.dialog.emailPlaceholder")}
                     required
                     type="email"
                   />
@@ -163,7 +167,7 @@ export function AuthDialog({
 
               <label className="grid gap-2">
                 <span className="text-sm font-semibold text-cream/80">
-                  Password
+                  {t("auth.dialog.password")}
                 </span>
                 <span className="relative block">
                   <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cream/42" />
@@ -175,12 +179,16 @@ export function AuthDialog({
                     maxLength={128}
                     minLength={8}
                     name="password"
-                    placeholder="Type your password"
+                    placeholder={t("auth.dialog.passwordPlaceholder")}
                     required
                     type={showPassword ? "text" : "password"}
                   />
                   <button
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword
+                        ? t("auth.dialog.hidePassword")
+                        : t("auth.dialog.showPassword")
+                    }
                     className="absolute right-3 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-cream/55 hover:bg-cream/8 hover:text-cream"
                     onClick={() => setShowPassword((value) => !value)}
                     type="button"
@@ -198,7 +206,7 @@ export function AuthDialog({
                 <>
                   <label className="grid gap-2">
                     <span className="text-sm font-semibold text-cream/80">
-                      Confirm password
+                      {t("auth.dialog.confirmPassword")}
                     </span>
                     <span className="relative block">
                       <Lock className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-cream/42" />
@@ -208,7 +216,7 @@ export function AuthDialog({
                         maxLength={128}
                         minLength={8}
                         name="confirmPassword"
-                        placeholder="Repeat your password"
+                        placeholder={t("auth.dialog.confirmPasswordPlaceholder")}
                         required={mode === "signup"}
                         type={showPassword ? "text" : "password"}
                       />
@@ -226,13 +234,13 @@ export function AuthDialog({
                       <Check className="pointer-events-none absolute h-3.5 w-3.5 text-dusk-deep opacity-0 peer-checked:opacity-100" />
                     </span>
                     <span>
-                      I agree to the{" "}
+                      {t("auth.dialog.termsPrefix")}{" "}
                       <span className="font-bold text-glow">
-                        Terms of Service
+                        {t("auth.dialog.terms")}
                       </span>{" "}
-                      and{" "}
+                      e{" "}
                       <span className="font-bold text-glow">
-                        Privacy Policy
+                        {t("auth.dialog.privacy")}
                       </span>
                     </span>
                   </label>
@@ -243,13 +251,15 @@ export function AuthDialog({
                 className="mt-1 min-h-13 bg-glow text-base text-dusk-deep hover:bg-cream"
                 type="submit"
               >
-                {mode === "signup" ? "Create account" : "Sign in"}
+                {mode === "signup"
+                  ? t("auth.dialog.createAccount")
+                  : t("auth.dialog.signIn")}
               </Button>
             </form>
 
             <div className="my-6 flex items-center gap-4 text-xs font-bold uppercase tracking-[0.18em] text-cream/45">
               <span className="h-px flex-1 bg-cream/10" />
-              or
+              {t("auth.dialog.or")}
               <span className="h-px flex-1 bg-cream/10" />
             </div>
 
@@ -262,7 +272,7 @@ export function AuthDialog({
                 <span className="grid h-6 w-6 place-items-center rounded-full bg-cream text-sm font-black text-[#4285f4]">
                   G
                 </span>
-                Continue with Google
+                {t("auth.dialog.google")}
               </a>
             </Button>
           </section>

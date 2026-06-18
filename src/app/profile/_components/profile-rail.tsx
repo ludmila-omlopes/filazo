@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Armchair, Cable, LibraryBig, Sparkles } from "lucide-react";
+import { createTranslator, type Locale } from "@/lib/i18n";
 import { cn, formatNumber } from "@/lib/utils";
 import type { AssistantData, ProfileData, ProfileTab } from "./profile-types";
 
@@ -7,29 +8,29 @@ const railItems = [
   {
     tab: "overview" as const,
     href: "/profile",
-    label: "Home",
-    hint: "What matters now",
+    labelKey: "profile.rail.home" as const,
+    hintKey: "profile.rail.homeHint" as const,
     icon: Armchair,
   },
   {
     tab: "integrations" as const,
     href: "/profile?tab=integrations",
-    label: "Sources",
-    hint: "Add or refresh",
+    labelKey: "profile.rail.sources" as const,
+    hintKey: "profile.rail.sourcesHint" as const,
     icon: Cable,
   },
   {
     tab: "games" as const,
     href: "/profile?tab=games",
-    label: "Catalog",
-    hint: "Browse every entry",
+    labelKey: "profile.rail.catalog" as const,
+    hintKey: "profile.rail.catalogHint" as const,
     icon: LibraryBig,
   },
   {
     tab: "assistant" as const,
     href: "/profile?tab=assistant",
-    label: "Guide",
-    hint: "Gentle suggestions",
+    labelKey: "profile.rail.guide" as const,
+    hintKey: "profile.rail.guideHint" as const,
     icon: Sparkles,
   },
 ];
@@ -37,14 +38,17 @@ const railItems = [
 export function ProfileRail({
   activeTab,
   assistant,
+  locale,
   profile,
 }: {
   activeTab: ProfileTab;
   assistant: AssistantData | null;
+  locale: Locale;
   profile: ProfileData;
 }) {
   const gamesCount =
     profile.ownedEntries.length + profile.wishlistEntries.length;
+  const t = createTranslator(locale);
 
   return (
     <aside className="sticky top-28 grid gap-4 self-start max-lg:static">
@@ -58,7 +62,9 @@ export function ProfileRail({
           <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-inner border border-cream/25 bg-cream/12 font-display text-2xl">
             {profile.user.avatarUrl ? (
               <img
-                alt={`${profile.user.displayName ?? "User"} avatar`}
+                alt={t("profile.rail.avatarAlt", {
+                  name: profile.user.displayName ?? t("common.player"),
+                })}
                 src={profile.user.avatarUrl}
                 className="h-full w-full object-cover"
               />
@@ -67,20 +73,22 @@ export function ProfileRail({
             )}
           </div>
           <h1 className="mt-4 truncate font-display text-xl font-medium">
-            {profile.user.displayName ?? "Player"}
+            {profile.user.displayName ?? t("common.player")}
           </h1>
-          <p className="mt-1 text-xs leading-relaxed text-cream/55">
-            {formatNumber(profile.ownedEntries.length)} owned {" / "}
-            {formatNumber(profile.wishlistEntries.length)} still curious
-          </p>
+            <p className="mt-1 text-xs leading-relaxed text-cream/55">
+              {t("profile.rail.ownedCurious", {
+                owned: formatNumber(profile.ownedEntries.length, locale),
+                wishlist: formatNumber(profile.wishlistEntries.length, locale),
+              })}
+            </p>
         </div>
       </div>
 
       <nav
         className="grid gap-1 rounded-card border border-edge bg-surface p-2 shadow-rest"
-        aria-label="Profile sections"
+        aria-label={t("nav.profileSections")}
       >
-        {railItems.map(({ tab, href, label, hint, icon: Icon }) => {
+        {railItems.map(({ tab, href, labelKey, hintKey, icon: Icon }) => {
           const count =
             tab === "games"
               ? gamesCount
@@ -103,7 +111,7 @@ export function ProfileRail({
               <Icon className="h-4.5 w-4.5 flex-none opacity-80" />
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-bold leading-tight">
-                  {label}
+                  {t(labelKey)}
                 </span>
                 <span
                   className={cn(
@@ -111,7 +119,7 @@ export function ProfileRail({
                     activeTab === tab ? "text-surface/60" : "text-ink-soft/70",
                   )}
                 >
-                  {hint}
+                  {t(hintKey)}
                 </span>
               </span>
               {count !== null ? (
@@ -123,7 +131,7 @@ export function ProfileRail({
                       : "bg-canvas text-ink-soft",
                   )}
                 >
-                  {formatNumber(count)}
+                  {formatNumber(count, locale)}
                 </span>
               ) : null}
             </Link>
@@ -132,7 +140,7 @@ export function ProfileRail({
       </nav>
 
       <p className="px-4 text-center font-display text-sm italic text-ink-soft/80 max-lg:hidden">
-        your catalog, your pace
+        {t("footer.tagline")}
       </p>
     </aside>
   );

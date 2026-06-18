@@ -5,6 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+function toIntlLocale(locale: string) {
+  return locale === "en" ? "en-US" : locale;
+}
+
 export function cleanGameTitle(value: string) {
   return value
     .replace(/[™®©]/g, "")
@@ -60,10 +64,19 @@ export function formatPlaytime(
   return `${Math.round(hours)}h played`;
 }
 
-export function formatTimeEstimate(minutes: number | null | undefined) {
+export function formatTimeEstimate(
+  minutes: number | null | undefined,
+  locale = "en-US",
+) {
   if (!minutes || minutes < 1) {
     return "Time not logged";
   }
+
+  const intlLocale = toIntlLocale(locale);
+  const compactNumber = new Intl.NumberFormat(intlLocale, {
+    maximumFractionDigits: 1,
+    minimumFractionDigits: 0,
+  });
 
   if (minutes < 60) {
     return `${minutes}m`;
@@ -71,10 +84,10 @@ export function formatTimeEstimate(minutes: number | null | undefined) {
 
   const hours = minutes / 60;
   if (hours < 10) {
-    return `${hours.toFixed(1)}h`;
+    return `${compactNumber.format(hours)}h`;
   }
 
-  return `${Math.round(hours)}h`;
+  return `${compactNumber.format(Math.round(hours))}h`;
 }
 
 export function formatRemainingTime(minutes: number | null | undefined) {
@@ -112,22 +125,28 @@ export function formatLastPlayed(
   return `Last played ${formatDate(date)}`;
 }
 
-export function formatDate(date: Date | null | undefined) {
+export function formatDate(
+  date: Date | null | undefined,
+  locale = "en-US",
+) {
   if (!date) {
     return "TBA";
   }
 
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat(toIntlLocale(locale), {
     month: "short",
     day: "numeric",
     year: "numeric",
   }).format(date);
 }
 
-export function formatNumber(value: number | null | undefined) {
+export function formatNumber(
+  value: number | null | undefined,
+  locale = "en-US",
+) {
   if (value === null || value === undefined) {
     return "0";
   }
 
-  return new Intl.NumberFormat("en-US").format(value);
+  return new Intl.NumberFormat(toIntlLocale(locale)).format(value);
 }

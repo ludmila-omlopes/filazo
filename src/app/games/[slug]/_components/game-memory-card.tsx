@@ -8,10 +8,10 @@ import { Chip } from "@/components/ui/chip";
 import { SectionHeader } from "@/components/ui/section-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { getGameBySlug } from "@/lib/catalog";
+import { createTranslator, type Locale } from "@/lib/i18n";
 import {
   formatDate,
   formatNumber,
-  formatPlaytime,
   formatTimeEstimate,
 } from "@/lib/utils";
 
@@ -55,36 +55,48 @@ function getProviderLabel(provider: ExternalProvider) {
   return labels[provider];
 }
 
-function getReceptionLabel(score: number) {
+function getReceptionKey(score: number) {
   if (score >= 85) {
-    return "beloved";
+    return "game.reception.beloved";
   }
 
   if (score >= 75) {
-    return "strong reception";
+    return "game.reception.strong";
   }
 
   if (score >= 60) {
-    return "mixed but noticed";
+    return "game.reception.mixed";
   }
 
-  return "a quieter reception";
+  return "game.reception.quiet";
 }
 
-function getPlaytimeSoFar(entry: GameEntry) {
+function getPlaytimeSoFar(locale: Locale, entry: GameEntry) {
+  const t = createTranslator(locale);
+
   if (entry.playtimeMinutes === null || entry.playtimeMinutes === undefined) {
-    return "No playtime data";
+    return t("game.noPlaytimeData");
   }
 
-  return formatPlaytime(entry.playtimeMinutes).replace(" played", " so far");
+  return t("common.playtimeSoFar", {
+    value: formatTimeEstimate(entry.playtimeMinutes, locale),
+  });
 }
 
-function GameCover({ game }: { game: GameDetail }) {
+function GameCover({
+  game,
+  locale,
+}: {
+  game: GameDetail;
+  locale: Locale;
+}) {
+  const t = createTranslator(locale);
+
   return (
     <div className="printed-cover relative aspect-[3/4] w-full max-w-[230px] overflow-hidden rounded-card border border-edge bg-sage-soft shadow-lift max-md:mx-auto">
       {game.coverUrl ? (
         <Image
-          alt={`Cover art for ${game.name}`}
+          alt={t("game.coverAlt", { name: game.name })}
           className="object-cover"
           fill
           priority
@@ -103,10 +115,13 @@ function GameCover({ game }: { game: GameDetail }) {
 function CaseHeader({
   currentEntry,
   game,
+  locale,
 }: {
   currentEntry: GameEntry | null;
   game: GameDetail;
+  locale: Locale;
 }) {
+  const t = createTranslator(locale);
   const platforms = readStringList(game.platforms);
   const genres = readStringList(game.genres);
   const year = getYear(game.releaseDate);
@@ -119,18 +134,18 @@ function CaseHeader({
         className="absolute inset-0 bg-[linear-gradient(135deg,rgba(159,153,209,0.16),rgba(134,186,218,0.12)_52%,rgba(255,227,179,0.1))]"
       />
       <div className="relative grid grid-cols-[240px_minmax(0,1fr)] items-end gap-8 max-md:grid-cols-1">
-        <GameCover game={game} />
+        <GameCover game={game} locale={locale} />
         <div className="grid gap-5 max-md:text-center">
           <nav
             className="flex flex-wrap items-center gap-2 text-sm text-ink-soft max-md:justify-center"
-            aria-label="Breadcrumb"
+            aria-label={t("game.breadcrumb")}
           >
             <Link className="nav-link" href="/">
-              Home
+              {t("common.home")}
             </Link>
             <span aria-hidden>/</span>
             <Link className="nav-link" href="/profile?tab=games">
-              Catalog
+              {t("common.catalog")}
             </Link>
             <span aria-hidden>/</span>
             <span className="max-w-[24ch] truncate text-ink">{game.name}</span>
@@ -149,6 +164,7 @@ function CaseHeader({
               ))}
               {currentEntry ? (
                 <StatusBadge
+                  locale={locale}
                   status={
                     currentEntry.finishedAt &&
                     currentEntry.status !== "COMPLETED"
@@ -178,28 +194,32 @@ function CaseHeader({
 function SaveSlot({
   currentEntry,
   game,
+  locale,
 }: {
   currentEntry: GameEntry | null;
   game: GameDetail;
+  locale: Locale;
 }) {
   if (!currentEntry) {
     return null;
   }
 
   const hasStoryTime = Boolean(game.hltbMainStoryMinutes);
+  const t = createTranslator(locale);
 
   return (
     <section className="panel bg-dusk-lavender-soft/70">
       <SectionHeader
-        eyebrow="Catalog entry"
-        title="Your relationship with this game"
+        eyebrow={t("game.entryLabel")}
+        title={t("game.relationship")}
       />
 
       <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">
         <div className="rounded-inner border border-edge bg-surface p-4">
-          <span className="stat-label">Place on shelf</span>
+          <span className="stat-label">{t("game.placeOnShelf")}</span>
           <div className="mt-2">
             <StatusBadge
+              locale={locale}
               status={
                 currentEntry.finishedAt && currentEntry.status !== "COMPLETED"
                   ? "FINISHED"
@@ -209,17 +229,18 @@ function SaveSlot({
           </div>
         </div>
         <div className="rounded-inner border border-edge bg-surface p-4">
-          <span className="stat-label">Recorded playtime</span>
+          <span className="stat-label">{t("game.recordedPlaytime")}</span>
           <strong className="mt-2 block font-display text-2xl font-medium">
-            {getPlaytimeSoFar(currentEntry)}
+            {getPlaytimeSoFar(locale, currentEntry)}
           </strong>
         </div>
         {hasStoryTime ? (
           <div className="rounded-inner border border-edge bg-surface p-4">
-            <span className="stat-label">Usual credits</span>
+            <span className="stat-label">{t("game.usualCredits")}</span>
             <p className="mt-2 text-sm font-semibold leading-relaxed">
-              Most players see credits around{" "}
-              {formatTimeEstimate(game.hltbMainStoryMinutes)}.
+              {t("game.creditsAround", {
+                value: formatTimeEstimate(game.hltbMainStoryMinutes, locale),
+              })}
             </p>
           </div>
         ) : null}
@@ -228,20 +249,22 @@ function SaveSlot({
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-inner border border-edge bg-surface p-4">
         <p className="max-w-[58ch] text-sm leading-relaxed text-ink-soft">
           {currentEntry.finishedAt
-            ? `Credits rolled ${formatDate(currentEntry.finishedAt)}. This is separate from achievement collecting.`
+            ? t("game.creditsRolled", {
+                date: formatDate(currentEntry.finishedAt, locale),
+              })
             : currentEntry.completionPercent
-              ? "Some achievement signals are on the record, but credits are not marked yet."
+              ? t("game.achievementSignals")
               : currentEntry.status === "WISHLIST"
-                ? "Still curious. Keep it close until the moment feels right."
-                : "The story has not been marked as credits rolled yet."}
+                ? t("game.stillCurious")
+                : t("game.notMarked")}
         </p>
         <form action={markFinishedAction}>
           <input type="hidden" name="entryId" value={currentEntry.id} />
           <input type="hidden" name="slug" value={game.slug} />
           <Button type="submit" variant="ghost" size="sm">
             {currentEntry.finishedAt
-              ? "Unmark credits rolled"
-              : "Mark credits rolled"}
+              ? t("game.unmarkCredits")
+              : t("game.markCredits")}
           </Button>
         </form>
       </div>
@@ -249,7 +272,14 @@ function SaveSlot({
   );
 }
 
-function GuidePages({ game }: { game: GameDetail }) {
+function GuidePages({
+  game,
+  locale,
+}: {
+  game: GameDetail;
+  locale: Locale;
+}) {
+  const t = createTranslator(locale);
   const hasCompletionTimes = Boolean(
     game.hltbMainStoryMinutes ||
       game.hltbMainExtraMinutes ||
@@ -262,7 +292,10 @@ function GuidePages({ game }: { game: GameDetail }) {
     <div className="grid gap-7">
       {game.summary ? (
         <section className="panel">
-          <SectionHeader eyebrow="Catalog note" title="What this one remembers" />
+          <SectionHeader
+            eyebrow={t("game.catalogNote")}
+            title={t("game.whatRemembers")}
+          />
           <p className="text-[1.02rem] leading-relaxed text-ink/90">
             {game.summary}
           </p>
@@ -271,13 +304,18 @@ function GuidePages({ game }: { game: GameDetail }) {
 
       {hasMetacritic ? (
         <section className="panel">
-          <SectionHeader eyebrow="Reception" title="A note, not a grade" />
+          <SectionHeader
+            eyebrow={t("game.reception")}
+            title={t("game.noteNotGrade")}
+          />
           <p className="font-display text-4xl font-medium leading-none">
             {game.metacriticScore}
           </p>
           <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-            Critics said: {game.metacriticScore} -{" "}
-            {getReceptionLabel(game.metacriticScore!)}.
+            {t("game.criticsSaid", {
+              score: game.metacriticScore!,
+              label: t(getReceptionKey(game.metacriticScore!)),
+            })}
           </p>
         </section>
       ) : null}
@@ -285,26 +323,26 @@ function GuidePages({ game }: { game: GameDetail }) {
       {hasCompletionTimes ? (
         <section className="panel">
           <SectionHeader
-            eyebrow="Time estimates"
-            title="Player guide notes"
+            eyebrow={t("game.timeEstimates")}
+            title={t("game.playerGuide")}
           />
           <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
             {game.hltbMainStoryMinutes ? (
               <TimeCard
-                label="credits roll"
-                value={formatTimeEstimate(game.hltbMainStoryMinutes)}
+                label={t("game.creditsRoll")}
+                value={formatTimeEstimate(game.hltbMainStoryMinutes, locale)}
               />
             ) : null}
             {game.hltbMainExtraMinutes ? (
               <TimeCard
-                label="took their time"
-                value={formatTimeEstimate(game.hltbMainExtraMinutes)}
+                label={t("game.tookTheirTime")}
+                value={formatTimeEstimate(game.hltbMainExtraMinutes, locale)}
               />
             ) : null}
             {game.hltbCompletionistMinutes ? (
               <TimeCard
-                label="saw everything"
-                value={formatTimeEstimate(game.hltbCompletionistMinutes)}
+                label={t("game.sawEverything")}
+                value={formatTimeEstimate(game.hltbCompletionistMinutes, locale)}
               />
             ) : null}
           </div>
@@ -323,7 +361,14 @@ function TimeCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ScreenshotStrip({ game }: { game: GameDetail }) {
+function ScreenshotStrip({
+  game,
+  locale,
+}: {
+  game: GameDetail;
+  locale: Locale;
+}) {
+  const t = createTranslator(locale);
   const screenshots = Array.isArray(game.screenshots) ? game.screenshots : [];
 
   if (!screenshots.length) {
@@ -333,11 +378,11 @@ function ScreenshotStrip({ game }: { game: GameDetail }) {
   return (
     <section className="panel">
       <SectionHeader
-        eyebrow="Photo prints"
-        title="A few scenes from the guide"
+        eyebrow={t("game.photoPrints")}
+        title={t("game.fewScenes")}
         aside={
           <span className="text-xs font-semibold text-ink-soft">
-            Opens in a lightbox
+            {t("game.opensLightbox")}
           </span>
         }
       />
@@ -351,7 +396,14 @@ function ScreenshotStrip({ game }: { game: GameDetail }) {
   );
 }
 
-function ProviderLinks({ game }: { game: GameDetail }) {
+function ProviderLinks({
+  game,
+  locale,
+}: {
+  game: GameDetail;
+  locale: Locale;
+}) {
+  const t = createTranslator(locale);
   const links = game.providerLinks.filter((link) => link.storeUrl);
 
   if (!links.length) {
@@ -361,7 +413,7 @@ function ProviderLinks({ game }: { game: GameDetail }) {
   return (
     <section className="flex flex-wrap items-center gap-2 border-t border-edge pt-5">
       <span className="text-caption font-bold uppercase text-ink-soft">
-        Where it lives
+        {t("game.whereLives")}
       </span>
       {links.map((link) => (
         <a
@@ -378,7 +430,14 @@ function ProviderLinks({ game }: { game: GameDetail }) {
   );
 }
 
-function ShelfActivity({ game }: { game: GameDetail }) {
+function ShelfActivity({
+  game,
+  locale,
+}: {
+  game: GameDetail;
+  locale: Locale;
+}) {
+  const t = createTranslator(locale);
   if (!game.userEntries.length) {
     return null;
   }
@@ -386,12 +445,15 @@ function ShelfActivity({ game }: { game: GameDetail }) {
   return (
     <section className="panel">
       <SectionHeader
-        eyebrow="Other entries"
-        title="How it sits on nearby shelves"
+        eyebrow={t("game.otherEntries")}
+        title={t("game.nearbyShelves")}
         aside={
           <span className="pill">
-            {formatNumber(game.userEntries.length)}{" "}
-            {game.userEntries.length === 1 ? "entry" : "entries"}
+            {game.userEntries.length === 1
+              ? t("game.entryCountOne")
+              : t("game.entryCountMany", {
+                  count: formatNumber(game.userEntries.length, locale),
+                })}
           </span>
         }
       />
@@ -406,13 +468,14 @@ function ShelfActivity({ game }: { game: GameDetail }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold">
-                {entry.user.displayName ?? "Player"}
+                {entry.user.displayName ?? t("common.player")}
               </p>
               <p className="text-xs text-ink-soft">
-                {getPlaytimeSoFar(entry)}
+                {getPlaytimeSoFar(locale, entry)}
               </p>
             </div>
             <StatusBadge
+              locale={locale}
               status={
                 entry.finishedAt && entry.status !== "COMPLETED"
                   ? "FINISHED"
@@ -428,9 +491,11 @@ function ShelfActivity({ game }: { game: GameDetail }) {
 
 export function GameMemoryCard({
   game,
+  locale,
   sessionUserId,
 }: {
   game: GameDetail;
+  locale: Locale;
   sessionUserId: string | null;
 }) {
   const currentEntry =
@@ -441,20 +506,22 @@ export function GameMemoryCard({
       id="main-content"
       className="mx-auto grid w-full max-w-[1100px] gap-7 pb-12"
     >
-      <CaseHeader currentEntry={currentEntry} game={game} />
+      <CaseHeader currentEntry={currentEntry} game={game} locale={locale} />
 
       <div className="grid grid-cols-[minmax(0,1fr)_320px] gap-7 max-lg:grid-cols-1">
         <div className="grid content-start gap-7">
-          <SaveSlot currentEntry={currentEntry} game={game} />
-          <GuidePages game={game} />
-          <ScreenshotStrip game={game} />
+          <SaveSlot currentEntry={currentEntry} game={game} locale={locale} />
+          <GuidePages game={game} locale={locale} />
+          <ScreenshotStrip game={game} locale={locale} />
         </div>
 
         <aside className="grid content-start gap-6">
-          <ShelfActivity game={game} />
-          <ProviderLinks game={game} />
+          <ShelfActivity game={game} locale={locale} />
+          <ProviderLinks game={game} locale={locale} />
           <Button asChild variant="ghost" className="justify-center text-sm">
-            <Link href="/profile?tab=games">Back to catalog</Link>
+            <Link href="/profile?tab=games">
+              {createTranslator(locale)("game.backToCatalog")}
+            </Link>
           </Button>
         </aside>
       </div>
