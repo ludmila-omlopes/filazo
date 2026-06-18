@@ -20,6 +20,7 @@ import {
 } from "./_components/profile-query";
 import { ShelfGrid } from "./_components/shelf-grid";
 import { Notice } from "@/components/ui/notice";
+import { getBetaAccessRedirect, getSessionUserWithBeta } from "@/lib/beta-access";
 import { getRequestLocale } from "@/lib/request-locale";
 import {
   getAssistantProfileData,
@@ -38,9 +39,16 @@ export default async function ProfilePage({
 }: PageProps<"/profile"> & { searchParams: ProfileSearchParams }) {
   const locale = await getRequestLocale();
   const userId = await getSessionUserId();
+  const accessRedirect = getBetaAccessRedirect(
+    await getSessionUserWithBeta(userId),
+  );
 
   if (!userId) {
     return <SignedOutPanel locale={locale} />;
+  }
+
+  if (accessRedirect) {
+    redirect(accessRedirect);
   }
 
   let profile: Awaited<ReturnType<typeof getProfileData>>;

@@ -19,6 +19,7 @@ import { SiteHeaderFrame } from "@/components/site-header-frame";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { createTranslator } from "@/lib/i18n";
+import { isAdminEmail } from "@/lib/beta-access";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
@@ -40,6 +41,7 @@ async function getNavigationUser(userId: string | null) {
       where: { id: userId },
       include: {
         externalAccounts: true,
+        betaApplication: true,
       },
     });
   } catch (error) {
@@ -98,6 +100,15 @@ export default async function RootLayout({
                 <Link href="/tonight" className="nav-link text-sm">
                   {t("common.tonight")}
                 </Link>
+                {navigationUser && isAdminEmail(navigationUser.email) ? (
+                  <Link href="/admin" className="nav-link text-sm">
+                    Admin
+                  </Link>
+                ) : (
+                  <Link href="/beta" className="nav-link text-sm">
+                    Beta
+                  </Link>
+                )}
                 <LocaleToggle locale={locale} />
                 <ThemeToggle theme={theme} />
                 {navigationUser ? (

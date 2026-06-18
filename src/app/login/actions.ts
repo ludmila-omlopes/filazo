@@ -48,6 +48,10 @@ export async function emailAuthAction(formData: FormData) {
   const email = normalizeEmail(parsed.data.email);
   const password = parsed.data.password;
 
+  if (parsed.data.mode === "signup") {
+    redirectWithAuthError(t("auth.error.registrationClosed"));
+  }
+
   if (parsed.data.mode === "signin") {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user?.passwordHash) {

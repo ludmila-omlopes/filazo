@@ -17,6 +17,7 @@ db.exec(`
     "email" TEXT,
     "passwordHash" TEXT,
     "googleSubject" TEXT,
+    "youtubeSubject" TEXT,
     "avatarUrl" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -179,6 +180,23 @@ db.exec(`
     FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS "BetaTesterApplication" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "name" TEXT,
+    "platforms" TEXT,
+    "retroGames" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'DRAFT',
+    "justification" TEXT,
+    "reviewedById" TEXT,
+    "reviewedAt" DATETIME,
+    "accessExpiresAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY ("reviewedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE
+  );
+
   CREATE TABLE IF NOT EXISTS "AssistantRun" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
@@ -207,6 +225,9 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS "UserGameInsight_userId_score_idx" ON "UserGameInsight"("userId", "score");
   CREATE INDEX IF NOT EXISTS "AssistantRun_userId_createdAt_idx" ON "AssistantRun"("userId", "createdAt");
   CREATE UNIQUE INDEX IF NOT EXISTS "PlayerProfile_userId_key" ON "PlayerProfile"("userId");
+  CREATE UNIQUE INDEX IF NOT EXISTS "BetaTesterApplication_userId_key" ON "BetaTesterApplication"("userId");
+  CREATE INDEX IF NOT EXISTS "BetaTesterApplication_status_createdAt_idx" ON "BetaTesterApplication"("status", "createdAt");
+  CREATE INDEX IF NOT EXISTS "BetaTesterApplication_reviewedById_idx" ON "BetaTesterApplication"("reviewedById");
 `);
 
 function columnExists(tableName, columnName) {
@@ -225,9 +246,11 @@ function addColumnIfMissing(tableName, columnName, definition) {
 addColumnIfMissing("User", "email", "TEXT");
 addColumnIfMissing("User", "passwordHash", "TEXT");
 addColumnIfMissing("User", "googleSubject", "TEXT");
+addColumnIfMissing("User", "youtubeSubject", "TEXT");
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
   CREATE UNIQUE INDEX IF NOT EXISTS "User_googleSubject_key" ON "User"("googleSubject");
+  CREATE UNIQUE INDEX IF NOT EXISTS "User_youtubeSubject_key" ON "User"("youtubeSubject");
 `);
 addColumnIfMissing("UserGameEntry", "completionPercent", "INTEGER");
 addColumnIfMissing("UserGameEntry", "lastPlayedAt", "DATETIME");
@@ -257,5 +280,18 @@ addColumnIfMissing("Game", "hltbUpdatedAt", "DATETIME");
 addColumnIfMissing("Game", "metacriticScore", "INTEGER");
 addColumnIfMissing("Game", "metacriticUrl", "TEXT");
 addColumnIfMissing("Game", "metacriticUpdatedAt", "DATETIME");
+addColumnIfMissing("BetaTesterApplication", "name", "TEXT");
+addColumnIfMissing("BetaTesterApplication", "platforms", "TEXT");
+addColumnIfMissing("BetaTesterApplication", "retroGames", "TEXT");
+addColumnIfMissing("BetaTesterApplication", "status", "TEXT NOT NULL DEFAULT 'DRAFT'");
+addColumnIfMissing("BetaTesterApplication", "justification", "TEXT");
+addColumnIfMissing("BetaTesterApplication", "reviewedById", "TEXT");
+addColumnIfMissing("BetaTesterApplication", "reviewedAt", "DATETIME");
+addColumnIfMissing("BetaTesterApplication", "accessExpiresAt", "DATETIME");
+db.exec(`
+  CREATE UNIQUE INDEX IF NOT EXISTS "BetaTesterApplication_userId_key" ON "BetaTesterApplication"("userId");
+  CREATE INDEX IF NOT EXISTS "BetaTesterApplication_status_createdAt_idx" ON "BetaTesterApplication"("status", "createdAt");
+  CREATE INDEX IF NOT EXISTS "BetaTesterApplication_reviewedById_idx" ON "BetaTesterApplication"("reviewedById");
+`);
 
 console.log(`Initialized SQLite database at ${databasePath}`);

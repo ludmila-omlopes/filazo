@@ -14,7 +14,7 @@ It is designed around a canonical local game catalog that can absorb data from m
 - Metacritic metascore enrichment when Steam Store metadata exposes a score
 - Optional rule-based and AI-assisted backlog assistance
 
-The current app already includes a landing page, a modal sign-in flow, a collector profile with a dedicated integrations area, Steam authentication, Steam sync, PlayStation library sync, Xbox authentication and achievement-history sync, CSV mapping/import, and per-game catalog pages.
+The current app already includes a landing page, a closed-registration modal sign-in flow, a YouTube/Google beta tester application flow, an admin review area, a collector profile with a dedicated integrations area, Steam authentication, Steam sync, PlayStation library sync, Xbox authentication and achievement-history sync, CSV mapping/import, and per-game catalog pages.
 
 ## Stack
 
@@ -37,6 +37,7 @@ The app is centered on a canonical `Game` record.
 - `AssistantRun` stores each assistant refresh summary and optional AI output metadata
 - `PlayerProfile` stores the AI-generated player profile (summary, preferences, patterns, internal recommendations) plus the agent's tool-call trace
 - `ExternalAccount` stores connected provider accounts like Steam, PlayStation, and Xbox
+- `BetaTesterApplication` stores YouTube/Google-authenticated beta tester requests, approval status, admin justification, and the one-year access expiry for approved testers
 - PlayStation refresh tokens are encrypted in `ExternalAccount.metadata`; NPSSO values are exchanged and then discarded
 - `ImportJob` and `ImportRow` keep an audit trail of CSV imports
 
@@ -44,7 +45,9 @@ This means multiple providers can eventually point to the same internal game ins
 
 ## Features
 
-- Modal sign-in with first-party email/password accounts and Google OAuth
+- Modal sign-in for existing first-party email/password accounts and existing Google OAuth accounts
+- Closed public registration with beta tester applications through YouTube/Google login
+- Admin-only beta review area for `ludmila.omlopes@gmail.com`, with approve/reject decisions and required justification
 - English and Portuguese (Brazil) UI with a header language switcher
 - Dedicated profile integrations area for connecting, syncing, and disconnecting external accounts
 - Steam OpenID sign-in
@@ -71,7 +74,7 @@ This means multiple providers can eventually point to the same internal game ins
 Optional, depending on what you want to use:
 
 - Steam Web API key for owned library sync
-- Google OAuth credentials for Google login
+- Google OAuth credentials for existing Google login and beta tester YouTube login
 - Microsoft OAuth app credentials for Xbox account sync
 - IGDB client credentials for metadata enrichment
 
@@ -114,7 +117,7 @@ Notes:
 - `AUTH_SECRET` should be a long random string in any non-local environment.
 - `DATABASE_URL` is required for catalog features. The default SQLite value is
   intended for local development.
-- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable the Google button in the login popup. Add `${APP_URL}/api/auth/google/callback` as an authorized redirect URI in Google Cloud.
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable the Google button in the login popup and the YouTube beta login. Add both `${APP_URL}/api/auth/google/callback` and `${APP_URL}/api/auth/youtube/callback` as authorized redirect URIs in Google Cloud. The YouTube beta login requests `openid email profile` plus YouTube readonly scope only to make the signup explicitly a YouTube-account flow.
 - `STEAM_API_KEY` is required for owned library sync. Steam sign-in itself uses OpenID.
 - PlayStation sync does not require an app key. Users provide an NPSSO token in the profile page; the app exchanges it for PlayStation API tokens, stores encrypted refresh/access tokens, and does not store the NPSSO.
 - `XBOX_CLIENT_ID` is required for Xbox account sync. Register a Microsoft OAuth app for personal Microsoft accounts and add `${APP_URL}/api/auth/xbox/callback` as a web redirect URI. `XBOX_CLIENT_SECRET` is recommended for web app token exchange.
@@ -254,10 +257,13 @@ sync after Steam sign-in.
 ### Account and integration management
 
 1. Logged-out users open the login popup from the header, home page, or `/login`.
-2. Users can create or enter a first-party filazo account with email and password, or continue with Google when Google OAuth credentials are configured.
-3. Logged-in users manage Steam, PlayStation, and Xbox from `/profile?tab=integrations`.
-4. Disconnecting a provider deletes the `ExternalAccount` row and removes stored external credentials or account links.
-5. Existing `UserGameEntry` records remain in the user's catalog. Their provider/source history remains intact, and the nullable `externalAccountId` relation is cleared by the database relation.
+2. Existing users can enter a first-party filazo account with email/password or continue with an already known Google account.
+3. New public registrations are closed. New beta candidates use `/beta`, sign in with YouTube/Google, and submit their name plus played platforms, including an open retrogames field.
+4. The admin area at `/admin` is restricted to `ludmila.omlopes@gmail.com`. It can approve or reject beta testers with a required justification.
+5. Approved beta testers receive full platform access for 1 year from approval.
+6. Logged-in users manage Steam, PlayStation, and Xbox from `/profile?tab=integrations`.
+7. Disconnecting a provider deletes the `ExternalAccount` row and removes stored external credentials or account links.
+8. Existing `UserGameEntry` records remain in the user's catalog. Their provider/source history remains intact, and the nullable `externalAccountId` relation is cleared by the database relation.
 
 ### Catalog resolution
 

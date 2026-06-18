@@ -5,6 +5,7 @@ import {
   upsertGoogleUser,
 } from "@/lib/google-auth";
 import { setUserSession } from "@/lib/session";
+import { getRequestTranslator } from "@/lib/request-locale";
 
 const GOOGLE_OAUTH_STATE_COOKIE = "filazo-google-oauth-state";
 const GOOGLE_OAUTH_NONCE_COOKIE = "filazo-google-oauth-nonce";
@@ -29,8 +30,11 @@ export async function GET(request: Request) {
     }
 
     const origin = process.env.APP_URL || url.origin;
+    const { t } = await getRequestTranslator();
     const profile = await exchangeGoogleCodeForProfile({ code, nonce, origin });
-    const user = await upsertGoogleUser(profile);
+    const user = await upsertGoogleUser(profile, {
+      registrationClosedMessage: t("auth.error.googleRegistrationClosed"),
+    });
 
     await setUserSession(user.id);
 

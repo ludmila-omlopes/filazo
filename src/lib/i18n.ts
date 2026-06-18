@@ -64,6 +64,9 @@ const messages = {
     "auth.dialog.privacy": "Privacy Policy",
     "auth.dialog.or": "or",
     "auth.dialog.google": "Continue with Google",
+    "auth.dialog.registrationClosed":
+      "Public registrations are closed. If you do not have an account yet, request access through the beta tester signup.",
+    "auth.dialog.requestBeta": "Request beta access",
     "auth.signOut": "Sign out",
 
     "auth.error.invalidEmailOrPassword":
@@ -78,6 +81,19 @@ const messages = {
     "auth.error.acceptTerms": "Accept the terms before creating an account.",
     "auth.error.accountExists":
       "A filazo account already exists for that email.",
+    "auth.error.registrationClosed":
+      "Public registrations are closed. Request access through the beta signup.",
+    "auth.error.googleRegistrationClosed":
+      "Public registrations are closed. Use the beta tester signup.",
+    "auth.error.steamRegistrationClosed":
+      "Public registrations are closed. Request beta access before connecting Steam.",
+    "auth.error.xboxRegistrationClosed":
+      "Public registrations are closed. Request beta access before connecting Xbox.",
+    "auth.error.youtubeStartFailed": "Could not start YouTube login.",
+    "auth.error.youtubeMissingCode":
+      "YouTube did not return an authorization code.",
+    "auth.error.youtubeStateInvalid": "Could not verify YouTube login.",
+    "auth.error.youtubeCallbackFailed": "Could not finish YouTube login.",
 
     "landing.notice.database":
       "{message} Vercel deployments need a production database connection; this repo's SQLite file setup is intended for local development.",
@@ -120,8 +136,65 @@ const messages = {
     "login.kicker": "filazo account",
     "login.title": "Sign in once. Keep every library connected after.",
     "login.body":
-      "Create a filazo account with email and password, or continue with Google. Steam, PlayStation, and Xbox stay in Integrations after login, where they belong as catalog sources.",
+      "Sign in with an existing filazo account or a known Google account. Public registration is closed; new players can request beta access with YouTube.",
     "login.open": "Open login",
+
+    "beta.status.pending.title": "Application sent",
+    "beta.status.pending.body":
+      "Your request is waiting for review. You will receive full platform access for 1 year if approved.",
+    "beta.status.approved.title": "Access approved",
+    "beta.status.approved.body":
+      "Your beta access is active. You can use the full platform now.",
+    "beta.status.rejected.title": "Application declined",
+    "beta.status.rejected.body":
+      "You can review your answers and submit the application again.",
+    "beta.adminLoggedIn": "You are signed in as admin.",
+    "beta.openAdmin": "Open admin area",
+    "beta.sent": "Application received. It is now waiting for approval.",
+    "beta.kicker": "Beta testers",
+    "beta.title": "Apply for early filazo access",
+    "beta.body":
+      "Public registrations are closed. Approved beta testers receive full platform access for 1 year to test the catalog, imports, integrations, and recommendations.",
+    "beta.signInYoutube": "Sign in with YouTube and request access",
+    "beta.justification": "Justification: {value}",
+    "beta.existingAccount":
+      "This account already has platform access. Beta signup is only for new testers.",
+    "beta.openPlatform": "Open platform",
+    "beta.name": "Name",
+    "beta.platforms": "Platforms you play on",
+    "beta.retrogames": "Retrogames and other platforms",
+    "beta.retrogamesPlaceholder":
+      "Ex.: 3DS, Vita, Dreamcast, emulators, arcade...",
+    "beta.submit": "Send application",
+    "beta.error.invalidApplication":
+      "Fill in your name and at least one platform.",
+
+    "admin.restricted":
+      "This area is restricted to the admin. Sign in with YouTube using ludmila.omlopes@gmail.com.",
+    "admin.signInYoutube": "Sign in with YouTube",
+    "admin.reviewed": "Request updated.",
+    "admin.kicker": "Admin",
+    "admin.title": "Beta testers",
+    "admin.body":
+      "Approve or decline beta tester applications. Approvals unlock full platform access for 1 year.",
+    "admin.pending": "Pending",
+    "admin.totalReviewable": "Reviewable total",
+    "admin.status.pending": "Pending",
+    "admin.status.approved": "Approved",
+    "admin.status.rejected": "Declined",
+    "admin.status.draft": "Draft",
+    "admin.noName": "No name",
+    "admin.noEmail": "no email",
+    "admin.platforms": "Platforms",
+    "admin.retrogames": "Retrogames",
+    "admin.notInformed": "not informed",
+    "admin.justification": "Justification",
+    "admin.accessUntil": "Access until",
+    "admin.approve": "Approve",
+    "admin.reject": "Decline",
+    "admin.empty": "No application has been submitted yet.",
+    "admin.error.justificationRequired":
+      "Justification is required to approve or decline.",
 
     "footer.tagline": "Your catalog, your pace.",
     "footer.madeFor": "made for players with too many games",
@@ -558,6 +631,9 @@ const messages = {
     "auth.dialog.privacy": "Política de Privacidade",
     "auth.dialog.or": "ou",
     "auth.dialog.google": "Continuar com Google",
+    "auth.dialog.registrationClosed":
+      "Novos registros estão fechados. Se você ainda não tem conta, solicite acesso pelo cadastro de beta tester.",
+    "auth.dialog.requestBeta": "Solicitar acesso beta",
     "auth.signOut": "Sair",
 
     "auth.error.invalidEmailOrPassword":
@@ -572,6 +648,22 @@ const messages = {
       "Aceite os termos antes de criar uma conta.",
     "auth.error.accountExists":
       "Já existe uma conta filazo para esse e-mail.",
+    "auth.error.registrationClosed":
+      "Novos registros estão fechados. Solicite acesso pelo cadastro beta.",
+    "auth.error.googleRegistrationClosed":
+      "Novos registros estão fechados. Entre pelo cadastro de beta tester.",
+    "auth.error.steamRegistrationClosed":
+      "Novos registros estão fechados. Solicite acesso pelo cadastro beta antes de conectar Steam.",
+    "auth.error.xboxRegistrationClosed":
+      "Novos registros estão fechados. Solicite acesso pelo cadastro beta antes de conectar Xbox.",
+    "auth.error.youtubeStartFailed":
+      "Não foi possível iniciar o login com YouTube.",
+    "auth.error.youtubeMissingCode":
+      "YouTube não retornou um código de autorização.",
+    "auth.error.youtubeStateInvalid":
+      "Não foi possível verificar o login com YouTube.",
+    "auth.error.youtubeCallbackFailed":
+      "Não foi possível finalizar o login com YouTube.",
 
     "landing.notice.database":
       "{message} Deploys na Vercel precisam de um banco de produção; a configuração com SQLite deste repositório foi feita para desenvolvimento local.",
@@ -614,8 +706,65 @@ const messages = {
     "login.kicker": "conta filazo",
     "login.title": "Entre uma vez. Mantenha todas as bibliotecas conectadas depois.",
     "login.body":
-      "Crie uma conta filazo com e-mail e senha, ou continue com Google. Steam, PlayStation e Xbox ficam em Integrações depois do login, onde fazem sentido como fontes do catálogo.",
+      "Entre com uma conta filazo existente ou uma conta Google já conhecida. Novos registros estão fechados; novos jogadores podem solicitar acesso beta com YouTube.",
     "login.open": "Abrir login",
+
+    "beta.status.pending.title": "Cadastro enviado",
+    "beta.status.pending.body":
+      "Sua solicitação está na fila de análise. Você receberá acesso completo por 1 ano se for aprovada.",
+    "beta.status.approved.title": "Acesso aprovado",
+    "beta.status.approved.body":
+      "Seu acesso beta está ativo. Você já pode usar a plataforma completa.",
+    "beta.status.rejected.title": "Cadastro recusado",
+    "beta.status.rejected.body":
+      "Você pode revisar suas respostas e enviar o cadastro novamente.",
+    "beta.adminLoggedIn": "Você está logada como admin.",
+    "beta.openAdmin": "Abrir área de admin",
+    "beta.sent": "Cadastro recebido. Agora ele aguarda aprovação.",
+    "beta.kicker": "Beta testers",
+    "beta.title": "Cadastro para acesso antecipado ao filazo",
+    "beta.body":
+      "Novos registros públicos estão fechados. Beta testers aprovados terão acesso completo à plataforma por 1 ano para testar catálogo, imports, integrações e recomendações.",
+    "beta.signInYoutube": "Entrar com YouTube e solicitar acesso",
+    "beta.justification": "Justificativa: {value}",
+    "beta.existingAccount":
+      "Esta conta já tem acesso à plataforma. O cadastro beta é só para novos testers.",
+    "beta.openPlatform": "Abrir plataforma",
+    "beta.name": "Nome",
+    "beta.platforms": "Plataformas que joga",
+    "beta.retrogames": "Retrogames e outras plataformas",
+    "beta.retrogamesPlaceholder":
+      "Ex.: 3DS, Vita, Dreamcast, emuladores, arcade...",
+    "beta.submit": "Enviar cadastro",
+    "beta.error.invalidApplication":
+      "Preencha seu nome e pelo menos uma plataforma.",
+
+    "admin.restricted":
+      "Esta área é restrita ao admin. Entre com o YouTube usando ludmila.omlopes@gmail.com.",
+    "admin.signInYoutube": "Entrar com YouTube",
+    "admin.reviewed": "Solicitação atualizada.",
+    "admin.kicker": "Admin",
+    "admin.title": "Beta testers",
+    "admin.body":
+      "Aprove ou recuse cadastros de beta testers. Aprovações liberam acesso completo à plataforma por 1 ano.",
+    "admin.pending": "Pendentes",
+    "admin.totalReviewable": "Total analisável",
+    "admin.status.pending": "Pendente",
+    "admin.status.approved": "Aprovado",
+    "admin.status.rejected": "Recusado",
+    "admin.status.draft": "Rascunho",
+    "admin.noName": "Sem nome",
+    "admin.noEmail": "sem email",
+    "admin.platforms": "Plataformas",
+    "admin.retrogames": "Retrogames",
+    "admin.notInformed": "não informado",
+    "admin.justification": "Justificativa",
+    "admin.accessUntil": "Acesso até",
+    "admin.approve": "Aprovar",
+    "admin.reject": "Recusar",
+    "admin.empty": "Nenhuma solicitação enviada ainda.",
+    "admin.error.justificationRequired":
+      "Justificativa obrigatória para aprovar ou recusar.",
 
     "footer.tagline": "Seu catálogo, no seu ritmo.",
     "footer.madeFor": "feito para quem tem jogos demais",

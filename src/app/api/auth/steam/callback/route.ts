@@ -1,15 +1,13 @@
 ﻿import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getRequestTranslator } from "@/lib/request-locale";
 import { getSessionUserId, setUserSession } from "@/lib/session";
-import {
-  createSteamPlaceholderUserName,
-  upsertSteamAccountForUser,
-  verifySteamOpenIdCallback,
-} from "@/lib/steam";
+import { upsertSteamAccountForUser, verifySteamOpenIdCallback } from "@/lib/steam";
 
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
+    const { t } = await getRequestTranslator();
     const steamId = await verifySteamOpenIdCallback(url.searchParams);
     const existingSessionUserId = await getSessionUserId();
 
@@ -25,16 +23,12 @@ export async function GET(request: Request) {
       },
     });
 
-    let user = existingSessionUserId
+    const user = existingSessionUserId
       ? await prisma.user.findUnique({ where: { id: existingSessionUserId } })
       : existingSteamAccount?.user ?? null;
 
     if (!user) {
-      user = await prisma.user.create({
-        data: {
-          displayName: createSteamPlaceholderUserName(steamId),
-        },
-      });
+      throw new Error(t("auth.error.steamRegistrationClosed"));
     }
 
     await upsertSteamAccountForUser({

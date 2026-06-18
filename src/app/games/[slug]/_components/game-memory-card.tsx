@@ -285,8 +285,6 @@ function GuidePages({
       game.hltbMainExtraMinutes ||
       game.hltbCompletionistMinutes,
   );
-  const hasMetacritic =
-    game.metacriticScore !== null && game.metacriticScore !== undefined;
 
   return (
     <div className="grid gap-7">
@@ -298,24 +296,6 @@ function GuidePages({
           />
           <p className="text-[1.02rem] leading-relaxed text-ink/90">
             {game.summary}
-          </p>
-        </section>
-      ) : null}
-
-      {hasMetacritic ? (
-        <section className="panel">
-          <SectionHeader
-            eyebrow={t("game.reception")}
-            title={t("game.noteNotGrade")}
-          />
-          <p className="font-display text-4xl font-medium leading-none">
-            {game.metacriticScore}
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-ink-soft">
-            {t("game.criticsSaid", {
-              score: game.metacriticScore!,
-              label: t(getReceptionKey(game.metacriticScore!)),
-            })}
           </p>
         </section>
       ) : null}
@@ -349,6 +329,38 @@ function GuidePages({
         </section>
       ) : null}
     </div>
+  );
+}
+
+function ReceptionPanel({
+  game,
+  locale,
+}: {
+  game: GameDetail;
+  locale: Locale;
+}) {
+  if (game.metacriticScore === null || game.metacriticScore === undefined) {
+    return null;
+  }
+
+  const t = createTranslator(locale);
+
+  return (
+    <section className="panel">
+      <SectionHeader
+        eyebrow={t("game.reception")}
+        title={t("game.noteNotGrade")}
+      />
+      <p className="font-display text-4xl font-medium leading-none">
+        {game.metacriticScore}
+      </p>
+      <p className="mt-3 text-sm leading-relaxed text-ink-soft">
+        {t("game.criticsSaid", {
+          score: game.metacriticScore,
+          label: t(getReceptionKey(game.metacriticScore)),
+        })}
+      </p>
+    </section>
   );
 }
 
@@ -516,6 +528,7 @@ export function GameMemoryCard({
         </div>
 
         <aside className="grid content-start gap-6">
+          <ReceptionPanel game={game} locale={locale} />
           <ShelfActivity game={game} locale={locale} />
           <ProviderLinks game={game} locale={locale} />
           <Button asChild variant="ghost" className="justify-center text-sm">
