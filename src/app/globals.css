@@ -213,6 +213,16 @@
   }
 }
 
+@layer components {
+  .catalog-status-actions {
+    display: none;
+  }
+
+  .catalog-status-mode:checked ~ div .catalog-status-actions {
+    display: flex;
+  }
+}
+
 /* Keyframe animations */
 @keyframes fade-in {
   from {
