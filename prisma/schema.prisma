@@ -71,12 +71,20 @@ enum AssistantSignalType {
   RELEASE_CANDIDATE
 }
 
+enum BetaTesterStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model User {
   id               String            @id @default(cuid())
   displayName      String?
   email            String?           @unique
   passwordHash     String?
   googleSubject    String?           @unique
+  youtubeSubject   String?           @unique
   avatarUrl        String?
   onboardingAnswers Json?
   onboardingCompletedAt DateTime?
@@ -91,6 +99,8 @@ model User {
   gameReviews      UserGameReview[]
   journalEntries   GameJournalEntry[]
   playerProfile    PlayerProfile?
+  betaApplication  BetaTesterApplication?
+  reviewedBetaApplications BetaTesterApplication[] @relation("BetaReviewer")
 }
 
 model ExternalAccount {
@@ -341,6 +351,26 @@ model PlayerProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model BetaTesterApplication {
+  id              String           @id @default(cuid())
+  userId          String           @unique
+  name            String?
+  platforms       Json?
+  retroGames      String?
+  status          BetaTesterStatus @default(DRAFT)
+  justification   String?
+  reviewedById    String?
+  reviewedAt      DateTime?
+  accessExpiresAt DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy      User?            @relation("BetaReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reviewedById])
 }
 
 model ImportJob {

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getStatusDisplayLabel } from "@/lib/copy";
+import { createTranslator, type Locale } from "@/lib/i18n";
+import { formatNumber } from "@/lib/utils";
 import {
   clearCurrentPlayingAction,
   saveCurrentPlayingAction,
@@ -79,11 +81,11 @@ function getSelectableEntries(profile: ProfileData) {
   });
 }
 
-function getOptionMeta(entry: ShelfEntry) {
+function getOptionMeta(entry: ShelfEntry, locale: Locale) {
   const displayStatus =
     entry.finishedAt && entry.status !== "COMPLETED" ? "FINISHED" : entry.status;
 
-  return [entry.platformName, getStatusDisplayLabel(displayStatus)]
+  return [entry.platformName, getStatusDisplayLabel(displayStatus, locale)]
     .filter(Boolean)
     .join(" - ");
 }
@@ -136,34 +138,39 @@ function scoreShelfEntry(entry: ShelfEntry) {
   return score;
 }
 
-function getShelfSuggestionReason(entry: ShelfEntry) {
+function getShelfSuggestionReason(
+  entry: ShelfEntry,
+  t: ReturnType<typeof createTranslator>,
+) {
   if (entry.status === "PLAYING") {
-    return "Already marked as playing now, so it belongs near the top.";
+    return t("profile.currentPlaying.reason.playing");
   }
 
   if (entry.lastPlayedAt) {
-    return "You touched it recently, which makes it a natural keep-in-view pick.";
+    return t("profile.currentPlaying.reason.recent");
   }
 
   if (entry.isFavorite) {
-    return "It is one of your favorites and still has room to come back into focus.";
+    return t("profile.currentPlaying.reason.favorite");
   }
 
   if (entry.playtimeMinutes && entry.playtimeMinutes > 0) {
-    return "You already have time in it, which makes it a gentle return candidate.";
+    return t("profile.currentPlaying.reason.playtime");
   }
 
-  return "A steady unfinished pick from your own shelf.";
+  return t("profile.currentPlaying.reason.default");
 }
 
 function getSuggestedCurrentPlayingEntries({
   excludedEntryIds = new Set<string>(),
   limit = CURRENT_PLAYING_SLOTS.length,
+  locale,
   playerProfile,
   profile,
 }: {
   excludedEntryIds?: Set<string>;
   limit?: number;
+  locale: Locale;
   playerProfile: PlayerProfileData;
   profile: ProfileData;
 }) {
@@ -172,6 +179,7 @@ function getSuggestedCurrentPlayingEntries({
   const unfinishedEntries = profile.shelfEntries.filter(
     (entry) => !isFinishedEntry(entry),
   );
+  const t = createTranslator(locale);
 
   for (const recommendation of playerProfile?.payload.recommendations ?? []) {
     const matchingEntry = unfinishedEntries.find(
@@ -209,7 +217,7 @@ function getSuggestedCurrentPlayingEntries({
   for (const entry of rankedShelfEntries) {
     suggestions.push({
       entry,
-      reason: getShelfSuggestionReason(entry),
+      reason: getShelfSuggestionReason(entry, t),
       source: "shelf",
     });
     seenEntryIds.add(entry.id);
@@ -225,22 +233,29 @@ function getSuggestedCurrentPlayingEntries({
 function CurrentPlayingSlot({
   animated,
   entry,
+  locale,
   slot,
 }: {
   animated: boolean;
   entry: ShelfEntry | null;
+  locale: Locale;
   slot: CurrentPlayingSlotNumber;
 }) {
+  const t = createTranslator(locale);
+
   if (!entry) {
     return (
       <article className="grid min-h-[280px] gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-5 shadow-rest">
         <div>
-          <p className="section-label !mb-1">Spot {slot}</p>
-          <h3 className="font-display text-xl leading-tight">Open for a game</h3>
+          <p className="section-label !mb-1">
+            {t("profile.currentPlaying.spot", { slot })}
+          </p>
+          <h3 className="font-display text-xl leading-tight">
+            {t("profile.currentPlaying.openTitle")}
+          </h3>
         </div>
         <p className="max-w-[28ch] text-sm leading-relaxed text-ink-soft">
-          Leave this slot empty, or pick something below when you want it in
-          view.
+          {t("profile.currentPlaying.openBody")}
         </p>
       </article>
     );
@@ -249,11 +264,12 @@ function CurrentPlayingSlot({
   return (
     <div className={animated ? "animate-current-playing-place" : undefined}>
       <GameCard
-        chips={[`Spot ${slot}`]}
+        chips={[t("profile.currentPlaying.spot", { slot })]}
         className="h-full"
         completionPercent={entry.completionPercent}
         finished={false}
         game={entry.game}
+        locale={locale}
         platformName={entry.platformName}
         playtimeMinutes={entry.playtimeMinutes}
         status="PLAYING"
@@ -266,16 +282,20 @@ function CurrentPlayingSlot({
 function SuggestedPicks({
   entries,
   isSaving,
+  locale,
   onFillOpenSpots,
   onPick,
   selectedEntryIds,
 }: {
   entries: SuggestedCurrentPlayingEntry[];
   isSaving: boolean;
+  locale: Locale;
   onFillOpenSpots: () => void;
   onPick: (entryId: string) => void;
   selectedEntryIds: Set<string>;
 }) {
+  const t = createTranslator(locale);
+
   if (!entries.length) {
     return null;
   }
@@ -284,14 +304,16 @@ function SuggestedPicks({
     <div className="rounded-card border border-edge bg-surface p-5 shadow-rest">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="section-label !mb-1">Suggested picks</p>
+          <p className="section-label !mb-1">
+            {t("profile.currentPlaying.suggestedLabel")}
+          </p>
           <h3 className="font-display text-xl leading-tight">
-            A calm place to start
+            {t("profile.currentPlaying.suggestedTitle")}
           </h3>
         </div>
         <Button disabled={isSaving} onClick={onFillOpenSpots} type="button">
           <Sparkles className="h-4 w-4" />
-          Fill open spots
+          {t("profile.currentPlaying.fillOpenSpots")}
         </Button>
       </div>
 
@@ -307,9 +329,10 @@ function SuggestedPicks({
               game={suggestion.entry.game}
               eyebrow={
                 suggestion.source === "profile"
-                  ? "From your profile"
-                  : "From your shelf"
+                  ? t("profile.currentPlaying.fromProfile")
+                  : t("profile.currentPlaying.fromShelf")
               }
+              locale={locale}
               platformName={suggestion.entry.platformName}
               playtimeMinutes={suggestion.entry.playtimeMinutes}
               onClick={() => onPick(suggestion.entry.id)}
@@ -322,27 +345,24 @@ function SuggestedPicks({
 
       <details className="mt-4 rounded-inner border border-edge bg-canvas/60 p-4 text-sm leading-relaxed text-ink-soft">
         <summary className="cursor-pointer font-semibold text-ink">
-          How these picks were chosen
+          {t("profile.currentPlaying.howChosen")}
         </summary>
-        <p className="mt-2">
-          Saved player-profile recommendations come first when they exist.
-          Remaining spots fall back to unfinished shelf entries with signals
-          like playing status, recent activity, favorites, playtime, and shared
-          review score. These suggestions come from your own catalog, not live
-          web research.
-        </p>
+        <p className="mt-2">{t("profile.currentPlaying.howChosenBody")}</p>
       </details>
     </div>
   );
 }
 
 export function CurrentPlayingPanel({
+  locale,
   playerProfile,
   profile,
 }: {
+  locale: Locale;
   playerProfile: PlayerProfileData;
   profile: ProfileData;
 }) {
+  const t = createTranslator(locale);
   const selectableEntries = getSelectableEntries(profile);
   const currentPlayingEntries = profile.currentPlayingEntries;
   const playingStatusEntries = getPlayingStatusEntries(profile);
@@ -390,6 +410,7 @@ export function CurrentPlayingPanel({
     ? getSuggestedCurrentPlayingEntries({
         excludedEntryIds: selectedEntryIds,
         limit: openSlots.length,
+        locale,
         playerProfile,
         profile,
       })
@@ -503,12 +524,14 @@ export function CurrentPlayingPanel({
       <SectionHeader
         aside={
           <div className="pill">
-            {selectedEntriesBySlot.size} of {CURRENT_PLAYING_SLOTS.length} in view
+            {t("profile.currentPlaying.inView", {
+              count: formatNumber(selectedEntriesBySlot.size, locale),
+            })}
           </div>
         }
-        eyebrow="Current playing"
-        title="Keep a few games close"
-        description="Choose up to three shelf entries and pin them to the top of your overview."
+        eyebrow={t("profile.currentPlaying.label")}
+        title={t("profile.currentPlaying.title")}
+        description={t("profile.currentPlaying.description")}
       />
 
       {selectedEntriesBySlot.size ? (
@@ -519,6 +542,7 @@ export function CurrentPlayingPanel({
                 animated={animatedSlot === slot}
                 entry={selectedEntriesBySlot.get(slot) ?? null}
                 key={slot}
+                locale={locale}
                 slot={slot}
               />
             ))}
@@ -526,6 +550,7 @@ export function CurrentPlayingPanel({
           <SuggestedPicks
             entries={suggestedEntries}
             isSaving={isAutosaving}
+            locale={locale}
             onFillOpenSpots={fillOpenSpots}
             onPick={addSuggestedEntry}
             selectedEntryIds={selectedEntryIds}
@@ -533,13 +558,13 @@ export function CurrentPlayingPanel({
         </div>
       ) : (
         <div className="grid gap-5">
-          <EmptyState title="Nothing is pinned right now.">
-            Pick up to three games to keep your current rotation visible at a
-            glance.
+          <EmptyState title={t("profile.currentPlaying.emptyTitle")}>
+            {t("profile.currentPlaying.emptyBody")}
           </EmptyState>
           <SuggestedPicks
             entries={suggestedEntries}
             isSaving={isAutosaving}
+            locale={locale}
             onFillOpenSpots={fillOpenSpots}
             onPick={addSuggestedEntry}
             selectedEntryIds={selectedEntryIds}
@@ -553,8 +578,8 @@ export function CurrentPlayingPanel({
       >
         <summary className="cursor-pointer font-bold text-ink">
           {currentPlayingEntries.length
-            ? "Choose or change your three picks"
-            : "Choose your three picks"}
+            ? t("profile.currentPlaying.chooseChange")
+            : t("profile.currentPlaying.choose")}
         </summary>
 
         <form action={saveCurrentPlayingAction} className="mt-4">
@@ -567,9 +592,11 @@ export function CurrentPlayingPanel({
                   className="grid gap-2 rounded-inner border border-edge bg-canvas/60 p-4"
                   key={slot}
                 >
-                  <span className="section-label !mb-0">Spot {slot}</span>
+                  <span className="section-label !mb-0">
+                    {t("profile.currentPlaying.spot", { slot })}
+                  </span>
                   <span className="text-sm font-semibold text-ink">
-                    Choose a game
+                    {t("common.chooseGame")}
                   </span>
                   <select
                     className="min-h-11 w-full rounded-inner border border-edge bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
@@ -580,9 +607,9 @@ export function CurrentPlayingPanel({
                     }
                     value={currentEntry?.id ?? ""}
                   >
-                    <option value="">Leave this open</option>
+                    <option value="">{t("profile.currentPlaying.leaveOpen")}</option>
                     {selectableEntries.map((entry) => {
-                      const optionMeta = getOptionMeta(entry);
+                      const optionMeta = getOptionMeta(entry, locale);
 
                       return (
                         <option key={entry.id} value={entry.id}>
@@ -599,7 +626,9 @@ export function CurrentPlayingPanel({
 
           <div className="flex flex-wrap gap-3">
             <Button disabled={isAutosaving} type="submit">
-              {isAutosaving ? "Saving..." : "Save current playing"}
+              {isAutosaving
+                ? t("profile.currentPlaying.saving")
+                : t("profile.currentPlaying.save")}
             </Button>
           </div>
           {autosaveError ? (
@@ -608,15 +637,14 @@ export function CurrentPlayingPanel({
             </p>
           ) : null}
           <p className="mt-3 text-sm text-ink-soft">
-            Leave any slot empty to clear it. You can feature fewer than three
-            games if that feels better.
+            {t("profile.currentPlaying.help")}
           </p>
         </form>
 
         {currentPlayingEntries.length ? (
           <form action={clearCurrentPlayingAction} className="mt-3">
             <Button disabled={isAutosaving} type="submit" variant="ghost">
-              Clear all
+              {t("common.clearAll")}
             </Button>
           </form>
         ) : null}

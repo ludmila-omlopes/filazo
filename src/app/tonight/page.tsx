@@ -2,10 +2,12 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { ControllerIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
+import { createTranslator } from "@/lib/i18n";
 import {
   getAssistantProfileData,
   type PlayNextProfileRecommendation,
 } from "@/lib/assistant/queries";
+import { getRequestLocale } from "@/lib/request-locale";
 import { readStringList } from "@/lib/assistant/scoring";
 import { FILAZO_THEME_COOKIE, parseFilazoTheme } from "@/lib/theme";
 import { getSessionUserId } from "@/lib/session";
@@ -114,6 +116,8 @@ function orderPicksForMood(picks: TonightPick[], mood: string) {
 export default async function TonightPage({
   searchParams,
 }: PageProps<"/tonight"> & { searchParams: TonightSearchParams }) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   const cookieStore = await cookies();
   const theme = parseFilazoTheme(cookieStore.get(FILAZO_THEME_COOKIE)?.value);
@@ -122,9 +126,18 @@ export default async function TonightPage({
     ? query.mood!
     : "surprise";
   const offset = Math.max(0, Number(query.skip ?? 0) || 0);
-  const moods: TonightMood[] = moodLabels.map(([value, label]) => ({
+  const moods: TonightMood[] = moodLabels.map(([value]) => ({
     value,
-    label,
+    label:
+      value === "short"
+        ? t("tonight.mood.short")
+        : value === "cozy"
+          ? t("tonight.mood.cozy")
+          : value === "gripping"
+            ? t("tonight.mood.gripping")
+            : value === "old-save"
+              ? t("tonight.mood.oldSave")
+              : t("tonight.mood.surprise"),
     href: buildMoodHref(value),
   }));
 
@@ -140,14 +153,14 @@ export default async function TonightPage({
           </div>
           <p className="section-label justify-center">Tonight</p>
           <h1 className="text-page-title leading-tight">
-            Sign in before choosing from the catalog.
+            {t("tonight.signInTitle")}
           </h1>
           <p className="mx-auto mt-3 max-w-[44ch] leading-relaxed text-ink-soft">
-            Your library will be here when you are ready.
+            {t("tonight.signInBody")}
           </p>
           <div className="mt-6 flex justify-center">
             <Button asChild>
-              <Link href="/profile">Go to the catalog</Link>
+              <Link href="/profile">{t("tonight.goToCatalog")}</Link>
             </Button>
           </div>
         </section>
@@ -177,7 +190,7 @@ export default async function TonightPage({
     .map((entry) =>
       toRuleTonightPick(
         entry,
-        "A quiet pick from the games already in your catalog.",
+        t("tonight.fallbackReason"),
       ),
     );
   const basePicks = assistant.playNextRecommendations.length
@@ -202,6 +215,7 @@ export default async function TonightPage({
         alternatives={alternatives}
         currentMood={mood}
         isNight={theme === "night"}
+        locale={locale}
         message={query.message}
         moods={moods}
         offset={offset}

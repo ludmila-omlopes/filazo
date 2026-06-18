@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { getStatusDisplayLabel } from "@/lib/copy";
+import type { Locale } from "@/lib/i18n";
 
 const statusStyles: Record<string, string> = {
   OWNED: "bg-sage-soft text-ink",
@@ -16,9 +17,11 @@ const statusStyles: Record<string, string> = {
 export function StatusBadge({
   status,
   className,
+  locale = "en",
 }: {
   status: string;
   className?: string;
+  locale?: Locale;
 }) {
   return (
     <span
@@ -29,7 +32,7 @@ export function StatusBadge({
         className,
       )}
     >
-      {getStatusDisplayLabel(status)}
+      {getStatusDisplayLabel(status, locale)}
     </span>
   );
 }

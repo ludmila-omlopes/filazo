@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { AuthDialog } from "@/components/auth-dialog";
+import { createTranslator } from "@/lib/i18n";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
 
 type LoginSearchParams = Promise<{
@@ -10,6 +12,8 @@ type LoginSearchParams = Promise<{
 export default async function LoginPage({
   searchParams,
 }: PageProps<"/login"> & { searchParams: LoginSearchParams }) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (userId) {
     redirect("/profile");
@@ -28,21 +32,19 @@ export default async function LoginPage({
         />
         <div className="relative z-10 grid max-w-[660px] gap-5">
           <p className="text-kicker font-bold uppercase text-glow/80">
-            filazo account
+            {t("login.kicker")}
           </p>
           <h1 className="text-page-title leading-tight">
-            Sign in once. Keep every library connected after.
+            {t("login.title")}
           </h1>
           <p className="max-w-[58ch] leading-relaxed text-cream/72">
-            Create a filazo account with email and password, or continue with
-            Google. Steam, PlayStation, and Xbox stay in Integrations after
-            login, where they belong as catalog sources.
+            {t("login.body")}
           </p>
           <div>
             <AuthDialog
               error={query.error}
               triggerClassName="min-h-12 bg-cream px-7 text-base text-dusk-deep hover:bg-glow"
-              triggerLabel="Open login"
+              triggerLabel={t("login.open")}
               triggerSize="lg"
             />
           </div>

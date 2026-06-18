@@ -11,12 +11,17 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { AuthDialog } from "@/components/auth-dialog";
+import { LocaleProvider } from "@/components/locale-provider";
+import { LocaleToggle } from "@/components/locale-toggle";
 import { SignOutForm } from "@/components/sign-out-form";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeaderFrame } from "@/components/site-header-frame";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { createTranslator } from "@/lib/i18n";
+import { isAdminEmail } from "@/lib/beta-access";
 import { prisma } from "@/lib/prisma";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
 import { FILAZO_THEME_COOKIE, parseFilazoTheme } from "@/lib/theme";
 
@@ -36,6 +41,7 @@ async function getNavigationUser(userId: string | null) {
       where: { id: userId },
       include: {
         externalAccounts: true,
+        betaApplication: true,
       },
     });
   } catch (error) {
@@ -49,6 +55,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const cookieStore = await cookies();
   const theme = parseFilazoTheme(
     cookieStore.get(FILAZO_THEME_COOKIE)?.value,
@@ -57,61 +65,71 @@ export default async function RootLayout({
   const navigationUser = await getNavigationUser(userId);
 
   return (
-    <html lang="en" data-theme={theme}>
+    <html lang={locale} data-theme={theme}>
       <body>
-        {/* Skip to content */}
-        <Button
-          asChild
-          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
-        >
-          <a
-            href="#main-content"
+        <LocaleProvider locale={locale}>
+          <Button
+            asChild
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
           >
-            Skip to content
-          </a>
-        </Button>
+            <a href="#main-content">{t("common.skipToContent")}</a>
+          </Button>
 
-        <div className="min-h-screen px-6 pb-6 max-md:px-4 max-md:pb-4">
-          <SiteHeaderFrame>
-            <Link href="/" className="group inline-flex items-baseline gap-2">
-              <span className="font-display text-[1.45rem] font-medium">
-                filazo
-              </span>
-              <span
-                aria-hidden
-                className="h-5 w-1.5 translate-y-1 rounded-[2px] bg-glow motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-y-110"
-              />
-            </Link>
+          <div className="min-h-screen px-6 pb-6 max-md:px-4 max-md:pb-4">
+            <SiteHeaderFrame>
+              <Link href="/" className="group inline-flex items-baseline gap-2">
+                <span className="font-display text-[1.45rem] font-medium">
+                  filazo
+                </span>
+                <span
+                  aria-hidden
+                  className="h-5 w-1.5 translate-y-1 rounded-[2px] bg-glow motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-y-110"
+                />
+              </Link>
 
-            <nav
-              className="flex flex-wrap items-center justify-end gap-6 max-sm:justify-start"
-              aria-label="Main"
-            >
-              <Link href="/" className="nav-link text-sm">
-                Home
-              </Link>
-              <Link href="/profile" className="nav-link text-sm">
-                Library
-              </Link>
-              <Link href="/tonight" className="nav-link text-sm">
-                Tonight
-              </Link>
-              <ThemeToggle theme={theme} />
-              {navigationUser ? (
-                <div className="inline-flex items-center gap-3">
-                  <span className="max-w-[16ch] truncate text-sm font-semibold">
-                    {navigationUser.displayName ?? "Player"}
-                  </span>
-                  <SignOutForm />
-                </div>
-              ) : (
-                <AuthDialog triggerLabel="Sign in" triggerSize="sm" />
-              )}
-            </nav>
-          </SiteHeaderFrame>
-          {children}
-          <SiteFooter />
-        </div>
+              <nav
+                className="flex flex-wrap items-center justify-end gap-6 max-sm:justify-start"
+                aria-label={t("nav.main")}
+              >
+                <Link href="/" className="nav-link text-sm">
+                  {t("common.home")}
+                </Link>
+                <Link href="/profile" className="nav-link text-sm">
+                  {t("common.library")}
+                </Link>
+                <Link href="/tonight" className="nav-link text-sm">
+                  {t("common.tonight")}
+                </Link>
+                {navigationUser && isAdminEmail(navigationUser.email) ? (
+                  <Link href="/admin" className="nav-link text-sm">
+                    Admin
+                  </Link>
+                ) : (
+                  <Link href="/beta" className="nav-link text-sm">
+                    Beta
+                  </Link>
+                )}
+                <LocaleToggle locale={locale} />
+                <ThemeToggle theme={theme} />
+                {navigationUser ? (
+                  <div className="inline-flex items-center gap-3">
+                    <span className="max-w-[16ch] truncate text-sm font-semibold">
+                      {navigationUser.displayName ?? t("common.player")}
+                    </span>
+                    <SignOutForm label={t("auth.signOut")} />
+                  </div>
+                ) : (
+                  <AuthDialog
+                    triggerLabel={t("auth.trigger.signIn")}
+                    triggerSize="sm"
+                  />
+                )}
+              </nav>
+            </SiteHeaderFrame>
+            {children}
+            <SiteFooter locale={locale} />
+          </div>
+        </LocaleProvider>
       </body>
     </html>
   );

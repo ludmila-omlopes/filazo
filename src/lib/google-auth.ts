@@ -15,7 +15,7 @@ type GoogleTokenResponse = {
   token_type?: string;
 };
 
-type GoogleProfile = {
+export type GoogleProfile = {
   subject: string;
   email: string;
   emailVerified: boolean;
@@ -49,20 +49,28 @@ export function getGoogleRedirectUri(origin: string) {
   return `${origin}/api/auth/google/callback`;
 }
 
+export function getYoutubeRedirectUri(origin: string) {
+  return `${origin}/api/auth/youtube/callback`;
+}
+
 export function createGoogleAuthUrl({
   nonce,
   origin,
+  redirectUri = getGoogleRedirectUri(origin),
+  scope = "openid email profile",
   state,
 }: {
   nonce: string;
   origin: string;
+  redirectUri?: string;
+  scope?: string;
   state: string;
 }) {
   const url = new URL(GOOGLE_AUTH_URL);
   url.searchParams.set("client_id", getGoogleClientId());
-  url.searchParams.set("redirect_uri", getGoogleRedirectUri(origin));
+  url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("response_type", "code");
-  url.searchParams.set("scope", "openid email profile");
+  url.searchParams.set("scope", scope);
   url.searchParams.set("state", state);
   url.searchParams.set("nonce", nonce);
   url.searchParams.set("prompt", "select_account");
@@ -74,17 +82,19 @@ export async function exchangeGoogleCodeForProfile({
   code,
   nonce,
   origin,
+  redirectUri = getGoogleRedirectUri(origin),
 }: {
   code: string;
   nonce: string;
   origin: string;
+  redirectUri?: string;
 }): Promise<GoogleProfile> {
   const body = new URLSearchParams({
     client_id: getGoogleClientId(),
     client_secret: getGoogleClientSecret(),
     code,
     grant_type: "authorization_code",
-    redirect_uri: getGoogleRedirectUri(origin),
+    redirect_uri: redirectUri,
   });
 
   const response = await fetch(GOOGLE_TOKEN_URL, {
@@ -128,7 +138,13 @@ export async function exchangeGoogleCodeForProfile({
   };
 }
 
-export async function upsertGoogleUser(profile: GoogleProfile) {
+export async function upsertGoogleUser(
+  profile: GoogleProfile,
+  {
+    allowCreate = false,
+    registrationClosedMessage = "Public registrations are closed. Use the beta tester signup.",
+  }: { allowCreate?: boolean; registrationClosedMessage?: string } = {},
+) {
   const existingByGoogle = await prisma.user.findUnique({
     where: { googleSubject: profile.subject },
   });
@@ -157,6 +173,10 @@ export async function upsertGoogleUser(profile: GoogleProfile) {
         avatarUrl: existingByEmail.avatarUrl ?? profile.picture ?? undefined,
       },
     });
+  }
+
+  if (!allowCreate) {
+    throw new Error(registrationClosedMessage);
   }
 
   return prisma.user.create({

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Papa from "papaparse";
+import { useTranslations } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 
 type ColumnMapping = {
@@ -18,16 +19,23 @@ type ImportSource = "GENERIC" | "PLAYSTATION" | "XBOX";
 
 const fieldOptions: Array<{
   key: keyof ColumnMapping;
-  label: string;
+  labelKey:
+    | "csv.field.title"
+    | "csv.field.platform"
+    | "csv.field.status"
+    | "csv.field.playtime"
+    | "csv.field.completion"
+    | "csv.field.notes"
+    | "csv.field.externalId";
   required?: boolean;
 }> = [
-  { key: "title", label: "Title", required: true },
-  { key: "platform", label: "Platform" },
-  { key: "status", label: "Status" },
-  { key: "playtimeHours", label: "Hours Played" },
-  { key: "completionPercent", label: "Achievement %" },
-  { key: "notes", label: "Notes" },
-  { key: "externalId", label: "External ID" },
+  { key: "title", labelKey: "csv.field.title", required: true },
+  { key: "platform", labelKey: "csv.field.platform" },
+  { key: "status", labelKey: "csv.field.status" },
+  { key: "playtimeHours", labelKey: "csv.field.playtime" },
+  { key: "completionPercent", labelKey: "csv.field.completion" },
+  { key: "notes", labelKey: "csv.field.notes" },
+  { key: "externalId", labelKey: "csv.field.externalId" },
 ];
 const optionalFieldOptions = fieldOptions.filter((field) => !field.required);
 
@@ -68,23 +76,12 @@ function getProviderForSource(source: ImportSource) {
   return source === "GENERIC" ? undefined : source;
 }
 
-function getSourceLabel(source: ImportSource) {
-  if (source === "PLAYSTATION") {
-    return "PlayStation";
-  }
-
-  if (source === "XBOX") {
-    return "Xbox";
-  }
-
-  return "Generic";
-}
-
 export function CsvImportWidget({
   action,
 }: {
   action: (formData: FormData) => void;
 }) {
+  const t = useTranslations();
   const [fileName, setFileName] = useState("");
   const [csvText, setCsvText] = useState("");
   const [headers, setHeaders] = useState<string[]>([]);
@@ -105,10 +102,15 @@ export function CsvImportWidget({
       JSON.stringify({
         ...mapping,
         provider: getProviderForSource(source),
-      }),
+    }),
     [mapping, source],
   );
-  const sourceLabel = getSourceLabel(source);
+  const sourceLabel =
+    source === "PLAYSTATION"
+      ? t("csv.playstation")
+      : source === "XBOX"
+        ? t("csv.xbox")
+        : t("csv.generic");
 
   const previewRows = useMemo(() => {
     if (!rows.length || !mapping.title) {
@@ -144,7 +146,7 @@ export function CsvImportWidget({
     });
 
     if (parsed.errors.length) {
-      setError(parsed.errors[0]?.message ?? "This CSV did not open cleanly.");
+      setError(parsed.errors[0]?.message ?? t("csv.error"));
       setHeaders([]);
       setRows([]);
       setCsvText("");
@@ -165,7 +167,7 @@ export function CsvImportWidget({
       {/* File upload zone */}
       <div className="rounded-card border border-dashed border-edge bg-canvas/60 p-[18px]">
         <label className="mb-3 block font-semibold" htmlFor="csv-upload">
-          Choose a CSV file
+          {t("csv.chooseFile")}
         </label>
         <input
           id="csv-upload"
@@ -175,8 +177,7 @@ export function CsvImportWidget({
           className="w-full file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sage-soft file:px-4 file:py-2 file:font-semibold file:transition-colors hover:file:bg-sand-soft"
         />
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-          Filazo will read the columns it recognizes and show you a preview
-          before anything is added.
+          {t("csv.helper")}
         </p>
       </div>
 
@@ -195,7 +196,7 @@ export function CsvImportWidget({
           <input type="hidden" name="mapping" value={serializedMapping} />
 
           <label className="grid gap-2">
-            <span className="font-medium">Where did this file come from?</span>
+            <span className="font-medium">{t("csv.origin")}</span>
             <select
               value={source}
               onChange={(event) =>
@@ -203,14 +204,14 @@ export function CsvImportWidget({
               }
               className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
             >
-              <option value="GENERIC">Generic CSV</option>
-              <option value="PLAYSTATION">PlayStation CSV</option>
-              <option value="XBOX">Xbox CSV</option>
+              <option value="GENERIC">{t("csv.generic")}</option>
+              <option value="PLAYSTATION">{t("csv.playstation")}</option>
+              <option value="XBOX">{t("csv.xbox")}</option>
             </select>
           </label>
 
           <label className="grid gap-2">
-            <span className="font-medium">Game title column</span>
+            <span className="font-medium">{t("csv.titleColumn")}</span>
             <select
               value={mapping.title}
               aria-required="true"
@@ -222,7 +223,7 @@ export function CsvImportWidget({
               }
               className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
             >
-              <option value="">Choose the title column</option>
+              <option value="">{t("csv.titlePrompt")}</option>
               {headers.map((header) => (
                 <option key={header} value={header}>
                   {header}
@@ -233,12 +234,12 @@ export function CsvImportWidget({
 
           <details className="rounded-inner border border-edge bg-canvas/60 p-4">
             <summary className="cursor-pointer text-sm font-bold">
-              Adjust optional columns
+              {t("csv.adjustOptional")}
             </summary>
             <div className="mt-4 grid grid-cols-2 gap-3.5 max-lg:grid-cols-1">
               {optionalFieldOptions.map((field) => (
                 <label className="grid gap-2" key={field.key}>
-                  <span className="font-medium">{field.label}</span>
+                  <span className="font-medium">{t(field.labelKey)}</span>
                   <select
                     value={mapping[field.key]}
                     onChange={(event) =>
@@ -249,7 +250,7 @@ export function CsvImportWidget({
                     }
                     className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
                   >
-                    <option value="">Skip this</option>
+                    <option value="">{t("csv.skipField")}</option>
                     {headers.map((header) => (
                       <option key={header} value={header}>
                         {header}
@@ -262,11 +263,10 @@ export function CsvImportWidget({
           </details>
 
           <div className="grid gap-2.5" aria-live="polite">
-            <div className="section-label">Preview</div>
+            <div className="section-label">{t("csv.preview")}</div>
             {source !== "GENERIC" ? (
               <p className="text-sm font-semibold text-ink-soft">
-                These rows will be treated as {sourceLabel} games when a matching
-                identifier is present.
+                {t("csv.sourceRows", { source: sourceLabel })}
               </p>
             ) : null}
             {previewRows.length ? (
@@ -276,15 +276,15 @@ export function CsvImportWidget({
                   key={`${row.title}-${index}`}
                 >
                   <strong>{row.title}</strong>
-                  <span>{row.platform || "No platform"}</span>
-                  <span>{row.status || "owned"}</span>
+                  <span>{row.platform || t("csv.noPlatform")}</span>
+                  <span>{row.status || t("status.OWNED")}</span>
                   <span>{row.playtimeHours || "0"}h</span>
-                  <span>{row.completionPercent || "No progress"}</span>
+                  <span>{row.completionPercent || t("csv.noProgress")}</span>
                 </div>
               ))
             ) : (
               <p className="leading-relaxed text-ink-soft">
-                Choose the title column to preview the rows.
+                {t("csv.choosePreview")}
               </p>
             )}
           </div>
@@ -293,7 +293,7 @@ export function CsvImportWidget({
             type="submit"
             disabled={!mapping.title || !csvText}
           >
-            Import games
+            {t("csv.import")}
           </Button>
         </form>
       ) : null}

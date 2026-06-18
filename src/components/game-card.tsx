@@ -4,7 +4,8 @@ import type { MouseEventHandler } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Chip } from "@/components/ui/chip";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { cn, formatPlaytime } from "@/lib/utils";
+import { translate, type Locale } from "@/lib/i18n";
+import { cn, formatTimeEstimate } from "@/lib/utils";
 
 const gameCardVariants = cva(
   "group/card block rounded-card border border-edge bg-surface text-ink shadow-rest outline-none transition-[box-shadow,border-color] duration-[250ms] ease-out focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas motion-safe:transition-[transform,box-shadow,border-color] motion-safe:hover:-translate-y-0.5 hover:shadow-lift",
@@ -48,6 +49,7 @@ type GameCardProps = VariantProps<typeof gameCardVariants> & {
   disabled?: boolean;
   className?: string;
   id?: string;
+  locale?: Locale;
 };
 
 function getInitial(name: string) {
@@ -66,17 +68,16 @@ function getDisplayStatus(
 }
 
 function getPlaytimeLabel(
+  locale: Locale,
   playtimeMinutes: number | null | undefined,
-  completionPercent: number | null | undefined,
 ) {
   if (!playtimeMinutes || playtimeMinutes <= 0) {
     return null;
   }
 
-  return formatPlaytime(playtimeMinutes, completionPercent).replace(
-    " played",
-    " so far",
-  );
+  return translate(locale, "common.playtimeSoFar", {
+    value: formatTimeEstimate(playtimeMinutes, locale),
+  });
 }
 
 function Cover({
@@ -151,7 +152,6 @@ export function GameCard({
   game,
   platformName,
   playtimeMinutes,
-  completionPercent,
   status,
   finished,
   eyebrow,
@@ -163,9 +163,10 @@ export function GameCard({
   variant = "shelf",
   className,
   id,
+  locale = "en",
 }: GameCardProps) {
   const resolvedVariant = variant ?? "shelf";
-  const playtimeLabel = getPlaytimeLabel(playtimeMinutes, completionPercent);
+  const playtimeLabel = getPlaytimeLabel(locale, playtimeMinutes);
   const displayStatus = getDisplayStatus(status, finished);
   const targetHref = href ?? `/games/${game.slug}`;
   const showDetails = resolvedVariant !== "shelf";
@@ -180,7 +181,9 @@ export function GameCard({
           </h3>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
-            {displayStatus ? <StatusBadge status={displayStatus} /> : null}
+            {displayStatus ? (
+              <StatusBadge locale={locale} status={displayStatus} />
+            ) : null}
           </div>
           {description ? (
             <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-soft">
@@ -206,7 +209,9 @@ export function GameCard({
             <>
               <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
               <div className="flex flex-wrap items-center gap-2">
-                {displayStatus ? <StatusBadge status={displayStatus} /> : null}
+                {displayStatus ? (
+                  <StatusBadge locale={locale} status={displayStatus} />
+                ) : null}
                 {chips.slice(0, 2).map((chip) => (
                   <Chip key={chip} tone="blue">
                     {chip}

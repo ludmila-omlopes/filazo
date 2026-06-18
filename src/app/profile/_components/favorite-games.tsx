@@ -1,16 +1,32 @@
 import { EmptyState } from "@/components/ui/empty-state";
 import { GameCard } from "@/components/game-card";
 import { SectionHeader } from "@/components/ui/section-header";
+import { createTranslator, type Locale } from "@/lib/i18n";
+import { formatNumber } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
 import type { ProfileData } from "./profile-types";
 
-export function FavoriteGames({ profile }: { profile: ProfileData }) {
+export function FavoriteGames({
+  locale,
+  profile,
+}: {
+  locale: Locale;
+  profile: ProfileData;
+}) {
+  const t = createTranslator(locale);
+
   return (
     <section className="panel">
       <SectionHeader
-        eyebrow="Favorites"
-        title="Games you love"
-        aside={<div className="pill">{profile.favoriteEntries.length} kept close</div>}
+        eyebrow={t("profile.favorites.label")}
+        title={t("profile.favorites.title")}
+        aside={
+          <div className="pill">
+            {t("profile.favorites.keptClose", {
+              count: formatNumber(profile.favoriteEntries.length, locale),
+            })}
+          </div>
+        }
       />
 
       {profile.favoriteEntries.length ? (
@@ -27,20 +43,22 @@ export function FavoriteGames({ profile }: { profile: ProfileData }) {
                     ? "FINISHED"
                     : entry.status
                 }
+                locale={locale}
                 variant="shelf"
               />
               <FavoriteButton
                 entryId={entry.id}
                 gameName={entry.game.name}
                 isFavorite={entry.isFavorite}
+                locale={locale}
                 fullWidth
               />
             </div>
           ))}
         </div>
       ) : (
-        <EmptyState title="No favorites yet, and that is fine.">
-          Tap the heart on any game whenever one feels special.
+        <EmptyState title={t("profile.favorites.emptyTitle")}>
+          {t("profile.favorites.emptyBody")}
         </EmptyState>
       )}
     </section>

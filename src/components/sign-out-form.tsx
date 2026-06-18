@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { clearUserSession } from "@/lib/session";
 
-export function SignOutForm() {
+export function SignOutForm({ label }: { label: string }) {
   async function signOut() {
     "use server";
     await clearUserSession();
@@ -12,7 +12,7 @@ export function SignOutForm() {
   return (
     <form action={signOut}>
       <Button variant="ghost" size="sm" type="submit">
-        Sign out
+        {label}
       </Button>
     </form>
   );

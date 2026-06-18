@@ -18,6 +18,7 @@ import {
   syncXboxLibraryForUser,
 } from "@/lib/catalog";
 import { getIgdbGameById } from "@/lib/igdb";
+import { createTranslator } from "@/lib/i18n";
 import {
   createJournalEntryForUser,
   getFormFile,
@@ -25,6 +26,7 @@ import {
 } from "@/lib/journal";
 import { connectPlayStationAccountForUser } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
+import { getRequestLocale } from "@/lib/request-locale";
 import { syncUserReviews } from "@/lib/reviews";
 import { getSessionUserId } from "@/lib/session";
 import { detectFinishedGamesForUser } from "@/lib/story-completion";
@@ -420,9 +422,11 @@ function getNextSetupStep(step: "rhythm" | "platforms") {
 }
 
 export async function syncSteamLibraryAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20syncing%20Steam.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needSteamLogin"))}`);
   }
 
   let syncedCount: number;
@@ -431,7 +435,7 @@ export async function syncSteamLibraryAction() {
     syncedCount = result.syncedCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Steam sync did not complete.";
+      error instanceof Error ? error.message : t("profileAction.steamSyncFailed");
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
 
@@ -441,14 +445,16 @@ export async function syncSteamLibraryAction() {
 }
 
 export async function disconnectProviderAction(provider: ExternalProvider) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20changing%20integrations.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needIntegrationsLogin"))}`);
   }
 
   const parsed = disconnectProviderSchema.safeParse(provider);
   if (!parsed.success) {
-    redirect("/profile?tab=integrations&error=That%20integration%20cannot%20be%20disconnected.");
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.disconnectInvalid"))}`);
   }
 
   await prisma.externalAccount.deleteMany({
@@ -466,9 +472,11 @@ export async function disconnectProviderAction(provider: ExternalProvider) {
 }
 
 export async function connectPlayStationAction(formData: FormData) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20connecting%20PlayStation.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needPlayStationLogin"))}`);
   }
 
   const parsed = playStationConnectSchema.safeParse({
@@ -476,7 +484,7 @@ export async function connectPlayStationAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect("/profile?tab=integrations&error=Enter%20a%20valid%20PlayStation%20NPSSO%20token.");
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.invalidPlayStationToken"))}`);
   }
 
   try {
@@ -488,7 +496,7 @@ export async function connectPlayStationAction(formData: FormData) {
     const message =
       error instanceof Error
         ? error.message
-        : "Could not connect PlayStation.";
+        : t("profileAction.playStationConnectFailed");
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
 
@@ -498,9 +506,11 @@ export async function connectPlayStationAction(formData: FormData) {
 }
 
 export async function syncPlayStationLibraryAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20syncing%20PlayStation.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needPlayStationSyncLogin"))}`);
   }
 
   let syncedCount: number;
@@ -509,7 +519,9 @@ export async function syncPlayStationLibraryAction() {
     syncedCount = result.syncedCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "PlayStation sync did not complete.";
+      error instanceof Error
+        ? error.message
+        : t("profileAction.playStationSyncFailed");
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
 
@@ -519,9 +531,11 @@ export async function syncPlayStationLibraryAction() {
 }
 
 export async function syncXboxLibraryAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20syncing%20Xbox.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needXboxSyncLogin"))}`);
   }
 
   let syncedCount: number;
@@ -530,7 +544,7 @@ export async function syncXboxLibraryAction() {
     syncedCount = result.syncedCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Xbox sync did not complete.";
+      error instanceof Error ? error.message : t("profileAction.xboxSyncFailed");
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
 
@@ -561,9 +575,11 @@ export async function syncUserReviewsAction() {
 }
 
 export async function importCsvAction(formData: FormData) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20importing%20CSV%20data.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needCsvLogin"))}`);
   }
 
   const parsed = importSchema.safeParse({
@@ -573,12 +589,12 @@ export async function importCsvAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect("/profile?error=Please%20upload%20a%20valid%20CSV%20file.");
+    redirect(`/profile?error=${encodeURIComponent(t("profileAction.invalidCsv"))}`);
   }
 
   const mapping = JSON.parse(parsed.data.mapping) as CsvColumnMapping;
   if (!mapping.title) {
-    redirect("/profile?error=Map%20a%20title%20column%20before%20importing.");
+    redirect(`/profile?error=${encodeURIComponent(t("profileAction.needTitleMapping"))}`);
   }
 
   let importedCount: number;
@@ -592,7 +608,7 @@ export async function importCsvAction(formData: FormData) {
     importedCount = result.importedCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "CSV import did not complete.";
+      error instanceof Error ? error.message : t("profileAction.csvImportFailed");
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 
@@ -899,14 +915,16 @@ export async function clearOnboardingAction() {
 }
 
 export async function saveCurrentPlayingAction(formData: FormData) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20changing%20Current%20playing.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needCurrentPlayingLogin"))}`);
   }
 
   const selections = parseCurrentPlayingSelections(formData);
   if (!selections) {
-    redirect("/profile?error=Choose%20up%20to%20three%20games%20for%20Current%20playing.");
+    redirect(`/profile?error=${encodeURIComponent(t("profileAction.invalidCurrentPlaying"))}`);
   }
 
   try {
@@ -915,7 +933,7 @@ export async function saveCurrentPlayingAction(formData: FormData) {
     const message =
       error instanceof Error
         ? error.message
-        : "Current playing could not be saved.";
+        : t("profileAction.invalidCurrentPlaying");
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 
@@ -962,9 +980,11 @@ export async function saveCurrentPlayingSelectionAction(
 }
 
 export async function clearCurrentPlayingAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20changing%20Current%20playing.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needCurrentPlayingLogin"))}`);
   }
 
   await clearCurrentPlayingForUser(userId);
@@ -975,9 +995,11 @@ export async function clearCurrentPlayingAction() {
 }
 
 export async function detectFinishedGamesAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/profile?error=Sign%20in%20before%20detecting%20finished%20games.");
+    redirect(`/profile?error=${encodeURIComponent(t("profileAction.needFinishedLogin"))}`);
   }
 
   let finishedCount: number;
@@ -990,7 +1012,7 @@ export async function detectFinishedGamesAction() {
     const message =
       error instanceof Error
         ? error.message
-        : "Credits-rolled check did not complete.";
+        : t("profileAction.finishedCheckFailed");
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 

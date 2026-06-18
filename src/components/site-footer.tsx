@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { createTranslator, type Locale } from "@/lib/i18n";
 
-export function SiteFooter() {
+export function SiteFooter({ locale }: { locale: Locale }) {
+  const t = createTranslator(locale);
+
   return (
     <footer className="mx-auto mt-16 w-full max-w-[1100px] border-t border-edge py-8 text-sm text-ink-soft">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -15,15 +18,15 @@ export function SiteFooter() {
         </Link>
 
         <p className="font-display text-base italic text-ink">
-          Your catalog, your pace.
+          {t("footer.tagline")}
         </p>
 
         <nav
-          aria-label="Footer"
+          aria-label={t("nav.footer")}
           className="flex flex-wrap items-center gap-4 text-sm"
         >
           <Link className="nav-link" href="/profile">
-            Library
+            {t("common.library")}
           </Link>
           <a
             className="nav-link"
@@ -36,7 +39,7 @@ export function SiteFooter() {
         </nav>
 
         <p className="text-caption font-semibold uppercase">
-          made for players with too many games
+          {t("footer.madeFor")}
         </p>
       </div>
     </footer>

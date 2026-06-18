@@ -22,6 +22,8 @@ import {
 } from "./_components/profile-query";
 import { ShelfGrid } from "./_components/shelf-grid";
 import { Notice } from "@/components/ui/notice";
+import { getBetaAccessRedirect, getSessionUserWithBeta } from "@/lib/beta-access";
+import { getRequestLocale } from "@/lib/request-locale";
 import {
   getAssistantProfileData,
   getAssistantSignalEntryIds,
@@ -37,10 +39,18 @@ import { getSessionUserId } from "@/lib/session";
 export default async function ProfilePage({
   searchParams,
 }: PageProps<"/profile"> & { searchParams: ProfileSearchParams }) {
+  const locale = await getRequestLocale();
   const userId = await getSessionUserId();
+  const accessRedirect = getBetaAccessRedirect(
+    await getSessionUserWithBeta(userId),
+  );
 
   if (!userId) {
-    return <SignedOutPanel />;
+    return <SignedOutPanel locale={locale} />;
+  }
+
+  if (accessRedirect) {
+    redirect(accessRedirect);
   }
 
   let profile: Awaited<ReturnType<typeof getProfileData>>;
@@ -48,7 +58,7 @@ export default async function ProfilePage({
     profile = await getProfileData(userId);
   } catch (error) {
     console.error("Could not load profile data.", error);
-    return <ProfileErrorPanel error={error} />;
+    return <ProfileErrorPanel error={error} locale={locale} />;
   }
 
   if (!profile) {
@@ -93,7 +103,7 @@ export default async function ProfilePage({
     }),
     gamesSort,
   );
-  const statusMessage = getStatusMessage(query);
+  const statusMessage = getStatusMessage(locale, query);
 
   return (
     <main
@@ -103,6 +113,7 @@ export default async function ProfilePage({
       <ProfileRail
         activeTab={activeTab}
         assistant={assistant}
+        locale={locale}
         profile={profile}
       />
 
@@ -113,8 +124,9 @@ export default async function ProfilePage({
 
         {activeTab === "overview" ? (
           <>
-            <GreetingStrip profile={profile} />
+            <GreetingStrip locale={locale} profile={profile} />
             <CurrentPlayingPanel
+              locale={locale}
               playerProfile={playerProfile}
               profile={profile}
             />
@@ -127,13 +139,13 @@ export default async function ProfilePage({
 
         {activeTab === "assistant" && assistant ? (
           <>
-            <FavoriteGames profile={profile} />
+            <FavoriteGames locale={locale} profile={profile} />
             <AssistantTab assistant={assistant} />
           </>
         ) : null}
 
         {activeTab === "integrations" ? (
-          <IntegrationsPanel profile={profile} />
+          <IntegrationsPanel locale={locale} profile={profile} />
         ) : null}
 
         {activeTab === "setup" ? (
@@ -159,6 +171,7 @@ export default async function ProfilePage({
             }}
             gamesSort={gamesSort}
             gamesView={gamesView}
+            locale={locale}
             visibleEntries={visibleEntries}
           />
         ) : null}

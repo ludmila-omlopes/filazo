@@ -6,8 +6,9 @@ import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getAssistantSignalDisplayLabel, getStatusDisplayLabel } from "@/lib/copy";
+import { createTranslator, type Locale } from "@/lib/i18n";
 import type { ProfileGameSort } from "@/lib/profile-games";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
 import { markDroppedAction, markFinishedAction } from "../actions";
 import {
@@ -118,9 +119,11 @@ function EntryStatusActions({
 
 function ShelfCard({
   entry,
+  locale,
   view,
 }: {
   entry: ProfileEntry;
+  locale: Locale;
   view: GamesView;
 }) {
   if (view === "list") {
@@ -135,6 +138,7 @@ function ShelfCard({
           playtimeMinutes={entry.playtimeMinutes}
           completionPercent={entry.completionPercent}
           status={statusForEntry(entry)}
+          locale={locale}
           variant="row"
         />
         <div className="flex flex-wrap items-center justify-end gap-2 max-sm:justify-start">
@@ -145,6 +149,7 @@ function ShelfCard({
             entryId={entry.id}
             gameName={entry.game.name}
             isFavorite={entry.isFavorite}
+            locale={locale}
           />
         </div>
       </div>
@@ -162,6 +167,7 @@ function ShelfCard({
         playtimeMinutes={entry.playtimeMinutes}
         completionPercent={entry.completionPercent}
         status={statusForEntry(entry)}
+        locale={locale}
         variant="shelf"
       />
       <div className="catalog-status-actions flex-wrap gap-2 [&>form]:flex-1">
@@ -171,6 +177,7 @@ function ShelfCard({
         entryId={entry.id}
         gameName={entry.game.name}
         isFavorite={entry.isFavorite}
+        locale={locale}
         fullWidth
       />
     </div>
@@ -182,14 +189,17 @@ export function ShelfGrid({
   filters,
   gamesSort,
   gamesView,
+  locale,
   visibleEntries,
 }: {
   allEntries: ProfileEntry[];
   filters: ShelfFilters;
   gamesSort: ProfileGameSort;
   gamesView: GamesView;
+  locale: Locale;
   visibleEntries: ProfileEntry[];
 }) {
+  const t = createTranslator(locale);
   const statuses = Array.from(new Set(allEntries.map((entry) => entry.status)));
   const platforms = Array.from(
     new Set(
@@ -210,13 +220,16 @@ export function ShelfGrid({
     <>
       <section className="panel">
         <SectionHeader
-          eyebrow="Shelf"
-          title="Your games"
-          description="Search first. Filters are tucked away when you need a narrower view."
+          eyebrow={t("profile.shelf.label")}
+          title={t("profile.shelf.title")}
+          description={t("profile.shelf.description")}
           aside={
             <div className="pill">
-              {visibleEntries.length}{" "}
-              {visibleEntries.length === 1 ? "game" : "games"}
+              {visibleEntries.length === 1
+                ? t("profile.shelf.gameCountOne")
+                : t("profile.shelf.gameCount", {
+                    count: formatNumber(visibleEntries.length, locale),
+                  })}
             </div>
           }
         />
@@ -242,7 +255,7 @@ export function ShelfGrid({
               <input type="hidden" name="platform" value={activePlatform} />
             ) : null}
             <label className="relative">
-              <span className="sr-only">Search your catalog</span>
+              <span className="sr-only">{t("profile.shelf.searchPlaceholder")}</span>
               <Search
                 aria-hidden
                 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft"
@@ -251,16 +264,18 @@ export function ShelfGrid({
                 className="min-h-11 w-full rounded-pill border border-edge bg-surface px-10 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                 defaultValue={queryText}
                 name="q"
-                placeholder="Search your catalog"
+                placeholder={t("profile.shelf.searchPlaceholder")}
                 type="search"
               />
             </label>
-            <Button type="submit">Search</Button>
+            <Button type="submit">{t("common.search")}</Button>
           </form>
 
           <div className="flex flex-wrap items-center gap-2 text-sm text-ink-soft">
             {activeStatus ? (
-              <Chip tone="sage">{getStatusDisplayLabel(activeStatus)}</Chip>
+              <Chip tone="sage">
+                {getStatusDisplayLabel(activeStatus, locale)}
+              </Chip>
             ) : null}
             {activePlatform ? (
               <Chip tone="blue">{getPlatformFilterLabel(activePlatform)}</Chip>
@@ -281,14 +296,16 @@ export function ShelfGrid({
                   view: gamesView,
                 })}
               >
-                Clear guide filter: {getAssistantSignalDisplayLabel(activeSignal)}
+                {t("profile.shelf.clearGuideFilter", {
+                  label: getAssistantSignalDisplayLabel(activeSignal, locale),
+                })}
               </Link>
             ) : null}
           </div>
 
           <details className="rounded-inner border border-edge bg-canvas/60 p-4">
             <summary className="cursor-pointer text-sm font-bold">
-              Filter and sort
+              {t("profile.shelf.filterSort")}
             </summary>
             <div className="mt-4 grid gap-4">
               <div className="flex flex-wrap items-center gap-2">
@@ -303,7 +320,9 @@ export function ShelfGrid({
                     view: gamesView,
                   })}
                 >
-                  <Chip tone={!activeStatus ? "sage" : "neutral"}>All</Chip>
+                  <Chip tone={!activeStatus ? "sage" : "neutral"}>
+                    {t("common.all")}
+                  </Chip>
                 </Link>
                 {statuses.map((status) => (
                   <Link
@@ -320,7 +339,7 @@ export function ShelfGrid({
                     key={status}
                   >
                     <Chip tone={activeStatus === status ? "sage" : "neutral"}>
-                      {getStatusDisplayLabel(status)}
+                      {getStatusDisplayLabel(status, locale)}
                     </Chip>
                   </Link>
                 ))}
@@ -339,7 +358,7 @@ export function ShelfGrid({
                     })}
                   >
                     <Chip tone={!activePlatform ? "blue" : "neutral"}>
-                      Any platform
+                      {t("common.anyPlatform")}
                     </Chip>
                   </Link>
                   {platforms.map((platform) => (
@@ -400,9 +419,9 @@ export function ShelfGrid({
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex gap-1 rounded-pill border border-edge bg-surface p-1">
                   {[
-                    ["added", "Newest"],
-                    ["playtime", "Playtime"],
-                    ["title", "Title"],
+                    ["added", t("profile.shelf.newest")],
+                    ["playtime", t("profile.shelf.playtime")],
+                    ["title", t("profile.shelf.titleSort")],
                   ].map(([sort, label]) => (
                     <Link
                       href={makeShelfHref({
@@ -428,8 +447,8 @@ export function ShelfGrid({
                 </div>
                 <div className="flex gap-1 rounded-pill border border-edge bg-surface p-1">
                   {[
-                    ["list", List, "List view"],
-                    ["grid", LayoutGrid, "Grid view"],
+                    ["list", List, t("common.listView")],
+                    ["grid", LayoutGrid, t("common.gridView")],
                   ].map(([view, Icon, label]) => (
                     <Link
                       href={makeShelfHref({
@@ -493,13 +512,18 @@ export function ShelfGrid({
               )}
             >
               {visibleEntries.map((entry) => (
-                <ShelfCard entry={entry} key={entry.id} view={gamesView} />
+                <ShelfCard
+                  entry={entry}
+                  key={entry.id}
+                  locale={locale}
+                  view={gamesView}
+                />
               ))}
             </div>
           </>
         ) : (
-          <EmptyState title="Your shelf is ready. Bring some games over.">
-            Sync a platform or import a CSV, then the catalog becomes browsable.
+          <EmptyState title={t("profile.shelf.emptyTitle")}>
+            {t("profile.shelf.emptyBody")}
           </EmptyState>
         )}
       </section>

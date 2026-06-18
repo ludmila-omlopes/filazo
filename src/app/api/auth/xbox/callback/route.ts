@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getRequestTranslator } from "@/lib/request-locale";
 import { getSessionUserId, setUserSession } from "@/lib/session";
 import { connectXboxAccountForUser } from "@/lib/xbox";
 
@@ -9,6 +10,7 @@ const XBOX_OAUTH_STATE_COOKIE = "filazo-xbox-oauth-state";
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
+    const { t } = await getRequestTranslator();
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     const cookieStore = await cookies();
@@ -25,16 +27,12 @@ export async function GET(request: Request) {
 
     const origin = process.env.APP_URL || url.origin;
     const existingSessionUserId = await getSessionUserId();
-    let user = existingSessionUserId
+    const user = existingSessionUserId
       ? await prisma.user.findUnique({ where: { id: existingSessionUserId } })
       : null;
 
     if (!user) {
-      user = await prisma.user.create({
-        data: {
-          displayName: "Xbox player",
-        },
-      });
+      throw new Error(t("auth.error.xboxRegistrationClosed"));
     }
 
     await connectXboxAccountForUser({

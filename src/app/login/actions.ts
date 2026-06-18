@@ -9,6 +9,7 @@ import {
   verifyPassword,
 } from "@/lib/password-auth";
 import { prisma } from "@/lib/prisma";
+import { getRequestTranslator } from "@/lib/request-locale";
 import { getSessionUserId, setUserSession } from "@/lib/session";
 
 const emailAuthSchema = z.object({
@@ -25,6 +26,7 @@ function redirectWithAuthError(message: string): never {
 }
 
 export async function emailAuthAction(formData: FormData) {
+  const { t } = await getRequestTranslator();
   const existingUserId = await getSessionUserId();
   if (existingUserId) {
     redirect("/profile");
@@ -40,23 +42,25 @@ export async function emailAuthAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirectWithAuthError(
-      "Use a valid email and a password with at least 8 characters.",
-    );
+    redirectWithAuthError(t("auth.error.invalidEmailOrPassword"));
   }
 
   const email = normalizeEmail(parsed.data.email);
   const password = parsed.data.password;
 
+  if (parsed.data.mode === "signup") {
+    redirectWithAuthError(t("auth.error.registrationClosed"));
+  }
+
   if (parsed.data.mode === "signin") {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user?.passwordHash) {
-      redirectWithAuthError("No filazo password account exists for that email.");
+      redirectWithAuthError(t("auth.error.noPasswordAccount"));
     }
 
     const isValidPassword = await verifyPassword(password, user.passwordHash);
     if (!isValidPassword) {
-      redirectWithAuthError("Email or password did not match.");
+      redirectWithAuthError(t("auth.error.emailPasswordMismatch"));
     }
 
     await setUserSession(user.id);
@@ -67,20 +71,20 @@ export async function emailAuthAction(formData: FormData) {
 
   const displayName = parsed.data.displayName?.trim();
   if (!displayName || displayName.length < 2) {
-    redirectWithAuthError("Choose a profile name with 2 to 48 characters.");
+    redirectWithAuthError(t("auth.error.displayNameLength"));
   }
 
   if (password !== parsed.data.confirmPassword) {
-    redirectWithAuthError("Password confirmation did not match.");
+    redirectWithAuthError(t("auth.error.passwordConfirmation"));
   }
 
   if (parsed.data.terms !== "on") {
-    redirectWithAuthError("Accept the terms before creating an account.");
+    redirectWithAuthError(t("auth.error.acceptTerms"));
   }
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser?.passwordHash) {
-    redirectWithAuthError("A filazo account already exists for that email.");
+    redirectWithAuthError(t("auth.error.accountExists"));
   }
 
   const passwordHash = await hashPassword(password);

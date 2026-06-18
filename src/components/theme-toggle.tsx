@@ -6,6 +6,7 @@ import { useEffect, useState, useTransition } from "react";
 import { setFilazoTheme } from "@/app/theme-actions";
 import { cn } from "@/lib/utils";
 import type { FilazoTheme } from "@/lib/theme";
+import { useTranslations } from "./locale-provider";
 
 type ThemeOption = {
   value: FilazoTheme;
@@ -30,6 +31,7 @@ export function ThemeToggle({ theme }: { theme: FilazoTheme }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [optimisticTheme, setOptimisticTheme] = useState(theme);
+  const t = useTranslations();
 
   useEffect(() => {
     setOptimisticTheme(theme);
@@ -50,11 +52,13 @@ export function ThemeToggle({ theme }: { theme: FilazoTheme }) {
   return (
     <div
       className="inline-flex items-center gap-1 rounded-pill border border-edge bg-surface p-1 shadow-rest"
-      aria-label="Theme"
+      aria-label={t("theme.label")}
       role="group"
     >
-      {themeOptions.map(({ value, label, icon: Icon }) => {
+      {themeOptions.map(({ value, icon: Icon }) => {
         const isActive = optimisticTheme === value;
+        const label =
+          value === "day" ? t("theme.dayLabel") : t("theme.nightLabel");
 
         return (
           <button
