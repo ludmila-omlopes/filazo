@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
-import { AddGamesPanel } from "./_components/add-games-panel";
 import { AssistantCorner, AssistantTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
 import { FavoriteGames } from "./_components/favorite-games";
 import { GreetingStrip } from "./_components/greeting-strip";
 import { IntegrationsPanel } from "./_components/integrations-panel";
+import { JournalTab } from "./_components/journal-tab";
+import { OnboardingPanel } from "./_components/onboarding-panel";
 import {
   ProfileErrorPanel,
   SignedOutPanel,
@@ -16,6 +17,7 @@ import {
   parseActiveStatus,
   parseActiveTab,
   parseAssistantSignal,
+  parseSetupStep,
   type ProfileSearchParams,
 } from "./_components/profile-query";
 import { ShelfGrid } from "./_components/shelf-grid";
@@ -65,9 +67,19 @@ export default async function ProfilePage({
 
   const query = await searchParams;
   const activeTab = parseActiveTab(query.tab);
+  const setupStep = parseSetupStep(query.step);
+  const needsFirstSetup =
+    !profile.user.onboardingCompletedAt && !profile.user.onboardingSkippedAt;
+
+  if (needsFirstSetup && activeTab === "overview") {
+    redirect("/profile?tab=setup");
+  }
+
   const activeSignal = parseAssistantSignal(query.signal);
   const activeStatus = parseActiveStatus(query.status);
   const activePlatform = query.platform?.trim() || null;
+  const activeJournalEntryId = query.entryId?.trim() || null;
+  const includeDormant = query.includeDormant === "1";
   const queryText = query.q?.trim() ?? "";
   const gamesView = query.view === "grid" ? "grid" : "list";
   const gamesSort = parseProfileGameSort(query.sort);
@@ -85,6 +97,7 @@ export default async function ProfilePage({
       activePlatform,
       activeStatus,
       entries: allEntries,
+      includeDormant,
       queryText,
       signalEntryIds,
     }),
@@ -117,21 +130,33 @@ export default async function ProfilePage({
               playerProfile={playerProfile}
               profile={profile}
             />
-            <FavoriteGames locale={locale} profile={profile} />
             <AssistantCorner
               playerProfile={playerProfile}
               profile={profile}
             />
-            <AddGamesPanel locale={locale} profile={profile} />
           </>
         ) : null}
 
         {activeTab === "assistant" && assistant ? (
-          <AssistantTab assistant={assistant} />
+          <>
+            <FavoriteGames locale={locale} profile={profile} />
+            <AssistantTab assistant={assistant} />
+          </>
         ) : null}
 
         {activeTab === "integrations" ? (
           <IntegrationsPanel locale={locale} profile={profile} />
+        ) : null}
+
+        {activeTab === "setup" ? (
+          <OnboardingPanel profile={profile} step={setupStep} />
+        ) : null}
+
+        {activeTab === "journal" ? (
+          <JournalTab
+            activeEntryId={activeJournalEntryId}
+            profile={profile}
+          />
         ) : null}
 
         {activeTab === "games" ? (
@@ -141,6 +166,7 @@ export default async function ProfilePage({
               activePlatform,
               activeSignal,
               activeStatus,
+              includeDormant,
               queryText,
             }}
             gamesSort={gamesSort}

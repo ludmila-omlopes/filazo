@@ -19,6 +19,9 @@ db.exec(`
     "googleSubject" TEXT,
     "youtubeSubject" TEXT,
     "avatarUrl" TEXT,
+    "onboardingAnswers" TEXT,
+    "onboardingCompletedAt" DATETIME,
+    "onboardingSkippedAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
@@ -166,6 +169,73 @@ db.exec(`
     FOREIGN KEY ("userGameEntryId") REFERENCES "UserGameEntry"("id") ON DELETE CASCADE ON UPDATE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS "UserGameReview" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "userGameEntryId" TEXT NOT NULL,
+    "gameId" TEXT NOT NULL,
+    "provider" TEXT,
+    "externalReviewId" TEXT,
+    "title" TEXT,
+    "body" TEXT,
+    "ratingText" TEXT,
+    "score" INTEGER,
+    "recommended" BOOLEAN,
+    "language" TEXT,
+    "sourceUrl" TEXT,
+    "reviewedAt" DATETIME,
+    "updatedOnProviderAt" DATETIME,
+    "rawData" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY ("userGameEntryId") REFERENCES "UserGameEntry"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY ("gameId") REFERENCES "Game"("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS "GameJournalEntry" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "userGameEntryId" TEXT NOT NULL,
+    "gameId" TEXT NOT NULL,
+    "title" TEXT,
+    "body" TEXT,
+    "source" TEXT NOT NULL DEFAULT 'manual',
+    "externalSourceId" TEXT,
+    "visibility" TEXT NOT NULL DEFAULT 'private',
+    "occurredAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "mechanicsRecap" TEXT,
+    "achievementSummary" TEXT,
+    "latestAchievementName" TEXT,
+    "latestAchievementUnlockedAt" DATETIME,
+    "inferenceConfidence" INTEGER,
+    "audioTranscript" TEXT,
+    "translatedTranscript" TEXT,
+    "transcriptLanguage" TEXT,
+    "transcriptConfidence" REAL,
+    "rawData" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY ("userGameEntryId") REFERENCES "UserGameEntry"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY ("gameId") REFERENCES "Game"("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS "JournalMedia" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "journalEntryId" TEXT NOT NULL,
+    "kind" TEXT NOT NULL,
+    "url" TEXT NOT NULL,
+    "storageKey" TEXT NOT NULL,
+    "mimeType" TEXT NOT NULL,
+    "fileName" TEXT,
+    "sizeBytes" INTEGER,
+    "source" TEXT NOT NULL DEFAULT 'manual-upload',
+    "caption" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY ("journalEntryId") REFERENCES "GameJournalEntry"("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );
+
   CREATE TABLE IF NOT EXISTS "PlayerProfile" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
@@ -223,6 +293,16 @@ db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS "UserGameInsight_userGameEntryId_signalType_key" ON "UserGameInsight"("userGameEntryId", "signalType");
   CREATE INDEX IF NOT EXISTS "UserGameInsight_userId_signalType_idx" ON "UserGameInsight"("userId", "signalType");
   CREATE INDEX IF NOT EXISTS "UserGameInsight_userId_score_idx" ON "UserGameInsight"("userId", "score");
+  CREATE UNIQUE INDEX IF NOT EXISTS "UserGameReview_provider_externalReviewId_key" ON "UserGameReview"("provider", "externalReviewId");
+  CREATE INDEX IF NOT EXISTS "UserGameReview_userId_createdAt_idx" ON "UserGameReview"("userId", "createdAt");
+  CREATE INDEX IF NOT EXISTS "UserGameReview_userGameEntryId_idx" ON "UserGameReview"("userGameEntryId");
+  CREATE INDEX IF NOT EXISTS "UserGameReview_gameId_reviewedAt_idx" ON "UserGameReview"("gameId", "reviewedAt");
+  CREATE UNIQUE INDEX IF NOT EXISTS "GameJournalEntry_userGameEntryId_source_externalSourceId_key" ON "GameJournalEntry"("userGameEntryId", "source", "externalSourceId");
+  CREATE INDEX IF NOT EXISTS "GameJournalEntry_userId_occurredAt_idx" ON "GameJournalEntry"("userId", "occurredAt");
+  CREATE INDEX IF NOT EXISTS "GameJournalEntry_gameId_occurredAt_idx" ON "GameJournalEntry"("gameId", "occurredAt");
+  CREATE INDEX IF NOT EXISTS "GameJournalEntry_userGameEntryId_occurredAt_idx" ON "GameJournalEntry"("userGameEntryId", "occurredAt");
+  CREATE INDEX IF NOT EXISTS "JournalMedia_journalEntryId_idx" ON "JournalMedia"("journalEntryId");
+  CREATE INDEX IF NOT EXISTS "JournalMedia_kind_idx" ON "JournalMedia"("kind");
   CREATE INDEX IF NOT EXISTS "AssistantRun_userId_createdAt_idx" ON "AssistantRun"("userId", "createdAt");
   CREATE UNIQUE INDEX IF NOT EXISTS "PlayerProfile_userId_key" ON "PlayerProfile"("userId");
   CREATE UNIQUE INDEX IF NOT EXISTS "BetaTesterApplication_userId_key" ON "BetaTesterApplication"("userId");
@@ -247,6 +327,9 @@ addColumnIfMissing("User", "email", "TEXT");
 addColumnIfMissing("User", "passwordHash", "TEXT");
 addColumnIfMissing("User", "googleSubject", "TEXT");
 addColumnIfMissing("User", "youtubeSubject", "TEXT");
+addColumnIfMissing("User", "onboardingAnswers", "TEXT");
+addColumnIfMissing("User", "onboardingCompletedAt", "DATETIME");
+addColumnIfMissing("User", "onboardingSkippedAt", "DATETIME");
 db.exec(`
   CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
   CREATE UNIQUE INDEX IF NOT EXISTS "User_googleSubject_key" ON "User"("googleSubject");

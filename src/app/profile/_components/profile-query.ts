@@ -1,18 +1,24 @@
 import { AssistantSignalType, UserGameStatus } from "@prisma/client";
-import { createTranslator, type Locale } from "@/lib/i18n";
+import { createTranslator, type Locale } from "../../../lib/i18n.ts";
 import type { ProfileEntry, ProfileTab, StatusMessage } from "./profile-types";
+
+export const UNKNOWN_PLATFORM_FILTER = "__unknown";
 
 export type ProfileSearchParams = Promise<{
   tab?: string;
+  step?: string;
+  entryId?: string;
   view?: string;
   sort?: string;
   signal?: string;
   status?: string;
   platform?: string;
+  includeDormant?: string;
   q?: string;
   connected?: string;
   synced?: string;
   imported?: string;
+  photoImported?: string;
   disconnected?: string;
   login?: string;
   playstation?: string;
@@ -24,8 +30,22 @@ export type ProfileSearchParams = Promise<{
   currentPlaying?: string;
   finishedDetected?: string;
   finishedScanned?: string;
+  manualAdded?: string;
+  reviewsSynced?: string;
+  journal?: string;
+  onboarding?: string;
   error?: string;
 }>;
+
+export type SetupStep = "rhythm" | "platforms";
+
+export function parseSetupStep(value: string | undefined): SetupStep {
+  if (value === "platforms") {
+    return value;
+  }
+
+  return "rhythm";
+}
 
 export function parseAssistantSignal(value: string | undefined) {
   return Object.values(AssistantSignalType).includes(value as AssistantSignalType)
@@ -44,12 +64,20 @@ export function parseActiveTab(value: string | undefined): ProfileTab {
     return "games";
   }
 
+  if (value === "journal" || value === "diary") {
+    return "journal";
+  }
+
   if (value === "integrations" || value === "sources") {
     return "integrations";
   }
 
   if (value === "assistant" || value === "coach") {
     return "assistant";
+  }
+
+  if (value === "setup") {
+    return "setup";
   }
 
   return "overview";
@@ -133,6 +161,55 @@ export function getStatusMessage(
     };
   }
 
+  if (query.photoImported) {
+    return {
+      tone: "success",
+      message: `Photo import finished. ${query.photoImported} games were added or updated.`,
+    };
+  }
+
+  if (query.manualAdded) {
+    return {
+      tone: "success",
+      message: "Game added. You can adjust it from your catalog whenever you want.",
+    };
+  }
+
+  if (query.reviewsSynced) {
+    return {
+      tone: "success",
+      message: `Review sync finished. ${query.reviewsSynced} reviews were added or updated.`,
+    };
+  }
+
+  if (query.journal === "saved") {
+    return {
+      tone: "success",
+      message: "Diary page saved.",
+    };
+  }
+
+  if (query.onboarding === "updated") {
+    return {
+      tone: "success",
+      message: "Setup preferences saved. You can revisit them from the Setup tab.",
+    };
+  }
+
+  if (query.onboarding === "skipped") {
+    return {
+      tone: "success",
+      message: "Onboarding skipped. The profile stays open and editable.",
+    };
+  }
+
+  if (query.onboarding === "cleared") {
+    return {
+      tone: "success",
+      message: "Setup choices cleared. Start again whenever you are ready.",
+    };
+  }
+
   if (query.currentPlaying === "updated") {
     return {
       tone: "success",
@@ -182,16 +259,65 @@ export function getStatusMessage(
   return null;
 }
 
+export function getUserPlatformLabel(entry: ProfileEntry) {
+  const platformName = entry.platformName?.trim();
+  if (platformName) {
+    return platformName;
+  }
+
+  if (entry.provider === "STEAM") {
+    return "Steam";
+  }
+
+  if (entry.provider === "PLAYSTATION") {
+    return "PlayStation";
+  }
+
+  if (entry.provider === "XBOX") {
+    return "Xbox";
+  }
+
+  return null;
+}
+
+export function isNotStartedEntry(entry: ProfileEntry) {
+  if (
+    entry.status !== UserGameStatus.OWNED &&
+    entry.status !== UserGameStatus.BACKLOG
+  ) {
+    return false;
+  }
+
+  return (
+    !entry.finishedAt &&
+    !entry.startedAt &&
+    !entry.lastPlayedAt &&
+    !entry.currentPlayingSlot &&
+    (entry.playtimeMinutes ?? 0) <= 0 &&
+    (entry.completionPercent ?? 0) <= 0
+  );
+}
+
+export function isDormantEntry(entry: ProfileEntry) {
+  return (
+    entry.status === UserGameStatus.DROPPED ||
+    entry.activeBacklog === false ||
+    isNotStartedEntry(entry)
+  );
+}
+
 export function filterEntries({
   activePlatform,
   activeStatus,
   entries,
+  includeDormant,
   queryText,
   signalEntryIds,
 }: {
   activePlatform: string | null;
   activeStatus: string | null;
   entries: ProfileEntry[];
+  includeDormant: boolean;
   queryText: string;
   signalEntryIds: Set<string> | null;
 }) {
@@ -202,19 +328,30 @@ export function filterEntries({
       return false;
     }
 
+    if (!includeDormant && isDormantEntry(entry)) {
+      return false;
+    }
+
     if (activeStatus && entry.status !== activeStatus) {
       return false;
     }
 
-    if (activePlatform && entry.platformName !== activePlatform) {
-      return false;
+    if (activePlatform) {
+      const platformLabel = getUserPlatformLabel(entry);
+      if (activePlatform === UNKNOWN_PLATFORM_FILTER) {
+        if (platformLabel) {
+          return false;
+        }
+      } else if (platformLabel !== activePlatform) {
+        return false;
+      }
     }
 
     if (!normalizedQuery) {
       return true;
     }
 
-    return [entry.game.name, entry.platformName]
+    return [entry.game.name, getUserPlatformLabel(entry)]
       .filter(Boolean)
       .some((value) => value!.toLowerCase().includes(normalizedQuery));
   });

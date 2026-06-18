@@ -102,6 +102,7 @@ const messages = {
     "landing.body":
       "filazo brings your game lists into one calm library, then keeps tonight's choice close at hand.",
     "landing.openTonight": "Open tonight",
+    "landing.openLibrary": "Open library",
     "landing.indexedCount":
       "{count} games indexed here. Browse, sort, or leave them waiting.",
     "landing.howItWorks": "How it works",
@@ -230,6 +231,10 @@ const messages = {
     "profile.rail.catalogHint": "Browse every entry",
     "profile.rail.guide": "Guide",
     "profile.rail.guideHint": "Gentle suggestions",
+    "profile.rail.journal": "Journal",
+    "profile.rail.journalHint": "Diary pages",
+    "profile.rail.setup": "Setup",
+    "profile.rail.setupHint": "Preferences",
     "profile.rail.avatarAlt": "{name} avatar",
     "profile.rail.ownedCurious": "{owned} owned / {wishlist} still curious",
 
@@ -344,6 +349,8 @@ const messages = {
     "profile.currentPlaying.choose": "Choose your three picks",
     "profile.currentPlaying.leaveOpen": "Leave this open",
     "profile.currentPlaying.save": "Save current playing",
+    "profile.currentPlaying.saving": "Saving...",
+    "profile.currentPlaying.fillOpenSpots": "Fill open spots",
     "profile.currentPlaying.help":
       "Leave any slot empty to clear it. You can feature fewer than three games if that feels better.",
     "profile.currentPlaying.reason.playing":
@@ -431,6 +438,10 @@ const messages = {
       "The story has not been marked as credits rolled yet.",
     "game.unmarkCredits": "Unmark credits rolled",
     "game.markCredits": "Mark credits rolled",
+    "game.markDropped": "Mark dropped",
+    "game.returnToShelf": "Return to shelf",
+    "game.released": "Released from the active shelf.",
+    "game.releasedOn": "Released from the active shelf {date}.",
     "game.catalogNote": "Catalog note",
     "game.whatRemembers": "What this one remembers",
     "game.reception": "Reception",
@@ -496,7 +507,7 @@ const messages = {
     "status.WISHLIST": "still curious",
     "status.PLAYING": "playing now",
     "status.PAUSED": "paused",
-    "status.COMPLETED": "loved enough",
+    "status.COMPLETED": "credits rolled",
     "status.FINISHED": "credits rolled",
     "status.DROPPED": "released",
 
@@ -672,6 +683,7 @@ const messages = {
     "landing.body":
       "filazo junta suas listas de jogos em uma biblioteca calma e deixa a escolha de hoje sempre por perto.",
     "landing.openTonight": "Abrir hoje",
+    "landing.openLibrary": "Abrir biblioteca",
     "landing.indexedCount":
       "{count} jogos já foram indexados aqui. Navegue, organize ou simplesmente deixe eles esperando.",
     "landing.howItWorks": "Como funciona",
@@ -800,6 +812,10 @@ const messages = {
     "profile.rail.catalogHint": "Ver todas as entradas",
     "profile.rail.guide": "Guia",
     "profile.rail.guideHint": "Sugestões leves",
+    "profile.rail.journal": "Diário",
+    "profile.rail.journalHint": "Páginas do diário",
+    "profile.rail.setup": "Ajustes",
+    "profile.rail.setupHint": "Preferências",
     "profile.rail.avatarAlt": "avatar de {name}",
     "profile.rail.ownedCurious": "{owned} seus / {wishlist} ainda em observação",
 
@@ -914,6 +930,8 @@ const messages = {
     "profile.currentPlaying.choose": "Escolha seus três jogos",
     "profile.currentPlaying.leaveOpen": "Deixar esse espaço vazio",
     "profile.currentPlaying.save": "Salvar jogando agora",
+    "profile.currentPlaying.saving": "Salvando...",
+    "profile.currentPlaying.fillOpenSpots": "Preencher espaços",
     "profile.currentPlaying.help":
       "Deixe qualquer espaço vazio para limpar. Você pode destacar menos de três jogos se isso fizer mais sentido.",
     "profile.currentPlaying.reason.playing":
@@ -998,6 +1016,10 @@ const messages = {
       "A história ainda não foi marcada como créditos concluídos.",
     "game.unmarkCredits": "Desmarcar créditos concluídos",
     "game.markCredits": "Marcar créditos concluídos",
+    "game.markDropped": "Largar jogo",
+    "game.returnToShelf": "Voltar para a estante",
+    "game.released": "Liberado da estante ativa.",
+    "game.releasedOn": "Liberado da estante ativa em {date}.",
     "game.catalogNote": "Nota do catálogo",
     "game.whatRemembers": "O que este jogo guarda",
     "game.reception": "Recepção",
@@ -1066,7 +1088,7 @@ const messages = {
     "status.WISHLIST": "ainda em observação",
     "status.PLAYING": "jogando agora",
     "status.PAUSED": "pausado",
-    "status.COMPLETED": "amado o bastante",
+    "status.COMPLETED": "créditos concluídos",
     "status.FINISHED": "créditos concluídos",
     "status.DROPPED": "liberado",
 

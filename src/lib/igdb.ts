@@ -142,36 +142,70 @@ function mapIgdbGame(game: IgdbGameRecord): EnrichedGameMetadata {
   };
 }
 
+async function queryIgdbGames(query: string, limit: number) {
+  const token = await getIgdbToken();
+  if (!token || !process.env.IGDB_CLIENT_ID) {
+    return [];
+  }
+
+  const body = [
+    "fields name,slug,summary,first_release_date,aggregated_rating,aggregated_rating_count,cover.url,genres.name,platforms.name,screenshots.url,artworks.url,websites.url;",
+    `search "${query.replace(/"/g, '\\"')}";`,
+    `limit ${limit};`,
+    "where version_parent = null;",
+  ].join(" ");
+
+  const response = await fetch("https://api.igdb.com/v4/games", {
+    method: "POST",
+    headers: {
+      "Client-ID": process.env.IGDB_CLIENT_ID,
+      Authorization: `Bearer ${token}`,
+    },
+    body,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Could not query IGDB.");
+  }
+
+  return (await response.json()) as IgdbGameRecord[];
+}
+
+async function fetchIgdbGameById(igdbId: number) {
+  const token = await getIgdbToken();
+  if (!token || !process.env.IGDB_CLIENT_ID) {
+    return null;
+  }
+
+  const body = [
+    "fields name,slug,summary,first_release_date,aggregated_rating,aggregated_rating_count,cover.url,genres.name,platforms.name,screenshots.url,artworks.url,websites.url;",
+    `where id = ${igdbId};`,
+    "limit 1;",
+  ].join(" ");
+
+  const response = await fetch("https://api.igdb.com/v4/games", {
+    method: "POST",
+    headers: {
+      "Client-ID": process.env.IGDB_CLIENT_ID,
+      Authorization: `Bearer ${token}`,
+    },
+    body,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error("Could not query IGDB.");
+  }
+
+  const results = (await response.json()) as IgdbGameRecord[];
+  return results[0] ? mapIgdbGame(results[0]) : null;
+}
+
 export const igdbAdapter: CatalogMetadataAdapter = {
   provider: "IGDB",
   async searchBestMatch({ title, platformName }) {
-    const token = await getIgdbToken();
-    if (!token || !process.env.IGDB_CLIENT_ID) {
-      return null;
-    }
-
-    const query = [
-      "fields name,slug,summary,first_release_date,aggregated_rating,aggregated_rating_count,cover.url,genres.name,platforms.name,screenshots.url,artworks.url,websites.url;",
-      `search "${title.replace(/"/g, '\\"')}";`,
-      "limit 10;",
-      "where version_parent = null;",
-    ].join(" ");
-
-    const response = await fetch("https://api.igdb.com/v4/games", {
-      method: "POST",
-      headers: {
-        "Client-ID": process.env.IGDB_CLIENT_ID,
-        Authorization: `Bearer ${token}`,
-      },
-      body: query,
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error("Could not query IGDB.");
-    }
-
-    const results = (await response.json()) as IgdbGameRecord[];
+    const results = await queryIgdbGames(title, 10);
     if (!results.length) {
       return null;
     }
@@ -190,6 +224,20 @@ export const igdbAdapter: CatalogMetadataAdapter = {
     return mapIgdbGame(ranked[0].game);
   },
 };
+
+export async function searchIgdbGames(query: string, limit = 8) {
+  const trimmedQuery = query.trim();
+  if (trimmedQuery.length < 2) {
+    return [];
+  }
+
+  const results = await queryIgdbGames(trimmedQuery, limit);
+  return results.map(mapIgdbGame);
+}
+
+export async function getIgdbGameById(igdbId: number) {
+  return fetchIgdbGameById(igdbId);
+}
 
 export function hasIgdbConfig() {
   return isIgdbConfigured();

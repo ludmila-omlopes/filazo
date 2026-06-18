@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LayoutGrid, List, Search } from "lucide-react";
 import { GameCard } from "@/components/game-card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -10,6 +10,11 @@ import { createTranslator, type Locale } from "@/lib/i18n";
 import type { ProfileGameSort } from "@/lib/profile-games";
 import { cn, formatNumber } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
+import { markDroppedAction, markFinishedAction } from "../actions";
+import {
+  getUserPlatformLabel,
+  UNKNOWN_PLATFORM_FILTER,
+} from "./profile-query";
 import type { ProfileEntry, ShelfFilters } from "./profile-types";
 
 type GamesView = "grid" | "list";
@@ -21,8 +26,10 @@ function makeShelfHref({
   sort,
   status,
   view,
+  includeDormant,
 }: {
   activeSignal: ShelfFilters["activeSignal"];
+  includeDormant: boolean;
   platform?: string | null;
   queryText?: string;
   sort: ProfileGameSort;
@@ -47,13 +54,67 @@ function makeShelfHref({
     params.set("q", queryText);
   }
 
+  if (includeDormant) {
+    params.set("includeDormant", "1");
+  }
+
   return `/profile?${params.toString()}`;
+}
+
+function getPlatformFilterLabel(value: string | null) {
+  return value === UNKNOWN_PLATFORM_FILTER ? "Unknown platform" : value;
 }
 
 function statusForEntry(entry: ProfileEntry) {
   return entry.finishedAt && entry.status !== "COMPLETED"
     ? "FINISHED"
     : entry.status;
+}
+
+function EntryStatusActions({
+  entry,
+  compact = false,
+}: {
+  entry: ProfileEntry;
+  compact?: boolean;
+}) {
+  const isDropped = entry.status === "DROPPED";
+  const buttonClassName = compact ? "w-full" : "";
+
+  return (
+    <>
+      <form action={markFinishedAction}>
+        <input type="hidden" name="entryId" value={entry.id} />
+        <input type="hidden" name="slug" value={entry.game.slug} />
+        <Button
+          className={buttonClassName}
+          disabled={isDropped}
+          size="xs"
+          title={
+            isDropped
+              ? "Restore this game before marking credits rolled"
+              : undefined
+          }
+          type="submit"
+          variant={entry.finishedAt ? "secondary" : "ghost"}
+        >
+          {entry.finishedAt ? "Credits rolled" : "Roll credits"}
+        </Button>
+      </form>
+      <form action={markDroppedAction}>
+        <input type="hidden" name="entryId" value={entry.id} />
+        <input type="hidden" name="slug" value={entry.game.slug} />
+        <Button
+          className={buttonClassName}
+          size="xs"
+          type="submit"
+          variant={isDropped ? "secondary" : "ghost"}
+        >
+          {isDropped ? "Return" : "Dropped"}
+        </Button>
+      </form>
+    </>
+  );
 }
 
 function ShelfCard({
@@ -68,7 +129,7 @@ function ShelfCard({
   if (view === "list") {
     return (
       <div
-        className="grid scroll-mt-28 grid-cols-[minmax(0,1fr)_44px] items-center gap-3 target:rounded-card target:ring-2 target:ring-sky"
+        className="grid scroll-mt-28 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 target:rounded-card target:ring-2 target:ring-sky max-sm:grid-cols-1"
         id={`entry-${entry.id}`}
       >
         <GameCard
@@ -80,12 +141,17 @@ function ShelfCard({
           locale={locale}
           variant="row"
         />
-        <FavoriteButton
-          entryId={entry.id}
-          gameName={entry.game.name}
-          isFavorite={entry.isFavorite}
-          locale={locale}
-        />
+        <div className="flex flex-wrap items-center justify-end gap-2 max-sm:justify-start">
+          <div className="catalog-status-actions flex-wrap items-center justify-end gap-2 max-sm:justify-start">
+            <EntryStatusActions entry={entry} />
+          </div>
+          <FavoriteButton
+            entryId={entry.id}
+            gameName={entry.game.name}
+            isFavorite={entry.isFavorite}
+            locale={locale}
+          />
+        </div>
       </div>
     );
   }
@@ -104,6 +170,9 @@ function ShelfCard({
         locale={locale}
         variant="shelf"
       />
+      <div className="catalog-status-actions flex-wrap gap-2 [&>form]:flex-1">
+        <EntryStatusActions compact entry={entry} />
+      </div>
       <FavoriteButton
         entryId={entry.id}
         gameName={entry.game.name}
@@ -134,12 +203,18 @@ export function ShelfGrid({
   const statuses = Array.from(new Set(allEntries.map((entry) => entry.status)));
   const platforms = Array.from(
     new Set(
-      allEntries
-        .map((entry) => entry.platformName)
-        .filter((platform): platform is string => Boolean(platform)),
+      allEntries.map(
+        (entry) => getUserPlatformLabel(entry) ?? UNKNOWN_PLATFORM_FILTER,
+      ),
     ),
-  ).slice(0, 8);
-  const { activePlatform, activeSignal, activeStatus, queryText } = filters;
+  ).slice(0, 10);
+  const {
+    activePlatform,
+    activeSignal,
+    activeStatus,
+    includeDormant,
+    queryText,
+  } = filters;
 
   return (
     <>
@@ -170,6 +245,9 @@ export function ShelfGrid({
             {activeSignal ? (
               <input type="hidden" name="signal" value={activeSignal} />
             ) : null}
+            {includeDormant ? (
+              <input type="hidden" name="includeDormant" value="1" />
+            ) : null}
             {activeStatus ? (
               <input type="hidden" name="status" value={activeStatus} />
             ) : null}
@@ -199,12 +277,18 @@ export function ShelfGrid({
                 {getStatusDisplayLabel(activeStatus, locale)}
               </Chip>
             ) : null}
-            {activePlatform ? <Chip tone="blue">{activePlatform}</Chip> : null}
+            {activePlatform ? (
+              <Chip tone="blue">{getPlatformFilterLabel(activePlatform)}</Chip>
+            ) : null}
+            {includeDormant ? (
+              <Chip tone="sand">Including released and not-started</Chip>
+            ) : null}
             {activeSignal ? (
               <Link
                 className="nav-link text-xs"
                 href={makeShelfHref({
                   activeSignal: null,
+                  includeDormant,
                   platform: activePlatform,
                   queryText,
                   sort: gamesSort,
@@ -227,10 +311,11 @@ export function ShelfGrid({
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={makeShelfHref({
-                    activeSignal,
-                    platform: activePlatform,
-                    queryText,
-                    sort: gamesSort,
+                  activeSignal,
+                  includeDormant,
+                  platform: activePlatform,
+                  queryText,
+                  sort: gamesSort,
                     status: null,
                     view: gamesView,
                   })}
@@ -243,6 +328,8 @@ export function ShelfGrid({
                   <Link
                     href={makeShelfHref({
                       activeSignal,
+                      includeDormant:
+                        includeDormant || status === "DROPPED",
                       platform: activePlatform,
                       queryText,
                       sort: gamesSort,
@@ -263,6 +350,7 @@ export function ShelfGrid({
                   <Link
                     href={makeShelfHref({
                       activeSignal,
+                      includeDormant,
                       queryText,
                       sort: gamesSort,
                       status: activeStatus,
@@ -277,6 +365,7 @@ export function ShelfGrid({
                     <Link
                       href={makeShelfHref({
                         activeSignal,
+                        includeDormant,
                         platform,
                         queryText,
                         sort: gamesSort,
@@ -286,12 +375,46 @@ export function ShelfGrid({
                       key={platform}
                     >
                       <Chip tone={activePlatform === platform ? "blue" : "neutral"}>
-                        {platform}
+                        {getPlatformFilterLabel(platform)}
                       </Chip>
                     </Link>
                   ))}
                 </div>
               ) : null}
+
+              <form
+                action="/profile"
+                className="flex flex-wrap items-center gap-3 rounded-inner border border-edge bg-surface p-3 text-sm"
+              >
+                <input type="hidden" name="tab" value="games" />
+                <input type="hidden" name="view" value={gamesView} />
+                <input type="hidden" name="sort" value={gamesSort} />
+                {activeSignal ? (
+                  <input type="hidden" name="signal" value={activeSignal} />
+                ) : null}
+                {activeStatus ? (
+                  <input type="hidden" name="status" value={activeStatus} />
+                ) : null}
+                {activePlatform ? (
+                  <input type="hidden" name="platform" value={activePlatform} />
+                ) : null}
+                {queryText ? (
+                  <input type="hidden" name="q" value={queryText} />
+                ) : null}
+                <label className="flex items-center gap-2 font-semibold">
+                  <input
+                    className="h-4 w-4 accent-ink"
+                    defaultChecked={includeDormant}
+                    name="includeDormant"
+                    type="checkbox"
+                    value="1"
+                  />
+                  Include released and not-started games
+                </label>
+                <Button size="sm" type="submit" variant="ghost">
+                  Apply
+                </Button>
+              </form>
 
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex gap-1 rounded-pill border border-edge bg-surface p-1">
@@ -303,6 +426,7 @@ export function ShelfGrid({
                     <Link
                       href={makeShelfHref({
                         activeSignal,
+                        includeDormant,
                         platform: activePlatform,
                         queryText,
                         sort: sort as ProfileGameSort,
@@ -329,6 +453,7 @@ export function ShelfGrid({
                     <Link
                       href={makeShelfHref({
                         activeSignal,
+                        includeDormant,
                         platform: activePlatform,
                         queryText,
                         sort: gamesSort,
@@ -355,24 +480,47 @@ export function ShelfGrid({
         </div>
       </section>
 
-      <section className={gamesView === "list" ? "panel" : ""}>
+      <section
+        className={cn(
+          "catalog-status-section",
+          gamesView === "list" ? "panel" : "",
+        )}
+      >
         {visibleEntries.length ? (
-          <div
-            className={cn(
-              gamesView === "list"
-                ? "grid gap-3"
-                : "grid grid-cols-5 gap-4 max-lg:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2",
-            )}
-          >
-            {visibleEntries.map((entry) => (
-              <ShelfCard
-                entry={entry}
-                key={entry.id}
-                locale={locale}
-                view={gamesView}
-              />
-            ))}
-          </div>
+          <>
+            <input
+              className="catalog-status-mode sr-only"
+              id="catalog-status-mode"
+              type="checkbox"
+            />
+            <div className="mb-3 flex justify-end">
+              <label
+                className={cn(
+                  buttonVariants({ size: "sm", variant: "ghost" }),
+                  "cursor-pointer",
+                )}
+                htmlFor="catalog-status-mode"
+              >
+                Update status
+              </label>
+            </div>
+            <div
+              className={cn(
+                gamesView === "list"
+                  ? "grid gap-3"
+                  : "grid grid-cols-5 gap-4 max-lg:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2",
+              )}
+            >
+              {visibleEntries.map((entry) => (
+                <ShelfCard
+                  entry={entry}
+                  key={entry.id}
+                  locale={locale}
+                  view={gamesView}
+                />
+              ))}
+            </div>
+          </>
         ) : (
           <EmptyState title={t("profile.shelf.emptyTitle")}>
             {t("profile.shelf.emptyBody")}

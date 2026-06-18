@@ -4,6 +4,7 @@ import {
   ExternalLink,
   Unplug,
 } from "lucide-react";
+import { CsvImportWidget } from "@/components/csv-import-widget";
 import { SyncActionForm } from "@/components/sync-action-form";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -16,10 +17,14 @@ import {
   connectPlayStationAction,
   detectFinishedGamesAction,
   disconnectProviderAction,
+  importCsvAction,
+  importPhotoCatalogAction,
   syncPlayStationLibraryAction,
   syncSteamLibraryAction,
+  syncUserReviewsAction,
   syncXboxLibraryAction,
 } from "../actions";
+import { ManualGameLookupPanel } from "./manual-game-lookup-panel";
 import type { ProfileData } from "./profile-types";
 
 type ProviderAccount =
@@ -284,6 +289,172 @@ function CompletionStatusRow({
   );
 }
 
+function CsvImportRow({ profile }: { profile: ProfileData }) {
+  return (
+    <div className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
+      <SectionHeader
+        eyebrow="File import"
+        title="Upload a CSV"
+        aside={
+          profile.latestImport ? (
+            <div className="pill">
+              Latest import: {formatDate(profile.latestImport.createdAt)}
+            </div>
+          ) : null
+        }
+      />
+      <CsvImportWidget action={importCsvAction} />
+      <ImportAuditPreview profile={profile} />
+    </div>
+  );
+}
+
+function getRawTitle(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const title = (value as { title?: unknown }).title;
+  return typeof title === "string" ? title : null;
+}
+
+function ImportAuditPreview({ profile }: { profile: ProfileData }) {
+  const rows = profile.latestImport?.rows ?? [];
+  if (!rows.length) {
+    return null;
+  }
+
+  return (
+    <details className="mt-5 rounded-inner border border-edge bg-canvas/60 p-4 text-sm">
+      <summary className="cursor-pointer font-bold">
+        Recent import audit
+      </summary>
+      <div className="mt-3 grid gap-2">
+        {rows.map((row) => (
+          <div
+            className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-inner border border-edge bg-surface p-3"
+            key={row.id}
+          >
+            <span className="min-w-0 truncate font-semibold">
+              {getRawTitle(row.rawData) ??
+                row.normalizedTitle ??
+                `Row ${row.rowIndex + 1}`}
+            </span>
+            <span className="rounded-pill border border-edge px-2 py-0.5 text-[0.7rem] font-bold uppercase">
+              {row.outcome ?? "pending"}
+            </span>
+            {row.error ? (
+              <p className="col-span-2 text-xs leading-relaxed text-ink-soft">
+                {row.error}
+              </p>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function PhotoImportRow({ profile }: { profile: ProfileData }) {
+  const aiConfigured = Boolean(process.env.OPENAI_API_KEY);
+
+  return (
+    <div className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
+      <SectionHeader
+        eyebrow="Photo import"
+        title="Read games from screenshots"
+        description="Upload screenshots or photos of a catalog page, shelf, or list. Detected titles are resolved into the same canonical catalog."
+        aside={
+          <div className={cn("pill", !aiConfigured && "bg-clay-soft")}>
+            {aiConfigured ? "Vision ready" : "Needs AI key"}
+          </div>
+        }
+      />
+      <form
+        action={importPhotoCatalogAction}
+        className="grid gap-4"
+      >
+        <label className="grid gap-2">
+          <span className="text-sm font-semibold">Catalog images</span>
+          <input
+            accept="image/*"
+            className="w-full file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sage-soft file:px-4 file:py-2 file:font-semibold file:transition-colors hover:file:bg-sand-soft"
+            multiple
+            name="images"
+            type="file"
+          />
+        </label>
+        {!aiConfigured ? (
+          <p className="text-sm font-semibold text-clay">
+            Photo extraction needs <code>OPENAI_API_KEY</code>. Upload attempts
+            are kept in the import audit with a clear skipped state.
+          </p>
+        ) : null}
+        <Button type="submit">Import from photos</Button>
+      </form>
+      <ImportAuditPreview profile={profile} />
+    </div>
+  );
+}
+
+function ReviewSyncRow({ profile }: { profile: ProfileData }) {
+  const canSyncReviews = Boolean(profile.steamAccount);
+
+  return (
+    <div
+      className={cn(
+        "rounded-inner border bg-surface p-4 shadow-rest",
+        canSyncReviews ? "border-sage/45" : "border-clay/35",
+      )}
+    >
+      <div className="grid grid-cols-[1fr_auto] items-center gap-4 max-sm:grid-cols-1">
+        <div>
+          <p className="section-label !mb-1">Review import</p>
+          <h2 className="font-display text-xl font-medium leading-tight">
+            Bring in your public reviews
+          </h2>
+          <p className="mt-2 max-w-[62ch] text-sm leading-relaxed text-ink-soft">
+            Steam public recommendations can be matched back to games already on
+            your shelf. PlayStation and Xbox reviews are not exposed through the
+            current source flows.
+          </p>
+        </div>
+        <span
+          className={cn(
+            "inline-flex items-center justify-center gap-2 rounded-pill border px-3 py-1 text-xs font-bold",
+            canSyncReviews
+              ? "border-sage/50 bg-sage-soft text-ink"
+              : "border-clay/35 bg-clay-soft text-ink",
+          )}
+        >
+          <span
+            className={cn(
+              "h-2 w-2 rounded-full",
+              canSyncReviews ? "bg-sage" : "bg-clay",
+            )}
+          />
+          {canSyncReviews ? "Steam ready" : "Needs Steam"}
+        </span>
+      </div>
+
+      <div className="mt-4">
+        {canSyncReviews ? (
+          <SyncActionForm
+            action={syncUserReviewsAction}
+            buttonLabel="Sync reviews"
+            pendingLabel="Checking..."
+            pendingNotice="Checking public Steam recommendations."
+          />
+        ) : (
+          <p className="text-sm font-semibold text-ink-soft">
+            Connect Steam first.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function IntegrationsPanel({
   locale,
   profile,
@@ -440,10 +611,14 @@ export function IntegrationsPanel({
         </ProviderRow>
 
         <CompletionStatusRow locale={locale} profile={profile} />
-      </div>
 
-      <div className="mt-6 rounded-inner border border-edge bg-surface p-5 text-sm leading-relaxed text-ink-soft">
-        {t("profile.sources.csvNotice")}
+        <ReviewSyncRow profile={profile} />
+
+        <ManualGameLookupPanel enabled={hasIgdbConfig()} />
+
+        <PhotoImportRow profile={profile} />
+
+        <CsvImportRow profile={profile} />
       </div>
     </section>
   );

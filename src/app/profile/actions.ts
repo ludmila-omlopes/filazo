@@ -3,21 +3,31 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import {
+  EntrySource,
   ExternalProvider,
+  Prisma,
   UserGameStatus,
 } from "@prisma/client";
 import { z } from "zod";
 import {
   importCsvForUser,
   type CsvColumnMapping,
+  resolveCatalogGame,
   syncPlayStationLibraryForUser,
   syncSteamLibraryForUser,
   syncXboxLibraryForUser,
 } from "@/lib/catalog";
+import { getIgdbGameById } from "@/lib/igdb";
 import { createTranslator } from "@/lib/i18n";
+import {
+  createJournalEntryForUser,
+  getFormFile,
+  importPhotoCatalogForUser,
+} from "@/lib/journal";
 import { connectPlayStationAccountForUser } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
+import { syncUserReviews } from "@/lib/reviews";
 import { getSessionUserId } from "@/lib/session";
 import { detectFinishedGamesForUser } from "@/lib/story-completion";
 
@@ -80,6 +90,336 @@ const currentPlayingSchema = z.object({
   slot2EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
   slot3EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
 });
+
+const journalEntrySchema = z.object({
+  userGameEntryId: z.string().trim().min(1),
+  title: z.string().trim().max(160).optional(),
+  body: z.string().trim().max(4000).optional(),
+  mediaCaption: z.string().trim().max(240).optional(),
+  occurredAt: z.string().trim().optional(),
+  targetLanguage: z.string().trim().max(80).optional(),
+  slug: z.string().trim().optional(),
+  returnTo: z.string().trim().optional(),
+});
+
+type CurrentPlayingSelection = {
+  slot: 1 | 2 | 3;
+  entryId: string | null;
+};
+
+type CurrentPlayingSaveResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
+function parseCurrentPlayingSelections(
+  formData: FormData,
+): CurrentPlayingSelection[] | null {
+  const parsed = currentPlayingSchema.safeParse({
+    slot1EntryId: formData.get("slot1EntryId"),
+    slot2EntryId: formData.get("slot2EntryId"),
+    slot3EntryId: formData.get("slot3EntryId"),
+  });
+
+  if (!parsed.success) {
+    return null;
+  }
+
+  return [
+    { slot: 1, entryId: parsed.data.slot1EntryId },
+    { slot: 2, entryId: parsed.data.slot2EntryId },
+    { slot: 3, entryId: parsed.data.slot3EntryId },
+  ];
+}
+
+function getSafeReturnPath(value: string | undefined) {
+  const path = value?.trim();
+
+  if (!path || !path.startsWith("/") || path.startsWith("//")) {
+    return null;
+  }
+
+  return path;
+}
+
+async function demotePlayingEntryToOwned({
+  entry,
+  tx,
+  userId,
+}: {
+  entry: { id: string; gameId: string; status: UserGameStatus };
+  tx: Prisma.TransactionClient;
+  userId: string;
+}) {
+  if (entry.status !== UserGameStatus.PLAYING) {
+    return;
+  }
+
+  const ownedEntry = await tx.userGameEntry.findUnique({
+    where: {
+      userId_gameId_status: {
+        userId,
+        gameId: entry.gameId,
+        status: UserGameStatus.OWNED,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (ownedEntry && ownedEntry.id !== entry.id) {
+    await tx.userGameEntry.delete({ where: { id: entry.id } });
+    return;
+  }
+
+  await tx.userGameEntry.update({
+    where: { id: entry.id },
+    data: { status: UserGameStatus.OWNED },
+  });
+}
+
+async function saveCurrentPlayingSelectionsForUser({
+  selections,
+  userId,
+}: {
+  selections: CurrentPlayingSelection[];
+  userId: string;
+}) {
+  const selectedEntryIds = selections
+    .map((selection) => selection.entryId)
+    .filter((entryId): entryId is string => Boolean(entryId));
+
+  if (new Set(selectedEntryIds).size !== selectedEntryIds.length) {
+    throw new Error("Choose three different games for Current playing.");
+  }
+
+  if (selectedEntryIds.length) {
+    const entries = await prisma.userGameEntry.findMany({
+      where: {
+        id: { in: selectedEntryIds },
+        userId,
+        status: {
+          not: UserGameStatus.WISHLIST,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (entries.length !== selectedEntryIds.length) {
+      throw new Error("Only games already on your shelf can be featured.");
+    }
+  }
+
+  const now = new Date();
+
+  await prisma.$transaction(async (tx) => {
+    const previousPinnedEntries = await tx.userGameEntry.findMany({
+      where: {
+        userId,
+        currentPlayingSlot: {
+          not: null,
+        },
+      },
+      select: {
+        id: true,
+        gameId: true,
+        status: true,
+      },
+    });
+
+    await tx.userGameEntry.updateMany({
+      where: {
+        userId,
+        currentPlayingSlot: {
+          not: null,
+        },
+      },
+      data: {
+        currentPlayingSlot: null,
+      },
+    });
+
+    const selectedEntryIdSet = new Set(selectedEntryIds);
+    for (const entry of previousPinnedEntries) {
+      if (!selectedEntryIdSet.has(entry.id)) {
+        await demotePlayingEntryToOwned({ entry, tx, userId });
+      }
+    }
+
+    for (const selection of selections) {
+      if (!selection.entryId) {
+        continue;
+      }
+
+      const entry = await tx.userGameEntry.findFirst({
+        where: {
+          id: selection.entryId,
+          userId,
+        },
+        select: {
+          id: true,
+          gameId: true,
+          startedAt: true,
+          status: true,
+        },
+      });
+
+      if (!entry) {
+        throw new Error("Only games already on your shelf can be featured.");
+      }
+
+      if (entry.status !== UserGameStatus.PLAYING) {
+        const existingPlayingEntry = await tx.userGameEntry.findUnique({
+          where: {
+            userId_gameId_status: {
+              userId,
+              gameId: entry.gameId,
+              status: UserGameStatus.PLAYING,
+            },
+          },
+          select: { id: true },
+        });
+
+        if (
+          existingPlayingEntry &&
+          existingPlayingEntry.id !== selection.entryId
+        ) {
+          await tx.userGameEntry.delete({
+            where: { id: existingPlayingEntry.id },
+          });
+        }
+      }
+
+      await tx.userGameEntry.update({
+        where: { id: selection.entryId },
+        data: {
+          abandonedAt: null,
+          abandonReason: null,
+          activeBacklog: true,
+          currentPlayingSlot: selection.slot,
+          finishedAt: null,
+          finishedSource: null,
+          startedAt: entry.startedAt ?? now,
+          status: UserGameStatus.PLAYING,
+        },
+      });
+    }
+  });
+}
+
+async function clearCurrentPlayingForUser(userId: string) {
+  await prisma.$transaction(async (tx) => {
+    const currentPlayingEntries = await tx.userGameEntry.findMany({
+      where: {
+        userId,
+        currentPlayingSlot: {
+          not: null,
+        },
+      },
+      select: {
+        id: true,
+        gameId: true,
+        status: true,
+      },
+    });
+
+    await tx.userGameEntry.updateMany({
+      where: {
+        userId,
+        currentPlayingSlot: {
+          not: null,
+        },
+      },
+      data: {
+        currentPlayingSlot: null,
+      },
+    });
+
+    for (const entry of currentPlayingEntries) {
+      await demotePlayingEntryToOwned({ entry, tx, userId });
+    }
+  });
+}
+
+const manualGameAddSchema = z.object({
+  igdbId: z.coerce.number().int().positive(),
+  title: z.string().trim().min(1).max(200),
+  platformName: z.preprocess(
+    (value) => {
+      const rawValue = String(value ?? "").trim();
+      return rawValue || null;
+    },
+    z.string().trim().min(1).max(120).nullable(),
+  ),
+  status: z.preprocess(
+    (value) => String(value ?? "").trim() || UserGameStatus.PLAYING,
+    z.nativeEnum(UserGameStatus),
+  ),
+  query: z.preprocess(
+    (value) => {
+      const rawValue = String(value ?? "").trim();
+      return rawValue || null;
+    },
+    z.string().trim().nullable(),
+  ),
+});
+
+const onboardingSchema = z.object({
+  playFrequency: z.string().trim().max(80).optional(),
+  playTimes: z.array(z.string().trim().max(40)).max(12),
+  platforms: z.array(z.string().trim().max(80)).max(16),
+  otherPlatform: z.string().trim().max(120).optional(),
+});
+
+type OnboardingAnswers = z.infer<typeof onboardingSchema> & {
+  updatedAt?: string;
+};
+
+function getExistingOnboardingAnswers(value: Prisma.JsonValue | null) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  return value as OnboardingAnswers;
+}
+
+function parseOnboardingStepData(formData: FormData) {
+  const step = String(formData.get("step") ?? "");
+
+  if (step === "rhythm") {
+    const parsed = onboardingSchema
+      .pick({ playFrequency: true, playTimes: true })
+      .safeParse({
+        playFrequency: String(formData.get("playFrequency") ?? "").trim(),
+        playTimes: formData.getAll("playTimes").map(String),
+      });
+
+    return parsed.success
+      ? ({ ok: true, step, data: parsed.data } as const)
+      : ({ ok: false } as const);
+  }
+
+  if (step === "platforms") {
+    const parsed = onboardingSchema
+      .pick({ platforms: true, otherPlatform: true })
+      .safeParse({
+        platforms: formData.getAll("platforms").map(String),
+        otherPlatform: String(formData.get("otherPlatform") ?? "").trim(),
+      });
+
+    return parsed.success
+      ? ({ ok: true, step, data: parsed.data } as const)
+      : ({ ok: false } as const);
+  }
+
+  return { ok: false } as const;
+}
+
+function getNextSetupStep(step: "rhythm" | "platforms") {
+  if (step === "rhythm") {
+    return "platforms";
+  }
+
+  return null;
+}
 
 export async function syncSteamLibraryAction() {
   const locale = await getRequestLocale();
@@ -213,6 +553,27 @@ export async function syncXboxLibraryAction() {
   redirect(`/profile?tab=integrations&xboxSynced=${syncedCount}`);
 }
 
+export async function syncUserReviewsAction() {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20syncing%20reviews.");
+  }
+
+  let importedCount: number;
+  try {
+    const result = await syncUserReviews(userId);
+    importedCount = result.importedCount;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Review sync did not complete.";
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect(`/profile?tab=integrations&reviewsSynced=${importedCount}`);
+}
+
 export async function importCsvAction(formData: FormData) {
   const locale = await getRequestLocale();
   const t = createTranslator(locale);
@@ -256,6 +617,303 @@ export async function importCsvAction(formData: FormData) {
   redirect(`/profile?imported=${importedCount}`);
 }
 
+export async function importPhotoCatalogAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20importing%20catalog%20photos.");
+  }
+
+  const files = formData
+    .getAll("images")
+    .map((value) => getFormFile(value))
+    .filter((file): file is File => Boolean(file));
+
+  let importedCount: number;
+  try {
+    const result = await importPhotoCatalogForUser({
+      userId,
+      files,
+    });
+    importedCount = result.importedCount;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Photo import did not complete.";
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect(`/profile?tab=integrations&photoImported=${importedCount}`);
+}
+
+export async function createJournalEntryAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20saving%20journal%20entries.");
+  }
+
+  const parsed = journalEntrySchema.safeParse({
+    userGameEntryId: formData.get("userGameEntryId"),
+    title: formData.get("title") || undefined,
+    body: formData.get("body") || undefined,
+    mediaCaption: formData.get("mediaCaption") || undefined,
+    occurredAt: formData.get("occurredAt") || undefined,
+    targetLanguage: formData.get("targetLanguage") || undefined,
+    slug: formData.get("slug") || undefined,
+    returnTo: formData.get("returnTo") || undefined,
+  });
+
+  if (!parsed.success) {
+    redirect("/profile?tab=journal&error=Journal%20entry%20could%20not%20be%20saved.");
+  }
+
+  let occurredAt: Date | null = null;
+  if (parsed.data.occurredAt) {
+    const parsedDate = new Date(parsed.data.occurredAt);
+    occurredAt = Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
+  }
+
+  try {
+    await createJournalEntryForUser({
+      userId,
+      userGameEntryId: parsed.data.userGameEntryId,
+      title: parsed.data.title ?? null,
+      body: parsed.data.body ?? null,
+      mediaCaption: parsed.data.mediaCaption ?? null,
+      occurredAt,
+      targetLanguage: parsed.data.targetLanguage || "English",
+      imageFile: getFormFile(formData.get("image")),
+      audioFile: getFormFile(formData.get("audio")),
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Journal entry could not be saved.";
+    redirect(`/profile?tab=journal&error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/profile");
+
+  const returnPath = getSafeReturnPath(parsed.data.returnTo);
+  if (returnPath) {
+    if (parsed.data.slug) {
+      revalidatePath(`/games/${parsed.data.slug}`);
+    }
+    redirect(returnPath);
+  }
+
+  if (parsed.data.slug) {
+    revalidatePath(`/games/${parsed.data.slug}`);
+    redirect(`/games/${parsed.data.slug}`);
+  }
+
+  redirect("/profile?tab=journal");
+}
+
+export async function addManualGameAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20adding%20games.");
+  }
+
+  const parsed = manualGameAddSchema.safeParse({
+    igdbId: formData.get("igdbId"),
+    title: formData.get("title"),
+    platformName: formData.get("platformName"),
+    status: formData.get("status"),
+    query: formData.get("query"),
+  });
+
+  if (!parsed.success) {
+    redirect("/profile?tab=integrations&error=Choose%20a%20game%20result%20before%20adding.");
+  }
+
+  const metadata = await getIgdbGameById(parsed.data.igdbId);
+  if (!metadata) {
+    redirect("/profile?tab=integrations&error=That%20game%20could%20not%20be%20loaded.");
+  }
+
+  const game = await resolveCatalogGame({
+    title: metadata.name,
+    platformName: parsed.data.platformName,
+    provider: ExternalProvider.IGDB,
+    providerGameId: String(metadata.igdbId),
+    metadata,
+    rawData: {
+      source: "manual-igdb-search",
+      igdbId: metadata.igdbId,
+      title: metadata.name,
+    },
+  });
+  const finishedData =
+    parsed.data.status === UserGameStatus.COMPLETED
+      ? {
+          finishedAt: new Date(),
+          finishedSource: "manual",
+        }
+      : {};
+  const droppedData =
+    parsed.data.status === UserGameStatus.DROPPED
+      ? {
+          abandonedAt: new Date(),
+          activeBacklog: false,
+        }
+      : {};
+
+  await prisma.userGameEntry.upsert({
+    where: {
+      userId_gameId_status: {
+        userId,
+        gameId: game.id,
+        status: parsed.data.status,
+      },
+    },
+    update: {
+      source: EntrySource.MANUAL,
+      provider: ExternalProvider.IGDB,
+      platformName: parsed.data.platformName ?? undefined,
+      ...finishedData,
+      ...droppedData,
+      rawData: {
+        source: "manual-igdb-search",
+        igdbId: metadata.igdbId,
+        title: metadata.name,
+      } as Prisma.InputJsonValue,
+    },
+    create: {
+      userId,
+      gameId: game.id,
+      status: parsed.data.status,
+      source: EntrySource.MANUAL,
+      provider: ExternalProvider.IGDB,
+      platformName: parsed.data.platformName ?? undefined,
+      ...finishedData,
+      ...droppedData,
+      rawData: {
+        source: "manual-igdb-search",
+        igdbId: metadata.igdbId,
+        title: metadata.name,
+      } as Prisma.InputJsonValue,
+    },
+  });
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  revalidatePath(`/games/${game.slug}`);
+
+  redirect(`/profile?tab=integrations&manualAdded=${game.slug}`);
+}
+
+export async function saveOnboardingAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20saving%20profile%20preferences.");
+  }
+
+  const parsed = onboardingSchema.safeParse({
+    playFrequency: String(formData.get("playFrequency") ?? "").trim(),
+    playTimes: formData.getAll("playTimes").map(String),
+    platforms: formData.getAll("platforms").map(String),
+    otherPlatform: String(formData.get("otherPlatform") ?? "").trim(),
+  });
+
+  if (!parsed.success) {
+    redirect("/profile?error=Those%20setup%20answers%20could%20not%20be%20saved.");
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      onboardingAnswers: {
+        ...parsed.data,
+        updatedAt: new Date().toISOString(),
+      } as Prisma.InputJsonValue,
+      onboardingCompletedAt: new Date(),
+      onboardingSkippedAt: null,
+    },
+  });
+
+  revalidatePath("/profile");
+  redirect("/profile?onboarding=updated");
+}
+
+export async function saveOnboardingStepAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20saving%20profile%20preferences.");
+  }
+
+  const parsed = parseOnboardingStepData(formData);
+  if (!parsed.ok) {
+    redirect("/profile?tab=setup&error=Those%20setup%20answers%20could%20not%20be%20saved.");
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { onboardingAnswers: true },
+  });
+  const existing = getExistingOnboardingAnswers(user?.onboardingAnswers ?? null);
+  const merged = {
+    ...existing,
+    ...parsed.data,
+    updatedAt: new Date().toISOString(),
+  };
+  const isFinalStep = parsed.step === "platforms";
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      onboardingAnswers: merged as Prisma.InputJsonValue,
+      onboardingCompletedAt: isFinalStep ? new Date() : undefined,
+      onboardingSkippedAt: isFinalStep ? null : undefined,
+    },
+  });
+
+  revalidatePath("/profile");
+
+  const nextStep = getNextSetupStep(parsed.step);
+  if (nextStep) {
+    redirect(`/profile?tab=setup&step=${nextStep}`);
+  }
+
+  redirect("/profile?tab=setup&onboarding=updated");
+}
+
+export async function skipOnboardingAction() {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20changing%20onboarding.");
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      onboardingSkippedAt: new Date(),
+    },
+  });
+
+  revalidatePath("/profile");
+  redirect("/profile?onboarding=skipped");
+}
+
+export async function clearOnboardingAction() {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect("/login?error=Sign%20in%20before%20changing%20onboarding.");
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      onboardingAnswers: Prisma.JsonNull,
+      onboardingCompletedAt: null,
+      onboardingSkippedAt: null,
+    },
+  });
+
+  revalidatePath("/profile");
+  redirect("/profile?tab=setup&onboarding=cleared");
+}
+
 export async function saveCurrentPlayingAction(formData: FormData) {
   const locale = await getRequestLocale();
   const t = createTranslator(locale);
@@ -264,74 +922,61 @@ export async function saveCurrentPlayingAction(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needCurrentPlayingLogin"))}`);
   }
 
-  const parsed = currentPlayingSchema.safeParse({
-    slot1EntryId: formData.get("slot1EntryId"),
-    slot2EntryId: formData.get("slot2EntryId"),
-    slot3EntryId: formData.get("slot3EntryId"),
-  });
-
-  if (!parsed.success) {
+  const selections = parseCurrentPlayingSelections(formData);
+  if (!selections) {
     redirect(`/profile?error=${encodeURIComponent(t("profileAction.invalidCurrentPlaying"))}`);
   }
 
-  const selections = [
-    { slot: 1, entryId: parsed.data.slot1EntryId },
-    { slot: 2, entryId: parsed.data.slot2EntryId },
-    { slot: 3, entryId: parsed.data.slot3EntryId },
-  ];
-  const selectedEntryIds = selections
-    .map((selection) => selection.entryId)
-    .filter((entryId): entryId is string => Boolean(entryId));
-
-  if (new Set(selectedEntryIds).size !== selectedEntryIds.length) {
-    redirect(`/profile?error=${encodeURIComponent(t("profileAction.duplicateCurrentPlaying"))}`);
+  try {
+    await saveCurrentPlayingSelectionsForUser({ selections, userId });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : t("profileAction.invalidCurrentPlaying");
+    redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
-
-  if (selectedEntryIds.length) {
-    const entries = await prisma.userGameEntry.findMany({
-      where: {
-        id: { in: selectedEntryIds },
-        userId,
-        status: {
-          not: UserGameStatus.WISHLIST,
-        },
-      },
-      select: { id: true },
-    });
-
-    if (entries.length !== selectedEntryIds.length) {
-      redirect(`/profile?error=${encodeURIComponent(t("profileAction.onlyShelfGames"))}`);
-    }
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.userGameEntry.updateMany({
-      where: {
-        userId,
-        currentPlayingSlot: {
-          not: null,
-        },
-      },
-      data: {
-        currentPlayingSlot: null,
-      },
-    });
-
-    for (const selection of selections) {
-      if (!selection.entryId) {
-        continue;
-      }
-
-      await tx.userGameEntry.update({
-        where: { id: selection.entryId },
-        data: { currentPlayingSlot: selection.slot },
-      });
-    }
-  });
 
   revalidatePath("/profile");
   revalidatePath("/");
   redirect("/profile?currentPlaying=updated");
+}
+
+export async function saveCurrentPlayingSelectionAction(
+  formData: FormData,
+): Promise<CurrentPlayingSaveResult> {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return {
+      ok: false,
+      message: "Sign in before changing Current playing.",
+    };
+  }
+
+  const selections = parseCurrentPlayingSelections(formData);
+  if (!selections) {
+    return {
+      ok: false,
+      message: "Choose up to three games for Current playing.",
+    };
+  }
+
+  try {
+    await saveCurrentPlayingSelectionsForUser({ selections, userId });
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Current playing could not be saved.",
+    };
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+
+  return { ok: true };
 }
 
 export async function clearCurrentPlayingAction() {
@@ -342,17 +987,7 @@ export async function clearCurrentPlayingAction() {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needCurrentPlayingLogin"))}`);
   }
 
-  await prisma.userGameEntry.updateMany({
-    where: {
-      userId,
-      currentPlayingSlot: {
-        not: null,
-      },
-    },
-    data: {
-      currentPlayingSlot: null,
-    },
-  });
+  await clearCurrentPlayingForUser(userId);
 
   revalidatePath("/profile");
   revalidatePath("/");
@@ -411,6 +1046,97 @@ export async function markFinishedAction(formData: FormData) {
       ? { finishedAt: null, finishedSource: null }
       : { finishedAt: new Date(), finishedSource: "manual" },
   });
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+
+  const slug = formData.get("slug");
+  if (typeof slug === "string" && slug) {
+    revalidatePath(`/games/${slug}`);
+  }
+}
+
+export async function markDroppedAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return;
+  }
+
+  const entryId = formData.get("entryId");
+  if (typeof entryId !== "string" || !entryId) {
+    return;
+  }
+
+  const entry = await prisma.userGameEntry.findUnique({
+    where: { id: entryId },
+  });
+
+  if (!entry || entry.userId !== userId) {
+    return;
+  }
+
+  const restoring = entry.status === UserGameStatus.DROPPED;
+  const targetStatus = restoring
+    ? UserGameStatus.OWNED
+    : UserGameStatus.DROPPED;
+  const existingTarget = await prisma.userGameEntry.findUnique({
+    where: {
+      userId_gameId_status: {
+        userId,
+        gameId: entry.gameId,
+        status: targetStatus,
+      },
+    },
+  });
+  const statusData = restoring
+    ? {
+        abandonedAt: null,
+        abandonReason: null,
+        activeBacklog: true,
+      }
+    : {
+        abandonedAt: entry.abandonedAt ?? new Date(),
+        abandonReason: entry.abandonReason ?? "manual",
+        activeBacklog: false,
+        currentPlayingSlot: null,
+        finishedAt: null,
+        finishedSource: null,
+      };
+
+  if (existingTarget && existingTarget.id !== entry.id) {
+    const mergedRawData = existingTarget.rawData ?? entry.rawData;
+
+    await prisma.$transaction([
+      prisma.userGameEntry.update({
+        where: { id: existingTarget.id },
+        data: {
+          ...statusData,
+          completionPercent:
+            existingTarget.completionPercent ?? entry.completionPercent ?? undefined,
+          lastPlayedAt:
+            existingTarget.lastPlayedAt ?? entry.lastPlayedAt ?? undefined,
+          notes: existingTarget.notes ?? entry.notes ?? undefined,
+          platformName:
+            existingTarget.platformName ?? entry.platformName ?? undefined,
+          playtimeMinutes:
+            existingTarget.playtimeMinutes ?? entry.playtimeMinutes ?? undefined,
+          rawData:
+            mergedRawData === null
+              ? undefined
+              : (mergedRawData as Prisma.InputJsonValue),
+        },
+      }),
+      prisma.userGameEntry.delete({ where: { id: entry.id } }),
+    ]);
+  } else {
+    await prisma.userGameEntry.update({
+      where: { id: entry.id },
+      data: {
+        status: targetStatus,
+        ...statusData,
+      },
+    });
+  }
 
   revalidatePath("/profile");
   revalidatePath("/");

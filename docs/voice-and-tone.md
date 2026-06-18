@@ -19,7 +19,7 @@ filazo treats a game library as abundance, not an assignment. The product voice 
 | `WISHLIST` | still curious | Curiosity, not obligation. |
 | `PLAYING` | playing now | Current, not urgent. |
 | `PAUSED` | paused | Neutral rest state. |
-| `COMPLETED` | loved enough | Warm story-finished state. |
+| `COMPLETED` | credits rolled | Warm story-finished state. |
 | `FINISHED` | credits rolled | Clear when inferred from story progress. |
 | `DROPPED` | released | Permission to let go. |
 

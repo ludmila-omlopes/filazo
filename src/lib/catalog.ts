@@ -776,6 +776,13 @@ function parseStatus(rawValue: unknown) {
   if (normalized.includes("complete") || normalized.includes("finish")) {
     return UserGameStatus.COMPLETED;
   }
+  if (
+    normalized.includes("drop") ||
+    normalized.includes("abandon") ||
+    normalized.includes("release")
+  ) {
+    return UserGameStatus.DROPPED;
+  }
   if (normalized.includes("backlog")) {
     return UserGameStatus.BACKLOG;
   }
@@ -932,6 +939,10 @@ export async function importCsvForUser({
             },
           },
           update: {
+            abandonedAt:
+              row.status === UserGameStatus.DROPPED ? new Date() : undefined,
+            activeBacklog:
+              row.status === UserGameStatus.DROPPED ? false : undefined,
             source: EntrySource.CSV,
             provider: importProvider ?? undefined,
             platformName: platformName ?? undefined,
@@ -947,6 +958,10 @@ export async function importCsvForUser({
             source: EntrySource.CSV,
             provider: importProvider ?? undefined,
             platformName: platformName ?? undefined,
+            abandonedAt:
+              row.status === UserGameStatus.DROPPED ? new Date() : undefined,
+            activeBacklog:
+              row.status === UserGameStatus.DROPPED ? false : undefined,
             playtimeMinutes: row.playtimeMinutes ?? undefined,
             completionPercent: row.completionPercent ?? undefined,
             finishedAt:
@@ -1050,7 +1065,29 @@ export async function getProfileData(userId: string) {
         },
         orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
       },
+      journalEntries: {
+        include: {
+          game: true,
+          media: true,
+          userGameEntry: {
+            include: {
+              game: true,
+            },
+          },
+        },
+        orderBy: {
+          occurredAt: "desc",
+        },
+      },
       importJobs: {
+        include: {
+          rows: {
+            orderBy: {
+              rowIndex: "asc",
+            },
+            take: 8,
+          },
+        },
         orderBy: {
           createdAt: "desc",
         },
@@ -1120,6 +1157,21 @@ export async function getProfileData(userId: string) {
 
 const gameDetailInclude = {
   providerLinks: true,
+  userReviews: {
+    include: {
+      user: true,
+    },
+    orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
+  },
+  journalEntries: {
+    include: {
+      media: true,
+      user: true,
+    },
+    orderBy: {
+      occurredAt: "desc",
+    },
+  },
   userEntries: {
     include: {
       user: true,

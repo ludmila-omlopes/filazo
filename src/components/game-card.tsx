@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { MouseEventHandler } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Chip } from "@/components/ui/chip";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -44,6 +45,8 @@ type GameCardProps = VariantProps<typeof gameCardVariants> & {
   description?: string | null;
   chips?: string[];
   href?: string;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+  disabled?: boolean;
   className?: string;
   id?: string;
   locale?: Locale;
@@ -155,6 +158,8 @@ export function GameCard({
   description,
   chips = [],
   href,
+  onClick,
+  disabled,
   variant = "shelf",
   className,
   id,
@@ -165,20 +170,11 @@ export function GameCard({
   const displayStatus = getDisplayStatus(status, finished);
   const targetHref = href ?? `/games/${game.slug}`;
   const showDetails = resolvedVariant !== "shelf";
-
-  if (resolvedVariant === "row") {
-    return (
-      <Link
-        className={cn(
-          gameCardVariants({ variant: resolvedVariant }),
-          "flex items-center gap-3",
-          className,
-        )}
-        href={targetHref}
-        id={id}
-      >
+  const content =
+    resolvedVariant === "row" ? (
+      <>
         <Cover game={game} variant={resolvedVariant} />
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 text-left">
           {eyebrow ? <p className="section-label !mb-1">{eyebrow}</p> : null}
           <h3 className="line-clamp-2 font-display text-base leading-tight">
             {game.name}
@@ -195,6 +191,75 @@ export function GameCard({
             </p>
           ) : null}
         </div>
+      </>
+    ) : (
+      <>
+        <Cover game={game} variant={resolvedVariant} />
+        <div className="mt-3 grid gap-2 text-left">
+          {eyebrow ? <p className="section-label !mb-0">{eyebrow}</p> : null}
+          <h3
+            className={cn(
+              "line-clamp-2 font-display font-medium leading-tight",
+              resolvedVariant === "slot" ? "text-xl" : "text-base",
+            )}
+          >
+            {game.name}
+          </h3>
+          {showDetails ? (
+            <>
+              <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
+              <div className="flex flex-wrap items-center gap-2">
+                {displayStatus ? (
+                  <StatusBadge locale={locale} status={displayStatus} />
+                ) : null}
+                {chips.slice(0, 2).map((chip) => (
+                  <Chip key={chip} tone="blue">
+                    {chip}
+                  </Chip>
+                ))}
+              </div>
+            </>
+          ) : null}
+          {description ? (
+            <p className="line-clamp-3 text-sm leading-relaxed text-ink-soft">
+              {description}
+            </p>
+          ) : null}
+        </div>
+      </>
+    );
+
+  if (onClick) {
+    return (
+      <button
+        className={cn(
+          gameCardVariants({ variant: resolvedVariant }),
+          resolvedVariant === "row" && "flex items-center gap-3 text-left",
+          "w-full disabled:pointer-events-none disabled:opacity-55",
+          className,
+        )}
+        disabled={disabled}
+        id={id}
+        onClick={onClick}
+        type="button"
+      >
+        {content}
+      </button>
+    );
+  }
+
+  if (resolvedVariant === "row") {
+    return (
+      <Link
+        className={cn(
+          gameCardVariants({ variant: resolvedVariant }),
+          "flex items-center gap-3",
+          className,
+        )}
+        href={targetHref}
+        id={id}
+      >
+        {content}
       </Link>
     );
   }
@@ -205,38 +270,7 @@ export function GameCard({
       href={targetHref}
       id={id}
     >
-      <Cover game={game} variant={resolvedVariant} />
-      <div className="mt-3 grid gap-2">
-        {eyebrow ? <p className="section-label !mb-0">{eyebrow}</p> : null}
-        <h3
-          className={cn(
-            "line-clamp-2 font-display font-medium leading-tight",
-            resolvedVariant === "slot" ? "text-xl" : "text-base",
-          )}
-        >
-          {game.name}
-        </h3>
-        {showDetails ? (
-          <>
-            <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
-            <div className="flex flex-wrap items-center gap-2">
-              {displayStatus ? (
-                <StatusBadge locale={locale} status={displayStatus} />
-              ) : null}
-              {chips.slice(0, 2).map((chip) => (
-                <Chip key={chip} tone="blue">
-                  {chip}
-                </Chip>
-              ))}
-            </div>
-          </>
-        ) : null}
-        {description ? (
-          <p className="line-clamp-3 text-sm leading-relaxed text-ink-soft">
-            {description}
-          </p>
-        ) : null}
-      </div>
+      {content}
     </Link>
   );
 }

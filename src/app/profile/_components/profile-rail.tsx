@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { Armchair, Cable, LibraryBig, Sparkles } from "lucide-react";
+import {
+  Armchair,
+  BookOpen,
+  Cable,
+  LibraryBig,
+  SlidersHorizontal,
+  Sparkles,
+} from "lucide-react";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { cn, formatNumber } from "@/lib/utils";
 import type { AssistantData, ProfileData, ProfileTab } from "./profile-types";
@@ -27,11 +34,25 @@ const railItems = [
     icon: LibraryBig,
   },
   {
+    tab: "journal" as const,
+    href: "/profile?tab=journal",
+    labelKey: "profile.rail.journal" as const,
+    hintKey: "profile.rail.journalHint" as const,
+    icon: BookOpen,
+  },
+  {
     tab: "assistant" as const,
     href: "/profile?tab=assistant",
     labelKey: "profile.rail.guide" as const,
     hintKey: "profile.rail.guideHint" as const,
     icon: Sparkles,
+  },
+  {
+    tab: "setup" as const,
+    href: "/profile?tab=setup",
+    labelKey: "profile.rail.setup" as const,
+    hintKey: "profile.rail.setupHint" as const,
+    icon: SlidersHorizontal,
   },
 ];
 
@@ -92,6 +113,8 @@ export function ProfileRail({
           const count =
             tab === "games"
               ? gamesCount
+              : tab === "journal"
+                ? profile.user.journalEntries.length
               : tab === "assistant"
                 ? assistant?.insights.length ?? null
                 : null;

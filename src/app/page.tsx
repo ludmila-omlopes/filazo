@@ -9,6 +9,7 @@ import { getDatabaseErrorMessage } from "@/lib/database-errors";
 import { createTranslator } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
+import { getSessionUserId } from "@/lib/session";
 import { formatNumber } from "@/lib/utils";
 
 const homeShowcaseSelect = {
@@ -184,8 +185,13 @@ async function getHomeData() {
 export default async function Home() {
   const locale = await getRequestLocale();
   const t = createTranslator(locale);
+  const [homeData, sessionUserId] = await Promise.all([
+    getHomeData(),
+    getSessionUserId(),
+  ]);
   const { catalogCount, enrichedCount, showcaseGames, databaseError } =
-    await getHomeData();
+    homeData;
+  const isSignedIn = Boolean(sessionUserId);
 
   return (
     <main
@@ -221,11 +227,21 @@ export default async function Home() {
               {t("landing.body")}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <AuthDialog
-                triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
-                triggerLabel={t("auth.trigger.signIn")}
-                triggerSize="lg"
-              />
+              {isSignedIn ? (
+                <Button
+                  asChild
+                  size="lg"
+                  className="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+                >
+                  <Link href="/profile">{t("landing.openLibrary")}</Link>
+                </Button>
+              ) : (
+                <AuthDialog
+                  triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+                  triggerLabel={t("auth.trigger.signIn")}
+                  triggerSize="lg"
+                />
+              )}
               <Button
                 asChild
                 variant="ghost"
@@ -240,7 +256,7 @@ export default async function Home() {
                 size="lg"
                 className="h-12 border border-cream/15 bg-transparent px-7 text-base font-semibold text-cream/85 hover:bg-cream/12 hover:text-cream"
               >
-                <Link href="/profile">{t("common.addGames")}</Link>
+                <Link href="/profile?tab=integrations">{t("common.addGames")}</Link>
               </Button>
             </div>
             <p className="mt-5 text-sm text-cream/55">
@@ -337,18 +353,28 @@ export default async function Home() {
             {t("landing.ctaTitle").split("\n")[1]}
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <AuthDialog
-              triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
-              triggerLabel={t("auth.trigger.signIn")}
-              triggerSize="lg"
-            />
+            {isSignedIn ? (
+              <Button
+                asChild
+                size="lg"
+                className="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+              >
+                <Link href="/profile">{t("landing.openLibrary")}</Link>
+              </Button>
+            ) : (
+              <AuthDialog
+                triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+                triggerLabel={t("auth.trigger.signIn")}
+                triggerSize="lg"
+              />
+            )}
             <Button
               asChild
               variant="ghost"
               size="lg"
               className="h-12 border border-cream/25 px-7 text-base font-semibold text-cream hover:bg-cream/10 hover:text-cream"
             >
-              <Link href="/profile">{t("common.addGames")}</Link>
+              <Link href="/profile?tab=integrations">{t("common.addGames")}</Link>
             </Button>
           </div>
           <p className="text-xs text-cream/40">
