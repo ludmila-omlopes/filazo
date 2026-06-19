@@ -1,7 +1,14 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
-import { useState } from "react";
+import { X, Sparkles } from "lucide-react";
+import {
+  startTransition,
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+} from "react";
+import { useRouter } from "next/navigation";
 import { GameCard } from "@/components/game-card";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -10,7 +17,7 @@ import { getStatusDisplayLabel } from "@/lib/copy";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { formatNumber } from "@/lib/utils";
 import {
-  clearCurrentPlayingAction,
+  clearCurrentPlayingSelectionAction,
   saveCurrentPlayingAction,
   saveCurrentPlayingSelectionAction,
 } from "../actions";
@@ -233,19 +240,31 @@ function getSuggestedCurrentPlayingEntries({
 function CurrentPlayingSlot({
   animated,
   entry,
+  isSaving,
   locale,
+  onOpenPicker,
+  onRemove,
+  onDragEnd,
   slot,
 }: {
   animated: boolean;
   entry: ShelfEntry | null;
+  isSaving: boolean;
   locale: Locale;
+  onOpenPicker: () => void;
+  onRemove: () => void;
+  onDragEnd: (event: DragEvent<HTMLDivElement>) => void;
   slot: CurrentPlayingSlotNumber;
 }) {
   const t = createTranslator(locale);
 
   if (!entry) {
     return (
-      <article className="grid min-h-[280px] gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-5 shadow-rest">
+      <button
+        className="grid min-h-[280px] gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-5 text-left shadow-rest outline-none transition-colors duration-200 hover:bg-canvas/75 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        onClick={onOpenPicker}
+        type="button"
+      >
         <div>
           <p className="section-label !mb-1">
             {t("profile.currentPlaying.spot", { slot })}
@@ -257,24 +276,43 @@ function CurrentPlayingSlot({
         <p className="max-w-[28ch] text-sm leading-relaxed text-ink-soft">
           {t("profile.currentPlaying.openBody")}
         </p>
-      </article>
+      </button>
     );
   }
 
   return (
-    <div className={animated ? "animate-current-playing-place" : undefined}>
-      <GameCard
-        chips={[t("profile.currentPlaying.spot", { slot })]}
-        className="h-full"
-        completionPercent={entry.completionPercent}
-        finished={false}
-        game={entry.game}
-        locale={locale}
-        platformName={entry.platformName}
-        playtimeMinutes={entry.playtimeMinutes}
-        status="PLAYING"
-        variant="slot"
-      />
+    <div
+      className={animated ? "animate-current-playing-place" : undefined}
+      draggable
+      onDragEnd={onDragEnd}
+      title={t("profile.currentPlaying.dragOut")}
+    >
+      <div className="relative">
+        <Button
+          aria-label={t("profile.currentPlaying.remove", {
+            name: entry.game.name,
+          })}
+          className="absolute right-3 top-3 z-10"
+          disabled={isSaving}
+          onClick={onRemove}
+          size="icon-xs"
+          type="button"
+          variant="ghost"
+        >
+          <X className="h-3.5 w-3.5" />
+        </Button>
+        <GameCard
+          className="h-full"
+          completionPercent={entry.completionPercent}
+          finished={false}
+          game={entry.game}
+          locale={locale}
+          platformName={entry.platformName}
+          playtimeMinutes={entry.playtimeMinutes}
+          status={null}
+          variant="slot"
+        />
+      </div>
     </div>
   );
 }
@@ -362,9 +400,16 @@ export function CurrentPlayingPanel({
   playerProfile: PlayerProfileData;
   profile: ProfileData;
 }) {
+  const router = useRouter();
   const t = createTranslator(locale);
+  const panelRef = useRef<HTMLElement | null>(null);
+  const currentPlayingAreaRef = useRef<HTMLDivElement | null>(null);
+  const chooserRef = useRef<HTMLDetailsElement | null>(null);
+  const pendingScrollToCardsRef = useRef(false);
+  const slotSelectRefs = useRef(
+    new Map<CurrentPlayingSlotNumber, HTMLSelectElement | null>(),
+  );
   const selectableEntries = getSelectableEntries(profile);
-  const currentPlayingEntries = profile.currentPlayingEntries;
   const playingStatusEntries = getPlayingStatusEntries(profile);
   const initialEntriesBySlot = new Map(
     CURRENT_PLAYING_SLOTS.flatMap((slot) => {
@@ -390,6 +435,7 @@ export function CurrentPlayingPanel({
     useState<CurrentPlayingSlotNumber | null>(null);
   const [autosaveCount, setAutosaveCount] = useState(0);
   const [autosaveError, setAutosaveError] = useState<string | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
   const selectableEntryById = new Map(
     selectableEntries.map((entry) => [entry.id, entry]),
   );
@@ -406,6 +452,7 @@ export function CurrentPlayingPanel({
     (slot) => !selectedEntriesBySlot.has(slot),
   );
   const isAutosaving = autosaveCount > 0;
+  const isBusy = isAutosaving || isClearing;
   const suggestedEntries = openSlots.length
     ? getSuggestedCurrentPlayingEntries({
         excludedEntryIds: selectedEntryIds,
@@ -415,6 +462,23 @@ export function CurrentPlayingPanel({
         profile,
       })
     : [];
+
+  useEffect(() => {
+    if (!pendingScrollToCardsRef.current) {
+      return;
+    }
+
+    pendingScrollToCardsRef.current = false;
+    const target = currentPlayingAreaRef.current ?? panelRef.current;
+    if (!target) {
+      return;
+    }
+
+    target.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, [selectedEntriesBySlot.size]);
 
   function animateSlot(slot: CurrentPlayingSlotNumber) {
     setAnimatedSlot(slot);
@@ -448,6 +512,28 @@ export function CurrentPlayingPanel({
       });
   }
 
+  async function clearSelections() {
+    const previousSelection = new Map(selectedEntryIdsBySlot);
+    setSelectedEntryIdsBySlot(new Map());
+    setAutosaveError(null);
+    setIsClearing(true);
+
+    try {
+      const result = await clearCurrentPlayingSelectionAction();
+      if (!result.ok) {
+        setSelectedEntryIdsBySlot(previousSelection);
+        setAutosaveError(result.message);
+        return;
+      }
+
+      startTransition(() => {
+        router.refresh();
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  }
+
   function getSelectionWithSlotEntry({
     entryId,
     selection,
@@ -477,6 +563,19 @@ export function CurrentPlayingPanel({
     entryId: string | null,
     shouldAnimate = false,
   ) {
+    if (entryId) {
+      pendingScrollToCardsRef.current = true;
+      const chooser = chooserRef.current;
+      if (chooser) {
+        chooser.open = false;
+      }
+
+      const activeElement = document.activeElement;
+      if (activeElement instanceof HTMLElement) {
+        activeElement.blur();
+      }
+    }
+
     const next = getSelectionWithSlotEntry({
       entryId,
       selection: selectedEntryIdsBySlot,
@@ -488,6 +587,39 @@ export function CurrentPlayingPanel({
 
     if (shouldAnimate) {
       animateSlot(slot);
+    }
+  }
+
+  function removeSlotEntry(slot: CurrentPlayingSlotNumber) {
+    if (!selectedEntriesBySlot.has(slot)) {
+      return;
+    }
+
+    setSlotEntry(slot, null);
+  }
+
+  function handleSlotDragEnd(
+    slot: CurrentPlayingSlotNumber,
+    event: DragEvent<HTMLDivElement>,
+  ) {
+    const area = currentPlayingAreaRef.current;
+    if (!area || !selectedEntriesBySlot.has(slot)) {
+      return;
+    }
+
+    if (event.clientX <= 0 && event.clientY <= 0) {
+      return;
+    }
+
+    const rect = area.getBoundingClientRect();
+    const droppedInsideArea =
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom;
+
+    if (!droppedInsideArea) {
+      removeSlotEntry(slot);
     }
   }
 
@@ -519,14 +651,47 @@ export function CurrentPlayingPanel({
     animateSlot(openSlots[0]);
   }
 
+  function openSlotPicker(slot: CurrentPlayingSlotNumber) {
+    const chooser = chooserRef.current;
+    if (chooser) {
+      chooser.open = true;
+    }
+
+    const select = slotSelectRefs.current.get(slot);
+    if (!select) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      select.focus();
+      if ("showPicker" in select && typeof select.showPicker === "function") {
+        select.showPicker();
+      }
+    }, 0);
+  }
+
   return (
-    <section className="panel bg-sage-soft/40">
+    <section className="panel bg-sage-soft/40" ref={panelRef}>
       <SectionHeader
         aside={
-          <div className="pill">
-            {t("profile.currentPlaying.inView", {
-              count: formatNumber(selectedEntriesBySlot.size, locale),
-            })}
+          <div className="flex flex-wrap items-center justify-end gap-2 max-lg:justify-start">
+            <div className="pill">
+              {t("profile.currentPlaying.inView", {
+                count: formatNumber(selectedEntriesBySlot.size, locale),
+              })}
+            </div>
+            {selectedEntriesBySlot.size ? (
+              <Button
+                disabled={isBusy}
+                onClick={() => {
+                  void clearSelections();
+                }}
+                type="button"
+                variant="ghost"
+              >
+                {t("profile.currentPlaying.clearTop")}
+              </Button>
+            ) : null}
           </div>
         }
         eyebrow={t("profile.currentPlaying.label")}
@@ -536,13 +701,20 @@ export function CurrentPlayingPanel({
 
       {selectedEntriesBySlot.size ? (
         <div className="grid gap-5">
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div
+            className="grid gap-4 lg:grid-cols-3"
+            ref={currentPlayingAreaRef}
+          >
             {CURRENT_PLAYING_SLOTS.map((slot) => (
               <CurrentPlayingSlot
                 animated={animatedSlot === slot}
                 entry={selectedEntriesBySlot.get(slot) ?? null}
+                isSaving={isBusy}
                 key={slot}
                 locale={locale}
+                onOpenPicker={() => openSlotPicker(slot)}
+                onDragEnd={(event) => handleSlotDragEnd(slot, event)}
+                onRemove={() => removeSlotEntry(slot)}
                 slot={slot}
               />
             ))}
@@ -574,10 +746,11 @@ export function CurrentPlayingPanel({
 
       <details
         className="mt-5 rounded-card border border-edge bg-surface p-5 shadow-rest"
-        open={currentPlayingEntries.length === 0}
+        open={selectedEntriesBySlot.size === 0}
+        ref={chooserRef}
       >
         <summary className="cursor-pointer font-bold text-ink">
-          {currentPlayingEntries.length
+          {selectedEntriesBySlot.size
             ? t("profile.currentPlaying.chooseChange")
             : t("profile.currentPlaying.choose")}
         </summary>
@@ -600,11 +773,14 @@ export function CurrentPlayingPanel({
                   </span>
                   <select
                     className="min-h-11 w-full rounded-inner border border-edge bg-surface px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
-                    disabled={isAutosaving}
+                    disabled={isBusy}
                     name={`slot${slot}EntryId`}
                     onChange={(event) =>
                       setSlotEntry(slot, event.target.value || null)
                     }
+                    ref={(element) => {
+                      slotSelectRefs.current.set(slot, element);
+                    }}
                     value={currentEntry?.id ?? ""}
                   >
                     <option value="">{t("profile.currentPlaying.leaveOpen")}</option>
@@ -625,8 +801,8 @@ export function CurrentPlayingPanel({
           </div>
 
           <div className="flex flex-wrap gap-3">
-            <Button disabled={isAutosaving} type="submit">
-              {isAutosaving
+            <Button disabled={isBusy} type="submit">
+              {isBusy
                 ? t("profile.currentPlaying.saving")
                 : t("profile.currentPlaying.save")}
             </Button>
@@ -640,14 +816,6 @@ export function CurrentPlayingPanel({
             {t("profile.currentPlaying.help")}
           </p>
         </form>
-
-        {currentPlayingEntries.length ? (
-          <form action={clearCurrentPlayingAction} className="mt-3">
-            <Button disabled={isAutosaving} type="submit" variant="ghost">
-              {t("common.clearAll")}
-            </Button>
-          </form>
-        ) : null}
       </details>
     </section>
   );

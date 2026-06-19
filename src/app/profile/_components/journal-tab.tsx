@@ -6,6 +6,7 @@ import { VoiceMemoryInput } from "@/components/voice-memory-input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
+import { createTranslator, type Locale } from "@/lib/i18n";
 import { cn, formatDate } from "@/lib/utils";
 import type { ProfileData, ProfileEntry } from "./profile-types";
 
@@ -84,7 +85,14 @@ function GameChoice({
   );
 }
 
-function JournalPageCard({ entry }: { entry: JournalEntry }) {
+function JournalPageCard({
+  entry,
+  locale,
+}: {
+  entry: JournalEntry;
+  locale: Locale;
+}) {
+  const t = createTranslator(locale);
   return (
     <article className="rounded-card border border-edge bg-surface p-5 shadow-rest">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -95,12 +103,12 @@ function JournalPageCard({ entry }: { entry: JournalEntry }) {
             </time>
           </p>
           <h3 className="text-balance font-display text-xl font-medium">
-            {entry.title ?? "Untitled Page"}
+            {entry.title ?? t("journal.untitledPage")}
           </h3>
         </div>
         <Button asChild size="sm" variant="ghost">
           <Link href={`/games/${entry.game.slug}`}>
-            View Game
+            {t("journal.openGame")}
             <ChevronRight />
           </Link>
         </Button>
@@ -114,7 +122,7 @@ function JournalPageCard({ entry }: { entry: JournalEntry }) {
 
       {entry.audioTranscript ? (
         <div className="mt-4 rounded-inner border border-edge bg-canvas/70 p-3">
-          <p className="section-label !mb-2">Voice Memory</p>
+          <p className="section-label !mb-2">{t("voiceMemory.label")}</p>
           <p className="whitespace-pre-line break-words text-sm leading-relaxed text-ink-soft">
             {entry.translatedTranscript ?? entry.audioTranscript}
           </p>
@@ -123,7 +131,7 @@ function JournalPageCard({ entry }: { entry: JournalEntry }) {
 
       {entry.media.length ? (
         <div className="mt-4 grid gap-3">
-          <p className="section-label !mb-0">Keepsakes</p>
+          <p className="section-label !mb-0">{t("journal.keepsakes")}</p>
           <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
             {entry.media.map((media) =>
               media.kind === "image" ? (
@@ -168,11 +176,14 @@ function JournalPageCard({ entry }: { entry: JournalEntry }) {
 
 export function JournalTab({
   activeEntryId,
+  locale,
   profile,
 }: {
   activeEntryId: string | null;
+  locale: Locale;
   profile: ProfileData;
 }) {
+  const t = createTranslator(locale);
   const selectedEntry =
     profile.user.gameEntries.find((entry) => entry.id === activeEntryId) ??
     profile.currentPlayingEntries[0] ??
@@ -195,14 +206,14 @@ export function JournalTab({
   return (
     <section className="panel bg-sky-soft/55">
       <SectionHeader
-        eyebrow="Journal"
-        title="Diary Pages"
-        description="Record the moment first. Writing, screenshots, and uploads stay tucked away as backup options."
+        eyebrow={t("journal.label")}
+        title={t("journal.title")}
+        description={t("journal.description")}
         aside={
           selectedEntry ? (
             <Button asChild variant="ghost">
               <Link href={`/games/${selectedEntry.game.slug}`}>
-                Open Game
+                {t("journal.openGame")}
                 <ChevronRight />
               </Link>
             </Button>
@@ -229,7 +240,7 @@ export function JournalTab({
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="section-label !mb-1">Writing For</p>
+                  <p className="section-label !mb-1">{t("journal.writingFor")}</p>
                   <h3 className="truncate font-display text-2xl font-medium">
                     {selectedEntry.game.name}
                   </h3>
@@ -237,7 +248,7 @@ export function JournalTab({
               </div>
               <div className="flex items-center gap-2 rounded-pill border border-edge bg-canvas px-3 py-2 text-sm font-bold text-ink-soft">
                 <BookOpen className="h-4 w-4" />
-                {selectedPages.length} saved
+                {t("journal.savedCount", { count: selectedPages.length })}
               </div>
             </div>
 
@@ -252,33 +263,33 @@ export function JournalTab({
                 type="hidden"
                 value={`${buildEntryHref(selectedEntry.id)}&journal=saved`}
               />
-              <input name="targetLanguage" type="hidden" value="English" />
+              <input name="targetLanguage" type="hidden" value={locale === "pt-BR" ? "Portuguese (Brazil)" : "English"} />
 
               <div>
                 <div className="mb-3 flex items-center gap-2 text-sm font-bold text-ink-soft">
                   <Mic className="h-4 w-4" />
-                  Start With Your Voice
+                  {t("journal.startWithVoice")}
                 </div>
                 <VoiceMemoryInput />
               </div>
 
               <details className="rounded-inner border border-edge bg-canvas/70 p-4">
                 <summary className="cursor-pointer text-sm font-bold text-ink transition-colors hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
-                  Write Instead Or Add More
+                  {t("journal.writeOrAddMore")}
                 </summary>
                 <div className="mt-4 grid gap-4">
                   <div className="grid grid-cols-[minmax(0,1fr)_220px] gap-3 max-md:grid-cols-1">
                     <label className="grid gap-2">
-                      <span className="text-sm font-semibold">Page Title</span>
+                      <span className="text-sm font-semibold">{t("journal.pageTitle")}</span>
                       <input
                         autoComplete="off"
                         className="min-h-11 rounded-inner border border-edge bg-surface px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                         name="title"
-                        placeholder="Before the next session"
+                        placeholder={t("journal.pageTitlePlaceholder")}
                       />
                     </label>
                     <label className="grid gap-2">
-                      <span className="text-sm font-semibold">Played Around</span>
+                      <span className="text-sm font-semibold">{t("journal.playedAround")}</span>
                       <input
                         autoComplete="off"
                         className="min-h-11 rounded-inner border border-edge bg-surface px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
@@ -288,17 +299,17 @@ export function JournalTab({
                     </label>
                   </div>
                   <label className="grid gap-2">
-                    <span className="text-sm font-semibold">Dear Diary</span>
+                    <span className="text-sm font-semibold">{t("journal.dearDiary")}</span>
                     <textarea
                       autoComplete="off"
                       className="min-h-44 rounded-inner border border-edge bg-surface px-3 py-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                       name="body"
-                      placeholder="I stopped at... I want to remember... Next time I should try..."
+                      placeholder={t("journal.bodyPlaceholder")}
                     />
                   </label>
                   <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
                     <label className="grid gap-2">
-                      <span className="text-sm font-semibold">Screenshot</span>
+                      <span className="text-sm font-semibold">{t("journal.screenshot")}</span>
                       <input
                         accept="image/*"
                         className="w-full text-sm file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sage-soft file:px-4 file:py-2 file:font-semibold file:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
@@ -308,13 +319,13 @@ export function JournalTab({
                     </label>
                     <label className="grid gap-2">
                       <span className="text-sm font-semibold">
-                        Keepsake Caption
+                        {t("journal.keepsakeCaption")}
                       </span>
                       <input
                         autoComplete="off"
                         className="min-h-11 rounded-inner border border-edge bg-surface px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
                         name="mediaCaption"
-                        placeholder="What this memory shows"
+                        placeholder={t("journal.keepsakePlaceholder")}
                       />
                     </label>
                   </div>
@@ -323,7 +334,7 @@ export function JournalTab({
 
               <Button className="justify-self-start" type="submit">
                 <PenLine />
-                Save Diary Page
+                {t("journal.savePage")}
               </Button>
             </form>
           </div>
@@ -331,7 +342,7 @@ export function JournalTab({
           {gameChoices.length > 1 ? (
             <details className="rounded-card border border-edge bg-surface p-4 shadow-rest">
               <summary className="cursor-pointer text-sm font-bold text-ink transition-colors hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
-                Choose Another Game
+                {t("journal.chooseAnotherGame")}
               </summary>
               <div className="mt-4 grid grid-cols-2 gap-2 max-md:grid-cols-1">
                 {gameChoices.map((entry) => (
@@ -347,33 +358,32 @@ export function JournalTab({
 
           <div className="grid gap-4">
             <h3 className="font-display text-xl font-medium">
-              Pages For {selectedEntry.game.name}
+              {t("journal.pagesFor", { name: selectedEntry.game.name })}
             </h3>
             {selectedPages.length ? (
               selectedPages.map((entry) => (
-                <JournalPageCard entry={entry} key={entry.id} />
+                <JournalPageCard entry={entry} key={entry.id} locale={locale} />
               ))
             ) : (
-              <EmptyState title="No pages for this game yet.">
-                A short voice note is enough to remember where you left off.
+              <EmptyState title={t("journal.noPagesTitle")}>
+                {t("journal.noPagesBody")}
               </EmptyState>
             )}
           </div>
         </div>
       ) : (
-        <EmptyState title="No games available for journaling yet.">
-          Add a game to your catalog first, then come back here to keep diary
-          pages.
+        <EmptyState title={t("journal.noGamesTitle")}>
+          {t("journal.noGamesBody")}
         </EmptyState>
       )}
 
       {recentPages.length > 0 && selectedPages.length === 0 ? (
         <div className="mt-8 grid gap-4">
           <h3 className="font-display text-xl font-medium">
-            Recent Diary Pages
+            {t("journal.recentPages")}
           </h3>
           {recentPages.map((entry) => (
-            <JournalPageCard entry={entry} key={entry.id} />
+            <JournalPageCard entry={entry} key={entry.id} locale={locale} />
           ))}
         </div>
       ) : null}

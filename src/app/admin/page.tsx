@@ -109,7 +109,7 @@ export default async function AdminPage({
         </Card>
         <Card tactile>
           <CardContent className="p-5">
-            <p className="text-sm font-bold text-ink-soft">Admin</p>
+            <p className="text-sm font-bold text-ink-soft">{t("admin.kicker")}</p>
             <p className="mt-2 truncate font-semibold">{admin.email}</p>
           </CardContent>
         </Card>

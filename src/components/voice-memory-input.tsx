@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 
 function getRecorderMimeType() {
@@ -38,6 +39,7 @@ function formatDuration(seconds: number) {
 }
 
 export function VoiceMemoryInput() {
+  const t = useTranslations();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -72,7 +74,7 @@ export function VoiceMemoryInput() {
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [isRecording]);
+  }, [isRecording, t]);
 
   useEffect(() => {
     return () => {
@@ -95,13 +97,13 @@ export function VoiceMemoryInput() {
       }
 
       event.preventDefault();
-      setError("Stop recording before saving this diary page.");
+      setError(t("voiceMemory.stopBeforeSave"));
     }
 
     form.addEventListener("submit", handleSubmit);
 
     return () => form.removeEventListener("submit", handleSubmit);
-  }, [isRecording]);
+  }, [isRecording, t]);
 
   function clearRecording() {
     if (objectUrlRef.current) {
@@ -121,7 +123,7 @@ export function VoiceMemoryInput() {
 
   async function startRecording() {
     if (!supportsRecording) {
-      setError("Recording is not available in this browser. You can still upload audio.");
+      setError(t("voiceMemory.browserUnavailable"));
       return;
     }
 
@@ -175,7 +177,7 @@ export function VoiceMemoryInput() {
       setSeconds(0);
       setIsRecording(true);
     } catch {
-      setError("Could not start recording. Check microphone permission or upload audio instead.");
+      setError(t("voiceMemory.couldNotStart"));
       setIsRecording(false);
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
@@ -210,14 +212,14 @@ export function VoiceMemoryInput() {
     >
       <div className="grid gap-3 rounded-inner border border-edge bg-surface p-4">
         <div>
-          <p className="section-label !mb-1">Voice Memory</p>
+          <p className="section-label !mb-1">{t("voiceMemory.label")}</p>
           <p className="text-pretty text-sm font-semibold text-ink">
-            Say what happened before it fades.
+            {t("voiceMemory.prompt")}
           </p>
         </div>
         {isRecording ? (
           <Button type="button" variant="destructive" onClick={stopRecording}>
-            Stop Recording
+            {t("voiceMemory.stop")}
           </Button>
         ) : (
           <Button
@@ -225,13 +227,13 @@ export function VoiceMemoryInput() {
             type="button"
             onClick={startRecording}
           >
-            Record Voice Memory
+            {t("voiceMemory.record")}
           </Button>
         )}
         <span className="text-sm font-semibold text-ink-soft" aria-live="polite">
           {isRecording
-            ? `Recording ${formatDuration(seconds)}`
-            : fileName || "No voice memory yet"}
+            ? `${t("voiceMemory.recording")} ${formatDuration(seconds)}`
+            : fileName || t("voiceMemory.none")}
         </span>
       </div>
 
@@ -241,10 +243,10 @@ export function VoiceMemoryInput() {
 
       <details className="rounded-inner border border-edge bg-surface p-3">
         <summary className="cursor-pointer text-sm font-bold text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
-          Upload Audio Instead
+          {t("voiceMemory.uploadInstead")}
         </summary>
         <label className="mt-3 grid gap-2">
-          <span className="text-sm font-semibold">Audio File</span>
+          <span className="text-sm font-semibold">{t("voiceMemory.audioFile")}</span>
           <input
             accept="audio/*"
             className="w-full text-sm file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sand-soft file:px-4 file:py-2 file:font-semibold file:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"

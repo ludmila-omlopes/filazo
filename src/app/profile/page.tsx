@@ -142,6 +142,7 @@ export default async function ProfilePage({
               profile={profile}
             />
             <AssistantCorner
+              locale={locale}
               playerProfile={playerProfile}
               profile={profile}
             />
@@ -151,7 +152,7 @@ export default async function ProfilePage({
         {activeTab === "assistant" && assistant ? (
           <>
             <FavoriteGames locale={locale} profile={profile} />
-            <AssistantTab assistant={assistant} />
+            <AssistantTab assistant={assistant} locale={locale} />
           </>
         ) : null}
 
@@ -160,12 +161,13 @@ export default async function ProfilePage({
         ) : null}
 
         {activeTab === "setup" ? (
-          <OnboardingPanel profile={profile} step={setupStep} />
+          <OnboardingPanel locale={locale} profile={profile} step={setupStep} />
         ) : null}
 
         {activeTab === "journal" ? (
           <JournalTab
             activeEntryId={activeJournalEntryId}
+            locale={locale}
             profile={profile}
           />
         ) : null}

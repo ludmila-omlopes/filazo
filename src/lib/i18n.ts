@@ -24,8 +24,10 @@ const messages = {
     "common.gridView": "Grid view",
     "common.chooseGame": "Choose a game",
     "common.clearAll": "Clear all",
+    "common.apply": "Apply",
     "common.skipToContent": "Skip to content",
     "common.playtimeSoFar": "{value} so far",
+    "common.your": "your",
 
     "nav.main": "Main",
     "nav.footer": "Footer",
@@ -351,6 +353,9 @@ const messages = {
     "profile.currentPlaying.leaveOpen": "Leave this open",
     "profile.currentPlaying.save": "Save current playing",
     "profile.currentPlaying.saving": "Saving...",
+    "profile.currentPlaying.clearTop": "Clear all",
+    "profile.currentPlaying.remove": "Remove {name}",
+    "profile.currentPlaying.dragOut": "Drag out to remove",
     "profile.currentPlaying.fillOpenSpots": "Fill open spots",
     "profile.currentPlaying.help":
       "Leave any slot empty to clear it. You can feature fewer than three games if that feels better.",
@@ -387,6 +392,193 @@ const messages = {
       "Sync a platform or import a CSV, then the catalog becomes browsable.",
     "profile.shelf.gameCount": "{count} games",
     "profile.shelf.gameCountOne": "1 game",
+    "shelf.unknownPlatform": "Unknown platform",
+    "shelf.includeDormantChip": "Including dropped and not-started",
+    "shelf.includeDormantLabel": "Include dropped and not-started games",
+    "shelf.updateStatus": "Update status",
+    "shelf.restoreBeforeCredits": "Restore this game before marking credits rolled",
+    "shelf.creditsRolled": "Credits rolled",
+    "shelf.rollCredits": "Roll credits",
+    "shelf.return": "Return",
+    "shelf.dropped": "Dropped",
+    "assistant.corner.eyebrow": "Guide notes",
+    "assistant.corner.title": "A quieter read on your catalog",
+    "assistant.corner.openTonight": "Open tonight",
+    "assistant.tab.label": "Guide",
+    "assistant.tab.refreshHelp":
+      "Refresh suggestions after adding games or changing your shelf.",
+    "assistant.tab.usage": "Usage details",
+    "assistant.tab.availableToday": "Notes available today:",
+    "assistant.tab.usedToday": "Used today:",
+    "assistant.tab.nextRefresh": "Next refresh:",
+    "assistant.tab.unavailable": "unavailable",
+    "assistant.tab.refresh": "Refresh guide",
+    "assistant.tab.availableNow": "available now",
+    "assistant.tab.inOneMinute": "in 1 minute",
+    "assistant.tab.inMinutes": "in {count} minutes",
+    "assistant.buy.eyebrow": "Thinking of buying?",
+    "assistant.buy.title": "Buy, wait, stay curious, or pass",
+    "libraryChat.label": "Library chat",
+    "libraryChat.title": "Ask your collection anything",
+    "libraryChat.body": "Answers come from your own games, playtime, and notes.",
+    "libraryChat.unavailableTitle": "Chat is unavailable right now.",
+    "libraryChat.unavailableBody": "The rest of the guide still works.",
+    "libraryChat.tryOne": "Try one of these to start:",
+    "libraryChat.prompt.shortSession": "What should I play if I only have an hour tonight?",
+    "libraryChat.prompt.taste": "What does my library say about my taste lately?",
+    "libraryChat.prompt.return": "Which unfinished game feels easiest to return to?",
+    "libraryChat.checking": "Checking your library...",
+    "libraryChat.paused": "Chat paused:",
+    "libraryChat.unexpectedError": "unexpected error.",
+    "libraryChat.tryAgain": "Try again when you're ready.",
+    "libraryChat.placeholder":
+      "Ask about your games, taste, or what to play next",
+    "libraryChat.thinking": "Thinking...",
+    "libraryChat.send": "Send",
+    "libraryChat.tool.overview": "library overview",
+    "libraryChat.tool.games": "game list",
+    "libraryChat.tool.feedback": "player feedback",
+    "libraryChat.tool.genres": "genre stats",
+    "playerProfile.label": "Player profile",
+    "playerProfile.title": "Who you are as a player",
+    "playerProfile.body":
+      "A short read on your taste, based on your library, playtime, and notes. Refresh it after adding feedback.",
+    "playerProfile.generated": "Generated {date}",
+    "playerProfile.notGenerated": "Not generated yet",
+    "playerProfile.refresh": "Refresh profile",
+    "playerProfile.generate": "Generate profile",
+    "playerProfile.reading": "Reading your shelf...",
+    "playerProfile.pending":
+      "Filazo is reading your library and notes. Keep this page open.",
+    "playerProfile.refreshUnavailable": "Refresh is unavailable right now.",
+    "playerProfile.emptyCatalogTitle": "Your catalog is quiet right now.",
+    "playerProfile.emptyCatalogBody":
+      "Add a few games first, then Filazo can say something useful about your taste.",
+    "playerProfile.unavailableTitle": "Profile writing is unavailable right now.",
+    "playerProfile.unavailableBody": "The rest of the guide still works.",
+    "playerProfile.notWrittenTitle": "Your profile hasn't been written yet.",
+    "playerProfile.notWrittenBody":
+      "Use Generate profile and Filazo will read your games, playtime, favorites, and feedback.",
+    "playerProfile.preferredGenres": "Preferred genres",
+    "playerProfile.playStyles": "Play styles",
+    "playerProfile.behaviorPatterns": "Behavior patterns",
+    "playerProfile.fromCatalog": "From your own catalog",
+    "playerProfile.traceTitle":
+      "How the agent built this ({count} tool calls)",
+    "manualSearch.eyebrow": "Manual add",
+    "manualSearch.title": "Search for a game",
+    "manualSearch.unavailableTitle": "Game search is not configured.",
+    "manualSearch.unavailableBody":
+      "Add metadata credentials before manually adding games.",
+    "manualSearch.searchFailed": "Search failed.",
+    "manualSearch.gameTitle": "Game title",
+    "manualSearch.placeholder": "Chrono Trigger",
+    "manualSearch.catalogResult": "Catalog result",
+    "manualSearch.selected": "Selected",
+    "manualSearch.add": "Add",
+    "manualSearch.noMatches": "No matches yet.",
+    "manualSearch.platform": "Platform",
+    "manualSearch.platformPlaceholder": "Nintendo 64, PlayStation 1, PC...",
+    "manualSearch.status": "Play status",
+    "manualSearch.addToShelf": "Add to shelf",
+    "manualSearch.status.playing": "Playing now",
+    "manualSearch.status.owned": "Owned",
+    "manualSearch.status.backlog": "Backlog",
+    "manualSearch.status.completed": "Credits rolled",
+    "manualSearch.status.dropped": "Dropped",
+    "manualSearch.status.wishlist": "Wishlist",
+    "voiceMemory.label": "Voice Memory",
+    "voiceMemory.prompt": "Say what happened before it fades.",
+    "voiceMemory.record": "Record Voice Memory",
+    "voiceMemory.stop": "Stop Recording",
+    "voiceMemory.recording": "Recording",
+    "voiceMemory.none": "No voice memory yet",
+    "voiceMemory.uploadInstead": "Upload Audio Instead",
+    "voiceMemory.audioFile": "Audio File",
+    "voiceMemory.stopBeforeSave":
+      "Stop recording before saving this diary page.",
+    "voiceMemory.browserUnavailable":
+      "Recording is not available in this browser. You can still upload audio.",
+    "voiceMemory.couldNotStart":
+      "Could not start recording. Check microphone permission or upload audio instead.",
+    "journal.label": "Journal",
+    "journal.title": "Diary Pages",
+    "journal.description":
+      "Record the moment first. Writing, screenshots, and uploads stay tucked away as backup options.",
+    "journal.openGame": "Open Game",
+    "journal.savedCount": "{count} saved",
+    "journal.startWithVoice": "Start With Your Voice",
+    "journal.writeOrAddMore": "Write Instead Or Add More",
+    "journal.pageTitle": "Page Title",
+    "journal.pageTitlePlaceholder": "Before the next session",
+    "journal.playedAround": "Played Around",
+    "journal.dearDiary": "Dear Diary",
+    "journal.bodyPlaceholder":
+      "I stopped at... I want to remember... Next time I should try...",
+    "journal.screenshot": "Screenshot",
+    "journal.keepsakeCaption": "Keepsake Caption",
+    "journal.keepsakePlaceholder": "What this memory shows",
+    "journal.savePage": "Save Diary Page",
+    "journal.chooseAnotherGame": "Choose Another Game",
+    "journal.noPagesTitle": "No pages for this game yet.",
+    "journal.noPagesBody":
+      "A short voice note is enough to remember where you left off.",
+    "journal.noGamesTitle": "No games available for journaling yet.",
+    "journal.noGamesBody":
+      "Add a game to your catalog first, then come back here to keep diary pages.",
+    "journal.recentPages": "Recent Diary Pages",
+    "journal.writingFor": "Writing For",
+    "journal.pagesFor": "Pages For {name}",
+    "journal.untitledPage": "Untitled Page",
+    "journal.keepsakes": "Keepsakes",
+    "setup.label": "Setup",
+    "setup.step1": "Step 1",
+    "setup.step2": "Step 2",
+    "setup.step.rhythm": "Rhythm",
+    "setup.step.platforms": "Platforms",
+    "setup.rhythm.title": "How often do you usually play?",
+    "setup.rhythm.description":
+      "A rough rhythm is enough. It helps keep suggestions realistic.",
+    "setup.platforms.title": "Where do your games usually live?",
+    "setup.platforms.description":
+      "Pick the platforms that matter most right now. You can change this later.",
+    "setup.frequency.skip": "Skip for now",
+    "setup.frequency.monthly": "A few times a month",
+    "setup.frequency.weekly12": "1-2 times a week",
+    "setup.frequency.weeklyMany": "Several times a week",
+    "setup.frequency.daily": "Daily",
+    "setup.frequency.multiDaily": "Multiple times a day",
+    "setup.window.morning": "Morning",
+    "setup.window.afternoon": "Afternoon",
+    "setup.window.evening": "Evening",
+    "setup.window.lateNight": "Late night",
+    "setup.window.weekdays": "Weekdays",
+    "setup.window.weekends": "Weekends",
+    "setup.platform.nintendo": "Nintendo",
+    "setup.platform.mobile": "Mobile",
+    "setup.platform.handheld": "Other handhelds",
+    "setup.progress": "Setup progress",
+    "setup.back": "Back",
+    "setup.finish": "Finish",
+    "setup.saveContinue": "Save and continue",
+    "setup.playFrequency": "Play frequency",
+    "setup.playWindows": "When you usually play",
+    "setup.currentPlatforms": "Current platforms",
+    "setup.otherPlatform": "Another platform",
+    "setup.otherPlatformPlaceholder": "Vita, 3DS, emulator, arcade...",
+    "setup.skipNow": "Skip for now",
+    "setup.cleanChoices": "Clear these choices",
+    "setup.cleanBody":
+      "This removes the current setup answers so you can start over later.",
+    "setup.cleanConfirm": "Clear setup",
+    "setup.titleCompleted": "Play Preferences",
+    "setup.titleOptional": "Setup Is Optional",
+    "setup.titleStart": "Start With A Light Setup",
+    "setup.descriptionFirst":
+      "Answer only what helps. Each step saves before moving on.",
+    "setup.descriptionEdit":
+      "Adjust the preferences that shape recommendations and source prompts.",
+    "setup.openSources": "Open Sources",
 
     "csv.chooseFile": "Choose a CSV file",
     "csv.helper":
@@ -414,6 +606,29 @@ const messages = {
     "csv.field.completion": "Achievement %",
     "csv.field.notes": "Notes",
     "csv.field.externalId": "External ID",
+    "profile.importAudit.title": "Recent import audit",
+    "profile.importAudit.row": "Row {index}",
+    "profile.importAudit.pending": "pending",
+    "profile.photoImport.label": "Photo import",
+    "profile.photoImport.title": "Read games from screenshots",
+    "profile.photoImport.description":
+      "Upload screenshots or photos of a catalog page, shelf, or list. Detected titles are resolved into the same canonical catalog.",
+    "profile.photoImport.ready": "Vision ready",
+    "profile.photoImport.needsKey": "Needs AI key",
+    "profile.photoImport.images": "Catalog images",
+    "profile.photoImport.needsKeyBody":
+      "Photo extraction needs OPENAI_API_KEY. Upload attempts are kept in the import audit with a clear skipped state.",
+    "profile.photoImport.submit": "Import from photos",
+    "profile.reviews.label": "Review import",
+    "profile.reviews.title": "Bring in your public reviews",
+    "profile.reviews.body":
+      "Steam public recommendations can be matched back to games already on your shelf. PlayStation and Xbox reviews are not exposed through the current source flows.",
+    "profile.reviews.ready": "Steam ready",
+    "profile.reviews.needsSteam": "Needs Steam",
+    "profile.reviews.sync": "Sync reviews",
+    "profile.reviews.checking": "Checking...",
+    "profile.reviews.pending": "Checking public Steam recommendations.",
+    "profile.reviews.connectFirst": "Connect Steam first.",
 
     "favorite.addTitle": "Add {name} to favorites",
     "favorite.removeTitle": "Remove {name} from favorites",
@@ -477,6 +692,11 @@ const messages = {
       "Your library is safe. Try again, or step back to the shelf for a moment.",
     "routeError.retry": "Try again",
     "routeError.backShelf": "Back to the shelf",
+    "notFound.label": "Missing save",
+    "notFound.title": "This save file doesn't exist.",
+    "notFound.body":
+      "The shelf is still here. Step back and pick up from a known slot.",
+    "notFound.backShelf": "Back to the shelf",
 
     "tonight.mood.short": "something short",
     "tonight.mood.cozy": "something cozy",
@@ -502,6 +722,11 @@ const messages = {
     "tonight.goToCatalog": "Go to the catalog",
     "tonight.fallbackReason":
       "A quiet pick from the games already in your catalog.",
+    "tonight.action.pickAnother":
+      "Pick another save when you are ready.",
+    "tonight.action.alreadyCloseBy":
+      "That save is already close by. Pick another when the room is ready.",
+    "tonight.action.markedPlaying": "{name} is marked playing now.",
 
     "status.BACKLOG": "on the shelf",
     "status.OWNED": "owned",
@@ -549,6 +774,19 @@ const messages = {
       "Player profile refreshed from your games, feedback, and reviews.",
     "statusMessage.playerProfileEmpty":
       "Your shelf is quiet right now. Add a few games before asking for a player profile.",
+    "statusMessage.photoImported":
+      "Photo import finished. {count} games were added or updated.",
+    "statusMessage.manualAdded":
+      "Game added. You can adjust it from your catalog whenever you want.",
+    "statusMessage.reviewsSynced":
+      "Review sync finished. {count} reviews were added or updated.",
+    "statusMessage.journalSaved": "Diary page saved.",
+    "statusMessage.onboardingUpdated":
+      "Setup preferences saved. You can revisit them from the Setup tab.",
+    "statusMessage.onboardingSkipped":
+      "Onboarding skipped. The profile stays open and editable.",
+    "statusMessage.onboardingCleared":
+      "Setup choices cleared. Start again whenever you are ready.",
 
     "profileAction.needSteamLogin": "Sign in before syncing Steam.",
     "profileAction.steamSyncFailed": "Steam sync did not complete.",
@@ -585,6 +823,42 @@ const messages = {
       "Sign in before detecting finished games.",
     "profileAction.finishedCheckFailed":
       "Credits-rolled check did not complete.",
+    "profileAction.needReviewsLogin":
+      "Sign in before syncing reviews.",
+    "profileAction.reviewsSyncFailed": "Review sync did not complete.",
+    "profileAction.needPhotoLogin":
+      "Sign in before importing catalog photos.",
+    "profileAction.photoUploadAtLeastOne":
+      "Upload at least one catalog image.",
+    "profileAction.photoOnlyImages":
+      "Only image files can be used for photo import.",
+    "profileAction.photoNoVisibleGames": "No visible games detected.",
+    "profileAction.photoVisionUnavailable":
+      "OPENAI_API_KEY is not configured for vision extraction.",
+    "profileAction.photoNeedsAiKey": "Photo import needs OPENAI_API_KEY.",
+    "profileAction.photoLowConfidence":
+      "Skipped for manual review because confidence was low.",
+    "profileAction.photoRowFailed":
+      "Photo import could not add this row.",
+    "profileAction.photoImportFailed": "Photo import did not complete.",
+    "profileAction.needJournalLogin":
+      "Sign in before saving journal entries.",
+    "profileAction.journalSaveFailed":
+      "Journal entry could not be saved.",
+    "profileAction.needManualAddLogin":
+      "Sign in before adding games.",
+    "profileAction.manualAddChooseGame":
+      "Choose a game result before adding.",
+    "profileAction.manualAddLoadFailed":
+      "That game could not be loaded.",
+    "assistantAction.needRefreshLogin":
+      "Sign in before refreshing assistant insights.",
+    "assistantAction.refreshFailed":
+      "Assistant refresh did not complete.",
+    "assistantAction.needProfileLogin":
+      "Sign in before generating a player profile.",
+    "assistantAction.profileFailed":
+      "Player profile generation did not complete.",
   },
   "pt-BR": {
     "common.home": "Início",
@@ -603,8 +877,10 @@ const messages = {
     "common.gridView": "Visualização em grade",
     "common.chooseGame": "Escolha um jogo",
     "common.clearAll": "Limpar tudo",
+    "common.apply": "Aplicar",
     "common.skipToContent": "Pular para o conteúdo",
     "common.playtimeSoFar": "{value} até agora",
+    "common.your": "suas",
 
     "nav.main": "Principal",
     "nav.footer": "Rodapé",
@@ -933,6 +1209,9 @@ const messages = {
     "profile.currentPlaying.leaveOpen": "Deixar esse espaço vazio",
     "profile.currentPlaying.save": "Salvar jogando agora",
     "profile.currentPlaying.saving": "Salvando...",
+    "profile.currentPlaying.clearTop": "Limpar tudo",
+    "profile.currentPlaying.remove": "Remover {name}",
+    "profile.currentPlaying.dragOut": 'Arraste para fora para remover',
     "profile.currentPlaying.fillOpenSpots": "Preencher espaços",
     "profile.currentPlaying.help":
       "Deixe qualquer espaço vazio para limpar. Você pode destacar menos de três jogos se isso fizer mais sentido.",
@@ -969,6 +1248,193 @@ const messages = {
       "Sincronize uma plataforma ou importe um CSV e o catálogo vira algo navegável.",
     "profile.shelf.gameCount": "{count} jogos",
     "profile.shelf.gameCountOne": "1 jogo",
+    "shelf.unknownPlatform": "Plataforma desconhecida",
+    "shelf.includeDormantChip": "Incluindo largados e não iniciados",
+    "shelf.includeDormantLabel": "Incluir jogos largados e não iniciados",
+    "shelf.updateStatus": "Atualizar status",
+    "shelf.restoreBeforeCredits": "Restaure este jogo antes de marcar créditos concluídos",
+    "shelf.creditsRolled": "Créditos concluídos",
+    "shelf.rollCredits": "Marcar créditos",
+    "shelf.return": "Voltar",
+    "shelf.dropped": "Largou",
+    "assistant.corner.eyebrow": "Notas do guia",
+    "assistant.corner.title": "Uma leitura mais calma do seu catálogo",
+    "assistant.corner.openTonight": "Abrir hoje",
+    "assistant.tab.label": "Guia",
+    "assistant.tab.refreshHelp":
+      "Atualize as sugestões depois de adicionar jogos ou mudar sua estante.",
+    "assistant.tab.usage": "Detalhes de uso",
+    "assistant.tab.availableToday": "Notas disponíveis hoje:",
+    "assistant.tab.usedToday": "Usado hoje:",
+    "assistant.tab.nextRefresh": "Próxima atualização:",
+    "assistant.tab.unavailable": "indisponível",
+    "assistant.tab.refresh": "Atualizar guia",
+    "assistant.tab.availableNow": "disponível agora",
+    "assistant.tab.inOneMinute": "em 1 minuto",
+    "assistant.tab.inMinutes": "em {count} minutos",
+    "assistant.buy.eyebrow": "Pensando em comprar?",
+    "assistant.buy.title": "Comprar, esperar, seguir curiosa ou passar",
+    "libraryChat.label": "Chat da biblioteca",
+    "libraryChat.title": "Pergunte qualquer coisa para sua coleção",
+    "libraryChat.body": "As respostas vêm dos seus próprios jogos, tempo de jogo e notas.",
+    "libraryChat.unavailableTitle": "O chat está indisponível agora.",
+    "libraryChat.unavailableBody": "O resto do guia continua funcionando.",
+    "libraryChat.tryOne": "Tente uma destas para começar:",
+    "libraryChat.prompt.shortSession": "O que eu deveria jogar se só tenho uma hora hoje?",
+    "libraryChat.prompt.taste": "O que minha biblioteca diz sobre meu gosto ultimamente?",
+    "libraryChat.prompt.return": "Qual jogo inacabado parece mais fácil de retomar?",
+    "libraryChat.checking": "Olhando sua biblioteca...",
+    "libraryChat.paused": "Chat pausado:",
+    "libraryChat.unexpectedError": "erro inesperado.",
+    "libraryChat.tryAgain": "Tente de novo quando quiser.",
+    "libraryChat.placeholder":
+      "Pergunte sobre seus jogos, seu gosto ou o que jogar depois",
+    "libraryChat.thinking": "Pensando...",
+    "libraryChat.send": "Enviar",
+    "libraryChat.tool.overview": "visão da biblioteca",
+    "libraryChat.tool.games": "lista de jogos",
+    "libraryChat.tool.feedback": "feedback da jogadora",
+    "libraryChat.tool.genres": "estatísticas de gênero",
+    "playerProfile.label": "Perfil de jogadora",
+    "playerProfile.title": "Quem você é como jogadora",
+    "playerProfile.body":
+      "Uma leitura curta do seu gosto, baseada na sua biblioteca, tempo de jogo e notas. Atualize depois de adicionar feedback.",
+    "playerProfile.generated": "Gerado em {date}",
+    "playerProfile.notGenerated": "Ainda não gerado",
+    "playerProfile.refresh": "Atualizar perfil",
+    "playerProfile.generate": "Gerar perfil",
+    "playerProfile.reading": "Lendo sua estante...",
+    "playerProfile.pending":
+      "A filazo está lendo sua biblioteca e notas. Deixe esta página aberta.",
+    "playerProfile.refreshUnavailable": "A atualização está indisponível agora.",
+    "playerProfile.emptyCatalogTitle": "Seu catálogo está silencioso agora.",
+    "playerProfile.emptyCatalogBody":
+      "Adicione alguns jogos primeiro, então a filazo pode dizer algo útil sobre seu gosto.",
+    "playerProfile.unavailableTitle": "A escrita do perfil está indisponível agora.",
+    "playerProfile.unavailableBody": "O resto do guia continua funcionando.",
+    "playerProfile.notWrittenTitle": "Seu perfil ainda não foi escrito.",
+    "playerProfile.notWrittenBody":
+      "Use Gerar perfil e a filazo vai ler seus jogos, tempo de jogo, favoritos e feedback.",
+    "playerProfile.preferredGenres": "Gêneros preferidos",
+    "playerProfile.playStyles": "Estilos de jogo",
+    "playerProfile.behaviorPatterns": "Padrões de comportamento",
+    "playerProfile.fromCatalog": "Do seu próprio catálogo",
+    "playerProfile.traceTitle":
+      "Como o agente montou isso ({count} chamadas de ferramenta)",
+    "manualSearch.eyebrow": "Adição manual",
+    "manualSearch.title": "Buscar um jogo",
+    "manualSearch.unavailableTitle": "A busca de jogos não está configurada.",
+    "manualSearch.unavailableBody":
+      "Adicione credenciais de metadados antes de incluir jogos manualmente.",
+    "manualSearch.searchFailed": "A busca falhou.",
+    "manualSearch.gameTitle": "Título do jogo",
+    "manualSearch.placeholder": "Chrono Trigger",
+    "manualSearch.catalogResult": "Resultado do catálogo",
+    "manualSearch.selected": "Selecionado",
+    "manualSearch.add": "Adicionar",
+    "manualSearch.noMatches": "Ainda sem resultados.",
+    "manualSearch.platform": "Plataforma",
+    "manualSearch.platformPlaceholder": "Nintendo 64, PlayStation 1, PC...",
+    "manualSearch.status": "Status de jogo",
+    "manualSearch.addToShelf": "Adicionar à estante",
+    "manualSearch.status.playing": "Jogando agora",
+    "manualSearch.status.owned": "Seu",
+    "manualSearch.status.backlog": "Na estante",
+    "manualSearch.status.completed": "Créditos concluídos",
+    "manualSearch.status.dropped": "Largou",
+    "manualSearch.status.wishlist": "Na mira",
+    "voiceMemory.label": "Memória de voz",
+    "voiceMemory.prompt": "Diga o que aconteceu antes que isso se apague.",
+    "voiceMemory.record": "Gravar memória de voz",
+    "voiceMemory.stop": "Parar gravação",
+    "voiceMemory.recording": "Gravando",
+    "voiceMemory.none": "Ainda sem memória de voz",
+    "voiceMemory.uploadInstead": "Enviar áudio em vez disso",
+    "voiceMemory.audioFile": "Arquivo de áudio",
+    "voiceMemory.stopBeforeSave":
+      "Pare a gravação antes de salvar esta página do diário.",
+    "voiceMemory.browserUnavailable":
+      "A gravação não está disponível neste navegador. Você ainda pode enviar áudio.",
+    "voiceMemory.couldNotStart":
+      "Não foi possível começar a gravar. Verifique a permissão do microfone ou envie áudio no lugar.",
+    "journal.label": "Diário",
+    "journal.title": "Páginas de diário",
+    "journal.description":
+      "Registre o momento primeiro. Escrita, screenshots e uploads ficam guardados como opções de apoio.",
+    "journal.openGame": "Abrir jogo",
+    "journal.savedCount": "{count} salvas",
+    "journal.startWithVoice": "Comece com a sua voz",
+    "journal.writeOrAddMore": "Escreva em vez disso ou adicione mais",
+    "journal.pageTitle": "Título da página",
+    "journal.pageTitlePlaceholder": "Antes da próxima sessão",
+    "journal.playedAround": "Jogado por volta de",
+    "journal.dearDiary": "Querido diário",
+    "journal.bodyPlaceholder":
+      "Parei em... Quero lembrar... Da próxima vez eu deveria tentar...",
+    "journal.screenshot": "Screenshot",
+    "journal.keepsakeCaption": "Legenda da lembrança",
+    "journal.keepsakePlaceholder": "O que esta memória mostra",
+    "journal.savePage": "Salvar página do diário",
+    "journal.chooseAnotherGame": "Escolher outro jogo",
+    "journal.noPagesTitle": "Ainda não há páginas para este jogo.",
+    "journal.noPagesBody":
+      "Uma nota de voz curta já basta para lembrar onde você parou.",
+    "journal.noGamesTitle": "Ainda não há jogos disponíveis para o diário.",
+    "journal.noGamesBody":
+      "Adicione um jogo ao seu catálogo primeiro, depois volte aqui para guardar páginas de diário.",
+    "journal.recentPages": "Páginas recentes do diário",
+    "journal.writingFor": "Escrevendo para",
+    "journal.pagesFor": "Páginas para {name}",
+    "journal.untitledPage": "Página sem título",
+    "journal.keepsakes": "Lembranças",
+    "setup.label": "Setup",
+    "setup.step1": "Etapa 1",
+    "setup.step2": "Etapa 2",
+    "setup.step.rhythm": "Ritmo",
+    "setup.step.platforms": "Plataformas",
+    "setup.rhythm.title": "Com que frequência você costuma jogar?",
+    "setup.rhythm.description":
+      "Um ritmo aproximado já basta. Isso ajuda a manter as sugestões realistas.",
+    "setup.platforms.title": "Onde seus jogos costumam viver?",
+    "setup.platforms.description":
+      "Escolha as plataformas que mais importam agora. Você pode mudar isso depois.",
+    "setup.frequency.skip": "Pular por enquanto",
+    "setup.frequency.monthly": "Algumas vezes por mês",
+    "setup.frequency.weekly12": "1-2 vezes por semana",
+    "setup.frequency.weeklyMany": "Várias vezes por semana",
+    "setup.frequency.daily": "Todo dia",
+    "setup.frequency.multiDaily": "Várias vezes por dia",
+    "setup.window.morning": "Manhã",
+    "setup.window.afternoon": "Tarde",
+    "setup.window.evening": "Noite",
+    "setup.window.lateNight": "Madrugada",
+    "setup.window.weekdays": "Dias de semana",
+    "setup.window.weekends": "Fins de semana",
+    "setup.platform.nintendo": "Nintendo",
+    "setup.platform.mobile": "Celular",
+    "setup.platform.handheld": "Outros portáteis",
+    "setup.progress": "Progresso do setup",
+    "setup.back": "Voltar",
+    "setup.finish": "Concluir",
+    "setup.saveContinue": "Salvar e continuar",
+    "setup.playFrequency": "Frequência de jogo",
+    "setup.playWindows": "Quando você costuma jogar",
+    "setup.currentPlatforms": "Plataformas atuais",
+    "setup.otherPlatform": "Outra plataforma",
+    "setup.otherPlatformPlaceholder": "Vita, 3DS, emulador, arcade...",
+    "setup.skipNow": "Pular por enquanto",
+    "setup.cleanChoices": "Limpar estas escolhas",
+    "setup.cleanBody":
+      "Isso remove as respostas atuais do setup para que você possa recomeçar depois.",
+    "setup.cleanConfirm": "Limpar setup",
+    "setup.titleCompleted": "Preferências de jogo",
+    "setup.titleOptional": "A configuração é opcional",
+    "setup.titleStart": "Comece com uma configuração leve",
+    "setup.descriptionFirst":
+      "Responda só o que ajuda. Cada etapa salva antes de avançar.",
+    "setup.descriptionEdit":
+      "Ajuste as preferências que moldam recomendações e sugestões de fontes.",
+    "setup.openSources": "Abrir fontes",
 
     "csv.chooseFile": "Escolha um arquivo CSV",
     "csv.helper":
@@ -996,6 +1462,29 @@ const messages = {
     "csv.field.completion": "% de conquistas",
     "csv.field.notes": "Notas",
     "csv.field.externalId": "ID externo",
+    "profile.importAudit.title": "Auditoria recente de importação",
+    "profile.importAudit.row": "Linha {index}",
+    "profile.importAudit.pending": "pendente",
+    "profile.photoImport.label": "Importação por foto",
+    "profile.photoImport.title": "Ler jogos de screenshots",
+    "profile.photoImport.description":
+      "Envie screenshots ou fotos de uma página de catálogo, estante ou lista. Os títulos detectados são resolvidos no mesmo catálogo canônico.",
+    "profile.photoImport.ready": "Visão pronta",
+    "profile.photoImport.needsKey": "Precisa de chave de IA",
+    "profile.photoImport.images": "Imagens do catálogo",
+    "profile.photoImport.needsKeyBody":
+      "A extração por foto precisa de OPENAI_API_KEY. As tentativas de upload ficam registradas na auditoria de importação com um estado claro de ignorado.",
+    "profile.photoImport.submit": "Importar das fotos",
+    "profile.reviews.label": "Importação de reviews",
+    "profile.reviews.title": "Trazer seus reviews públicos",
+    "profile.reviews.body":
+      "As recomendações públicas da Steam podem ser associadas aos jogos que já estão na sua estante. Reviews de PlayStation e Xbox não são expostos pelos fluxos atuais.",
+    "profile.reviews.ready": "Steam pronta",
+    "profile.reviews.needsSteam": "Precisa de Steam",
+    "profile.reviews.sync": "Sincronizar reviews",
+    "profile.reviews.checking": "Verificando...",
+    "profile.reviews.pending": "Verificando recomendações públicas da Steam.",
+    "profile.reviews.connectFirst": "Conecte a Steam primeiro.",
 
     "favorite.addTitle": "Adicionar {name} aos favoritos",
     "favorite.removeTitle": "Remover {name} dos favoritos",
@@ -1059,6 +1548,11 @@ const messages = {
       "Sua biblioteca está segura. Tente de novo ou volte um pouco para a estante.",
     "routeError.retry": "Tentar de novo",
     "routeError.backShelf": "Voltar para a estante",
+    "notFound.label": "Save perdido",
+    "notFound.title": "Esse arquivo de save não existe.",
+    "notFound.body":
+      "A estante continua aqui. Volte um passo e retome de um slot conhecido.",
+    "notFound.backShelf": "Voltar para a estante",
 
     "tonight.mood.short": "algo curto",
     "tonight.mood.cozy": "algo aconchegante",
@@ -1084,6 +1578,11 @@ const messages = {
     "tonight.goToCatalog": "Ir para o catálogo",
     "tonight.fallbackReason":
       "Uma escolha silenciosa entre os jogos que já estão no seu catálogo.",
+    "tonight.action.pickAnother":
+      "Escolha outro save quando quiser.",
+    "tonight.action.alreadyCloseBy":
+      "Esse save já está por perto. Escolha outro quando o clima pedir.",
+    "tonight.action.markedPlaying": "{name} foi marcado como jogando agora.",
 
     "status.BACKLOG": "na estante",
     "status.OWNED": "seu",
@@ -1092,7 +1591,7 @@ const messages = {
     "status.PAUSED": "pausado",
     "status.COMPLETED": "créditos concluídos",
     "status.FINISHED": "créditos concluídos",
-    "status.DROPPED": "liberado",
+    "status.DROPPED": "largou",
 
     "signal.UNTOUCHED": "pronto quando você quiser",
     "signal.SAMPLED_DROPPED": "só experimentado",
@@ -1131,6 +1630,19 @@ const messages = {
       "Perfil de jogadora atualizado com base nos seus jogos, feedbacks e reviews.",
     "statusMessage.playerProfileEmpty":
       "Sua estante está silenciosa agora. Adicione alguns jogos antes de pedir um perfil de jogadora.",
+    "statusMessage.photoImported":
+      "Importação de fotos concluída. {count} jogos foram adicionados ou atualizados.",
+    "statusMessage.manualAdded":
+      "Jogo adicionado. Você pode ajustar isso no seu catálogo quando quiser.",
+    "statusMessage.reviewsSynced":
+      "Sincronização de reviews concluída. {count} reviews foram adicionados ou atualizados.",
+    "statusMessage.journalSaved": "Página do diário salva.",
+    "statusMessage.onboardingUpdated":
+      "Preferências de configuração salvas. Você pode revisitar isso na aba Setup.",
+    "statusMessage.onboardingSkipped":
+      "Onboarding pulado. O perfil continua aberto e editável.",
+    "statusMessage.onboardingCleared":
+      "Escolhas de configuração limpas. Comece de novo quando quiser.",
 
     "profileAction.needSteamLogin":
       "Entre antes de sincronizar a Steam.",
@@ -1173,6 +1685,46 @@ const messages = {
       "Entre antes de detectar jogos terminados.",
     "profileAction.finishedCheckFailed":
       "A verificação de créditos concluídos não terminou.",
+    "profileAction.needReviewsLogin":
+      "Entre antes de sincronizar reviews.",
+    "profileAction.reviewsSyncFailed":
+      "A sincronização de reviews não terminou.",
+    "profileAction.needPhotoLogin":
+      "Entre antes de importar fotos do catálogo.",
+    "profileAction.photoUploadAtLeastOne":
+      "Envie pelo menos uma imagem do catálogo.",
+    "profileAction.photoOnlyImages":
+      "A importação por foto aceita apenas arquivos de imagem.",
+    "profileAction.photoNoVisibleGames":
+      "Nenhum jogo visível foi detectado.",
+    "profileAction.photoVisionUnavailable":
+      "OPENAI_API_KEY não está configurada para extração por visão.",
+    "profileAction.photoNeedsAiKey":
+      "A importação por foto precisa de OPENAI_API_KEY.",
+    "profileAction.photoLowConfidence":
+      "Ignorado para revisão manual porque a confiança estava baixa.",
+    "profileAction.photoRowFailed":
+      "A importação por foto não conseguiu adicionar esta linha.",
+    "profileAction.photoImportFailed":
+      "A importação de fotos não terminou.",
+    "profileAction.needJournalLogin":
+      "Entre antes de salvar entradas de diário.",
+    "profileAction.journalSaveFailed":
+      "A entrada de diário não pôde ser salva.",
+    "profileAction.needManualAddLogin":
+      "Entre antes de adicionar jogos.",
+    "profileAction.manualAddChooseGame":
+      "Escolha um resultado de jogo antes de adicionar.",
+    "profileAction.manualAddLoadFailed":
+      "Esse jogo não pôde ser carregado.",
+    "assistantAction.needRefreshLogin":
+      "Entre antes de atualizar os insights do assistente.",
+    "assistantAction.refreshFailed":
+      "A atualização do assistente não terminou.",
+    "assistantAction.needProfileLogin":
+      "Entre antes de gerar um perfil de jogadora.",
+    "assistantAction.profileFailed":
+      "A geração do perfil de jogadora não terminou.",
   },
 } satisfies Record<string, Record<string, string>>;
 

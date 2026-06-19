@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -20,12 +21,12 @@ type SearchResult = {
 };
 
 const statusOptions = [
-  { value: "PLAYING", label: "Playing now" },
-  { value: "OWNED", label: "Owned" },
-  { value: "BACKLOG", label: "Backlog" },
-  { value: "COMPLETED", label: "Credits rolled" },
-  { value: "DROPPED", label: "Dropped" },
-  { value: "WISHLIST", label: "Wishlist" },
+  { value: "PLAYING", labelKey: "manualSearch.status.playing" },
+  { value: "OWNED", labelKey: "manualSearch.status.owned" },
+  { value: "BACKLOG", labelKey: "manualSearch.status.backlog" },
+  { value: "COMPLETED", labelKey: "manualSearch.status.completed" },
+  { value: "DROPPED", labelKey: "manualSearch.status.dropped" },
+  { value: "WISHLIST", labelKey: "manualSearch.status.wishlist" },
 ] as const;
 
 function getYear(value: string | null) {
@@ -33,6 +34,7 @@ function getYear(value: string | null) {
 }
 
 export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
+  const t = useTranslations();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedGame, setSelectedGame] = useState<SearchResult | null>(null);
@@ -63,7 +65,7 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
       })
         .then((response) => {
           if (!response.ok) {
-            throw new Error("Search failed.");
+            throw new Error(t("manualSearch.searchFailed"));
           }
           return response.json() as Promise<{ results: SearchResult[] }>;
         })
@@ -76,7 +78,7 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
             return;
           }
           setMessage(
-            error instanceof Error ? error.message : "Search failed.",
+            error instanceof Error ? error.message : t("manualSearch.searchFailed"),
           );
         });
     }, 280);
@@ -85,7 +87,7 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [enabled, query]);
+  }, [enabled, query, t]);
 
   function selectGame(result: SearchResult) {
     setSelectedGame(result);
@@ -96,9 +98,9 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
   if (!enabled) {
     return (
       <div className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
-        <SectionHeader eyebrow="Manual add" title="Search for a game" />
-        <EmptyState title="Game search is not configured.">
-          Add metadata credentials before manually adding games.
+        <SectionHeader eyebrow={t("manualSearch.eyebrow")} title={t("manualSearch.title")} />
+        <EmptyState title={t("manualSearch.unavailableTitle")}>
+          {t("manualSearch.unavailableBody")}
         </EmptyState>
       </div>
     );
@@ -106,11 +108,11 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
 
   return (
     <div className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
-      <SectionHeader eyebrow="Manual add" title="Search for a game" />
+      <SectionHeader eyebrow={t("manualSearch.eyebrow")} title={t("manualSearch.title")} />
 
       <div className="grid gap-4">
         <label className="grid gap-2">
-          <span className="text-sm font-semibold">Game title</span>
+          <span className="text-sm font-semibold">{t("manualSearch.gameTitle")}</span>
           <input
             className="min-h-11 rounded-inner border border-edge bg-canvas px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
             onChange={(event) => {
@@ -120,7 +122,7 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
                 setResults([]);
               }
             }}
-            placeholder="Chrono Trigger"
+            placeholder={t("manualSearch.placeholder")}
             type="search"
             value={query}
           />
@@ -158,19 +160,19 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
                   <span className="mt-1 line-clamp-2 block text-sm text-ink-soft">
                     {[getYear(result.releaseDate), result.platforms[0]]
                       .filter(Boolean)
-                      .join(" / ") || "Catalog result"}
+                      .join(" / ") || t("manualSearch.catalogResult")}
                   </span>
                 </span>
                 <span className="rounded-pill border border-edge px-3 py-1 text-xs font-bold max-sm:col-span-2">
                   {selectedGame?.igdbId === result.igdbId
-                    ? "Selected"
-                    : "Add"}
+                    ? t("manualSearch.selected")
+                    : t("manualSearch.add")}
                 </span>
               </button>
             ))}
           </div>
         ) : query.trim().length >= 2 ? (
-          <p className="text-sm text-ink-soft">No matches yet.</p>
+          <p className="text-sm text-ink-soft">{t("manualSearch.noMatches")}</p>
         ) : null}
 
         {selectedGame ? (
@@ -179,19 +181,19 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
             <input name="title" type="hidden" value={selectedGame.name} />
             <input name="query" type="hidden" value={query} />
             <div>
-              <p className="section-label !mb-1">Selected</p>
+              <p className="section-label !mb-1">{t("manualSearch.selected")}</p>
               <h3 className="font-display text-xl font-medium">
                 {selectedGame.name}
               </h3>
             </div>
             <label className="grid gap-2">
-              <span className="text-sm font-semibold">Platform</span>
+              <span className="text-sm font-semibold">{t("manualSearch.platform")}</span>
               <input
                 className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                 list="manual-game-platforms"
                 name="platformName"
                 onChange={(event) => setPlatformName(event.target.value)}
-                placeholder="Nintendo 64, PlayStation 1, PC..."
+                placeholder={t("manualSearch.platformPlaceholder")}
                 value={platformName}
               />
               <datalist id="manual-game-platforms">
@@ -201,7 +203,7 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
               </datalist>
             </label>
             <label className="grid gap-2">
-              <span className="text-sm font-semibold">Play status</span>
+              <span className="text-sm font-semibold">{t("manualSearch.status")}</span>
               <select
                 className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                 name="status"
@@ -214,12 +216,12 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
               >
                 {statusOptions.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {t(option.labelKey)}
                   </option>
                 ))}
               </select>
             </label>
-            <Button type="submit">Add to shelf</Button>
+            <Button type="submit">{t("manualSearch.addToShelf")}</Button>
           </form>
         ) : null}
       </div>

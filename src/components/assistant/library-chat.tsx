@@ -5,23 +5,25 @@ import { DefaultChatTransport } from "ai";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import Markdown from "react-markdown";
+import { useTranslations } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-const STARTER_PROMPTS = [
-  "What should I play tonight in under 2 hours?",
-  "What does my library say about my taste?",
-  "Which parked game might feel good again?",
-];
+const STARTER_PROMPT_KEYS = [
+  "libraryChat.prompt.shortSession",
+  "libraryChat.prompt.taste",
+  "libraryChat.prompt.return",
+] as const;
 
-const TOOL_LABELS: Record<string, string> = {
-  "tool-get_library_overview": "checked library overview",
-  "tool-list_games": "listed games",
-  "tool-get_player_feedback": "read your feedback",
-  "tool-get_genre_stats": "checked genre patterns",
+const TOOL_LABEL_KEYS: Record<string, string> = {
+  "tool-get_library_overview": "libraryChat.tool.overview",
+  "tool-list_games": "libraryChat.tool.games",
+  "tool-get_player_feedback": "libraryChat.tool.feedback",
+  "tool-get_genre_stats": "libraryChat.tool.genres",
 };
 
 export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
+  const t = useTranslations();
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -49,20 +51,20 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
   return (
     <section className="panel">
       <div className="mb-6">
-        <span className="section-label">Library chat</span>
+        <span className="section-label">{t("libraryChat.label")}</span>
         <h2 className="text-section-title leading-snug">
-          Ask your collection anything
+          {t("libraryChat.title")}
         </h2>
         <p className="mt-1.5 max-w-[56ch] text-sm leading-relaxed text-ink-soft">
-          Answers come from your own games, playtime, and notes.
+          {t("libraryChat.body")}
         </p>
       </div>
 
       {!aiConfigured ? (
         <div className="rounded-card border border-edge bg-clay-soft p-5">
-          <p className="font-semibold">Chat is unavailable right now.</p>
+          <p className="font-semibold">{t("libraryChat.unavailableTitle")}</p>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-            The rest of the guide still works.
+            {t("libraryChat.unavailableBody")}
           </p>
         </div>
       ) : (
@@ -74,19 +76,22 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
             {messages.length === 0 ? (
               <div className="grid gap-2.5">
                 <p className="text-sm font-semibold text-ink-soft">
-                  Try one of these to start:
+                  {t("libraryChat.tryOne")}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {STARTER_PROMPTS.map((prompt) => (
+                  {STARTER_PROMPT_KEYS.map((promptKey) => {
+                    const prompt = t(promptKey);
+                    return (
                     <button
                       className="cursor-pointer rounded-pill border border-edge bg-surface px-3.5 py-1.5 text-left text-xs font-semibold transition-[background-color,box-shadow] hover:bg-sky-soft hover:shadow-rest motion-safe:transition-[transform,background-color,box-shadow] motion-safe:hover:-translate-y-0.5"
-                      key={prompt}
+                      key={promptKey}
                       onClick={() => submitPrompt(prompt)}
                       type="button"
                     >
                       {prompt}
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ) : (
@@ -113,7 +118,8 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
                         );
                       }
 
-                      const toolLabel = TOOL_LABELS[part.type];
+                      const toolLabelKey = TOOL_LABEL_KEYS[part.type];
+                      const toolLabel = toolLabelKey ? t(toolLabelKey as never) : null;
                       if (toolLabel) {
                         return (
                           <span
@@ -135,7 +141,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
                     className="justify-self-start text-xs font-semibold text-ink-soft"
                     role="status"
                   >
-                    Checking your library...
+                    {t("libraryChat.checking")}
                   </p>
                 ) : null}
               </div>
@@ -144,7 +150,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
 
           {error ? (
             <p className="rounded-inner border border-edge bg-clay-soft px-3 py-2 text-xs font-semibold">
-              Chat paused: {error.message || "unexpected error."} Try again when you&apos;re ready.
+              {t("libraryChat.paused")} {error.message || t("libraryChat.unexpectedError")} {t("libraryChat.tryAgain")}
             </p>
           ) : null}
 
@@ -159,7 +165,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
               className="min-h-11 flex-1 rounded-pill border border-edge bg-surface px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
               disabled={busy}
               onChange={(event) => setInput(event.target.value)}
-              placeholder="Ask about your games, taste, or what to play next"
+              placeholder={t("libraryChat.placeholder")}
               value={input}
             />
             <Button
@@ -167,7 +173,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
               loading={busy}
               type="submit"
             >
-              {busy ? "Thinking..." : "Send"}
+              {busy ? t("libraryChat.thinking") : t("libraryChat.send")}
             </Button>
           </form>
         </div>

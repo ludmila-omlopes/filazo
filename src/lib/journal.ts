@@ -592,14 +592,25 @@ async function upsertPhotoImportedEntry({
 
 export async function importPhotoCatalogForUser({
   files,
+  messages,
   userId,
 }: {
   files: File[];
+  messages: {
+    uploadAtLeastOne: string;
+    onlyImages: string;
+    noVisibleGames: string;
+    visionUnavailable: string;
+    needsAiKey: string;
+    lowConfidence: string;
+    rowFailed: string;
+    importFailed: string;
+  };
   userId: string;
 }) {
   const usableFiles = files.filter((file) => file.size > 0).slice(0, 5);
   if (!usableFiles.length) {
-    throw new Error("Upload at least one catalog image.");
+    throw new Error(messages.uploadAtLeastOne);
   }
 
   const job = await prisma.importJob.create({
@@ -631,7 +642,7 @@ export async function importPhotoCatalogForUser({
               mimeType: file.type,
             } as Prisma.InputJsonValue,
             outcome: ImportRowStatus.FAILED,
-            error: "Only image files can be used for photo import.",
+            error: messages.onlyImages,
           },
         });
         rowIndex += 1;
@@ -650,13 +661,13 @@ export async function importPhotoCatalogForUser({
               fileName: upload.fileName,
               sourceImageUrl: upload.url,
               reason: process.env.OPENAI_API_KEY
-                ? "No visible games detected."
-                : "OPENAI_API_KEY is not configured for vision extraction.",
+                ? messages.noVisibleGames
+                : messages.visionUnavailable,
             } as Prisma.InputJsonValue,
             outcome: ImportRowStatus.SKIPPED,
             error: process.env.OPENAI_API_KEY
-              ? "No visible games detected."
-              : "Photo import needs OPENAI_API_KEY.",
+              ? messages.noVisibleGames
+              : messages.needsAiKey,
           },
         });
         rowIndex += 1;
@@ -680,7 +691,7 @@ export async function importPhotoCatalogForUser({
                 statusText: candidate.statusText ?? undefined,
                 notes: candidate.notes ?? undefined,
                 outcome: ImportRowStatus.SKIPPED,
-                error: "Skipped for manual review because confidence was low.",
+                error: messages.lowConfidence,
               },
             });
             rowIndex += 1;
@@ -727,7 +738,7 @@ export async function importPhotoCatalogForUser({
               error:
                 error instanceof Error
                   ? error.message
-                  : "Photo import could not add this row.",
+                  : messages.rowFailed,
             },
           });
         } finally {
@@ -766,7 +777,7 @@ export async function importPhotoCatalogForUser({
           error:
             error instanceof Error
               ? error.message
-              : "Photo import did not complete.",
+              : messages.importFailed,
         } as Prisma.InputJsonValue,
       },
     });

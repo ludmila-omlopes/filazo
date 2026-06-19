@@ -102,7 +102,7 @@ export default async function RootLayout({
                 </Link>
                 {navigationUser && isAdminEmail(navigationUser.email) ? (
                   <Link href="/admin" className="nav-link text-sm">
-                    Admin
+                    {t("admin.kicker")}
                   </Link>
                 ) : (
                   <Link href="/beta" className="nav-link text-sm">
