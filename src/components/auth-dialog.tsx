@@ -49,7 +49,6 @@ export function AuthDialog({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [isOpen]);
-
   return (
     <>
       {showTrigger ? (
@@ -198,7 +197,9 @@ export function AuthDialog({
               className="mt-3 min-h-13 w-full border-cream/10 bg-transparent text-base text-cream hover:bg-cream/10"
               variant="ghost"
             >
-              <Link href="/beta">{t("auth.dialog.requestBeta")}</Link>
+              <Link href="/beta" onClick={() => setIsOpen(false)}>
+                {t("auth.dialog.requestBeta")}
+              </Link>
             </Button>
           </section>
         </div>
