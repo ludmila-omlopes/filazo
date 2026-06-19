@@ -83,6 +83,7 @@ const messages = {
       "A filazo account already exists for that email.",
     "auth.error.registrationClosed":
       "Public registrations are closed. Request access through the beta signup.",
+    "auth.error.sessionExpired": "Session expired. Sign in again.",
     "auth.error.googleRegistrationClosed":
       "Public registrations are closed. Use the beta tester signup.",
     "auth.error.steamRegistrationClosed":
@@ -96,7 +97,7 @@ const messages = {
     "auth.error.youtubeCallbackFailed": "Could not finish YouTube login.",
 
     "landing.notice.database":
-      "{message} Vercel deployments need a reachable PostgreSQL database. Check DATABASE_URL and run the database setup before relying on catalog features.",
+      "{message} This environment needs a reachable PostgreSQL database before catalog features can load.",
     "landing.kicker": "Calm library for large game collections",
     "landing.title": "Your game backlog\ndoesn't need to be stressful.",
     "landing.body":
@@ -207,7 +208,7 @@ const messages = {
     "profile.error.label": "Database unavailable",
     "profile.error.title": "Your library can't load right now.",
     "profile.error.body":
-      "{message} Vercel deployments need a reachable PostgreSQL database. Check DATABASE_URL and run the database setup before relying on catalog features.",
+      "{message} This environment needs a reachable PostgreSQL database before catalog features can load.",
 
     "profile.greeting.morning":
       "Good morning. The catalog is ready when you are.",
@@ -661,6 +662,7 @@ const messages = {
       "Já existe uma conta filazo para esse e-mail.",
     "auth.error.registrationClosed":
       "Novos registros estão fechados. Solicite acesso pelo cadastro beta.",
+    "auth.error.sessionExpired": "Sua sessão expirou. Entre novamente.",
     "auth.error.googleRegistrationClosed":
       "Novos registros estão fechados. Entre pelo cadastro de beta tester.",
     "auth.error.steamRegistrationClosed":
@@ -677,7 +679,7 @@ const messages = {
       "Não foi possível finalizar o login com YouTube.",
 
     "landing.notice.database":
-      "{message} Deploys na Vercel precisam de um banco PostgreSQL acessível. Verifique DATABASE_URL e rode a configuração do banco antes de depender do catálogo.",
+      "{message} Este ambiente precisa de um banco PostgreSQL acessível antes de carregar os recursos de catálogo.",
     "landing.kicker": "Biblioteca calma para coleções grandes de jogos",
     "landing.title": "Seu backlog de jogos\nnão precisa ser estressante.",
     "landing.body":
@@ -788,7 +790,7 @@ const messages = {
     "profile.error.label": "Banco indisponível",
     "profile.error.title": "Sua biblioteca não pode carregar agora.",
     "profile.error.body":
-      "{message} Deploys na Vercel precisam de um banco PostgreSQL acessível. Verifique DATABASE_URL e rode a configuração do banco antes de depender do catálogo.",
+      "{message} Este ambiente precisa de um banco PostgreSQL acessível antes de carregar os recursos de catálogo.",
 
     "profile.greeting.morning":
       "Bom dia. O catálogo fica pronto quando você quiser.",

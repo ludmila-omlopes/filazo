@@ -41,13 +41,24 @@ export default async function ProfilePage({
 }: PageProps<"/profile"> & { searchParams: ProfileSearchParams }) {
   const locale = await getRequestLocale();
   const userId = await getSessionUserId();
-  const accessRedirect = getBetaAccessRedirect(
-    await getSessionUserWithBeta(userId),
-  );
 
   if (!userId) {
     return <SignedOutPanel locale={locale} />;
   }
+
+  let sessionUser: Awaited<ReturnType<typeof getSessionUserWithBeta>>;
+  try {
+    sessionUser = await getSessionUserWithBeta(userId);
+  } catch (error) {
+    console.error("Could not verify profile access.", error);
+    return <ProfileErrorPanel error={error} locale={locale} />;
+  }
+
+  if (!sessionUser) {
+    redirect("/api/auth/session/clear?next=/login&reason=expired");
+  }
+
+  const accessRedirect = getBetaAccessRedirect(sessionUser);
 
   if (accessRedirect) {
     redirect(accessRedirect);
