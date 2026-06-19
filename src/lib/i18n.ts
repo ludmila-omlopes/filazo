@@ -83,6 +83,7 @@ const messages = {
       "A filazo account already exists for that email.",
     "auth.error.registrationClosed":
       "Public registrations are closed. Request access through the beta signup.",
+    "auth.error.sessionExpired": "Session expired. Sign in again.",
     "auth.error.googleRegistrationClosed":
       "Public registrations are closed. Use the beta tester signup.",
     "auth.error.steamRegistrationClosed":
@@ -661,6 +662,7 @@ const messages = {
       "Já existe uma conta filazo para esse e-mail.",
     "auth.error.registrationClosed":
       "Novos registros estão fechados. Solicite acesso pelo cadastro beta.",
+    "auth.error.sessionExpired": "Sua sessão expirou. Entre novamente.",
     "auth.error.googleRegistrationClosed":
       "Novos registros estão fechados. Entre pelo cadastro de beta tester.",
     "auth.error.steamRegistrationClosed":
