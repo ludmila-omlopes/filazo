@@ -1,6 +1,6 @@
 # filazo
 
-filazo is a game library app built with Next.js 16, React 19, Prisma, and SQLite.
+filazo is a game library app built with Next.js 16, React 19, Prisma, and PostgreSQL.
 It is designed around a canonical local game catalog that can absorb data from multiple sources:
 
 - Steam account sign-in and owned library sync
@@ -23,7 +23,7 @@ The current app already includes a landing page, a closed-registration modal sig
 - Next.js 16 App Router
 - React 19
 - Prisma 6
-- SQLite
+- PostgreSQL
 - Tailwind CSS 4
 - JOSE-based signed cookie sessions
 
@@ -77,8 +77,9 @@ This means multiple providers can eventually point to the same internal game ins
 
 ## Requirements
 
-- Node.js 22.5+ for the local SQLite bootstrap script
+- Node.js 22.5+
 - npm
+- A PostgreSQL database for catalog and account data
 
 Optional, depending on what you want to use:
 
@@ -97,7 +98,7 @@ Metacritic scores are collected only when public Steam Store app metadata includ
 Copy `.env.example` to `.env` and fill in what you need.
 
 ```env
-DATABASE_URL="file:./dev.db"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/filazo?schema=public"
 APP_URL="http://localhost:3001"
 AUTH_SECRET="replace-with-a-long-random-string"
 
@@ -125,8 +126,7 @@ OPENAI_TRANSCRIPTION_MODEL="gpt-4o-mini-transcribe"
 Notes:
 
 - `AUTH_SECRET` should be a long random string in any non-local environment.
-- `DATABASE_URL` is required for catalog features. The default SQLite value is
-  intended for local development.
+- `DATABASE_URL` is required for catalog features and must point to a PostgreSQL database.
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable the Google button in the login popup and the YouTube beta login. Add both `${APP_URL}/api/auth/google/callback` and `${APP_URL}/api/auth/youtube/callback` as authorized redirect URIs in Google Cloud. The YouTube beta login requests `openid email profile` plus YouTube readonly scope only to make the signup explicitly a YouTube-account flow.
 - `STEAM_API_KEY` is required for owned library sync. Steam sign-in itself uses OpenID.
 - PlayStation sync does not require an app key. Users provide an NPSSO token in the profile page; the app exchanges it for PlayStation API tokens, stores encrypted refresh/access tokens, and does not store the NPSSO.
@@ -137,7 +137,7 @@ Notes:
 - Metacritic enrichment is optional and best-effort. If Steam Store app metadata does not expose a Metacritic score, the canonical game keeps an empty metascore.
 - The Assistant tab works without AI. If `OPENAI_API_KEY` is set, the app can use OpenAI's Responses API to recommend three low-friction play-next picks and turn rule-based insights into short explanations. Only library summaries, selected game metadata, progress/playtime signals, source/provider labels, and rule outputs are sent.
 - Photo catalog import and voice transcription also use `OPENAI_API_KEY` when configured. Photo import uses vision-capable Responses API calls to extract visible titles. Voice journal uploads use `OPENAI_TRANSCRIPTION_MODEL` for transcription and `OPENAI_MODEL` for transcript translation. Without the API key, manual journaling and normal imports still work; photo extraction is recorded as skipped in the import audit.
-- Uploaded journal media and photo-import source images are stored under `public/uploads/` in local development, with only file references and metadata persisted in SQLite. Use durable object storage before relying on this for production deployments.
+- Uploaded journal media and photo-import source images are stored under `public/uploads/` in local development, with only file references and metadata persisted in PostgreSQL. Use durable object storage before relying on this for production deployments.
 - The Overview tab includes an agentic player profile. When `OPENAI_API_KEY` is set, an agent loop gives the model read-only tools over the user's own catalog (`get_library_overview`, `list_games`, `get_player_feedback`, `get_genre_stats`); it investigates and then submits a structured profile (`submit_player_profile`) with preferred genres, play styles, behavior patterns, and recommendations drawn only from games already in the library. Tool payloads are minimized projections of `UserGameEntry` and `Game` metadata; no secrets, tokens, or provider account IDs are sent. Without the API key, profile generation fails with a clear message while the rest of the app keeps working.
 - The Assistant tab also includes a streaming library chat built on the Vercel AI SDK (`/api/assistant/chat`). It reuses the same read-only tool layer (`src/lib/assistant/library-tools.ts`) as the profile agent, so answers come from live lookups into the user's own catalog. It requires `OPENAI_API_KEY` and returns a clear 503 message without it. Each chat exchange is logged as an `AssistantRun` (status `COMPLETED_CHAT_AI`) with step, tool-call, and token usage, counts against the same per-user and app-wide daily AI quotas as assistant refreshes, and is rejected with a 429 once the quota is spent.
 - Assistant AI calls are app-gated before hitting OpenAI: unchanged catalog context reuses the latest OpenAI recommendations, otherwise each user is limited to one AI refresh every 10 minutes and 20 AI refreshes per rolling 24 hours, with a 100 AI-refresh rolling daily cap across the app. When a gate blocks AI, the deterministic rules fallback is used.
@@ -152,7 +152,7 @@ npm install
 
 2. Create `.env` from `.env.example`.
 
-3. Initialize the SQLite database.
+3. Initialize the PostgreSQL database schema.
 
 ```bash
 npm run db:init
@@ -181,35 +181,31 @@ Open `http://localhost:3001`.
 
 ## Database Notes
 
-This project currently uses SQLite and includes two database-related pieces:
+This project uses PostgreSQL through Prisma and includes two database-related pieces:
 
 - [prisma/schema.prisma](./prisma/schema.prisma) as the source Prisma schema
-- [scripts/init-db.mjs](./scripts/init-db.mjs) as a direct SQLite bootstrap script
+- [scripts/init-db.mjs](./scripts/init-db.mjs) as a guard around `prisma db push`
 
 Current scripts:
 
-- `npm run db:init`: creates the SQLite tables and indexes
-- `npm run db:push`: currently points to the same bootstrap script
+- `npm run db:init`: validates `DATABASE_URL` and applies the Prisma schema with `prisma db push`
+- `npm run db:push`: same as `db:init`
 - `npm run db:generate`: generates Prisma Client
-
-Important: `db:push` is not running `prisma db push` right now. It is an alias to the custom bootstrap script. If you later move to Prisma-managed migrations, update this section and the scripts accordingly.
 
 ## Vercel Deployment
 
 The public shell can render without a database, but Steam sign-in, profile data,
 CSV import, and catalog stats require a reachable production database.
 
-The current `DATABASE_URL="file:./dev.db"` setup is for local development only.
-Vercel serverless deployments do not provide durable app-local SQLite storage, so
-using the local SQLite file there will either fail at runtime or lose data across
-function instances. For a real Vercel deployment, move the Prisma datasource to a
-managed database supported by the deployment environment, set `DATABASE_URL`,
-run the schema setup for that database, and set these environment variables:
+Vercel serverless deployments require a reachable managed PostgreSQL database.
+Create one through Vercel Postgres, Neon, Supabase, Railway, or another managed
+PostgreSQL provider, set `DATABASE_URL`, run the schema setup for that database,
+and set these environment variables:
 
 ```env
 APP_URL="https://your-vercel-domain.vercel.app"
 AUTH_SECRET="generate-a-long-random-secret"
-DATABASE_URL="your-production-database-url"
+DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/filazo?schema=public"
 ```
 
 Optional integrations still degrade independently: missing IGDB credentials only
@@ -222,7 +218,7 @@ sync after Steam sign-in.
 - `npm run build`: build for production
 - `npm run start`: start the production server
 - `npm run lint`: run ESLint
-- `npm run db:init`: initialize the SQLite database
+- `npm run db:init`: initialize the PostgreSQL schema
 - `npm run db:push`: currently same as `db:init`
 - `npm run db:generate`: generate Prisma Client
 
@@ -342,7 +338,7 @@ src/
 prisma/
   schema.prisma               Prisma schema
 scripts/
-  init-db.mjs                 SQLite bootstrap script
+  init-db.mjs                 Prisma database bootstrap wrapper
 ```
 
 ## Current Rough Edges

@@ -192,17 +192,19 @@ export default async function Home() {
   const { catalogCount, enrichedCount, showcaseGames, databaseError } =
     homeData;
   const isSignedIn = Boolean(sessionUserId);
+  const shouldShowDatabaseNotice =
+    Boolean(databaseError) &&
+    (isSignedIn || process.env.NODE_ENV !== "production");
+  const databaseNotice = shouldShowDatabaseNotice
+    ? t("landing.notice.database", { message: databaseError ?? "" })
+    : null;
 
   return (
     <main
       id="main-content"
       className="mx-auto grid w-full max-w-[1100px] gap-24 overflow-visible pb-20 max-md:gap-16"
     >
-      {databaseError ? (
-        <Notice tone="error">
-          {t("landing.notice.database", { message: databaseError })}
-        </Notice>
-      ) : null}
+      {databaseNotice ? <Notice tone="error">{databaseNotice}</Notice> : null}
 
       <section className="relative min-h-[560px] overflow-hidden rounded-card border border-edge bg-dusk-deep text-cream shadow-float">
         <div

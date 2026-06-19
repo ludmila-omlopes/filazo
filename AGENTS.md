@@ -37,7 +37,7 @@ The core architectural rule is: external providers should attach to one internal
 - `src/lib/steam.ts`: Steam OpenID and Steam Web API integration
 - `src/lib/igdb.ts`: IGDB auth, search, ranking, and metadata mapping
 - `prisma/schema.prisma`: data model
-- `scripts/init-db.mjs`: direct SQLite bootstrap script
+- `scripts/init-db.mjs`: Prisma database bootstrap wrapper
 
 ## Next.js Rules For This Repo
 
@@ -49,10 +49,10 @@ The core architectural rule is: external providers should attach to one internal
 
 ## Data And Database Rules
 
-- Local development uses SQLite.
+- Local development and production use PostgreSQL.
 - Prisma schema lives in `prisma/schema.prisma`.
-- Database bootstrap is currently handled by `scripts/init-db.mjs`.
-- `npm run db:push` currently runs the custom bootstrap script, not `prisma db push`.
+- Database bootstrap is handled by `scripts/init-db.mjs`, which validates `DATABASE_URL` and runs `prisma db push`.
+- `DATABASE_URL` must be a PostgreSQL connection URL, not a `file:` SQLite URL.
 - If you change the data model, keep `prisma/schema.prisma`, `scripts/init-db.mjs`, and the README in sync.
 
 ## External Integration Rules
