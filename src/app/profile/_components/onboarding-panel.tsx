@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
+import { createTranslator, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
   clearOnboardingAction,
@@ -17,58 +18,58 @@ type OnboardingAnswers = {
   otherPlatform?: string;
 };
 
-const steps: Array<{
-  id: SetupStep;
-  label: string;
-  eyebrow: string;
-  title: string;
-  description: string;
-}> = [
-  {
-    id: "rhythm",
-    label: "Rhythm",
-    eyebrow: "Step 1 of 2",
-    title: "Set Your Play Rhythm",
-    description:
-      "Give the guide a rough sense of when you actually play, so suggestions do not feel too heavy for your week.",
-  },
-  {
-    id: "platforms",
-    label: "Platforms",
-    eyebrow: "Step 2 of 2",
-    title: "Choose Main Platforms",
-    description:
-      "These are catalog hints only. Account connections and imports still live in Sources.",
-  },
-];
+function getSteps(t: ReturnType<typeof createTranslator>) {
+  return [
+    {
+      id: "rhythm" as const,
+      label: t("setup.step.rhythm"),
+      eyebrow: t("setup.step1"),
+      title: t("setup.rhythm.title"),
+      description: t("setup.rhythm.description"),
+    },
+    {
+      id: "platforms" as const,
+      label: t("setup.step.platforms"),
+      eyebrow: t("setup.step2"),
+      title: t("setup.platforms.title"),
+      description: t("setup.platforms.description"),
+    },
+  ];
+}
 
-const playFrequencyOptions = [
-  ["", "Skip frequency"],
-  ["a few times a month", "A few times a month"],
-  ["1-2 times a week", "1-2 times a week"],
-  ["several times a week", "Several times a week"],
-  ["daily", "Daily"],
-  ["multiple times a day", "Multiple times a day"],
-];
+function getPlayFrequencyOptions(t: ReturnType<typeof createTranslator>) {
+  return [
+    ["", t("setup.frequency.skip")],
+    ["a few times a month", t("setup.frequency.monthly")],
+    ["1-2 times a week", t("setup.frequency.weekly12")],
+    ["several times a week", t("setup.frequency.weeklyMany")],
+    ["daily", t("setup.frequency.daily")],
+    ["multiple times a day", t("setup.frequency.multiDaily")],
+  ] as const;
+}
 
-const playTimeOptions: Array<[string, string]> = [
-  ["morning", "Morning"],
-  ["afternoon", "Afternoon"],
-  ["evening", "Evening"],
-  ["late night", "Late night"],
-  ["weekdays", "Weekdays"],
-  ["weekends", "Weekends"],
-];
+function getPlayTimeOptions(t: ReturnType<typeof createTranslator>): Array<[string, string]> {
+  return [
+    ["morning", t("setup.window.morning")],
+    ["afternoon", t("setup.window.afternoon")],
+    ["evening", t("setup.window.evening")],
+    ["late night", t("setup.window.lateNight")],
+    ["weekdays", t("setup.window.weekdays")],
+    ["weekends", t("setup.window.weekends")],
+  ];
+}
 
-const platformOptions: Array<[string, string]> = [
-  ["pc", "PC"],
-  ["steam-deck", "Steam Deck"],
-  ["playstation", "PlayStation"],
-  ["xbox", "Xbox"],
-  ["nintendo", "Switch / Nintendo"],
-  ["mobile", "Mobile"],
-  ["handheld", "Other handheld"],
-];
+function getPlatformOptions(t: ReturnType<typeof createTranslator>): Array<[string, string]> {
+  return [
+    ["pc", "PC"],
+    ["steam-deck", "Steam Deck"],
+    ["playstation", "PlayStation"],
+    ["xbox", "Xbox"],
+    ["nintendo", t("setup.platform.nintendo")],
+    ["mobile", t("setup.platform.mobile")],
+    ["handheld", t("setup.platform.handheld")],
+  ];
+}
 
 function readAnswers(profile: ProfileData): OnboardingAnswers {
   const value = profile.user.onboardingAnswers;
@@ -84,12 +85,12 @@ function checked(values: string[] | undefined, value: string) {
 }
 
 function getStepIndex(step: SetupStep) {
-  return steps.findIndex((item) => item.id === step);
+  return ["rhythm", "platforms"].findIndex((item) => item === step);
 }
 
 function getPreviousStep(step: SetupStep) {
-  const previous = steps[getStepIndex(step) - 1];
-  return previous?.id ?? null;
+  const orderedSteps: SetupStep[] = ["rhythm", "platforms"];
+  return orderedSteps[getStepIndex(step) - 1] ?? null;
 }
 
 function CheckboxGroup({
@@ -123,12 +124,20 @@ function CheckboxGroup({
   );
 }
 
-function SetupProgress({ activeStep }: { activeStep: SetupStep }) {
+function SetupProgress({
+  activeStep,
+  locale,
+}: {
+  activeStep: SetupStep;
+  locale: Locale;
+}) {
+  const t = createTranslator(locale);
+  const steps = getSteps(t);
   const activeIndex = getStepIndex(activeStep);
 
   return (
     <ol
-      aria-label="Setup progress"
+      aria-label={t("setup.progress")}
       className="grid grid-cols-2 gap-2 max-sm:grid-cols-1"
     >
       {steps.map((step, index) => {
@@ -166,22 +175,26 @@ function SetupProgress({ activeStep }: { activeStep: SetupStep }) {
 
 function StepActions({
   isFinalStep,
+  locale,
   previousStep,
 }: {
   isFinalStep: boolean;
+  locale: Locale;
   previousStep: SetupStep | null;
 }) {
+  const t = createTranslator(locale);
+
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-edge pt-4">
       {previousStep ? (
         <Button asChild size="sm" variant="ghost">
-          <Link href={`/profile?tab=setup&step=${previousStep}`}>Back</Link>
+          <Link href={`/profile?tab=setup&step=${previousStep}`}>{t("setup.back")}</Link>
         </Button>
       ) : (
         <span aria-hidden />
       )}
       <Button type="submit">
-        {isFinalStep ? "Finish Setup" : "Save & Continue"}
+        {isFinalStep ? t("setup.finish") : t("setup.saveContinue")}
       </Button>
     </div>
   );
@@ -189,16 +202,22 @@ function StepActions({
 
 function RhythmStep({
   answers,
+  locale,
   previousStep,
 }: {
   answers: OnboardingAnswers;
+  locale: Locale;
   previousStep: SetupStep | null;
 }) {
+  const t = createTranslator(locale);
+  const playFrequencyOptions = getPlayFrequencyOptions(t);
+  const playTimeOptions = getPlayTimeOptions(t);
+
   return (
     <form action={saveOnboardingStepAction} className="grid gap-5">
       <input type="hidden" name="step" value="rhythm" />
       <label className="grid gap-2">
-        <span className="text-sm font-semibold">Play frequency</span>
+        <span className="text-sm font-semibold">{t("setup.playFrequency")}</span>
         <select
           autoComplete="off"
           className="min-h-11 rounded-inner border border-edge bg-canvas px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
@@ -214,7 +233,7 @@ function RhythmStep({
       </label>
 
       <fieldset className="grid gap-2">
-        <legend className="text-sm font-semibold">Usual play windows</legend>
+        <legend className="text-sm font-semibold">{t("setup.playWindows")}</legend>
         <CheckboxGroup
           name="playTimes"
           options={playTimeOptions}
@@ -222,23 +241,28 @@ function RhythmStep({
         />
       </fieldset>
 
-      <StepActions isFinalStep={false} previousStep={previousStep} />
+      <StepActions isFinalStep={false} locale={locale} previousStep={previousStep} />
     </form>
   );
 }
 
 function PlatformsStep({
   answers,
+  locale,
   previousStep,
 }: {
   answers: OnboardingAnswers;
+  locale: Locale;
   previousStep: SetupStep | null;
 }) {
+  const t = createTranslator(locale);
+  const platformOptions = getPlatformOptions(t);
+
   return (
     <form action={saveOnboardingStepAction} className="grid gap-5">
       <input type="hidden" name="step" value="platforms" />
       <fieldset className="grid gap-2">
-        <legend className="text-sm font-semibold">Current platforms</legend>
+        <legend className="text-sm font-semibold">{t("setup.currentPlatforms")}</legend>
         <CheckboxGroup
           name="platforms"
           options={platformOptions}
@@ -246,40 +270,48 @@ function PlatformsStep({
         />
       </fieldset>
       <label className="grid gap-2">
-        <span className="text-sm font-semibold">Other platform</span>
+        <span className="text-sm font-semibold">{t("setup.otherPlatform")}</span>
         <input
           autoComplete="off"
           className="min-h-11 rounded-inner border border-edge bg-canvas px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           defaultValue={answers.otherPlatform ?? ""}
           name="otherPlatform"
-          placeholder="Example: Analogue Pocket…"
+          placeholder={t("setup.otherPlatformPlaceholder")}
         />
       </label>
 
-      <StepActions isFinalStep previousStep={previousStep} />
+      <StepActions isFinalStep locale={locale} previousStep={previousStep} />
     </form>
   );
 }
 
-function SetupMaintenance({ hasCompleted }: { hasCompleted: boolean }) {
+function SetupMaintenance({
+  hasCompleted,
+  locale,
+}: {
+  hasCompleted: boolean;
+  locale: Locale;
+}) {
+  const t = createTranslator(locale);
+
   return (
     <div className="flex flex-wrap items-start gap-4 border-t border-edge pt-4 text-sm">
       {!hasCompleted ? (
         <form action={skipOnboardingAction}>
           <Button size="sm" type="submit" variant="link">
-            Skip Setup For Now
+            {t("setup.skipNow")}
           </Button>
         </form>
       ) : null}
       <details className="group">
         <summary className="cursor-pointer rounded-inner px-1 py-1 font-bold text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
-          Clean Choices
+          {t("setup.cleanChoices")}
         </summary>
         <div className="mt-3 grid gap-3 rounded-inner border border-edge bg-surface p-4 text-ink-soft shadow-rest">
-          <p>This clears setup answers and restarts the setup flow.</p>
+          <p>{t("setup.cleanBody")}</p>
           <form action={clearOnboardingAction}>
             <Button size="sm" type="submit" variant="ghost">
-              Confirm Clean
+              {t("setup.cleanConfirm")}
             </Button>
           </form>
         </div>
@@ -289,12 +321,16 @@ function SetupMaintenance({ hasCompleted }: { hasCompleted: boolean }) {
 }
 
 export function OnboardingPanel({
+  locale,
   profile,
   step,
 }: {
+  locale: Locale;
   profile: ProfileData;
   step: SetupStep;
 }) {
+  const t = createTranslator(locale);
+  const steps = getSteps(t);
   const answers = readAnswers(profile);
   const hasCompleted = Boolean(profile.user.onboardingCompletedAt);
   const hasSkipped = Boolean(profile.user.onboardingSkippedAt) && !hasCompleted;
@@ -306,30 +342,30 @@ export function OnboardingPanel({
     <section className="grid gap-5">
       <section className="panel bg-sand-soft/70">
         <SectionHeader
-          eyebrow="Setup"
+          eyebrow={t("setup.label")}
           title={
             hasCompleted
-              ? "Play Preferences"
+              ? t("setup.titleCompleted")
               : hasSkipped
-                ? "Setup Is Optional"
-                : "Start With A Light Setup"
+                ? t("setup.titleOptional")
+                : t("setup.titleStart")
           }
           description={
             isFirstSetup
-              ? "Answer only what helps. Each step saves before moving on."
-              : "Adjust the preferences that shape recommendations and source prompts."
+              ? t("setup.descriptionFirst")
+              : t("setup.descriptionEdit")
           }
           aside={
             hasCompleted ? (
               <Button asChild size="sm" variant="ghost">
-                <Link href="/profile?tab=integrations">Open Sources</Link>
+                <Link href="/profile?tab=integrations">{t("setup.openSources")}</Link>
               </Button>
             ) : null
           }
         />
 
         <div className="grid gap-5">
-          <SetupProgress activeStep={activeStep.id} />
+          <SetupProgress activeStep={activeStep.id} locale={locale} />
 
           <div className="rounded-card border border-edge bg-surface p-5 shadow-rest">
             <div className="mb-5">
@@ -343,14 +379,14 @@ export function OnboardingPanel({
             </div>
 
             {activeStep.id === "rhythm" ? (
-              <RhythmStep answers={answers} previousStep={previousStep} />
+              <RhythmStep answers={answers} locale={locale} previousStep={previousStep} />
             ) : null}
             {activeStep.id === "platforms" ? (
-              <PlatformsStep answers={answers} previousStep={previousStep} />
+              <PlatformsStep answers={answers} locale={locale} previousStep={previousStep} />
             ) : null}
           </div>
 
-          <SetupMaintenance hasCompleted={hasCompleted} />
+          <SetupMaintenance hasCompleted={hasCompleted} locale={locale} />
         </div>
       </section>
     </section>

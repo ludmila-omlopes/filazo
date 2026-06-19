@@ -148,7 +148,7 @@ export function getStatusMessage(
     return {
       tone: "success",
       message: t("statusMessage.finishedCheck", {
-        scanned: query.finishedScanned ?? "your",
+        scanned: query.finishedScanned ?? t("common.your"),
         count: query.finishedDetected,
       }),
     };
@@ -164,49 +164,49 @@ export function getStatusMessage(
   if (query.photoImported) {
     return {
       tone: "success",
-      message: `Photo import finished. ${query.photoImported} games were added or updated.`,
+      message: t("statusMessage.photoImported", { count: query.photoImported }),
     };
   }
 
   if (query.manualAdded) {
     return {
       tone: "success",
-      message: "Game added. You can adjust it from your catalog whenever you want.",
+      message: t("statusMessage.manualAdded"),
     };
   }
 
   if (query.reviewsSynced) {
     return {
       tone: "success",
-      message: `Review sync finished. ${query.reviewsSynced} reviews were added or updated.`,
+      message: t("statusMessage.reviewsSynced", { count: query.reviewsSynced }),
     };
   }
 
   if (query.journal === "saved") {
     return {
       tone: "success",
-      message: "Diary page saved.",
+      message: t("statusMessage.journalSaved"),
     };
   }
 
   if (query.onboarding === "updated") {
     return {
       tone: "success",
-      message: "Setup preferences saved. You can revisit them from the Setup tab.",
+      message: t("statusMessage.onboardingUpdated"),
     };
   }
 
   if (query.onboarding === "skipped") {
     return {
       tone: "success",
-      message: "Onboarding skipped. The profile stays open and editable.",
+      message: t("statusMessage.onboardingSkipped"),
     };
   }
 
   if (query.onboarding === "cleared") {
     return {
       tone: "success",
-      message: "Setup choices cleared. Start again whenever you are ready.",
+      message: t("statusMessage.onboardingCleared"),
     };
   }
 

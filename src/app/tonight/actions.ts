@@ -4,7 +4,9 @@ import { UserGameStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { setFilazoTheme } from "@/app/theme-actions";
+import { createTranslator } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
 
 export async function dimTheLightsAction() {
@@ -13,6 +15,8 @@ export async function dimTheLightsAction() {
 }
 
 export async function chooseTonightGameAction(formData: FormData) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
     redirect("/profile");
@@ -20,7 +24,9 @@ export async function chooseTonightGameAction(formData: FormData) {
 
   const entryId = formData.get("entryId");
   if (typeof entryId !== "string" || !entryId) {
-    redirect("/tonight?message=Pick%20another%20save%20when%20you%20are%20ready.");
+    redirect(
+      `/tonight?message=${encodeURIComponent(t("tonight.action.pickAnother"))}`,
+    );
   }
 
   const entry = await prisma.userGameEntry.findUnique({
@@ -44,7 +50,7 @@ export async function chooseTonightGameAction(formData: FormData) {
   } catch {
     redirect(
       `/tonight?message=${encodeURIComponent(
-        "That save is already close by. Pick another when the room is ready.",
+        t("tonight.action.alreadyCloseBy"),
       )}`,
     );
   }
@@ -54,7 +60,7 @@ export async function chooseTonightGameAction(formData: FormData) {
   revalidatePath(`/games/${entry.game.slug}`);
   redirect(
     `/tonight?message=${encodeURIComponent(
-      `${entry.game.name} is marked playing now.`,
+      t("tonight.action.markedPlaying", { name: entry.game.name }),
     )}`,
   );
 }

@@ -61,8 +61,12 @@ function makeShelfHref({
   return `/profile?${params.toString()}`;
 }
 
-function getPlatformFilterLabel(value: string | null) {
-  return value === UNKNOWN_PLATFORM_FILTER ? "Unknown platform" : value;
+function getPlatformFilterLabel(value: string | null, locale: Locale) {
+  if (value === UNKNOWN_PLATFORM_FILTER) {
+    return createTranslator(locale)("shelf.unknownPlatform");
+  }
+
+  return value;
 }
 
 function statusForEntry(entry: ProfileEntry) {
@@ -74,10 +78,13 @@ function statusForEntry(entry: ProfileEntry) {
 function EntryStatusActions({
   entry,
   compact = false,
+  locale,
 }: {
   entry: ProfileEntry;
   compact?: boolean;
+  locale: Locale;
 }) {
+  const t = createTranslator(locale);
   const isDropped = entry.status === "DROPPED";
   const buttonClassName = compact ? "w-full" : "";
 
@@ -92,13 +99,13 @@ function EntryStatusActions({
           size="xs"
           title={
             isDropped
-              ? "Restore this game before marking credits rolled"
+              ? t("shelf.restoreBeforeCredits")
               : undefined
           }
           type="submit"
           variant={entry.finishedAt ? "secondary" : "ghost"}
         >
-          {entry.finishedAt ? "Credits rolled" : "Roll credits"}
+          {entry.finishedAt ? t("shelf.creditsRolled") : t("shelf.rollCredits")}
         </Button>
       </form>
       <form action={markDroppedAction}>
@@ -110,7 +117,7 @@ function EntryStatusActions({
           type="submit"
           variant={isDropped ? "secondary" : "ghost"}
         >
-          {isDropped ? "Return" : "Dropped"}
+          {isDropped ? t("shelf.return") : t("shelf.dropped")}
         </Button>
       </form>
     </>
@@ -143,7 +150,7 @@ function ShelfCard({
         />
         <div className="flex flex-wrap items-center justify-end gap-2 max-sm:justify-start">
           <div className="catalog-status-actions flex-wrap items-center justify-end gap-2 max-sm:justify-start">
-            <EntryStatusActions entry={entry} />
+            <EntryStatusActions entry={entry} locale={locale} />
           </div>
           <FavoriteButton
             entryId={entry.id}
@@ -171,7 +178,7 @@ function ShelfCard({
         variant="shelf"
       />
       <div className="catalog-status-actions flex-wrap gap-2 [&>form]:flex-1">
-        <EntryStatusActions compact entry={entry} />
+        <EntryStatusActions compact entry={entry} locale={locale} />
       </div>
       <FavoriteButton
         entryId={entry.id}
@@ -278,10 +285,10 @@ export function ShelfGrid({
               </Chip>
             ) : null}
             {activePlatform ? (
-              <Chip tone="blue">{getPlatformFilterLabel(activePlatform)}</Chip>
+              <Chip tone="blue">{getPlatformFilterLabel(activePlatform, locale)}</Chip>
             ) : null}
             {includeDormant ? (
-              <Chip tone="sand">Including released and not-started</Chip>
+              <Chip tone="sand">{t("shelf.includeDormantChip")}</Chip>
             ) : null}
             {activeSignal ? (
               <Link
@@ -375,7 +382,7 @@ export function ShelfGrid({
                       key={platform}
                     >
                       <Chip tone={activePlatform === platform ? "blue" : "neutral"}>
-                        {getPlatformFilterLabel(platform)}
+                        {getPlatformFilterLabel(platform, locale)}
                       </Chip>
                     </Link>
                   ))}
@@ -409,10 +416,10 @@ export function ShelfGrid({
                     type="checkbox"
                     value="1"
                   />
-                  Include released and not-started games
+                  {t("shelf.includeDormantLabel")}
                 </label>
                 <Button size="sm" type="submit" variant="ghost">
-                  Apply
+                  {t("common.apply")}
                 </Button>
               </form>
 
@@ -501,7 +508,7 @@ export function ShelfGrid({
                 )}
                 htmlFor="catalog-status-mode"
               >
-                Update status
+                {t("shelf.updateStatus")}
               </label>
             </div>
             <div

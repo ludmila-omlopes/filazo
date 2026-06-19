@@ -554,9 +554,11 @@ export async function syncXboxLibraryAction() {
 }
 
 export async function syncUserReviewsAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20syncing%20reviews.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needReviewsLogin"))}`);
   }
 
   let importedCount: number;
@@ -565,7 +567,7 @@ export async function syncUserReviewsAction() {
     importedCount = result.importedCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Review sync did not complete.";
+      error instanceof Error ? error.message : t("profileAction.reviewsSyncFailed");
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
 
@@ -618,9 +620,11 @@ export async function importCsvAction(formData: FormData) {
 }
 
 export async function importPhotoCatalogAction(formData: FormData) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20importing%20catalog%20photos.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needPhotoLogin"))}`);
   }
 
   const files = formData
@@ -633,11 +637,21 @@ export async function importPhotoCatalogAction(formData: FormData) {
     const result = await importPhotoCatalogForUser({
       userId,
       files,
+      messages: {
+        uploadAtLeastOne: t("profileAction.photoUploadAtLeastOne"),
+        onlyImages: t("profileAction.photoOnlyImages"),
+        noVisibleGames: t("profileAction.photoNoVisibleGames"),
+        visionUnavailable: t("profileAction.photoVisionUnavailable"),
+        needsAiKey: t("profileAction.photoNeedsAiKey"),
+        lowConfidence: t("profileAction.photoLowConfidence"),
+        rowFailed: t("profileAction.photoRowFailed"),
+        importFailed: t("profileAction.photoImportFailed"),
+      },
     });
     importedCount = result.importedCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Photo import did not complete.";
+      error instanceof Error ? error.message : t("profileAction.photoImportFailed");
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
 
@@ -647,9 +661,11 @@ export async function importPhotoCatalogAction(formData: FormData) {
 }
 
 export async function createJournalEntryAction(formData: FormData) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20saving%20journal%20entries.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needJournalLogin"))}`);
   }
 
   const parsed = journalEntrySchema.safeParse({
@@ -664,7 +680,7 @@ export async function createJournalEntryAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect("/profile?tab=journal&error=Journal%20entry%20could%20not%20be%20saved.");
+    redirect(`/profile?tab=journal&error=${encodeURIComponent(t("profileAction.journalSaveFailed"))}`);
   }
 
   let occurredAt: Date | null = null;
@@ -681,13 +697,13 @@ export async function createJournalEntryAction(formData: FormData) {
       body: parsed.data.body ?? null,
       mediaCaption: parsed.data.mediaCaption ?? null,
       occurredAt,
-      targetLanguage: parsed.data.targetLanguage || "English",
+      targetLanguage: parsed.data.targetLanguage || (locale === "pt-BR" ? "Portuguese (Brazil)" : "English"),
       imageFile: getFormFile(formData.get("image")),
       audioFile: getFormFile(formData.get("audio")),
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Journal entry could not be saved.";
+      error instanceof Error ? error.message : t("profileAction.journalSaveFailed");
     redirect(`/profile?tab=journal&error=${encodeURIComponent(message)}`);
   }
 
@@ -710,9 +726,11 @@ export async function createJournalEntryAction(formData: FormData) {
 }
 
 export async function addManualGameAction(formData: FormData) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/login?error=Sign%20in%20before%20adding%20games.");
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needManualAddLogin"))}`);
   }
 
   const parsed = manualGameAddSchema.safeParse({
@@ -724,12 +742,12 @@ export async function addManualGameAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    redirect("/profile?tab=integrations&error=Choose%20a%20game%20result%20before%20adding.");
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.manualAddChooseGame"))}`);
   }
 
   const metadata = await getIgdbGameById(parsed.data.igdbId);
   if (!metadata) {
-    redirect("/profile?tab=integrations&error=That%20game%20could%20not%20be%20loaded.");
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.manualAddLoadFailed"))}`);
   }
 
   const game = await resolveCatalogGame({
@@ -992,6 +1010,23 @@ export async function clearCurrentPlayingAction() {
   revalidatePath("/profile");
   revalidatePath("/");
   redirect("/profile?currentPlaying=cleared");
+}
+
+export async function clearCurrentPlayingSelectionAction(): Promise<CurrentPlayingSaveResult> {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return {
+      ok: false,
+      message: "Sign in before changing Current playing.",
+    };
+  }
+
+  await clearCurrentPlayingForUser(userId);
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+
+  return { ok: true };
 }
 
 export async function detectFinishedGamesAction() {

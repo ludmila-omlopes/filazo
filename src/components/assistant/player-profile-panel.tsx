@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createTranslator, type Locale } from "@/lib/i18n";
 import type { StoredPlayerProfile } from "@/lib/assistant/profile-agent";
 import { SyncActionForm } from "@/components/sync-action-form";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -9,62 +10,62 @@ export function PlayerProfilePanel({
   hasGames,
   aiConfigured,
   action,
+  locale,
 }: {
   profile: StoredPlayerProfile | null;
   hasGames: boolean;
   aiConfigured: boolean;
   action: (formData: FormData) => void;
+  locale: Locale;
 }) {
+  const t = createTranslator(locale);
   return (
     <section className="panel">
       <div className="mb-6 flex items-end justify-between gap-4 max-lg:flex-col max-lg:items-start">
         <div>
-          <span className="section-label">Player profile</span>
+          <span className="section-label">{t("playerProfile.label")}</span>
           <h2 className="text-section-title leading-snug">
-            Who you are as a player
+            {t("playerProfile.title")}
           </h2>
           <p className="mt-1.5 max-w-[52ch] text-sm leading-relaxed text-ink-soft">
-            A short read on your taste, based on your library, playtime, and
-            notes. Refresh it after adding feedback.
+            {t("playerProfile.body")}
           </p>
         </div>
         <div className="flex flex-col items-end gap-2 max-lg:items-start">
           <div className="pill">
             {profile
-              ? `Generated ${formatDate(profile.updatedAt)}`
-              : "Not generated yet"}
+              ? t("playerProfile.generated", { date: formatDate(profile.updatedAt) })
+              : t("playerProfile.notGenerated")}
           </div>
           {hasGames && aiConfigured ? (
             <SyncActionForm
               action={action}
-              buttonLabel={profile ? "Refresh profile" : "Generate profile"}
-              pendingLabel="Reading your shelf..."
-              pendingNotice="Filazo is reading your library and notes. Keep this page open."
+              buttonLabel={profile ? t("playerProfile.refresh") : t("playerProfile.generate")}
+              pendingLabel={t("playerProfile.reading")}
+              pendingNotice={t("playerProfile.pending")}
             />
           ) : profile && !aiConfigured ? (
             <p className="text-xs font-semibold text-ink-soft">
-              Refresh is unavailable right now.
+              {t("playerProfile.refreshUnavailable")}
             </p>
           ) : null}
         </div>
       </div>
 
       {!hasGames ? (
-        <EmptyState title="Your catalog is quiet right now.">
-          Add a few games first, then Filazo can say something useful about
-          your taste.
+        <EmptyState title={t("playerProfile.emptyCatalogTitle")}>
+          {t("playerProfile.emptyCatalogBody")}
         </EmptyState>
       ) : !profile && !aiConfigured ? (
         <div className="rounded-card border border-edge bg-clay-soft p-5">
-          <p className="font-semibold">Profile writing is unavailable right now.</p>
+          <p className="font-semibold">{t("playerProfile.unavailableTitle")}</p>
           <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-            The rest of the guide still works.
+            {t("playerProfile.unavailableBody")}
           </p>
         </div>
       ) : !profile ? (
-        <EmptyState title="Your profile hasn't been written yet.">
-          Use Generate profile and Filazo will read your games, playtime,
-          favorites, and feedback.
+        <EmptyState title={t("playerProfile.notWrittenTitle")}>
+          {t("playerProfile.notWrittenBody")}
         </EmptyState>
       ) : (
         <div className="grid gap-5">
@@ -74,7 +75,7 @@ export function PlayerProfilePanel({
 
           {profile.payload.preferredGenres.length ? (
             <div>
-              <h3 className="section-label !mb-2">Preferred genres</h3>
+              <h3 className="section-label !mb-2">{t("playerProfile.preferredGenres")}</h3>
               <div className="grid gap-2 sm:grid-cols-2">
                 {profile.payload.preferredGenres.map((item) => (
                   <div
@@ -94,7 +95,7 @@ export function PlayerProfilePanel({
           <div className="grid gap-5 lg:grid-cols-2">
             {profile.payload.playStyles.length ? (
               <div>
-                <h3 className="section-label !mb-2">Play styles</h3>
+                <h3 className="section-label !mb-2">{t("playerProfile.playStyles")}</h3>
                 <ul className="grid gap-1.5 text-sm leading-relaxed">
                   {profile.payload.playStyles.map((style) => (
                     <li className="flex gap-2" key={style}>
@@ -110,7 +111,7 @@ export function PlayerProfilePanel({
 
             {profile.payload.behaviorPatterns.length ? (
               <div>
-                <h3 className="section-label !mb-2">Behavior patterns</h3>
+                <h3 className="section-label !mb-2">{t("playerProfile.behaviorPatterns")}</h3>
                 <ul className="grid gap-1.5 text-sm leading-relaxed">
                   {profile.payload.behaviorPatterns.map((pattern) => (
                     <li className="flex gap-2" key={pattern}>
@@ -127,7 +128,7 @@ export function PlayerProfilePanel({
 
           {profile.payload.recommendations.length ? (
             <div>
-              <h3 className="section-label !mb-2">From your own catalog</h3>
+              <h3 className="section-label !mb-2">{t("playerProfile.fromCatalog")}</h3>
               <div className="grid gap-2">
                 {profile.payload.recommendations.map((recommendation) => (
                   <Link
@@ -158,7 +159,7 @@ export function PlayerProfilePanel({
           {profile.toolTrace.length ? (
             <details className="text-xs text-ink-soft">
               <summary className="cursor-pointer font-bold">
-                How the agent built this ({profile.toolTrace.length} tool calls)
+                {t("playerProfile.traceTitle", { count: profile.toolTrace.length })}
               </summary>
               <ol className="mt-2 grid gap-1">
                 {profile.toolTrace.map((step, index) => (

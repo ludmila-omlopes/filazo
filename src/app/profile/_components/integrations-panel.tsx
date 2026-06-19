@@ -289,22 +289,32 @@ function CompletionStatusRow({
   );
 }
 
-function CsvImportRow({ profile }: { profile: ProfileData }) {
+function CsvImportRow({
+  locale,
+  profile,
+}: {
+  locale: Locale;
+  profile: ProfileData;
+}) {
+  const t = createTranslator(locale);
+
   return (
     <div className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
       <SectionHeader
-        eyebrow="File import"
-        title="Upload a CSV"
+        eyebrow={t("profile.addGames.fileImport")}
+        title={t("profile.addGames.uploadCsv")}
         aside={
           profile.latestImport ? (
             <div className="pill">
-              Latest import: {formatDate(profile.latestImport.createdAt)}
+              {t("profile.addGames.latestImport", {
+                date: formatDate(profile.latestImport.createdAt, locale),
+              })}
             </div>
           ) : null
         }
       />
       <CsvImportWidget action={importCsvAction} />
-      <ImportAuditPreview profile={profile} />
+      <ImportAuditPreview locale={locale} profile={profile} />
     </div>
   );
 }
@@ -318,7 +328,14 @@ function getRawTitle(value: unknown) {
   return typeof title === "string" ? title : null;
 }
 
-function ImportAuditPreview({ profile }: { profile: ProfileData }) {
+function ImportAuditPreview({
+  locale,
+  profile,
+}: {
+  locale: Locale;
+  profile: ProfileData;
+}) {
+  const t = createTranslator(locale);
   const rows = profile.latestImport?.rows ?? [];
   if (!rows.length) {
     return null;
@@ -327,7 +344,7 @@ function ImportAuditPreview({ profile }: { profile: ProfileData }) {
   return (
     <details className="mt-5 rounded-inner border border-edge bg-canvas/60 p-4 text-sm">
       <summary className="cursor-pointer font-bold">
-        Recent import audit
+        {t("profile.importAudit.title")}
       </summary>
       <div className="mt-3 grid gap-2">
         {rows.map((row) => (
@@ -338,10 +355,10 @@ function ImportAuditPreview({ profile }: { profile: ProfileData }) {
             <span className="min-w-0 truncate font-semibold">
               {getRawTitle(row.rawData) ??
                 row.normalizedTitle ??
-                `Row ${row.rowIndex + 1}`}
+                t("profile.importAudit.row", { index: row.rowIndex + 1 })}
             </span>
             <span className="rounded-pill border border-edge px-2 py-0.5 text-[0.7rem] font-bold uppercase">
-              {row.outcome ?? "pending"}
+              {row.outcome ?? t("profile.importAudit.pending")}
             </span>
             {row.error ? (
               <p className="col-span-2 text-xs leading-relaxed text-ink-soft">
@@ -355,18 +372,27 @@ function ImportAuditPreview({ profile }: { profile: ProfileData }) {
   );
 }
 
-function PhotoImportRow({ profile }: { profile: ProfileData }) {
+function PhotoImportRow({
+  locale,
+  profile,
+}: {
+  locale: Locale;
+  profile: ProfileData;
+}) {
+  const t = createTranslator(locale);
   const aiConfigured = Boolean(process.env.OPENAI_API_KEY);
 
   return (
     <div className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
       <SectionHeader
-        eyebrow="Photo import"
-        title="Read games from screenshots"
-        description="Upload screenshots or photos of a catalog page, shelf, or list. Detected titles are resolved into the same canonical catalog."
+        eyebrow={t("profile.photoImport.label")}
+        title={t("profile.photoImport.title")}
+        description={t("profile.photoImport.description")}
         aside={
           <div className={cn("pill", !aiConfigured && "bg-clay-soft")}>
-            {aiConfigured ? "Vision ready" : "Needs AI key"}
+            {aiConfigured
+              ? t("profile.photoImport.ready")
+              : t("profile.photoImport.needsKey")}
           </div>
         }
       />
@@ -375,7 +401,9 @@ function PhotoImportRow({ profile }: { profile: ProfileData }) {
         className="grid gap-4"
       >
         <label className="grid gap-2">
-          <span className="text-sm font-semibold">Catalog images</span>
+          <span className="text-sm font-semibold">
+            {t("profile.photoImport.images")}
+          </span>
           <input
             accept="image/*"
             className="w-full file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sage-soft file:px-4 file:py-2 file:font-semibold file:transition-colors hover:file:bg-sand-soft"
@@ -386,18 +414,24 @@ function PhotoImportRow({ profile }: { profile: ProfileData }) {
         </label>
         {!aiConfigured ? (
           <p className="text-sm font-semibold text-clay">
-            Photo extraction needs <code>OPENAI_API_KEY</code>. Upload attempts
-            are kept in the import audit with a clear skipped state.
+            {t("profile.photoImport.needsKeyBody")}
           </p>
         ) : null}
-        <Button type="submit">Import from photos</Button>
+        <Button type="submit">{t("profile.photoImport.submit")}</Button>
       </form>
-      <ImportAuditPreview profile={profile} />
+      <ImportAuditPreview locale={locale} profile={profile} />
     </div>
   );
 }
 
-function ReviewSyncRow({ profile }: { profile: ProfileData }) {
+function ReviewSyncRow({
+  locale,
+  profile,
+}: {
+  locale: Locale;
+  profile: ProfileData;
+}) {
+  const t = createTranslator(locale);
   const canSyncReviews = Boolean(profile.steamAccount);
 
   return (
@@ -409,14 +443,12 @@ function ReviewSyncRow({ profile }: { profile: ProfileData }) {
     >
       <div className="grid grid-cols-[1fr_auto] items-center gap-4 max-sm:grid-cols-1">
         <div>
-          <p className="section-label !mb-1">Review import</p>
+          <p className="section-label !mb-1">{t("profile.reviews.label")}</p>
           <h2 className="font-display text-xl font-medium leading-tight">
-            Bring in your public reviews
+            {t("profile.reviews.title")}
           </h2>
           <p className="mt-2 max-w-[62ch] text-sm leading-relaxed text-ink-soft">
-            Steam public recommendations can be matched back to games already on
-            your shelf. PlayStation and Xbox reviews are not exposed through the
-            current source flows.
+            {t("profile.reviews.body")}
           </p>
         </div>
         <span
@@ -433,7 +465,7 @@ function ReviewSyncRow({ profile }: { profile: ProfileData }) {
               canSyncReviews ? "bg-sage" : "bg-clay",
             )}
           />
-          {canSyncReviews ? "Steam ready" : "Needs Steam"}
+          {canSyncReviews ? t("profile.reviews.ready") : t("profile.reviews.needsSteam")}
         </span>
       </div>
 
@@ -441,13 +473,13 @@ function ReviewSyncRow({ profile }: { profile: ProfileData }) {
         {canSyncReviews ? (
           <SyncActionForm
             action={syncUserReviewsAction}
-            buttonLabel="Sync reviews"
-            pendingLabel="Checking..."
-            pendingNotice="Checking public Steam recommendations."
+            buttonLabel={t("profile.reviews.sync")}
+            pendingLabel={t("profile.reviews.checking")}
+            pendingNotice={t("profile.reviews.pending")}
           />
         ) : (
           <p className="text-sm font-semibold text-ink-soft">
-            Connect Steam first.
+            {t("profile.reviews.connectFirst")}
           </p>
         )}
       </div>
@@ -612,13 +644,13 @@ export function IntegrationsPanel({
 
         <CompletionStatusRow locale={locale} profile={profile} />
 
-        <ReviewSyncRow profile={profile} />
+        <ReviewSyncRow locale={locale} profile={profile} />
 
         <ManualGameLookupPanel enabled={hasIgdbConfig()} />
 
-        <PhotoImportRow profile={profile} />
+        <PhotoImportRow locale={locale} profile={profile} />
 
-        <CsvImportRow profile={profile} />
+        <CsvImportRow locale={locale} profile={profile} />
       </div>
     </section>
   );

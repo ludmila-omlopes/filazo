@@ -64,6 +64,10 @@ function getDisplayStatus(
     return "FINISHED";
   }
 
+  if (status === "OWNED") {
+    return null;
+  }
+
   return status;
 }
 

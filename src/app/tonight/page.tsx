@@ -151,7 +151,7 @@ export default async function TonightPage({
           <div className="mx-auto mb-5 grid h-20 w-20 place-items-center rounded-inner border border-edge bg-canvas text-ink-soft">
             <ControllerIllustration className="h-14 w-14" />
           </div>
-          <p className="section-label justify-center">Tonight</p>
+          <p className="section-label justify-center">{t("common.tonight")}</p>
           <h1 className="text-page-title leading-tight">
             {t("tonight.signInTitle")}
           </h1>

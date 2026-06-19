@@ -9,6 +9,8 @@ import {
   savePlayerProfile,
 } from "@/lib/assistant/profile-agent";
 import { prisma } from "@/lib/prisma";
+import { getRequestLocale } from "@/lib/request-locale";
+import { createTranslator } from "@/lib/i18n";
 import { getSessionUserId } from "@/lib/session";
 
 const updateIntentSchema = z.object({
@@ -24,9 +26,11 @@ const abandonReasonSchema = z.object({
 });
 
 export async function refreshAssistantInsightsAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/profile?tab=assistant&error=Sign%20in%20before%20refreshing%20assistant%20insights.");
+    redirect(`/profile?tab=assistant&error=${encodeURIComponent(t("assistantAction.needRefreshLogin"))}`);
   }
 
   let insightCount = 0;
@@ -35,7 +39,7 @@ export async function refreshAssistantInsightsAction() {
     insightCount = result.insightCount;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Assistant refresh did not complete.";
+      error instanceof Error ? error.message : t("assistantAction.refreshFailed");
     redirect(`/profile?tab=assistant&error=${encodeURIComponent(message)}`);
   }
 
@@ -44,9 +48,11 @@ export async function refreshAssistantInsightsAction() {
 }
 
 export async function generatePlayerProfileAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect("/profile?error=Sign%20in%20before%20generating%20a%20player%20profile.");
+    redirect(`/profile?error=${encodeURIComponent(t("assistantAction.needProfileLogin"))}`);
   }
 
   let result: Awaited<ReturnType<typeof generatePlayerProfile>>;
@@ -56,7 +62,7 @@ export async function generatePlayerProfileAction() {
     const message =
       error instanceof Error
         ? error.message
-        : "Player profile generation did not complete.";
+        : t("assistantAction.profileFailed");
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 
