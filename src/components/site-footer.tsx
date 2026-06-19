@@ -28,6 +28,12 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           <Link className="nav-link" href="/profile">
             {t("common.library")}
           </Link>
+          <Link className="nav-link" href="/privacy">
+            {t("auth.dialog.privacy")}
+          </Link>
+          <Link className="nav-link" href="/terms">
+            {t("auth.dialog.terms")}
+          </Link>
           <a
             className="nav-link"
             href="https://github.com/ludmila-omlopes/filazo"
