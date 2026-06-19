@@ -30,7 +30,7 @@ export async function GET(request: Request) {
       origin,
       redirectUri: getYoutubeRedirectUri(origin),
       state,
-      scope: "openid email profile https://www.googleapis.com/auth/youtube.readonly",
+      scope: "openid email profile",
     });
     const cookieStore = await cookies();
 

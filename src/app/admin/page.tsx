@@ -49,7 +49,7 @@ export default async function AdminPage({
       <main id="main-content" className="mx-auto grid w-full max-w-[860px] gap-6">
         <Notice tone="error">{t("admin.restricted")}</Notice>
         <Button asChild className="w-fit">
-          <a href="/api/auth/youtube">{t("admin.signInYoutube")}</a>
+          <a href="/api/auth/youtube">{t("admin.signInGoogle")}</a>
         </Button>
       </main>
     );

@@ -90,11 +90,11 @@ const messages = {
       "Public registrations are closed. Request beta access before connecting Steam.",
     "auth.error.xboxRegistrationClosed":
       "Public registrations are closed. Request beta access before connecting Xbox.",
-    "auth.error.youtubeStartFailed": "Could not start YouTube login.",
+    "auth.error.youtubeStartFailed": "Could not start beta sign-in.",
     "auth.error.youtubeMissingCode":
-      "YouTube did not return an authorization code.",
-    "auth.error.youtubeStateInvalid": "Could not verify YouTube login.",
-    "auth.error.youtubeCallbackFailed": "Could not finish YouTube login.",
+      "The beta sign-in provider did not return an authorization code.",
+    "auth.error.youtubeStateInvalid": "Could not verify beta sign-in.",
+    "auth.error.youtubeCallbackFailed": "Could not finish beta sign-in.",
 
     "landing.notice.database":
       "{message} This environment needs a reachable PostgreSQL database before catalog features can load.",
@@ -138,7 +138,7 @@ const messages = {
     "login.kicker": "filazo account",
     "login.title": "Sign in once. Keep every library connected after.",
     "login.body":
-      "Sign in with an existing filazo account or a known Google account. Public registration is closed; new players can request beta access with YouTube.",
+      "Sign in with an existing filazo account or a known Google account. Public registration is closed; new players can request beta access with Google.",
     "login.open": "Open login",
 
     "beta.status.pending.title": "Application sent",
@@ -157,7 +157,7 @@ const messages = {
     "beta.title": "Apply for early filazo access",
     "beta.body":
       "Public registrations are closed. Approved beta testers receive full platform access for 1 year to test the catalog, imports, integrations, and recommendations.",
-    "beta.signInYoutube": "Sign in with YouTube and request access",
+    "beta.signInGoogle": "Sign in with Google and request access",
     "beta.justification": "Justification: {value}",
     "beta.existingAccount":
       "This account already has platform access. Beta signup is only for new testers.",
@@ -172,8 +172,8 @@ const messages = {
       "Fill in your name and at least one platform.",
 
     "admin.restricted":
-      "This area is restricted to the admin. Sign in with YouTube using ludmila.omlopes@gmail.com.",
-    "admin.signInYoutube": "Sign in with YouTube",
+      "This area is restricted to the admin. Sign in with Google using ludmila.omlopes@gmail.com.",
+    "admin.signInGoogle": "Sign in with Google",
     "admin.reviewed": "Request updated.",
     "admin.kicker": "Admin",
     "admin.title": "Beta testers",
@@ -670,13 +670,13 @@ const messages = {
     "auth.error.xboxRegistrationClosed":
       "Novos registros estão fechados. Solicite acesso pelo cadastro beta antes de conectar Xbox.",
     "auth.error.youtubeStartFailed":
-      "Não foi possível iniciar o login com YouTube.",
+      "Não foi possível iniciar o login beta.",
     "auth.error.youtubeMissingCode":
-      "YouTube não retornou um código de autorização.",
+      "O provedor de login beta não retornou um código de autorização.",
     "auth.error.youtubeStateInvalid":
-      "Não foi possível verificar o login com YouTube.",
+      "Não foi possível verificar o login beta.",
     "auth.error.youtubeCallbackFailed":
-      "Não foi possível finalizar o login com YouTube.",
+      "Não foi possível finalizar o login beta.",
 
     "landing.notice.database":
       "{message} Este ambiente precisa de um banco PostgreSQL acessível antes de carregar os recursos de catálogo.",
@@ -720,7 +720,7 @@ const messages = {
     "login.kicker": "conta filazo",
     "login.title": "Entre uma vez. Mantenha todas as bibliotecas conectadas depois.",
     "login.body":
-      "Entre com uma conta filazo existente ou uma conta Google já conhecida. Novos registros estão fechados; novos jogadores podem solicitar acesso beta com YouTube.",
+      "Entre com uma conta filazo existente ou uma conta Google já conhecida. Novos registros estão fechados; novos jogadores podem solicitar acesso beta com Google.",
     "login.open": "Abrir login",
 
     "beta.status.pending.title": "Cadastro enviado",
@@ -739,7 +739,7 @@ const messages = {
     "beta.title": "Cadastro para acesso antecipado ao filazo",
     "beta.body":
       "Novos registros públicos estão fechados. Beta testers aprovados terão acesso completo à plataforma por 1 ano para testar catálogo, imports, integrações e recomendações.",
-    "beta.signInYoutube": "Entrar com YouTube e solicitar acesso",
+    "beta.signInGoogle": "Entrar com Google e solicitar acesso",
     "beta.justification": "Justificativa: {value}",
     "beta.existingAccount":
       "Esta conta já tem acesso à plataforma. O cadastro beta é só para novos testers.",
@@ -754,8 +754,8 @@ const messages = {
       "Preencha seu nome e pelo menos uma plataforma.",
 
     "admin.restricted":
-      "Esta área é restrita ao admin. Entre com o YouTube usando ludmila.omlopes@gmail.com.",
-    "admin.signInYoutube": "Entrar com YouTube",
+      "Esta área é restrita ao admin. Entre com o Google usando ludmila.omlopes@gmail.com.",
+    "admin.signInGoogle": "Entrar com Google",
     "admin.reviewed": "Solicitação atualizada.",
     "admin.kicker": "Admin",
     "admin.title": "Beta testers",

@@ -111,7 +111,7 @@ export default async function BetaPage({
               size="lg"
             >
               <a href="/api/auth/youtube">
-                {t("beta.signInYoutube")}
+                {t("beta.signInGoogle")}
               </a>
             </Button>
           ) : null}
