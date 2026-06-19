@@ -18,7 +18,8 @@ export function getDatabaseErrorMessage(error: unknown) {
   if (
     message.includes("no such table") ||
     message.includes("does not exist in the current database") ||
-    message.includes("P2021")
+    message.includes("P2021") ||
+    message.includes("P2022")
   ) {
     return "Database schema is not initialized. Run the database setup before using catalog features.";
   }

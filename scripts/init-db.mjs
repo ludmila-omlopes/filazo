@@ -1,4 +1,9 @@
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+
+if (!process.env.DATABASE_URL && existsSync(".env")) {
+  process.loadEnvFile(".env");
+}
 
 const databaseUrl = process.env.DATABASE_URL;
 
@@ -14,7 +19,7 @@ if (databaseUrl.startsWith("file:")) {
   process.exit(1);
 }
 
-const result = spawnSync("npx", ["prisma", "db", "push"], {
+const result = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
   cwd: process.cwd(),
   env: process.env,
   shell: process.platform === "win32",
