@@ -5,6 +5,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
+import { catalogRowAccent } from "@/components/ui/status-badge";
 import { getAssistantSignalDisplayLabel, getStatusDisplayLabel } from "@/lib/copy";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import type { ProfileGameSort } from "@/lib/profile-games";
@@ -133,6 +134,9 @@ function ShelfCard({
   locale: Locale;
   view: GamesView;
 }) {
+  const status = statusForEntry(entry);
+  const accent = cn("border-l-4", catalogRowAccent(status));
+
   if (view === "list") {
     return (
       <div
@@ -144,7 +148,9 @@ function ShelfCard({
           platformName={entry.platformName}
           playtimeMinutes={entry.playtimeMinutes}
           completionPercent={entry.completionPercent}
-          status={statusForEntry(entry)}
+          status={status}
+          statusVariant="label"
+          className={accent}
           locale={locale}
           variant="row"
         />
@@ -173,7 +179,9 @@ function ShelfCard({
         platformName={entry.platformName}
         playtimeMinutes={entry.playtimeMinutes}
         completionPercent={entry.completionPercent}
-        status={statusForEntry(entry)}
+        status={status}
+        statusVariant="label"
+        className={accent}
         locale={locale}
         variant="shelf"
       />
@@ -426,6 +434,7 @@ export function ShelfGrid({
               <div className="flex flex-wrap items-center gap-2">
                 <div className="flex gap-1 rounded-pill border border-edge bg-surface p-1">
                   {[
+                    ["status", t("profile.shelf.statusSort")],
                     ["added", t("profile.shelf.newest")],
                     ["playtime", t("profile.shelf.playtime")],
                     ["title", t("profile.shelf.titleSort")],

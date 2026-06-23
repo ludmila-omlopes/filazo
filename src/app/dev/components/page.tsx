@@ -18,7 +18,9 @@ import { Progress } from "@/components/ui/progress";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Separator } from "@/components/ui/separator";
 import { StatCard } from "@/components/ui/stat-card";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { catalogRowAccent, StatusBadge } from "@/components/ui/status-badge";
+import { getStatusDisplayLabel } from "@/lib/copy";
+import { cn } from "@/lib/utils";
 
 const buttonVariants = [
   "default",
@@ -48,6 +50,15 @@ const statusSamples = [
   "FINISHED",
   "PAUSED",
   "DROPPED",
+] as const;
+const catalogStatuses = [
+  "PLAYING",
+  "WISHLIST",
+  "BACKLOG",
+  "COMPLETED",
+  "FINISHED",
+  "DROPPED",
+  "OWNED",
 ] as const;
 
 const sampleGame = {
@@ -182,6 +193,90 @@ function ComponentShowcase({ label }: { label: string }) {
               status="FINISHED"
               variant="row"
             />
+          </div>
+        </div>
+
+        <div className="grid gap-5 rounded-card border border-edge bg-surface p-5 shadow-rest">
+          <h3 className="section-label !mb-0">
+            Catalog — status by row color + text label
+          </h3>
+          <div className="grid gap-3">
+            {catalogStatuses.map((status) => (
+              <GameCard
+                className={cn("border-l-4", catalogRowAccent(status))}
+                game={{
+                  ...sampleGame,
+                  name: `${getStatusDisplayLabel(status)} shelf row`,
+                  slug: `catalog-row-${status.toLowerCase()}`,
+                }}
+                key={status}
+                platformName="Steam"
+                playtimeMinutes={320}
+                status={status}
+                statusVariant="label"
+                variant="row"
+              />
+            ))}
+          </div>
+          {/* Mixed title lengths + owned (no label) to confirm uniform card height. */}
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[
+              { name: "Twinsen", status: "PLAYING" },
+              {
+                name: "The Remarkably Long Journey Across the Soft Library Shelf",
+                status: "COMPLETED",
+              },
+              { name: "Ratchet & Clank", status: "OWNED" },
+              {
+                name: "Pro Evolution Soccer 2017 Deluxe Anniversary Edition",
+                status: "OWNED",
+              },
+            ].map((g, i) => (
+              <GameCard
+                className={cn("border-l-4", catalogRowAccent(g.status))}
+                game={{ name: g.name, slug: `catalog-card-${i}`, coverUrl: null }}
+                key={`catalog-card-${i}`}
+                platformName="PS5"
+                playtimeMinutes={120}
+                status={g.status}
+                statusVariant="label"
+                variant="shelf"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Mirrors the current-playing slots: varied title length + present/absent
+            metadata, status=null, h-full — all cards should be equal height. */}
+        <div className="grid gap-5 rounded-card border border-edge bg-surface p-5 shadow-rest">
+          <h3 className="section-label !mb-0">
+            Slot cards — uniform height (current playing)
+          </h3>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {[
+              {
+                name: "Clair Obscur: Expedition 33",
+                platformName: "playstation ps5",
+                playtimeMinutes: 2580,
+              },
+              {
+                name: "Celeste",
+                platformName: "playstation ps4",
+                playtimeMinutes: 66,
+              },
+              { name: "Chrono Trigger", platformName: null, playtimeMinutes: null },
+            ].map((g, i) => (
+              <GameCard
+                className="h-full"
+                game={{ name: g.name, slug: `slot-card-${i}`, coverUrl: null }}
+                key={`slot-card-${i}`}
+                locale="en"
+                platformName={g.platformName}
+                playtimeMinutes={g.playtimeMinutes}
+                status={null}
+                variant="slot"
+              />
+            ))}
           </div>
         </div>
 

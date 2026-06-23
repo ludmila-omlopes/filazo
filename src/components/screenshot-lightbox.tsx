@@ -190,7 +190,7 @@ export function ScreenshotLightbox({
           </div>
 
           {/* Counter */}
-          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold backdrop-blur-sm">
+          <div className="absolute bottom-5 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-pill bg-white/10 border border-white/20 text-white text-xs font-bold backdrop-blur-sm">
             {openIndex! + 1} / {screenshots.length}
           </div>
         </div>
