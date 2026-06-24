@@ -5,7 +5,6 @@ import { PlayNextPanel } from "@/components/assistant/play-next-panel";
 import { PlayerProfilePanel } from "@/components/assistant/player-profile-panel";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
-import Link from "next/link";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { formatNumber } from "@/lib/utils";
 import {
@@ -41,18 +40,8 @@ export function AssistantCorner({
   playerProfile: PlayerProfileData;
   profile: ProfileData;
 }) {
-  const t = createTranslator(locale);
   return (
     <section className="grid gap-5 rounded-card border border-edge bg-dusk-lavender-soft p-6 shadow-rest">
-      <SectionHeader
-        eyebrow={t("assistant.corner.eyebrow")}
-        title={t("assistant.corner.title")}
-        aside={
-          <Button asChild size="sm" variant="ghost">
-            <Link href="/tonight">{t("assistant.corner.openTonight")}</Link>
-          </Button>
-        }
-      />
       <PlayerProfilePanel
         action={generatePlayerProfileAction}
         aiConfigured={Boolean(process.env.OPENAI_API_KEY)}

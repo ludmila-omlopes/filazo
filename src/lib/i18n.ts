@@ -328,9 +328,9 @@ const messages = {
       "Connect Steam or PlayStation first.",
 
     "profile.currentPlaying.label": "Current playing",
-    "profile.currentPlaying.title": "Keep a few games close",
+    "profile.currentPlaying.title": "Currently playing",
     "profile.currentPlaying.description":
-      "Choose up to three shelf entries and pin them to the top of your overview.",
+      "Pick at most 3 games. It's better for you, trust me.",
     "profile.currentPlaying.inView": "{count} of 3 in view",
     "profile.currentPlaying.spot": "Spot {slot}",
     "profile.currentPlaying.openTitle": "Open for a game",
@@ -1185,9 +1185,9 @@ const messages = {
       "Conecte Steam ou PlayStation primeiro.",
 
     "profile.currentPlaying.label": "Jogando agora",
-    "profile.currentPlaying.title": "Mantenha alguns jogos por perto",
+    "profile.currentPlaying.title": "Jogando atualmente",
     "profile.currentPlaying.description":
-      "Escolha até três entradas da estante e fixe elas no topo da sua visão geral.",
+      "escolha no máximo 3 jogos. É melhor pra você, confia",
     "profile.currentPlaying.inView": "{count} de 3 em vista",
     "profile.currentPlaying.spot": "Espaço {slot}",
     "profile.currentPlaying.openTitle": "Aberto para um jogo",

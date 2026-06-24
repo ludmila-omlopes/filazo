@@ -57,7 +57,7 @@ export async function generatePlayerProfileAction() {
 
   let result: Awaited<ReturnType<typeof generatePlayerProfile>>;
   try {
-    result = await generatePlayerProfile(userId);
+    result = await generatePlayerProfile(userId, locale);
   } catch (error) {
     const message =
       error instanceof Error
