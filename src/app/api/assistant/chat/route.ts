@@ -21,6 +21,7 @@ import {
   recordAssistantChatRun,
 } from "@/lib/assistant/queries";
 import { getSessionUserId } from "@/lib/session";
+import { getOpenAiConfig } from "@/lib/openai";
 
 export const maxDuration = 60;
 
@@ -46,8 +47,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  const config = getOpenAiConfig();
+  if (!config) {
     return NextResponse.json(
       { error: "The AI module is unavailable. Set OPENAI_API_KEY to chat." },
       { status: 503 },
@@ -74,11 +75,17 @@ export async function POST(request: Request) {
   }
 
   const entries = await loadLibraryEntries(userId);
-  const openai = createOpenAI({ apiKey });
-  const modelName = process.env.OPENAI_MODEL || "gpt-5.4-mini";
+  const openai = createOpenAI({
+    apiKey: config.apiKey,
+    baseURL: config.baseUrl,
+  });
+  const modelName = config.model;
 
   const result = streamText({
-    model: openai(modelName),
+    // Use the Chat Completions API (not the Responses API default): it is the
+    // endpoint every OpenAI-compatible gateway, including OpenRouter, supports
+    // across all models.
+    model: openai.chat(modelName),
     system: CHAT_SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
     stopWhen: stepCountIs(8),

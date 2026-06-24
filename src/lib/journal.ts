@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   EntrySource,
@@ -12,6 +12,7 @@ import { z } from "zod";
 import { resolveCatalogGame } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { normalizeTitle } from "@/lib/utils";
+import { getOpenAiConfig } from "@/lib/openai";
 
 type UploadedMedia = {
   kind: "image" | "audio";
@@ -44,17 +45,6 @@ const PhotoImportSchema = z.object({
 
 function isUsableFile(value: FormDataEntryValue | null): value is File {
   return value instanceof File && value.size > 0;
-}
-
-function getOpenAiConfig() {
-  if (!process.env.OPENAI_API_KEY) {
-    return null;
-  }
-
-  return {
-    apiKey: process.env.OPENAI_API_KEY,
-    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
-  };
 }
 
 function getSafeFileName(file: File) {
@@ -147,7 +137,12 @@ function extractOutputText(response: unknown) {
 }
 
 async function transcribeAudio(file: File) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  // Audio transcription stays on OpenAI directly: OpenRouter has no
+  // transcription endpoint, so this ignores OPENAI_BASE_URL. When the rest of
+  // the app is pointed at a gateway, set OPENAI_TRANSCRIPTION_API_KEY to a real
+  // OpenAI key to keep voice journaling working.
+  const apiKey =
+    process.env.OPENAI_TRANSCRIPTION_API_KEY || process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return null;
   }
@@ -185,7 +180,7 @@ async function translateTranscript(text: string, targetLanguage: string) {
     return null;
   }
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch(`${config.baseUrl}/responses`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
@@ -284,6 +279,52 @@ function buildAchievementSummary(entry: {
     summary: null,
     confidence: null,
   };
+}
+
+async function removeUploadedFile(storageKey: string) {
+  // storageKey is a repo-relative path like "uploads/<folder>/<uuid>.<ext>".
+  // Uploads live under public/, so map it back the same way the writer does.
+  if (!storageKey || storageKey.includes("..")) {
+    return;
+  }
+
+  const diskPath = path.join(process.cwd(), "public", ...storageKey.split("/"));
+  try {
+    await unlink(diskPath);
+  } catch {
+    // Best-effort: the file may already be gone or stored externally.
+  }
+}
+
+export async function deleteJournalEntryForUser({
+  journalEntryId,
+  userId,
+}: {
+  journalEntryId: string;
+  userId: string;
+}): Promise<{ slug: string | null }> {
+  const entry = await prisma.gameJournalEntry.findFirst({
+    where: { id: journalEntryId, userId },
+    select: {
+      id: true,
+      game: { select: { slug: true } },
+      media: { select: { storageKey: true } },
+    },
+  });
+
+  if (!entry) {
+    // Already gone or not owned by this user; treat deletion as a no-op.
+    return { slug: null };
+  }
+
+  // Deleting the entry cascade-removes its JournalMedia rows (see schema).
+  await prisma.gameJournalEntry.delete({ where: { id: entry.id } });
+
+  await Promise.all(
+    entry.media.map((media) => removeUploadedFile(media.storageKey)),
+  );
+
+  return { slug: entry.game.slug };
 }
 
 export async function createJournalEntryForUser({
@@ -396,7 +437,7 @@ async function extractPhotoCandidates(file: File) {
     return [];
   }
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch(`${config.baseUrl}/responses`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.apiKey}`,

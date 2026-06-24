@@ -7,6 +7,7 @@ import {
 import { getTitleTrophies, getUserTrophiesEarnedForTitle } from "psn-api";
 import { getPlayStationAuthorizationForAccount } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
+import { getOpenAiConfig } from "@/lib/openai";
 import {
   classifyStoryAchievementHeuristically,
   type StoryAchievementCandidate,
@@ -34,20 +35,20 @@ async function classifyStoryAchievementWithAi(
   gameName: string,
   candidates: StoryAchievementCandidate[],
 ): Promise<StoryAchievementCandidate | null> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || candidates.length === 0) {
+  const config = getOpenAiConfig();
+  if (!config || candidates.length === 0) {
     return null;
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch(`${config.baseUrl}/responses`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
+        model: config.model,
         input: [
           {
             role: "system",

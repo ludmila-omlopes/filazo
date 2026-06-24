@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, ChevronRight, Mic, PenLine } from "lucide-react";
-import { createJournalEntryAction } from "../actions";
+import { BookOpen, ChevronRight, Mic, PenLine, Trash2 } from "lucide-react";
+import {
+  createJournalEntryAction,
+  deleteJournalEntryAction,
+} from "../actions";
 import { VoiceMemoryInput } from "@/components/voice-memory-input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -170,6 +173,31 @@ function JournalPageCard({
           </div>
         </div>
       ) : null}
+
+      <details className="group mt-4 border-t border-edge pt-3">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 text-xs font-semibold text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface [&::-webkit-details-marker]:hidden">
+          <Trash2 className="h-3.5 w-3.5" />
+          {t("journal.deletePage")}
+        </summary>
+        <div className="mt-3 flex flex-wrap items-center gap-3 rounded-inner border border-edge bg-canvas/70 p-3">
+          <p className="min-w-0 flex-1 text-xs font-semibold text-ink-soft">
+            {t("journal.deleteConfirm")}
+          </p>
+          <form action={deleteJournalEntryAction}>
+            <input name="journalEntryId" type="hidden" value={entry.id} />
+            <input name="slug" type="hidden" value={entry.game.slug} />
+            <input
+              name="returnTo"
+              type="hidden"
+              value={`${buildEntryHref(entry.userGameEntryId)}&journal=deleted`}
+            />
+            <Button size="sm" type="submit" variant="destructive">
+              <Trash2 />
+              {t("journal.deleteConfirmButton")}
+            </Button>
+          </form>
+        </div>
+      </details>
     </article>
   );
 }

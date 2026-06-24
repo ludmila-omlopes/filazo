@@ -7,6 +7,7 @@ import {
   type AssistantInsight,
   type LibrarySummary,
 } from "./scoring.ts";
+import { getOpenAiConfig } from "../openai.ts";
 
 export type AssistantAiInput = {
   userLibrarySummary: LibrarySummary;
@@ -74,18 +75,6 @@ const PlayNextRecommendationSchema = z.object({
     )
     .length(3),
 });
-
-function getOpenAiConfig() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return null;
-  }
-
-  return {
-    apiKey,
-    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
-  };
-}
 
 function extractOutputText(response: unknown) {
   if (!response || typeof response !== "object") {
@@ -436,7 +425,7 @@ export async function recommendPlayNextGames(
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch(`${config.baseUrl}/responses`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
@@ -565,7 +554,7 @@ export async function summarizeAssistantInsights(
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch(`${config.baseUrl}/responses`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${config.apiKey}`,
