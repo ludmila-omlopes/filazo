@@ -23,7 +23,6 @@ export function PlayerProfilePanel({
     <section className="panel">
       <div className="mb-6 flex items-end justify-between gap-4 max-lg:flex-col max-lg:items-start">
         <div>
-          <span className="section-label">{t("playerProfile.label")}</span>
           <h2 className="text-section-title leading-snug">
             {t("playerProfile.title")}
           </h2>
@@ -32,11 +31,11 @@ export function PlayerProfilePanel({
           </p>
         </div>
         <div className="flex flex-col items-end gap-2 max-lg:items-start">
-          <div className="pill">
+          <p className="text-xs font-semibold text-ink-soft">
             {profile
               ? t("playerProfile.generated", { date: formatDate(profile.updatedAt) })
               : t("playerProfile.notGenerated")}
-          </div>
+          </p>
           {hasGames && aiConfigured ? (
             <SyncActionForm
               action={action}

@@ -694,7 +694,6 @@ export function CurrentPlayingPanel({
             ) : null}
           </div>
         }
-        eyebrow={t("profile.currentPlaying.label")}
         title={t("profile.currentPlaying.title")}
         description={t("profile.currentPlaying.description")}
       />

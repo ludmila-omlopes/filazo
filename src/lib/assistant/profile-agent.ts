@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { UserGameStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import type { Locale } from "@/lib/i18n";
 import {
   listGamesArgsSchema,
   loadLibraryEntries,
@@ -162,7 +163,7 @@ const AGENT_TOOLS = [
         summary: {
           type: "string",
           description:
-            "3-5 sentence narrative of who this player is, grounded in their data.",
+            "2-3 short sentences (about 50 words) on who this player is, grounded in their data. Keep it tight; no walls of text.",
         },
         preferredGenres: {
           type: "array",
@@ -347,6 +348,7 @@ function validateRecommendations(
 
 export async function generatePlayerProfile(
   userId: string,
+  locale: Locale = "en",
 ): Promise<PlayerProfileAgentResult> {
   const entries = await loadLibraryEntries(userId);
 
@@ -359,9 +361,14 @@ export async function generatePlayerProfile(
     throw new Error(PLAYER_PROFILE_AI_UNAVAILABLE_MESSAGE);
   }
 
+  const languageInstruction =
+    locale === "pt-BR"
+      ? "Write every natural-language field — summary, genre evidence, play styles, behavior patterns, recommendation reasons, and data notes — in natural Brazilian Portuguese (pt-BR). Keep game titles and slugs exactly as the tools return them."
+      : "Write every natural-language field in clear, natural English.";
+
   const toolTrace: PlayerProfileToolTraceStep[] = [];
   let response = await callResponsesApi(config, {
-    instructions: AGENT_INSTRUCTIONS,
+    instructions: `${AGENT_INSTRUCTIONS} ${languageInstruction}`,
     input: [
       {
         role: "user",
