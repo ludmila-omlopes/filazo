@@ -17,6 +17,7 @@
   --color-clay: #f6beb0; /* Peach, favorites and release */
   --color-sand: #ffe3b3; /* Honey Milk, wishlist and attention */
   --color-dusk-lavender: #dbaad7; /* Fairy Pink, assistant and reflective */
+  --color-fern: #74bd8a; /* Garden Fern, finished and complete */
   --color-glow: #ffe3b3; /* Honey Milk highlight, Night Mode accent */
 
   /* Dusk palette for catalog-room surfaces */
@@ -31,6 +32,13 @@
   --color-sand-soft: #fff1cf;
   --color-clay-soft: #fde7e1;
   --color-dusk-lavender-soft: #f5e3f4;
+  --color-fern-soft: #e6f4e9;
+
+  /* Strong, text-readable status accents (deep on day, bright on night). */
+  --color-sky-strong: #356f95;
+  --color-fern-strong: #2f7d52;
+  --color-sand-strong: #9a6a20;
+  --color-clay-strong: #b54f3c;
 
   --font-display: "Instrument Sans", "Segoe UI", sans-serif;
   --font-body: "Atkinson Hyperlegible", "Segoe UI", sans-serif;
@@ -46,7 +54,10 @@
   --text-micro: 0.62rem;
 
   --radius-card: 14px;
-  --radius-pill: 999px;
+  /* Soft, non-elliptical radius for chips, badges, inputs, segmented controls,
+     and other formerly stadium-shaped pills. True circles (avatars, status
+     dots, spinners, icon-only buttons) keep rounded-full. */
+  --radius-pill: 8px;
   --radius-inner: 8px;
 
   --shadow-rest: 0 2px 0 rgba(52, 53, 66, 0.08), 0 10px 24px rgba(159, 153, 209, 0.12);
@@ -102,11 +113,17 @@
   --color-clay: #ffc7bd;
   --color-sand: #ffe7b8;
   --color-dusk-lavender: #efbde8;
+  --color-fern: #a0d9ad;
   --color-sage-soft: rgba(159, 153, 209, 0.2);
   --color-sky-soft: rgba(134, 186, 218, 0.18);
   --color-sand-soft: rgba(255, 227, 179, 0.18);
   --color-clay-soft: rgba(246, 190, 176, 0.18);
   --color-dusk-lavender-soft: rgba(219, 170, 215, 0.2);
+  --color-fern-soft: rgba(116, 189, 138, 0.2);
+  --color-sky-strong: #9fd0ed;
+  --color-fern-strong: #a8e0b4;
+  --color-sand-strong: #ffe7b8;
+  --color-clay-strong: #ffc7bd;
   --shadow-rest: 0 1px 0 rgba(255, 227, 179, 0.06), 0 12px 26px rgba(12, 10, 28, 0.32);
   --shadow-lift: 0 1px 0 rgba(255, 227, 179, 0.08), 0 18px 36px rgba(12, 10, 28, 0.42);
   --shadow-float: 0 2px 0 rgba(255, 227, 179, 0.08), 0 26px 54px rgba(12, 10, 28, 0.48);

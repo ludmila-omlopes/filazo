@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { MouseEventHandler } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Chip } from "@/components/ui/chip";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { StatusBadge, StatusLabel } from "@/components/ui/status-badge";
 import { translate, type Locale } from "@/lib/i18n";
 import { cn, formatTimeEstimate } from "@/lib/utils";
 
@@ -40,6 +40,8 @@ type GameCardProps = VariantProps<typeof gameCardVariants> & {
   playtimeMinutes?: number | null;
   completionPercent?: number | null;
   status?: string | null;
+  /** How a non-null status renders: tinted badge (default), plain text label, or hidden. */
+  statusVariant?: "badge" | "label" | "none";
   finished?: boolean;
   eyebrow?: string;
   description?: string | null;
@@ -54,6 +56,28 @@ type GameCardProps = VariantProps<typeof gameCardVariants> & {
 
 function getInitial(name: string) {
   return name.trim().slice(0, 1).toUpperCase() || "?";
+}
+
+function StatusDisplay({
+  status,
+  variant,
+  locale,
+  className,
+}: {
+  status: string | null | undefined;
+  variant: "badge" | "label" | "none";
+  locale: Locale;
+  className?: string;
+}) {
+  if (!status || variant === "none") {
+    return null;
+  }
+
+  return variant === "label" ? (
+    <StatusLabel className={className} locale={locale} status={status} />
+  ) : (
+    <StatusBadge className={className} locale={locale} status={status} />
+  );
 }
 
 function getDisplayStatus(
@@ -157,6 +181,7 @@ export function GameCard({
   platformName,
   playtimeMinutes,
   status,
+  statusVariant = "badge",
   finished,
   eyebrow,
   description,
@@ -183,18 +208,23 @@ export function GameCard({
           <h3 className="line-clamp-2 font-display text-base leading-tight">
             {game.name}
           </h3>
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
-            {displayStatus ? (
-              <StatusBadge locale={locale} status={displayStatus} />
-            ) : null}
-          </div>
+          {platformName || playtimeLabel ? (
+            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+              <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
+            </div>
+          ) : null}
           {description ? (
             <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink-soft">
               {description}
             </p>
           ) : null}
         </div>
+        <StatusDisplay
+          className="ml-auto flex-none whitespace-nowrap pl-2"
+          locale={locale}
+          status={displayStatus}
+          variant={statusVariant}
+        />
       </>
     ) : (
       <>
@@ -205,17 +235,27 @@ export function GameCard({
             className={cn(
               "line-clamp-2 font-display font-medium leading-tight",
               resolvedVariant === "slot" ? "text-xl" : "text-base",
+              // Reserve two lines so cards keep a uniform height whether the title
+              // wraps to one line or two.
+              resolvedVariant === "shelf" && "min-h-[2.5rem]",
+              resolvedVariant === "slot" && "min-h-[3.125rem]",
             )}
           >
             {game.name}
           </h3>
           {showDetails ? (
             <>
-              <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
+              {/* Fixed-height metadata line so slot cards stay uniform whether or
+                  not platform/playtime is present. */}
+              <div className="flex h-6 items-center">
+                <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
+              </div>
               <div className="flex flex-wrap items-center gap-2">
-                {displayStatus ? (
-                  <StatusBadge locale={locale} status={displayStatus} />
-                ) : null}
+                <StatusDisplay
+                  locale={locale}
+                  status={displayStatus}
+                  variant={statusVariant}
+                />
                 {chips.slice(0, 2).map((chip) => (
                   <Chip key={chip} tone="blue">
                     {chip}
@@ -223,6 +263,14 @@ export function GameCard({
                 ))}
               </div>
             </>
+          ) : statusVariant === "label" ? (
+            // Fixed-height status line keeps every shelf card the same height
+            // whether or not it shows a label (owned cards show none).
+            <div className="flex h-5 items-center">
+              {displayStatus ? (
+                <StatusLabel locale={locale} status={displayStatus} />
+              ) : null}
+            </div>
           ) : null}
           {description ? (
             <p className="line-clamp-3 text-sm leading-relaxed text-ink-soft">

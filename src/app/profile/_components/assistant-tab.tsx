@@ -89,15 +89,15 @@ export function AssistantTab({
           <details className="mt-3 text-xs font-semibold text-ink-soft">
             <summary className="cursor-pointer">{t("assistant.tab.usage")}</summary>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-surface px-3 py-1">
+              <span className="rounded-pill bg-surface px-3 py-1">
                 {t("assistant.tab.availableToday")}{" "}
                 {formatNumber(assistant.aiUsage.effectiveRemainingToday)}
               </span>
-              <span className="rounded-full bg-surface px-3 py-1">
+              <span className="rounded-pill bg-surface px-3 py-1">
                 {t("assistant.tab.usedToday")} {formatNumber(assistant.aiUsage.userUsedToday)} /{" "}
                 {formatNumber(assistant.aiUsage.userDailyLimit)}
               </span>
-              <span className="rounded-full bg-surface px-3 py-1">
+              <span className="rounded-pill bg-surface px-3 py-1">
                 {t("assistant.tab.nextRefresh")}{" "}
                 {assistant.aiUsage.openAiConfigured
                   ? formatAssistantCooldown(

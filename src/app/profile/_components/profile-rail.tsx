@@ -148,7 +148,7 @@ export function ProfileRail({
               {count !== null ? (
                 <span
                   className={cn(
-                    "rounded-full px-2 py-0.5 text-[0.68rem] font-bold",
+                    "rounded-pill px-2 py-0.5 text-[0.68rem] font-bold",
                     activeTab === tab
                       ? "bg-surface/20 text-surface"
                       : "bg-canvas text-ink-soft",
