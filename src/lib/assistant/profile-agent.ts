@@ -2,6 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { UserGameStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { getOpenAiConfig, type OpenAiConfig } from "@/lib/openai";
 import type { Locale } from "@/lib/i18n";
 import {
   listGamesArgsSchema,
@@ -70,18 +71,6 @@ export type PlayerProfileAgentResult =
       model: string;
       toolTrace: PlayerProfileToolTraceStep[];
     };
-
-function getOpenAiConfig() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return null;
-  }
-
-  return {
-    apiKey,
-    model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
-  };
-}
 
 const AGENT_TOOLS = [
   {
@@ -256,10 +245,10 @@ type ResponsesApiResult = {
 };
 
 async function callResponsesApi(
-  config: { apiKey: string; model: string },
+  config: OpenAiConfig,
   body: Record<string, unknown>,
 ): Promise<ResponsesApiResult> {
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch(`${config.baseUrl}/responses`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.apiKey}`,
@@ -366,22 +355,31 @@ export async function generatePlayerProfile(
       ? "Write every natural-language field — summary, genre evidence, play styles, behavior patterns, recommendation reasons, and data notes — in natural Brazilian Portuguese (pt-BR). Keep game titles and slugs exactly as the tools return them."
       : "Write every natural-language field in clear, natural English.";
 
+  const instructions = `${AGENT_INSTRUCTIONS} ${languageInstruction}`;
   const toolTrace: PlayerProfileToolTraceStep[] = [];
+
+  // OpenRouter's Responses API is stateless and does not support
+  // previous_response_id, so we thread the transcript ourselves: each turn we
+  // echo the model's own output items back into the next request's input,
+  // followed by our tool outputs. This also works unchanged against OpenAI.
+  const inputItems: Array<Record<string, unknown>> = [
+    {
+      role: "user",
+      content:
+        "Generate my player profile from my filazo library. Investigate with the tools first, then submit the profile.",
+    },
+  ];
+
   let response = await callResponsesApi(config, {
-    instructions: `${AGENT_INSTRUCTIONS} ${languageInstruction}`,
-    input: [
-      {
-        role: "user",
-        content:
-          "Generate my player profile from my filazo library. Investigate with the tools first, then submit the profile.",
-      },
-    ],
+    instructions,
+    input: inputItems,
     tools: AGENT_TOOLS,
     tool_choice: "required",
   });
 
   for (let turn = 0; turn < MAX_AGENT_TURNS; turn += 1) {
-    const functionCalls = (response.output ?? []).filter(
+    const outputItems = response.output ?? [];
+    const functionCalls = outputItems.filter(
       (item) => item.type === "function_call" && item.name,
     );
 
@@ -391,7 +389,11 @@ export async function generatePlayerProfile(
       );
     }
 
-    const toolOutputs: Array<Record<string, unknown>> = [];
+    // Carry the model's output (reasoning + function_call items) forward so the
+    // next stateless request sees the full conversation.
+    inputItems.push(
+      ...(outputItems as unknown as Array<Record<string, unknown>>),
+    );
 
     for (const call of functionCalls) {
       const args = parseToolArgs(call.arguments);
@@ -416,7 +418,7 @@ export async function generatePlayerProfile(
         args,
         resultSummary: summarizeToolResult(result),
       });
-      toolOutputs.push({
+      inputItems.push({
         type: "function_call_output",
         call_id: call.call_id,
         output: JSON.stringify(result),
@@ -424,8 +426,8 @@ export async function generatePlayerProfile(
     }
 
     response = await callResponsesApi(config, {
-      previous_response_id: response.id,
-      input: toolOutputs,
+      instructions,
+      input: inputItems,
       tools: AGENT_TOOLS,
       tool_choice: "required",
     });

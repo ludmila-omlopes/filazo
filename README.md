@@ -118,8 +118,17 @@ IGDB_CLIENT_ID=""
 IGDB_CLIENT_SECRET=""
 
 # Optional AI assistant
+# OPENAI_BASE_URL points OpenAI-compatible chat/responses calls at any gateway.
+# Leave unset for OpenAI, or use a gateway like OpenRouter for more model
+# options: set OPENAI_BASE_URL="https://openrouter.ai/api/v1", an OpenRouter key
+# in OPENAI_API_KEY, and a routed model such as OPENAI_MODEL="anthropic/claude-opus-4.8".
 OPENAI_API_KEY=""
+OPENAI_BASE_URL=""
 OPENAI_MODEL="gpt-5.4-mini"
+# Voice-journal transcription always uses OpenAI directly (no gateway exposes
+# this endpoint). When OPENAI_API_KEY holds a non-OpenAI gateway key, set a real
+# OpenAI key here to keep transcription working.
+OPENAI_TRANSCRIPTION_API_KEY=""
 OPENAI_TRANSCRIPTION_MODEL="gpt-4o-mini-transcribe"
 ```
 
@@ -137,6 +146,7 @@ Notes:
 - Metacritic enrichment is optional and best-effort. If Steam Store app metadata does not expose a Metacritic score, the canonical game keeps an empty metascore.
 - The Assistant tab works without AI. If `OPENAI_API_KEY` is set, the app can use OpenAI's Responses API to recommend three low-friction play-next picks and turn rule-based insights into short explanations. Only library summaries, selected game metadata, progress/playtime signals, source/provider labels, and rule outputs are sent.
 - Photo catalog import and voice transcription also use `OPENAI_API_KEY` when configured. Photo import uses vision-capable Responses API calls to extract visible titles. Voice journal uploads use `OPENAI_TRANSCRIPTION_MODEL` for transcription and `OPENAI_MODEL` for transcript translation. Without the API key, manual journaling and normal imports still work; photo extraction is recorded as skipped in the import audit.
+- The model provider is configurable. By default these calls go to OpenAI, but `OPENAI_BASE_URL` points the chat and Responses API calls at any OpenAI-compatible gateway — for example OpenRouter (`https://openrouter.ai/api/v1`) for access to Anthropic, Google, and other models through one key. Set `OPENAI_API_KEY` to the gateway key and `OPENAI_MODEL` to a routed id such as `anthropic/claude-opus-4.8`. The library chat uses the Chat Completions endpoint for the broadest gateway compatibility; the play-next, insight, photo, story-completion, and player-profile features use the Responses API, so prefer models and gateways that support Responses-style tool calling and `json_schema` structured output. Voice-journal transcription is the one exception: it always calls OpenAI directly (no gateway exposes a transcription endpoint), so set `OPENAI_TRANSCRIPTION_API_KEY` to a real OpenAI key when `OPENAI_API_KEY` holds a gateway key.
 - Uploaded journal media and photo-import source images are stored under `public/uploads/` in local development, with only file references and metadata persisted in PostgreSQL. Use durable object storage before relying on this for production deployments.
 - The Overview tab includes an agentic player profile. When `OPENAI_API_KEY` is set, an agent loop gives the model read-only tools over the user's own catalog (`get_library_overview`, `list_games`, `get_player_feedback`, `get_genre_stats`); it investigates and then submits a structured profile (`submit_player_profile`) with preferred genres, play styles, behavior patterns, and recommendations drawn only from games already in the library. Tool payloads are minimized projections of `UserGameEntry` and `Game` metadata; no secrets, tokens, or provider account IDs are sent. Without the API key, profile generation fails with a clear message while the rest of the app keeps working.
 - The Assistant tab also includes a streaming library chat built on the Vercel AI SDK (`/api/assistant/chat`). It reuses the same read-only tool layer (`src/lib/assistant/library-tools.ts`) as the profile agent, so answers come from live lookups into the user's own catalog. It requires `OPENAI_API_KEY` and returns a clear 503 message without it. Each chat exchange is logged as an `AssistantRun` (status `COMPLETED_CHAT_AI`) with step, tool-call, and token usage, counts against the same per-user and app-wide daily AI quotas as assistant refreshes, and is rejected with a 429 once the quota is spent.

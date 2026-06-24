@@ -21,6 +21,7 @@ import { getIgdbGameById } from "@/lib/igdb";
 import { createTranslator } from "@/lib/i18n";
 import {
   createJournalEntryForUser,
+  deleteJournalEntryForUser,
   getFormFile,
   importPhotoCatalogForUser,
 } from "@/lib/journal";
@@ -98,6 +99,12 @@ const journalEntrySchema = z.object({
   mediaCaption: z.string().trim().max(240).optional(),
   occurredAt: z.string().trim().optional(),
   targetLanguage: z.string().trim().max(80).optional(),
+  slug: z.string().trim().optional(),
+  returnTo: z.string().trim().optional(),
+});
+
+const deleteJournalEntrySchema = z.object({
+  journalEntryId: z.string().trim().min(1),
   slug: z.string().trim().optional(),
   returnTo: z.string().trim().optional(),
 });
@@ -723,6 +730,49 @@ export async function createJournalEntryAction(formData: FormData) {
   }
 
   redirect("/profile?tab=journal");
+}
+
+export async function deleteJournalEntryAction(formData: FormData) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needJournalLogin"))}`);
+  }
+
+  const parsed = deleteJournalEntrySchema.safeParse({
+    journalEntryId: formData.get("journalEntryId"),
+    slug: formData.get("slug") || undefined,
+    returnTo: formData.get("returnTo") || undefined,
+  });
+
+  if (!parsed.success) {
+    redirect(`/profile?tab=journal&error=${encodeURIComponent(t("profileAction.journalDeleteFailed"))}`);
+  }
+
+  try {
+    await deleteJournalEntryForUser({
+      userId,
+      journalEntryId: parsed.data.journalEntryId,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : t("profileAction.journalDeleteFailed");
+    redirect(`/profile?tab=journal&error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/profile");
+
+  if (parsed.data.slug) {
+    revalidatePath(`/games/${parsed.data.slug}`);
+  }
+
+  const returnPath = getSafeReturnPath(parsed.data.returnTo);
+  if (returnPath) {
+    redirect(returnPath);
+  }
+
+  redirect("/profile?tab=journal&journal=deleted");
 }
 
 export async function addManualGameAction(formData: FormData) {

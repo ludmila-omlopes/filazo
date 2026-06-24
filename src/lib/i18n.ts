@@ -532,6 +532,10 @@ const messages = {
     "journal.pagesFor": "Pages For {name}",
     "journal.untitledPage": "Untitled Page",
     "journal.keepsakes": "Keepsakes",
+    "journal.deletePage": "Delete this page",
+    "journal.deleteConfirm":
+      "Delete this diary page for good? Attached screenshots and voice notes go too.",
+    "journal.deleteConfirmButton": "Delete page",
     "setup.label": "Setup",
     "setup.step1": "Step 1",
     "setup.step2": "Step 2",
@@ -782,6 +786,7 @@ const messages = {
     "statusMessage.reviewsSynced":
       "Review sync finished. {count} reviews were added or updated.",
     "statusMessage.journalSaved": "Diary page saved.",
+    "statusMessage.journalDeleted": "Diary page deleted.",
     "statusMessage.onboardingUpdated":
       "Setup preferences saved. You can revisit them from the Setup tab.",
     "statusMessage.onboardingSkipped":
@@ -846,6 +851,8 @@ const messages = {
       "Sign in before saving journal entries.",
     "profileAction.journalSaveFailed":
       "Journal entry could not be saved.",
+    "profileAction.journalDeleteFailed":
+      "Journal entry could not be deleted.",
     "profileAction.needManualAddLogin":
       "Sign in before adding games.",
     "profileAction.manualAddChooseGame":
@@ -1389,6 +1396,10 @@ const messages = {
     "journal.pagesFor": "Páginas para {name}",
     "journal.untitledPage": "Página sem título",
     "journal.keepsakes": "Lembranças",
+    "journal.deletePage": "Excluir esta página",
+    "journal.deleteConfirm":
+      "Excluir esta página do diário de vez? As capturas de tela e notas de voz anexadas também serão removidas.",
+    "journal.deleteConfirmButton": "Excluir página",
     "setup.label": "Setup",
     "setup.step1": "Etapa 1",
     "setup.step2": "Etapa 2",
@@ -1639,6 +1650,7 @@ const messages = {
     "statusMessage.reviewsSynced":
       "Sincronização de reviews concluída. {count} reviews foram adicionados ou atualizados.",
     "statusMessage.journalSaved": "Página do diário salva.",
+    "statusMessage.journalDeleted": "Página do diário excluída.",
     "statusMessage.onboardingUpdated":
       "Preferências de configuração salvas. Você pode revisitar isso na aba Setup.",
     "statusMessage.onboardingSkipped":
@@ -1713,6 +1725,8 @@ const messages = {
       "Entre antes de salvar entradas de diário.",
     "profileAction.journalSaveFailed":
       "A entrada de diário não pôde ser salva.",
+    "profileAction.journalDeleteFailed":
+      "A entrada de diário não pôde ser excluída.",
     "profileAction.needManualAddLogin":
       "Entre antes de adicionar jogos.",
     "profileAction.manualAddChooseGame":

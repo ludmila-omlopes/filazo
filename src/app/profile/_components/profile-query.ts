@@ -189,6 +189,13 @@ export function getStatusMessage(
     };
   }
 
+  if (query.journal === "deleted") {
+    return {
+      tone: "success",
+      message: t("statusMessage.journalDeleted"),
+    };
+  }
+
   if (query.onboarding === "updated") {
     return {
       tone: "success",
