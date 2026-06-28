@@ -13,6 +13,8 @@ import { resolveCatalogGame } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { normalizeTitle } from "@/lib/utils";
 import { getOpenAiConfig } from "@/lib/openai";
+import { runWithAiBudget } from "./ai-budget.ts";
+import { getAiSettings, type AiSettingsValues } from "./ai-settings.ts";
 
 type UploadedMedia = {
   kind: "image" | "audio";
@@ -45,6 +47,11 @@ const PhotoImportSchema = z.object({
 
 function isUsableFile(value: FormDataEntryValue | null): value is File {
   return value instanceof File && value.size > 0;
+}
+
+function formatFileSize(bytes: number) {
+  const megabytes = bytes / (1024 * 1024);
+  return `${Number.isInteger(megabytes) ? megabytes : megabytes.toFixed(1)} MB`;
 }
 
 function getSafeFileName(file: File) {
@@ -136,77 +143,141 @@ function extractOutputText(response: unknown) {
   return null;
 }
 
-async function transcribeAudio(file: File) {
+async function transcribeAudio(
+  file: File,
+  userId: string,
+  aiSettings: AiSettingsValues,
+) {
   // Audio transcription stays on OpenAI directly: OpenRouter has no
   // transcription endpoint, so this ignores OPENAI_BASE_URL. When the rest of
   // the app is pointed at a gateway, set OPENAI_TRANSCRIPTION_API_KEY to a real
   // OpenAI key to keep voice journaling working.
   const apiKey =
     process.env.OPENAI_TRANSCRIPTION_API_KEY || process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  if (!apiKey || !aiSettings.voiceTranscriptionEnabled) {
     return null;
   }
 
-  const body = new FormData();
-  body.set("file", file, file.name || "voice-note.webm");
-  body.set("model", process.env.OPENAI_TRANSCRIPTION_MODEL || "gpt-4o-mini-transcribe");
+  const model = process.env.OPENAI_TRANSCRIPTION_MODEL || "gpt-4o-mini-transcribe";
 
-  const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body,
-  });
+  try {
+    return await runWithAiBudget({
+      feature: "voice_transcription",
+      inputSummary: {
+        fileSize: file.size,
+        mimeType: file.type || "application/octet-stream",
+      },
+      model,
+      userId,
+      execute: async () => {
+        const body = new FormData();
+        body.set("file", file, file.name || "voice-note.webm");
+        body.set("model", model);
 
-  if (!response.ok) {
+        const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body,
+        });
+
+        if (!response.ok) {
+          return null;
+        }
+
+        const json = (await response.json()) as {
+          text?: string;
+          language?: string;
+        };
+
+        return {
+          text: json.text?.trim() || null,
+          language: json.language ?? null,
+        };
+      },
+    });
+  } catch {
     return null;
   }
-
-  const json = (await response.json()) as {
-    text?: string;
-    language?: string;
-  };
-
-  return {
-    text: json.text?.trim() || null,
-    language: json.language ?? null,
-  };
 }
 
-async function translateTranscript(text: string, targetLanguage: string) {
+function shouldTranslateTranscript(
+  sourceLanguage: string | null | undefined,
+  targetLanguage: string,
+) {
+  const source = sourceLanguage?.toLowerCase() ?? "";
+  const target = targetLanguage.toLowerCase();
+
+  if (!source) {
+    return true;
+  }
+
+  if (target.includes("english") && /^en(g|$)/.test(source)) {
+    return false;
+  }
+
+  if (target.includes("portuguese") && /^(pt|por|portugu)/.test(source)) {
+    return false;
+  }
+
+  return true;
+}
+
+async function translateTranscript(
+  text: string,
+  targetLanguage: string,
+  userId: string,
+  aiSettings: AiSettingsValues,
+) {
   const config = getOpenAiConfig();
-  if (!config || !text.trim()) {
+  if (!config || !text.trim() || !aiSettings.voiceTranslationEnabled) {
     return null;
   }
 
-  const response = await fetch(`${config.baseUrl}/responses`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  try {
+    return await runWithAiBudget({
+      feature: "voice_translation",
+      inputSummary: {
+        targetLanguage,
+        textLength: text.length,
+      },
       model: config.model,
-      input: [
-        {
-          role: "system",
-          content:
-            "Translate gameplay journal transcripts only when needed. Preserve concrete game details and keep the result concise. Return plain text.",
-        },
-        {
-          role: "user",
-          content: `Target language: ${targetLanguage}\n\nTranscript:\n${text}`,
-        },
-      ],
-    }),
-  });
+      userId,
+      execute: async () => {
+        const response = await fetch(`${config.baseUrl}/responses`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: config.model,
+            max_output_tokens: aiSettings.voiceTranslationMaxOutputTokens,
+            input: [
+              {
+                role: "system",
+                content:
+                  "Translate gameplay journal transcripts only when needed. Preserve concrete game details and keep the result concise. Return plain text.",
+              },
+              {
+                role: "user",
+                content: `Target language: ${targetLanguage}\n\nTranscript:\n${text}`,
+              },
+            ],
+          }),
+        });
 
-  if (!response.ok) {
+        if (!response.ok) {
+          return null;
+        }
+
+        return extractOutputText(await response.json())?.trim() ?? null;
+      },
+    });
+  } catch {
     return null;
   }
-
-  return extractOutputText(await response.json())?.trim() ?? null;
 }
 
 function truncateText(value: string, maxLength: number) {
@@ -366,6 +437,7 @@ export async function createJournalEntryForUser({
     throw new Error("Choose a game from your own catalog before journaling.");
   }
 
+  const aiSettings = await getAiSettings();
   const media: UploadedMedia[] = [];
   if (isUsableFile(imageFile)) {
     if (!imageFile.type.startsWith("image/")) {
@@ -380,10 +452,22 @@ export async function createJournalEntryForUser({
     if (!audioFile.type.startsWith("audio/")) {
       throw new Error("Voice uploads must be audio files.");
     }
+    if (audioFile.size > aiSettings.voiceMaxFileBytes) {
+      throw new Error(
+        `Voice uploads must be ${formatFileSize(aiSettings.voiceMaxFileBytes)} or smaller.`,
+      );
+    }
     media.push({ kind: "audio", ...(await saveUpload(audioFile, "journal")) });
-    transcript = await transcribeAudio(audioFile);
-    translatedTranscript = transcript?.text
-      ? await translateTranscript(transcript.text, targetLanguage)
+    transcript = await transcribeAudio(audioFile, userId, aiSettings);
+    translatedTranscript =
+      transcript?.text &&
+      shouldTranslateTranscript(transcript.language, targetLanguage)
+        ? await translateTranscript(
+            transcript.text,
+            targetLanguage,
+            userId,
+            aiSettings,
+          )
       : null;
   }
 
@@ -431,89 +515,109 @@ async function imageFileToDataUrl(file: File) {
   return `data:${file.type || "image/jpeg"};base64,${base64}`;
 }
 
-async function extractPhotoCandidates(file: File) {
+async function extractPhotoCandidates(
+  file: File,
+  userId: string,
+  aiSettings: AiSettingsValues,
+) {
   const config = getOpenAiConfig();
-  if (!config) {
+  if (!config || !aiSettings.photoImportEnabled) {
     return [];
   }
 
-  const response = await fetch(`${config.baseUrl}/responses`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      "Content-Type": "application/json",
+  return runWithAiBudget({
+    feature: "photo_import",
+    inputSummary: {
+      fileSize: file.size,
+      mimeType: file.type || "application/octet-stream",
     },
-    body: JSON.stringify({
-      model: config.model,
-      input: [
-        {
-          role: "system",
-          content:
-            "Extract video game catalog entries from screenshots or photos. Return JSON only. Do not invent titles that are not visible.",
+    model: config.model,
+    userId,
+    execute: async () => {
+      const response = await fetch(`${config.baseUrl}/responses`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+          "Content-Type": "application/json",
         },
-        {
-          role: "user",
-          content: [
+        body: JSON.stringify({
+          model: config.model,
+          max_output_tokens: aiSettings.photoImportMaxOutputTokens,
+          input: [
             {
-              type: "input_text",
-              text:
-                "Identify visible game titles. Include platform/status/notes only when visible or strongly implied. Confidence must be 0 to 1.",
+              role: "system",
+              content:
+                "Extract video game catalog entries from screenshots or photos. Return JSON only. Do not invent titles that are not visible.",
             },
             {
-              type: "input_image",
-              image_url: await imageFileToDataUrl(file),
+              role: "user",
+              content: [
+                {
+                  type: "input_text",
+                  text:
+                    "Identify visible game titles. Include platform/status/notes only when visible or strongly implied. Confidence must be 0 to 1.",
+                },
+                {
+                  type: "input_image",
+                  image_url: await imageFileToDataUrl(file),
+                },
+              ],
             },
           ],
-        },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "photo_catalog_import",
-          strict: true,
-          schema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              candidates: {
-                type: "array",
-                items: {
-                  type: "object",
-                  additionalProperties: false,
-                  properties: {
-                    title: { type: "string" },
-                    platformName: { type: ["string", "null"] },
-                    statusText: { type: ["string", "null"] },
-                    notes: { type: ["string", "null"] },
-                    confidence: { type: "number" },
+          text: {
+            format: {
+              type: "json_schema",
+              name: "photo_catalog_import",
+              strict: true,
+              schema: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  candidates: {
+                    type: "array",
+                    maxItems: aiSettings.photoImportMaxCandidates,
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        title: { type: "string" },
+                        platformName: { type: ["string", "null"] },
+                        statusText: { type: ["string", "null"] },
+                        notes: { type: ["string", "null"] },
+                        confidence: { type: "number" },
+                      },
+                      required: [
+                        "title",
+                        "platformName",
+                        "statusText",
+                        "notes",
+                        "confidence",
+                      ],
+                    },
                   },
-                  required: [
-                    "title",
-                    "platformName",
-                    "statusText",
-                    "notes",
-                    "confidence",
-                  ],
                 },
+                required: ["candidates"],
               },
             },
-            required: ["candidates"],
           },
-        },
-      },
-    }),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Photo extraction did not complete.");
+      }
+
+      const outputText = extractOutputText(await response.json());
+      if (!outputText) {
+        return [];
+      }
+
+      return PhotoImportSchema.parse(JSON.parse(outputText)).candidates.slice(
+        0,
+        aiSettings.photoImportMaxCandidates,
+      );
+    },
   });
-
-  if (!response.ok) {
-    throw new Error("Photo extraction did not complete.");
-  }
-
-  const outputText = extractOutputText(await response.json());
-  if (!outputText) {
-    return [];
-  }
-
-  return PhotoImportSchema.parse(JSON.parse(outputText)).candidates;
 }
 
 function parsePhotoStatus(statusText: string | null) {
@@ -643,15 +747,23 @@ export async function importPhotoCatalogForUser({
     noVisibleGames: string;
     visionUnavailable: string;
     needsAiKey: string;
+    fileTooLarge: string;
+    aiDisabled: string;
     lowConfidence: string;
     rowFailed: string;
     importFailed: string;
   };
   userId: string;
 }) {
-  const usableFiles = files.filter((file) => file.size > 0).slice(0, 5);
+  const aiSettings = await getAiSettings();
+  const usableFiles = files
+    .filter((file) => file.size > 0)
+    .slice(0, aiSettings.photoImportMaxFiles);
   if (!usableFiles.length) {
     throw new Error(messages.uploadAtLeastOne);
+  }
+  if (!aiSettings.photoImportEnabled) {
+    throw new Error(messages.aiDisabled);
   }
 
   const job = await prisma.importJob.create({
@@ -690,8 +802,28 @@ export async function importPhotoCatalogForUser({
         continue;
       }
 
+      if (file.size > aiSettings.photoImportMaxFileBytes) {
+        failedCount += 1;
+        await prisma.importRow.create({
+          data: {
+            jobId: job.id,
+            rowIndex,
+            rawData: {
+              fileName: file.name,
+              fileSize: file.size,
+              maxFileSize: aiSettings.photoImportMaxFileBytes,
+              mimeType: file.type,
+            } as Prisma.InputJsonValue,
+            outcome: ImportRowStatus.FAILED,
+            error: messages.fileTooLarge,
+          },
+        });
+        rowIndex += 1;
+        continue;
+      }
+
       const upload = await saveUpload(file, "imports");
-      const candidates = await extractPhotoCandidates(file);
+      const candidates = await extractPhotoCandidates(file, userId, aiSettings);
       if (!candidates.length) {
         skippedCount += 1;
         await prisma.importRow.create({

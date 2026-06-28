@@ -3,9 +3,10 @@ import { BuyDecisionForm } from "@/components/assistant/buy-decision-form";
 import { LibraryChat } from "@/components/assistant/library-chat";
 import { PlayNextPanel } from "@/components/assistant/play-next-panel";
 import { PlayerProfilePanel } from "@/components/assistant/player-profile-panel";
-import { Button } from "@/components/ui/button";
+import { SyncActionForm } from "@/components/sync-action-form";
 import { SectionHeader } from "@/components/ui/section-header";
 import { createTranslator, type Locale } from "@/lib/i18n";
+import type { AiSettingsValues } from "@/lib/ai-settings";
 import { formatNumber } from "@/lib/utils";
 import {
   generatePlayerProfileAction,
@@ -32,10 +33,12 @@ function formatAssistantCooldown(
 }
 
 export function AssistantCorner({
+  aiSettings,
   locale,
   playerProfile,
   profile,
 }: {
+  aiSettings: AiSettingsValues;
   locale: Locale;
   playerProfile: PlayerProfileData;
   profile: ProfileData;
@@ -44,7 +47,10 @@ export function AssistantCorner({
     <section className="grid gap-5 rounded-card border border-edge bg-dusk-lavender-soft p-6 shadow-rest">
       <PlayerProfilePanel
         action={generatePlayerProfileAction}
-        aiConfigured={Boolean(process.env.OPENAI_API_KEY)}
+        aiConfigured={
+          Boolean(process.env.OPENAI_API_KEY) &&
+          aiSettings.playerProfileEnabled
+        }
         hasGames={
           profile.ownedEntries.length + profile.wishlistEntries.length > 0
         }
@@ -98,12 +104,20 @@ export function AssistantTab({
             </div>
           </details>
         </div>
-        <form action={refreshAssistantInsightsAction}>
-          <Button type="submit">{t("assistant.tab.refresh")}</Button>
-        </form>
+        <SyncActionForm
+          action={refreshAssistantInsightsAction}
+          buttonLabel={t("assistant.tab.refresh")}
+          pendingLabel={t("assistant.tab.refresh")}
+          pendingNotice={t("assistant.tab.refreshHelp")}
+        />
       </section>
 
-      <LibraryChat aiConfigured={Boolean(process.env.OPENAI_API_KEY)} />
+      <LibraryChat
+        aiConfigured={
+          assistant.aiUsage.openAiConfigured &&
+          assistant.aiUsage.assistantChatEnabled
+        }
+      />
       <BacklogDiagnosis assistant={assistant} />
       <PlayNextPanel assistant={assistant} />
 

@@ -8,6 +8,11 @@ import {
   type PlayNextRecommendation,
 } from "@/lib/assistant/ai";
 import {
+  getAiBudgetLimits,
+  getAiBudgetUsageForUser,
+} from "../ai-budget.ts";
+import { getAiSettings } from "../ai-settings.ts";
+import {
   buildLibrarySummary,
   readStringList,
   scoreBacklogEntries,
@@ -46,17 +51,17 @@ type LatestAssistantRunPayload = Prisma.AssistantRunGetPayload<object>;
 
 const AI_REFRESH_LIMITS = {
   userCooldownMs: 10 * 60 * 1000,
-  userDailyLimit: 20,
-  globalDailyLimit: 100,
 } as const;
 
-// Statuses that represent a paid AI call and count against the daily quotas.
-// COMPLETED_AI is an assistant refresh; COMPLETED_CHAT_AI is a library chat
-// exchange. The 10-minute cooldown only applies to refreshes.
-const AI_RUN_STATUSES = ["COMPLETED_AI", "COMPLETED_CHAT_AI"];
+const AI_BUDGET_STATUSES = [
+  "AI_BUDGET_RESERVED",
+  "AI_BUDGET_USED",
+  "AI_BUDGET_FAILED",
+];
 
 type AssistantAiSkipReason =
   | "CACHE_HIT"
+  | "FEATURE_DISABLED"
   | "USER_COOLDOWN"
   | "USER_DAILY_LIMIT"
   | "GLOBAL_DAILY_LIMIT";
@@ -295,8 +300,21 @@ async function getAssistantAiRefreshDecision({
     };
   }
 
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const [latestAiRun, userDailyAiRuns, globalDailyAiRuns] = await Promise.all([
+  const settings = await getAiSettings();
+  if (
+    !settings.assistantSummaryEnabled &&
+    !settings.assistantPlayNextEnabled
+  ) {
+    return {
+      allowAi: false,
+      skippedReason: "FEATURE_DISABLED",
+      cachedSummary: null,
+      cachedRecommendations: null,
+      cachedRecommendationSource: null,
+    };
+  }
+
+  const [latestAiRun, aiBudget] = await Promise.all([
     prisma.assistantRun.findFirst({
       where: {
         userId,
@@ -304,19 +322,7 @@ async function getAssistantAiRefreshDecision({
       },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.assistantRun.count({
-      where: {
-        userId,
-        status: { in: AI_RUN_STATUSES },
-        createdAt: { gte: oneDayAgo },
-      },
-    }),
-    prisma.assistantRun.count({
-      where: {
-        status: { in: AI_RUN_STATUSES },
-        createdAt: { gte: oneDayAgo },
-      },
-    }),
+    getAiBudgetUsageForUser(userId, now),
   ]);
 
   if (
@@ -333,7 +339,7 @@ async function getAssistantAiRefreshDecision({
     };
   }
 
-  if (userDailyAiRuns >= AI_REFRESH_LIMITS.userDailyLimit) {
+  if (aiBudget.userRemainingToday <= 0) {
     return {
       allowAi: false,
       skippedReason: "USER_DAILY_LIMIT",
@@ -343,7 +349,7 @@ async function getAssistantAiRefreshDecision({
     };
   }
 
-  if (globalDailyAiRuns >= AI_REFRESH_LIMITS.globalDailyLimit) {
+  if (aiBudget.globalRemainingToday <= 0) {
     return {
       allowAi: false,
       skippedReason: "GLOBAL_DAILY_LIMIT",
@@ -363,8 +369,7 @@ async function getAssistantAiRefreshDecision({
 }
 
 async function getAssistantAiUsageForUser(userId: string, now = new Date()) {
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const [latestAiRun, userDailyAiRuns, globalDailyAiRuns] = await Promise.all([
+  const [latestAiRun, aiBudget, settings] = await Promise.all([
     prisma.assistantRun.findFirst({
       where: {
         userId,
@@ -372,19 +377,8 @@ async function getAssistantAiUsageForUser(userId: string, now = new Date()) {
       },
       orderBy: { createdAt: "desc" },
     }),
-    prisma.assistantRun.count({
-      where: {
-        userId,
-        status: { in: AI_RUN_STATUSES },
-        createdAt: { gte: oneDayAgo },
-      },
-    }),
-    prisma.assistantRun.count({
-      where: {
-        status: { in: AI_RUN_STATUSES },
-        createdAt: { gte: oneDayAgo },
-      },
-    }),
+    getAiBudgetUsageForUser(userId, now),
+    getAiSettings(),
   ]);
   const cooldownRemainingMs = latestAiRun
     ? Math.max(
@@ -393,62 +387,51 @@ async function getAssistantAiUsageForUser(userId: string, now = new Date()) {
           (now.getTime() - latestAiRun.createdAt.getTime()),
       )
     : 0;
-  const userRemainingToday = Math.max(
-    0,
-    AI_REFRESH_LIMITS.userDailyLimit - userDailyAiRuns,
-  );
-  const globalRemainingToday = Math.max(
-    0,
-    AI_REFRESH_LIMITS.globalDailyLimit - globalDailyAiRuns,
-  );
-  const effectiveRemainingToday = Math.min(
-    userRemainingToday,
-    globalRemainingToday,
-  );
 
   return {
     openAiConfigured: Boolean(process.env.OPENAI_API_KEY),
-    userDailyLimit: AI_REFRESH_LIMITS.userDailyLimit,
-    userUsedToday: userDailyAiRuns,
-    userRemainingToday,
-    globalDailyLimit: AI_REFRESH_LIMITS.globalDailyLimit,
-    globalRemainingToday,
-    effectiveRemainingToday,
+    userDailyLimit: aiBudget.userDailyLimit,
+    userUsedToday: aiBudget.userUsedToday,
+    userRemainingToday: aiBudget.userRemainingToday,
+    globalDailyLimit: aiBudget.globalDailyLimit,
+    globalRemainingToday: aiBudget.globalRemainingToday,
+    effectiveRemainingToday: aiBudget.effectiveRemainingToday,
+    assistantChatEnabled: settings.assistantChatEnabled,
+    assistantRefreshEnabled:
+      settings.assistantSummaryEnabled || settings.assistantPlayNextEnabled,
     cooldownMinutes: AI_REFRESH_LIMITS.userCooldownMs / 60000,
     cooldownRemainingSeconds: Math.ceil(cooldownRemainingMs / 1000),
     canUseAiNow:
       Boolean(process.env.OPENAI_API_KEY) &&
-      effectiveRemainingToday > 0 &&
+      (settings.assistantSummaryEnabled ||
+        settings.assistantPlayNextEnabled) &&
+      aiBudget.effectiveRemainingToday > 0 &&
       cooldownRemainingMs === 0,
   };
 }
 
 export async function getAssistantChatGate(userId: string, now = new Date()) {
-  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const [userDailyAiRuns, globalDailyAiRuns] = await Promise.all([
-    prisma.assistantRun.count({
-      where: {
-        userId,
-        status: { in: AI_RUN_STATUSES },
-        createdAt: { gte: oneDayAgo },
-      },
-    }),
-    prisma.assistantRun.count({
-      where: {
-        status: { in: AI_RUN_STATUSES },
-        createdAt: { gte: oneDayAgo },
-      },
-    }),
+  const [aiBudget, settings] = await Promise.all([
+    getAiBudgetUsageForUser(userId, now),
+    getAiSettings(),
   ]);
+  const chatBudgetUnits = Math.max(1, settings.chatBudgetUnits);
 
-  if (userDailyAiRuns >= AI_REFRESH_LIMITS.userDailyLimit) {
+  if (!settings.assistantChatEnabled) {
     return {
       allowed: false as const,
-      message: `Daily AI limit reached (${AI_REFRESH_LIMITS.userDailyLimit} calls per day). The chat reopens tomorrow.`,
+      message: "Library chat is disabled in admin settings.",
     };
   }
 
-  if (globalDailyAiRuns >= AI_REFRESH_LIMITS.globalDailyLimit) {
+  if (aiBudget.userRemainingToday < chatBudgetUnits) {
+    return {
+      allowed: false as const,
+      message: `Daily AI limit reached (${aiBudget.userDailyLimit} units per day). The chat reopens tomorrow.`,
+    };
+  }
+
+  if (aiBudget.globalRemainingToday < chatBudgetUnits) {
     return {
       allowed: false as const,
       message: "The app-wide AI budget for today is used up. Try again tomorrow.",
@@ -609,7 +592,10 @@ export async function getAssistantProfileData(userId: string) {
       orderBy: [{ score: "desc" }, { updatedAt: "desc" }],
     }),
     prisma.assistantRun.findFirst({
-      where: { userId },
+      where: {
+        userId,
+        status: { notIn: AI_BUDGET_STATUSES },
+      },
       orderBy: { createdAt: "desc" },
     }),
     getAssistantAiUsageForUser(userId),
@@ -665,7 +651,10 @@ export async function refreshAssistantInsightsForUser(userId: string) {
       },
     }),
     prisma.assistantRun.findFirst({
-      where: { userId },
+      where: {
+        userId,
+        status: { notIn: AI_BUDGET_STATUSES },
+      },
       orderBy: { createdAt: "desc" },
     }),
   ]);
@@ -682,6 +671,7 @@ export async function refreshAssistantInsightsForUser(userId: string) {
     userLibrarySummary,
     ruleInsights: ruleInsights.slice(0, 8),
   };
+  const aiBudgetLimits = await getAiBudgetLimits();
   const playNextInput = {
     userLibrarySummary,
     entries: assistantEntries,
@@ -705,9 +695,11 @@ export async function refreshAssistantInsightsForUser(userId: string) {
     : await Promise.all([
         summarizeAssistantInsights(summaryInput, {
           allowAi: aiDecision.allowAi,
+          userId,
         }),
         recommendPlayNextGames(playNextInput, {
           allowAi: aiDecision.allowAi,
+          userId,
         }),
       ]);
   const recommendationSource =
@@ -736,8 +728,7 @@ export async function refreshAssistantInsightsForUser(userId: string) {
           skippedReason: aiDecision.skippedReason,
           limits: {
             userCooldownMinutes: AI_REFRESH_LIMITS.userCooldownMs / 60000,
-            userDailyLimit: AI_REFRESH_LIMITS.userDailyLimit,
-            globalDailyLimit: AI_REFRESH_LIMITS.globalDailyLimit,
+            ...aiBudgetLimits,
           },
         },
       } as Prisma.InputJsonValue,

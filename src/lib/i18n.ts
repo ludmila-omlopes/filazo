@@ -44,6 +44,13 @@ const messages = {
     "theme.night": "Night",
     "theme.dayLabel": "Day - browse the catalog",
     "theme.nightLabel": "Night - pick something to play",
+    "theme.auto": "Auto",
+    "theme.autoLabel": "Auto - follow the time of day",
+    "theme.phase.morning": "morning",
+    "theme.phase.afternoon": "afternoon",
+    "theme.phase.dusk": "dusk",
+    "theme.phase.evening": "evening",
+    "theme.phase.night": "night",
 
     "auth.trigger.signIn": "Sign in",
     "auth.dialog.account": "filazo account",
@@ -199,6 +206,14 @@ const messages = {
     "admin.empty": "No application has been submitted yet.",
     "admin.error.justificationRequired":
       "Justification is required to approve or decline.",
+    "admin.ai.kicker": "AI controls",
+    "admin.ai.title": "AI budget and limits",
+    "admin.ai.body":
+      "Configure which AI features can run and the hard caps each one must respect before opening the platform to testers.",
+    "admin.ai.save": "Save AI settings",
+    "admin.ai.saved": "AI settings updated.",
+    "admin.ai.invalidSettings":
+      "AI settings were outside the accepted ranges.",
 
     "footer.tagline": "Your catalog, your pace.",
     "footer.madeFor": "made for players with too many games",
@@ -620,9 +635,12 @@ const messages = {
       "Upload screenshots or photos of a catalog page, shelf, or list. Detected titles are resolved into the same canonical catalog.",
     "profile.photoImport.ready": "Vision ready",
     "profile.photoImport.needsKey": "Needs AI key",
+    "profile.photoImport.disabled": "Disabled by admin",
     "profile.photoImport.images": "Catalog images",
     "profile.photoImport.needsKeyBody":
       "Photo extraction needs OPENAI_API_KEY. Upload attempts are kept in the import audit with a clear skipped state.",
+    "profile.photoImport.disabledBody":
+      "Photo extraction is disabled in admin settings.",
     "profile.photoImport.submit": "Import from photos",
     "profile.reviews.label": "Review import",
     "profile.reviews.title": "Bring in your public reviews",
@@ -722,6 +740,8 @@ const messages = {
     "tonight.chooseThis": "Choose this",
     "tonight.notTonight": "Not tonight",
     "tonight.alsoNearby": "also nearby",
+    "tonight.dealHint": "Can't decide?",
+    "tonight.dealMe": "Deal me a game",
     "tonight.signInTitle": "Sign in before choosing from the catalog.",
     "tonight.signInBody": "Your library will be here when you are ready.",
     "tonight.goToCatalog": "Go to the catalog",
@@ -842,6 +862,10 @@ const messages = {
     "profileAction.photoVisionUnavailable":
       "OPENAI_API_KEY is not configured for vision extraction.",
     "profileAction.photoNeedsAiKey": "Photo import needs OPENAI_API_KEY.",
+    "profileAction.photoAiDisabled":
+      "Photo import is disabled in admin settings.",
+    "profileAction.photoFileTooLarge":
+      "Each catalog image must be 4 MB or smaller.",
     "profileAction.photoLowConfidence":
       "Skipped for manual review because confidence was low.",
     "profileAction.photoRowFailed":
@@ -905,6 +929,13 @@ const messages = {
     "theme.night": "Noite",
     "theme.dayLabel": "Dia - navegar pelo catálogo",
     "theme.nightLabel": "Noite - escolher algo para jogar",
+    "theme.auto": "Auto",
+    "theme.autoLabel": "Auto - seguir a hora do dia",
+    "theme.phase.morning": "manhã",
+    "theme.phase.afternoon": "tarde",
+    "theme.phase.dusk": "anoitecer",
+    "theme.phase.evening": "noite",
+    "theme.phase.night": "madrugada",
 
     "auth.trigger.signIn": "Entrar",
     "auth.dialog.account": "conta filazo",
@@ -1063,6 +1094,14 @@ const messages = {
     "admin.empty": "Nenhuma solicitação enviada ainda.",
     "admin.error.justificationRequired":
       "Justificativa obrigatória para aprovar ou recusar.",
+    "admin.ai.kicker": "Controles de IA",
+    "admin.ai.title": "Orcamento e limites de IA",
+    "admin.ai.body":
+      "Configure quais recursos de IA podem rodar e os limites duros que cada um deve respeitar antes de abrir a plataforma para testers.",
+    "admin.ai.save": "Salvar configuracoes de IA",
+    "admin.ai.saved": "Configuracoes de IA atualizadas.",
+    "admin.ai.invalidSettings":
+      "As configuracoes de IA estavam fora dos intervalos aceitos.",
 
     "footer.tagline": "Seu catálogo, no seu ritmo.",
     "footer.madeFor": "feito para quem tem jogos demais",
@@ -1484,9 +1523,12 @@ const messages = {
       "Envie screenshots ou fotos de uma página de catálogo, estante ou lista. Os títulos detectados são resolvidos no mesmo catálogo canônico.",
     "profile.photoImport.ready": "Visão pronta",
     "profile.photoImport.needsKey": "Precisa de chave de IA",
+    "profile.photoImport.disabled": "Desativado pelo admin",
     "profile.photoImport.images": "Imagens do catálogo",
     "profile.photoImport.needsKeyBody":
       "A extração por foto precisa de OPENAI_API_KEY. As tentativas de upload ficam registradas na auditoria de importação com um estado claro de ignorado.",
+    "profile.photoImport.disabledBody":
+      "A extracao por foto esta desativada nas configuracoes de admin.",
     "profile.photoImport.submit": "Importar das fotos",
     "profile.reviews.label": "Importação de reviews",
     "profile.reviews.title": "Trazer seus reviews públicos",
@@ -1586,6 +1628,8 @@ const messages = {
     "tonight.chooseThis": "Escolher este",
     "tonight.notTonight": "Não hoje",
     "tonight.alsoNearby": "também por perto",
+    "tonight.dealHint": "Não consegue decidir?",
+    "tonight.dealMe": "Sortear um jogo",
     "tonight.signInTitle": "Entre antes de escolher no catálogo.",
     "tonight.signInBody": "Sua biblioteca vai estar aqui quando você quiser.",
     "tonight.goToCatalog": "Ir para o catálogo",
@@ -1715,6 +1759,10 @@ const messages = {
       "OPENAI_API_KEY não está configurada para extração por visão.",
     "profileAction.photoNeedsAiKey":
       "A importação por foto precisa de OPENAI_API_KEY.",
+    "profileAction.photoAiDisabled":
+      "A importacao por foto esta desativada nas configuracoes de admin.",
+    "profileAction.photoFileTooLarge":
+      "Cada imagem do catalogo deve ter no maximo 4 MB.",
     "profileAction.photoLowConfidence":
       "Ignorado para revisão manual porque a confiança estava baixa.",
     "profileAction.photoRowFailed":

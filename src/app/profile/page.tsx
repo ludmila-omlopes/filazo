@@ -29,6 +29,7 @@ import {
   getAssistantSignalEntryIds,
 } from "@/lib/assistant/queries";
 import { getPlayerProfileForUser } from "@/lib/assistant/profile-agent";
+import { getAiSettings } from "@/lib/ai-settings";
 import { getProfileData } from "@/lib/catalog";
 import {
   parseProfileGameSort,
@@ -98,6 +99,7 @@ export default async function ProfilePage({
     activeTab === "assistant" ? await getAssistantProfileData(userId) : null;
   const playerProfile =
     activeTab === "overview" ? await getPlayerProfileForUser(userId) : null;
+  const aiSettings = await getAiSettings();
   const signalEntryIds =
     activeTab === "games" && activeSignal
       ? await getAssistantSignalEntryIds(userId, activeSignal)
@@ -142,6 +144,7 @@ export default async function ProfilePage({
               profile={profile}
             />
             <AssistantCorner
+              aiSettings={aiSettings}
               locale={locale}
               playerProfile={playerProfile}
               profile={profile}
@@ -157,7 +160,11 @@ export default async function ProfilePage({
         ) : null}
 
         {activeTab === "integrations" ? (
-          <IntegrationsPanel locale={locale} profile={profile} />
+          <IntegrationsPanel
+            aiSettings={aiSettings}
+            locale={locale}
+            profile={profile}
+          />
         ) : null}
 
         {activeTab === "setup" ? (
@@ -167,6 +174,7 @@ export default async function ProfilePage({
         {activeTab === "journal" ? (
           <JournalTab
             activeEntryId={activeJournalEntryId}
+            aiSettings={aiSettings}
             locale={locale}
             profile={profile}
           />

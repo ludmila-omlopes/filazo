@@ -8,6 +8,7 @@ import { CsvImportWidget } from "@/components/csv-import-widget";
 import { SyncActionForm } from "@/components/sync-action-form";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
+import type { AiSettingsValues } from "@/lib/ai-settings";
 import { hasIgdbConfig } from "@/lib/igdb";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { isSteamConfigured } from "@/lib/steam";
@@ -373,14 +374,23 @@ function ImportAuditPreview({
 }
 
 function PhotoImportRow({
+  aiSettings,
   locale,
   profile,
 }: {
+  aiSettings: AiSettingsValues;
   locale: Locale;
   profile: ProfileData;
 }) {
   const t = createTranslator(locale);
   const aiConfigured = Boolean(process.env.OPENAI_API_KEY);
+  const aiAvailable = aiConfigured && aiSettings.photoImportEnabled;
+  const unavailableLabel = aiSettings.photoImportEnabled
+    ? t("profile.photoImport.needsKey")
+    : t("profile.photoImport.disabled");
+  const unavailableBody = aiSettings.photoImportEnabled
+    ? t("profile.photoImport.needsKeyBody")
+    : t("profile.photoImport.disabledBody");
 
   return (
     <div className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
@@ -389,10 +399,10 @@ function PhotoImportRow({
         title={t("profile.photoImport.title")}
         description={t("profile.photoImport.description")}
         aside={
-          <div className={cn("pill", !aiConfigured && "bg-clay-soft")}>
-            {aiConfigured
+          <div className={cn("pill", !aiAvailable && "bg-clay-soft")}>
+            {aiAvailable
               ? t("profile.photoImport.ready")
-              : t("profile.photoImport.needsKey")}
+              : unavailableLabel}
           </div>
         }
       />
@@ -412,12 +422,14 @@ function PhotoImportRow({
             type="file"
           />
         </label>
-        {!aiConfigured ? (
+        {!aiAvailable ? (
           <p className="text-sm font-semibold text-clay">
-            {t("profile.photoImport.needsKeyBody")}
+            {unavailableBody}
           </p>
         ) : null}
-        <Button type="submit">{t("profile.photoImport.submit")}</Button>
+        <Button disabled={!aiSettings.photoImportEnabled} type="submit">
+          {t("profile.photoImport.submit")}
+        </Button>
       </form>
       <ImportAuditPreview locale={locale} profile={profile} />
     </div>
@@ -488,9 +500,11 @@ function ReviewSyncRow({
 }
 
 export function IntegrationsPanel({
+  aiSettings,
   locale,
   profile,
 }: {
+  aiSettings: AiSettingsValues;
   locale: Locale;
   profile: ProfileData;
 }) {
@@ -648,7 +662,11 @@ export function IntegrationsPanel({
 
         <ManualGameLookupPanel enabled={hasIgdbConfig()} />
 
-        <PhotoImportRow locale={locale} profile={profile} />
+        <PhotoImportRow
+          aiSettings={aiSettings}
+          locale={locale}
+          profile={profile}
+        />
 
         <CsvImportRow locale={locale} profile={profile} />
       </div>
