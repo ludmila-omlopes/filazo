@@ -92,6 +92,25 @@ const currentPlayingSchema = z.object({
   slot3EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
 });
 
+const playingNextSchema = z.object({
+  next1EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
+  next2EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
+  next3EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
+});
+
+const playingNextGameSchema = z.object({
+  igdbId: z.coerce.number().int().positive(),
+  platformName: z.preprocess(
+    (value) => {
+      const rawValue = String(value ?? "").trim();
+      return rawValue || null;
+    },
+    z.string().trim().min(1).max(120).nullable(),
+  ),
+  slot: z.coerce.number().int().min(1).max(3),
+  title: z.string().trim().min(1).max(200),
+});
+
 const journalEntrySchema = z.object({
   userGameEntryId: z.string().trim().min(1),
   title: z.string().trim().max(160).optional(),
@@ -110,6 +129,11 @@ const deleteJournalEntrySchema = z.object({
 });
 
 type CurrentPlayingSelection = {
+  slot: 1 | 2 | 3;
+  entryId: string | null;
+};
+
+type PlayingNextSelection = {
   slot: 1 | 2 | 3;
   entryId: string | null;
 };
@@ -138,6 +162,26 @@ function parseCurrentPlayingSelections(
   ];
 }
 
+function parsePlayingNextSelections(
+  formData: FormData,
+): PlayingNextSelection[] | null {
+  const parsed = playingNextSchema.safeParse({
+    next1EntryId: formData.get("next1EntryId"),
+    next2EntryId: formData.get("next2EntryId"),
+    next3EntryId: formData.get("next3EntryId"),
+  });
+
+  if (!parsed.success) {
+    return null;
+  }
+
+  return [
+    { slot: 1, entryId: parsed.data.next1EntryId },
+    { slot: 2, entryId: parsed.data.next2EntryId },
+    { slot: 3, entryId: parsed.data.next3EntryId },
+  ];
+}
+
 function getSafeReturnPath(value: string | undefined) {
   const path = value?.trim();
 
@@ -158,6 +202,51 @@ async function demotePlayingEntryToOwned({
   userId: string;
 }) {
   if (entry.status !== UserGameStatus.PLAYING) {
+    return;
+  }
+
+  const ownedEntry = await tx.userGameEntry.findUnique({
+    where: {
+      userId_gameId_status: {
+        userId,
+        gameId: entry.gameId,
+        status: UserGameStatus.OWNED,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (ownedEntry && ownedEntry.id !== entry.id) {
+    await tx.userGameEntry.delete({ where: { id: entry.id } });
+    return;
+  }
+
+  await tx.userGameEntry.update({
+    where: { id: entry.id },
+    data: { status: UserGameStatus.OWNED },
+  });
+}
+
+async function demotePlayingNextEntryToOwned({
+  entry,
+  tx,
+  userId,
+}: {
+  entry: {
+    id: string;
+    gameId: string;
+    status: UserGameStatus;
+    userIntent?: string | null;
+  };
+  tx: Prisma.TransactionClient;
+  userId: string;
+}) {
+  if (entry.status !== UserGameStatus.PLAYING_NEXT) {
+    return;
+  }
+
+  if (entry.userIntent === "needs_purchase") {
+    await tx.userGameEntry.delete({ where: { id: entry.id } });
     return;
   }
 
@@ -304,8 +393,143 @@ async function saveCurrentPlayingSelectionsForUser({
           currentPlayingSlot: selection.slot,
           finishedAt: null,
           finishedSource: null,
+          playingNextSlot: null,
           startedAt: entry.startedAt ?? now,
           status: UserGameStatus.PLAYING,
+        },
+      });
+    }
+  });
+}
+
+async function savePlayingNextSelectionsForUser({
+  selections,
+  userId,
+}: {
+  selections: PlayingNextSelection[];
+  userId: string;
+}) {
+  const selectedEntryIds = selections
+    .map((selection) => selection.entryId)
+    .filter((entryId): entryId is string => Boolean(entryId));
+
+  if (new Set(selectedEntryIds).size !== selectedEntryIds.length) {
+    throw new Error("Choose three different games for Playing next.");
+  }
+
+  if (selectedEntryIds.length) {
+    const entries = await prisma.userGameEntry.findMany({
+      where: {
+        id: { in: selectedEntryIds },
+        userId,
+        currentPlayingSlot: null,
+        finishedAt: null,
+        status: {
+          notIn: [UserGameStatus.WISHLIST, UserGameStatus.COMPLETED],
+        },
+      },
+      select: { id: true },
+    });
+
+    if (entries.length !== selectedEntryIds.length) {
+      throw new Error("Only unfinished shelf games outside Current playing can be queued.");
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const previousQueuedEntries = await tx.userGameEntry.findMany({
+      where: {
+        userId,
+        playingNextSlot: {
+          not: null,
+        },
+      },
+      select: {
+        id: true,
+        gameId: true,
+        status: true,
+        userIntent: true,
+      },
+    });
+
+    await tx.userGameEntry.updateMany({
+      where: {
+        userId,
+        playingNextSlot: {
+          not: null,
+        },
+      },
+      data: {
+        playingNextSlot: null,
+      },
+    });
+
+    const selectedEntryIdSet = new Set(selectedEntryIds);
+    for (const entry of previousQueuedEntries) {
+      if (!selectedEntryIdSet.has(entry.id)) {
+        await demotePlayingNextEntryToOwned({ entry, tx, userId });
+      }
+    }
+
+    for (const selection of selections) {
+      if (!selection.entryId) {
+        continue;
+      }
+
+      const entry = await tx.userGameEntry.findFirst({
+        where: {
+          id: selection.entryId,
+          userId,
+          currentPlayingSlot: null,
+          finishedAt: null,
+          status: {
+            notIn: [UserGameStatus.WISHLIST, UserGameStatus.COMPLETED],
+          },
+        },
+        select: {
+          id: true,
+          gameId: true,
+          status: true,
+        },
+      });
+
+      if (!entry) {
+        throw new Error("Only unfinished shelf games outside Current playing can be queued.");
+      }
+
+      if (entry.status !== UserGameStatus.PLAYING_NEXT) {
+        const existingPlayingNextEntry = await tx.userGameEntry.findUnique({
+          where: {
+            userId_gameId_status: {
+              userId,
+              gameId: entry.gameId,
+              status: UserGameStatus.PLAYING_NEXT,
+            },
+          },
+          select: { id: true },
+        });
+
+        if (
+          existingPlayingNextEntry &&
+          existingPlayingNextEntry.id !== selection.entryId
+        ) {
+          await tx.userGameEntry.delete({
+            where: { id: existingPlayingNextEntry.id },
+          });
+        }
+      }
+
+      await tx.userGameEntry.update({
+        where: { id: selection.entryId },
+        data: {
+          abandonedAt: null,
+          abandonReason: null,
+          activeBacklog: true,
+          currentPlayingSlot: null,
+          finishedAt: null,
+          finishedSource: null,
+          playingNextSlot: selection.slot,
+          status: UserGameStatus.PLAYING_NEXT,
         },
       });
     }
@@ -346,6 +570,190 @@ async function clearCurrentPlayingForUser(userId: string) {
   });
 }
 
+async function clearPlayingNextForUser(userId: string) {
+  await prisma.$transaction(async (tx) => {
+    const playingNextEntries = await tx.userGameEntry.findMany({
+      where: {
+        userId,
+        playingNextSlot: {
+          not: null,
+        },
+      },
+      select: {
+        id: true,
+        gameId: true,
+        status: true,
+        userIntent: true,
+      },
+    });
+
+    await tx.userGameEntry.updateMany({
+      where: {
+        userId,
+        playingNextSlot: {
+          not: null,
+        },
+      },
+      data: {
+        playingNextSlot: null,
+      },
+    });
+
+    for (const entry of playingNextEntries) {
+      await demotePlayingNextEntryToOwned({ entry, tx, userId });
+    }
+  });
+}
+
+async function addPlayingNextGameForUser({
+  igdbId,
+  platformName,
+  slot,
+  title,
+  userId,
+}: {
+  igdbId: number;
+  platformName: string | null;
+  slot: 1 | 2 | 3;
+  title: string;
+  userId: string;
+}) {
+  const metadata = await getIgdbGameById(igdbId);
+  if (!metadata) {
+    throw new Error("Could not load this game from search.");
+  }
+
+  const game = await resolveCatalogGame({
+    title: metadata.name,
+    platformName,
+    provider: ExternalProvider.IGDB,
+    providerGameId: String(metadata.igdbId),
+    metadata,
+    rawData: {
+      source: "playing-next-igdb-search",
+      igdbId: metadata.igdbId,
+      title,
+    },
+  });
+
+  const existingEntries = await prisma.userGameEntry.findMany({
+    where: {
+      userId,
+      gameId: game.id,
+    },
+    select: {
+      currentPlayingSlot: true,
+      finishedAt: true,
+      gameId: true,
+      id: true,
+      status: true,
+      userIntent: true,
+    },
+  });
+
+  if (
+    existingEntries.some(
+      (entry) =>
+        entry.currentPlayingSlot !== null ||
+        entry.finishedAt ||
+        entry.status === UserGameStatus.COMPLETED,
+    )
+  ) {
+    throw new Error("Finished and Current playing games cannot be queued.");
+  }
+
+  const ownedPlayingNextStatuses = new Set<UserGameStatus>([
+    UserGameStatus.OWNED,
+    UserGameStatus.PLAYING,
+    UserGameStatus.BACKLOG,
+    UserGameStatus.DROPPED,
+  ]);
+  const hasOwnedIntent = existingEntries.some(
+    (entry) =>
+      entry.userIntent !== "needs_purchase" &&
+      (ownedPlayingNextStatuses.has(entry.status) ||
+        entry.status === UserGameStatus.PLAYING_NEXT),
+  );
+  const ownedEntry = existingEntries.find(
+    (entry) =>
+      entry.userIntent !== "needs_purchase" &&
+      ownedPlayingNextStatuses.has(entry.status),
+  );
+  const playingNextEntry = existingEntries.find(
+    (entry) => entry.status === UserGameStatus.PLAYING_NEXT,
+  );
+  const wishlistEntry = existingEntries.find(
+    (entry) => entry.status === UserGameStatus.WISHLIST,
+  );
+  const targetEntry = playingNextEntry ?? ownedEntry ?? wishlistEntry ?? null;
+  const needsPurchase = !hasOwnedIntent;
+
+  await prisma.$transaction(async (tx) => {
+    const previousSlotEntries = await tx.userGameEntry.findMany({
+      where: {
+        userId,
+        playingNextSlot: slot,
+      },
+      select: {
+        gameId: true,
+        id: true,
+        status: true,
+        userIntent: true,
+      },
+    });
+
+    for (const entry of previousSlotEntries) {
+      if (targetEntry && entry.id === targetEntry.id) {
+        continue;
+      }
+
+      await tx.userGameEntry.update({
+        where: { id: entry.id },
+        data: { playingNextSlot: null },
+      });
+      await demotePlayingNextEntryToOwned({ entry, tx, userId });
+    }
+
+    const playingNextData = {
+      abandonedAt: null,
+      abandonReason: null,
+      activeBacklog: true,
+      currentPlayingSlot: null,
+      finishedAt: null,
+      finishedSource: null,
+      platformName: platformName ?? undefined,
+      playingNextSlot: slot,
+      status: UserGameStatus.PLAYING_NEXT,
+      userIntent: needsPurchase ? "needs_purchase" : null,
+    } satisfies Prisma.UserGameEntryUpdateInput;
+
+    if (targetEntry) {
+      await tx.userGameEntry.update({
+        where: { id: targetEntry.id },
+        data: playingNextData,
+      });
+      return;
+    }
+
+    await tx.userGameEntry.create({
+      data: {
+        userId,
+        gameId: game.id,
+        source: EntrySource.MANUAL,
+        provider: ExternalProvider.IGDB,
+        rawData: {
+          source: "playing-next-igdb-search",
+          igdbId: metadata.igdbId,
+          title: metadata.name,
+        } as Prisma.InputJsonValue,
+        ...playingNextData,
+      },
+    });
+  });
+
+  revalidatePath(`/games/${game.slug}`);
+}
+
 const manualGameAddSchema = z.object({
   igdbId: z.coerce.number().int().positive(),
   title: z.string().trim().min(1).max(200),
@@ -358,7 +766,9 @@ const manualGameAddSchema = z.object({
   ),
   status: z.preprocess(
     (value) => String(value ?? "").trim() || UserGameStatus.PLAYING,
-    z.nativeEnum(UserGameStatus),
+    z
+      .nativeEnum(UserGameStatus)
+      .refine((status) => status !== UserGameStatus.PLAYING_NEXT),
   ),
   query: z.preprocess(
     (value) => {
@@ -1081,6 +1491,152 @@ export async function clearCurrentPlayingSelectionAction(): Promise<CurrentPlayi
   return { ok: true };
 }
 
+export async function savePlayingNextAction(formData: FormData) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needPlayingNextLogin"))}`);
+  }
+
+  const selections = parsePlayingNextSelections(formData);
+  if (!selections) {
+    redirect(`/profile?error=${encodeURIComponent(t("profileAction.invalidPlayingNext"))}`);
+  }
+
+  try {
+    await savePlayingNextSelectionsForUser({ selections, userId });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : t("profileAction.invalidPlayingNext");
+    redirect(`/profile?error=${encodeURIComponent(message)}`);
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect("/profile?playingNext=updated");
+}
+
+export async function savePlayingNextSelectionAction(
+  formData: FormData,
+): Promise<CurrentPlayingSaveResult> {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return {
+      ok: false,
+      message: "Sign in before changing Playing next.",
+    };
+  }
+
+  const selections = parsePlayingNextSelections(formData);
+  if (!selections) {
+    return {
+      ok: false,
+      message: "Choose up to three games for Playing next.",
+    };
+  }
+
+  try {
+    await savePlayingNextSelectionsForUser({ selections, userId });
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Playing next could not be saved.",
+    };
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+
+  return { ok: true };
+}
+
+export async function addPlayingNextGameAction(
+  formData: FormData,
+): Promise<CurrentPlayingSaveResult> {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return {
+      ok: false,
+      message: "Sign in before changing Playing next.",
+    };
+  }
+
+  const parsed = playingNextGameSchema.safeParse({
+    igdbId: formData.get("igdbId"),
+    platformName: formData.get("platformName"),
+    slot: formData.get("slot"),
+    title: formData.get("title"),
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: "Choose a game for Playing next.",
+    };
+  }
+
+  try {
+    await addPlayingNextGameForUser({
+      igdbId: parsed.data.igdbId,
+      platformName: parsed.data.platformName,
+      slot: parsed.data.slot as 1 | 2 | 3,
+      title: parsed.data.title,
+      userId,
+    });
+  } catch (error) {
+    return {
+      ok: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Playing next could not be saved.",
+    };
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+
+  return { ok: true };
+}
+
+export async function clearPlayingNextAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needPlayingNextLogin"))}`);
+  }
+
+  await clearPlayingNextForUser(userId);
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect("/profile?playingNext=cleared");
+}
+
+export async function clearPlayingNextSelectionAction(): Promise<CurrentPlayingSaveResult> {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return {
+      ok: false,
+      message: "Sign in before changing Playing next.",
+    };
+  }
+
+  await clearPlayingNextForUser(userId);
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+
+  return { ok: true };
+}
+
 export async function detectFinishedGamesAction() {
   const locale = await getRequestLocale();
   const t = createTranslator(locale);
@@ -1131,7 +1687,11 @@ export async function markFinishedAction(formData: FormData) {
     where: { id: entryId },
     data: entry.finishedAt
       ? { finishedAt: null, finishedSource: null }
-      : { finishedAt: new Date(), finishedSource: "manual" },
+      : {
+          finishedAt: new Date(),
+          finishedSource: "manual",
+          playingNextSlot: null,
+        },
   });
 
   revalidatePath("/profile");
@@ -1188,6 +1748,7 @@ export async function markDroppedAction(formData: FormData) {
         currentPlayingSlot: null,
         finishedAt: null,
         finishedSource: null,
+        playingNextSlot: null,
       };
 
   if (existingTarget && existingTarget.id !== entry.id) {

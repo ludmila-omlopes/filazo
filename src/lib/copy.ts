@@ -14,6 +14,7 @@ export function getStatusDisplayLabel(
       OWNED: translate(locale, "status.OWNED"),
       WISHLIST: translate(locale, "status.WISHLIST"),
       PLAYING: translate(locale, "status.PLAYING"),
+      PLAYING_NEXT: translate(locale, "status.PLAYING_NEXT"),
       PAUSED: translate(locale, "status.PAUSED"),
       COMPLETED: translate(locale, "status.COMPLETED"),
       FINISHED: translate(locale, "status.FINISHED"),

@@ -353,6 +353,7 @@ function getReleaseCandidateInsight(entry: AssistantEntry, now: Date): Assistant
   if (
     isEntryFinished(entry) ||
     entry.status === UserGameStatus.WISHLIST ||
+    entry.status === UserGameStatus.PLAYING_NEXT ||
     entry.isFavorite ||
     entry.activeBacklog === false
   ) {

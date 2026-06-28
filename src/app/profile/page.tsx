@@ -6,6 +6,7 @@ import { GreetingStrip } from "./_components/greeting-strip";
 import { IntegrationsPanel } from "./_components/integrations-panel";
 import { JournalTab } from "./_components/journal-tab";
 import { OnboardingPanel } from "./_components/onboarding-panel";
+import { PlayingNextPanel } from "./_components/playing-next-panel";
 import {
   ProfileErrorPanel,
   SignedOutPanel,
@@ -143,6 +144,7 @@ export default async function ProfilePage({
               playerProfile={playerProfile}
               profile={profile}
             />
+            <PlayingNextPanel locale={locale} profile={profile} />
             <AssistantCorner
               aiSettings={aiSettings}
               locale={locale}

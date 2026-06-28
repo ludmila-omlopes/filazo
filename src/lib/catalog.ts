@@ -770,6 +770,14 @@ function parseStatus(rawValue: unknown) {
   if (normalized.includes("wish")) {
     return UserGameStatus.WISHLIST;
   }
+  if (
+    normalized.includes("playing next") ||
+    normalized.includes("play next") ||
+    normalized.includes("up next") ||
+    normalized === "next"
+  ) {
+    return UserGameStatus.PLAYING_NEXT;
+  }
   if (normalized.includes("play")) {
     return UserGameStatus.PLAYING;
   }
@@ -1131,6 +1139,14 @@ export async function getProfileData(userId: string) {
         (right.currentPlayingSlot ?? Number.MAX_SAFE_INTEGER),
     );
 
+  const playingNextEntries = shelfEntries
+    .filter((entry) => entry.playingNextSlot !== null)
+    .sort(
+      (left, right) =>
+        (left.playingNextSlot ?? Number.MAX_SAFE_INTEGER) -
+        (right.playingNextSlot ?? Number.MAX_SAFE_INTEGER),
+    );
+
   return {
     user,
     ownedEntries,
@@ -1138,6 +1154,7 @@ export async function getProfileData(userId: string) {
     wishlistEntries,
     favoriteEntries,
     currentPlayingEntries,
+    playingNextEntries,
     recentlyUpdated: ownedEntries.slice(0, 4),
     latestImport: user.importJobs[0] ?? null,
     steamAccount:

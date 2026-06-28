@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { MouseEventHandler } from "react";
+import type { MouseEventHandler, ReactNode } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Chip } from "@/components/ui/chip";
 import { StatusBadge, StatusLabel } from "@/components/ui/status-badge";
@@ -46,6 +46,7 @@ type GameCardProps = VariantProps<typeof gameCardVariants> & {
   eyebrow?: string;
   description?: string | null;
   chips?: string[];
+  footer?: ReactNode;
   href?: string;
   onClick?: MouseEventHandler<HTMLButtonElement>;
   disabled?: boolean;
@@ -186,6 +187,7 @@ export function GameCard({
   eyebrow,
   description,
   chips = [],
+  footer,
   href,
   onClick,
   disabled,
@@ -277,6 +279,7 @@ export function GameCard({
               {description}
             </p>
           ) : null}
+          {footer ? <div className="pt-1">{footer}</div> : null}
         </div>
       </>
     );

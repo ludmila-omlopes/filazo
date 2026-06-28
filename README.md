@@ -33,7 +33,7 @@ The app is centered on a canonical `Game` record.
 
 - `Game` stores the normalized catalog entry plus shared IGDB, HLTB, and Metacritic metadata
 - `GameProviderLink` links a canonical game to an external provider ID like a Steam app ID
-- `UserGameEntry` stores user ownership, wishlist state, playtime, dropped state, last played date, achievement progress (`completionPercent`), up to one optional current-playing slot (`currentPlayingSlot`), and a separate finished state (`finishedAt`/`finishedSource`) for a game; finished means the credits rolled, which is independent of 100% achievement completion
+- `UserGameEntry` stores user ownership, wishlist state, playtime, dropped state, last played date, achievement progress (`completionPercent`), up to one optional current-playing slot (`currentPlayingSlot`), up to one optional playing-next queue slot (`playingNextSlot`), and a separate finished state (`finishedAt`/`finishedSource`) for a game; finished means the credits rolled, which is independent of 100% achievement completion
 - `GameProviderLink` also caches the detected story-completion ("credits roll") achievement per provider (`storyAchievementId`, `storyAchievementName`, `storyAchievementSource`, `storyAchievementCheckedAt`)
 - `UserGameInsight` stores per-game assistant signals such as untouched, sampled-dropped, wishlist risk, and release candidates
 - `AssistantRun` stores each assistant refresh summary and optional AI output metadata

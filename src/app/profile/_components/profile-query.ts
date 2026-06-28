@@ -28,6 +28,7 @@ export type ProfileSearchParams = Promise<{
   assistant?: string;
   playerProfile?: string;
   currentPlaying?: string;
+  playingNext?: string;
   finishedDetected?: string;
   finishedScanned?: string;
   manualAdded?: string;
@@ -231,6 +232,20 @@ export function getStatusMessage(
     };
   }
 
+  if (query.playingNext === "updated") {
+    return {
+      tone: "success",
+      message: t("statusMessage.playingNextUpdated"),
+    };
+  }
+
+  if (query.playingNext === "cleared") {
+    return {
+      tone: "success",
+      message: t("statusMessage.playingNextCleared"),
+    };
+  }
+
   if (
     query.connected ||
     query.playstation === "connected" ||
@@ -300,6 +315,7 @@ export function isNotStartedEntry(entry: ProfileEntry) {
     !entry.startedAt &&
     !entry.lastPlayedAt &&
     !entry.currentPlayingSlot &&
+    !entry.playingNextSlot &&
     (entry.playtimeMinutes ?? 0) <= 0 &&
     (entry.completionPercent ?? 0) <= 0
   );

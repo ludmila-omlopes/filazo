@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useMemo } from "react";
 import {
   createTranslator,
   defaultLocale,
@@ -27,5 +27,5 @@ export function useLocale() {
 
 export function useTranslations() {
   const locale = useLocale();
-  return createTranslator(locale);
+  return useMemo(() => createTranslator(locale), [locale]);
 }
