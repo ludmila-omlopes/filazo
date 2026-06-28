@@ -164,6 +164,8 @@ function scorePlayNextCandidate(
   const statusScore =
     entry.status === UserGameStatus.PLAYING
       ? 18
+      : entry.status === UserGameStatus.PLAYING_NEXT
+        ? 16
       : entry.status === UserGameStatus.BACKLOG
         ? 14
         : entry.status === UserGameStatus.OWNED

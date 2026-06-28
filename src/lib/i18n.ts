@@ -25,6 +25,7 @@ const messages = {
     "common.chooseGame": "Choose a game",
     "common.clearAll": "Clear all",
     "common.apply": "Apply",
+    "common.close": "Close",
     "common.skipToContent": "Skip to content",
     "common.playtimeSoFar": "{value} so far",
     "common.your": "your",
@@ -384,6 +385,46 @@ const messages = {
       "You already have time in it, which makes it a gentle return candidate.",
     "profile.currentPlaying.reason.default":
       "A steady unfinished pick from your own shelf.",
+
+    "profile.playingNext.label": "Playing next",
+    "profile.playingNext.title": "Playing next",
+    "profile.playingNext.description":
+      "Keep up to 3 games ready for when a current game leaves the rotation.",
+    "profile.playingNext.inQueue": "{count} of 3 queued",
+    "profile.playingNext.spot": "Queue {slot}",
+    "profile.playingNext.openTitle": "Open queue spot",
+    "profile.playingNext.openBody":
+      "Search the catalog for something you want to start as soon as a current slot opens.",
+    "profile.playingNext.emptyTitle": "No next games queued yet.",
+    "profile.playingNext.emptyBody":
+      "Click here to search the catalog and add up to three follow-up picks.",
+    "profile.playingNext.chooseChange":
+      "Choose or change your next games",
+    "profile.playingNext.choose": "Choose your next games",
+    "profile.playingNext.leaveOpen": "Leave this open",
+    "profile.playingNext.save": "Save playing next",
+    "profile.playingNext.saving": "Saving...",
+    "profile.playingNext.clearTop": "Clear queue",
+    "profile.playingNext.remove": "Remove {name}",
+    "profile.playingNext.help":
+      "Current and finished games stay out of this queue. Dropped games ask for confirmation before coming back.",
+    "profile.playingNext.confirmDropped":
+      "{name} is marked as dropped. Are you sure you want to try it again?",
+    "profile.playingNext.sameGenreWarning":
+      "All three queued games are {genre}. Consider adding a different genre to avoid fatigue.",
+    "profile.playingNext.longGamesWarning":
+      "All three queued games look long. Consider swapping one for something under {duration}.",
+    "profile.playingNext.searchTitle": "Choose a game",
+    "profile.playingNext.searchLabel": "Search the game catalog",
+    "profile.playingNext.searchPlaceholder": "Search IGDB by title",
+    "profile.playingNext.searchFailed": "Game search failed.",
+    "profile.playingNext.catalogResult": "Catalog result",
+    "profile.playingNext.owned": "in your library",
+    "profile.playingNext.notOwned": "not owned yet",
+    "profile.playingNext.alreadyQueued": "already queued",
+    "profile.playingNext.queueThis": "Queue",
+    "profile.playingNext.searching": "Searching...",
+    "profile.playingNext.noMatches": "No matches yet.",
 
     "profile.favorites.label": "Favorites",
     "profile.favorites.title": "Games you love",
@@ -757,6 +798,7 @@ const messages = {
     "status.OWNED": "owned",
     "status.WISHLIST": "still curious",
     "status.PLAYING": "playing now",
+    "status.PLAYING_NEXT": "playing next",
     "status.PAUSED": "paused",
     "status.COMPLETED": "credits rolled",
     "status.FINISHED": "credits rolled",
@@ -791,6 +833,10 @@ const messages = {
       "Current playing updated. Your overview now reflects your picks.",
     "statusMessage.currentPlayingCleared":
       "Current playing cleared. Suggested picks are ready whenever you want them.",
+    "statusMessage.playingNextUpdated":
+      "Playing next updated. Your queue is ready.",
+    "statusMessage.playingNextCleared":
+      "Playing next cleared. The queue is open whenever you need it.",
     "statusMessage.sourceConnected":
       "Source connected. Refresh it whenever you are ready.",
     "statusMessage.guideRefreshed":
@@ -843,6 +889,10 @@ const messages = {
       "Choose up to three games for Current playing.",
     "profileAction.duplicateCurrentPlaying":
       "Choose three different games for Current playing.",
+    "profileAction.needPlayingNextLogin":
+      "Sign in before changing Playing next.",
+    "profileAction.invalidPlayingNext":
+      "Choose up to three games for Playing next.",
     "profileAction.onlyShelfGames":
       "Only games already on your shelf can be featured.",
     "profileAction.needFinishedLogin":
@@ -910,6 +960,7 @@ const messages = {
     "common.chooseGame": "Escolha um jogo",
     "common.clearAll": "Limpar tudo",
     "common.apply": "Aplicar",
+    "common.close": "Fechar",
     "common.skipToContent": "Pular para o conteúdo",
     "common.playtimeSoFar": "{value} até agora",
     "common.your": "suas",
@@ -1272,6 +1323,46 @@ const messages = {
       "Você já investiu tempo nele, então ele vira um bom candidato para retomar sem peso.",
     "profile.currentPlaying.reason.default":
       "Uma escolha estável e inacabada da sua própria estante.",
+
+    "profile.playingNext.label": "Jogar depois",
+    "profile.playingNext.title": "Jogar depois",
+    "profile.playingNext.description":
+      "Mantenha ate 3 jogos prontos para quando um jogo atual sair da rotacao.",
+    "profile.playingNext.inQueue": "{count} de 3 na fila",
+    "profile.playingNext.spot": "Fila {slot}",
+    "profile.playingNext.openTitle": "Espaco aberto na fila",
+    "profile.playingNext.openBody":
+      "Busque no catalogo algo para comecar assim que abrir um espaco.",
+    "profile.playingNext.emptyTitle": "Ainda nao ha proximos jogos na fila.",
+    "profile.playingNext.emptyBody":
+      "Clique aqui para buscar no catalogo e adicionar ate tres proximas escolhas.",
+    "profile.playingNext.chooseChange":
+      "Escolha ou altere seus proximos jogos",
+    "profile.playingNext.choose": "Escolha seus proximos jogos",
+    "profile.playingNext.leaveOpen": "Deixar esse espaco vazio",
+    "profile.playingNext.save": "Salvar jogar depois",
+    "profile.playingNext.saving": "Salvando...",
+    "profile.playingNext.clearTop": "Limpar fila",
+    "profile.playingNext.remove": "Remover {name}",
+    "profile.playingNext.help":
+      "Jogos atuais e terminados ficam fora desta fila. Jogos largados pedem confirmacao antes de voltar.",
+    "profile.playingNext.confirmDropped":
+      "{name} esta marcado como largado. Tem certeza que quer tentar de novo?",
+    "profile.playingNext.sameGenreWarning":
+      "Os tres jogos da fila sao de {genre}. Considere incluir outro genero para evitar cansaco.",
+    "profile.playingNext.longGamesWarning":
+      "Os tres jogos da fila parecem longos. Considere trocar um por algo abaixo de {duration}.",
+    "profile.playingNext.searchTitle": "Escolha um jogo",
+    "profile.playingNext.searchLabel": "Buscar no catalogo de jogos",
+    "profile.playingNext.searchPlaceholder": "Busque no IGDB por titulo",
+    "profile.playingNext.searchFailed": "A busca de jogos falhou.",
+    "profile.playingNext.catalogResult": "Resultado do catalogo",
+    "profile.playingNext.owned": "na sua biblioteca",
+    "profile.playingNext.notOwned": "ainda nao comprado",
+    "profile.playingNext.alreadyQueued": "ja esta na fila",
+    "profile.playingNext.queueThis": "Enfileirar",
+    "profile.playingNext.searching": "Buscando...",
+    "profile.playingNext.noMatches": "Ainda sem resultados.",
 
     "profile.favorites.label": "Favoritos",
     "profile.favorites.title": "Jogos que você ama",
@@ -1645,6 +1736,7 @@ const messages = {
     "status.OWNED": "seu",
     "status.WISHLIST": "ainda em observação",
     "status.PLAYING": "jogando agora",
+    "status.PLAYING_NEXT": "jogar depois",
     "status.PAUSED": "pausado",
     "status.COMPLETED": "concluído",
     "status.FINISHED": "concluído",
@@ -1679,6 +1771,10 @@ const messages = {
       "Jogando agora atualizado. Sua visão geral já reflete essas escolhas.",
     "statusMessage.currentPlayingCleared":
       "Jogando agora limpo. As sugestões continuam prontas quando você quiser.",
+    "statusMessage.playingNextUpdated":
+      "Jogar depois atualizado. Sua fila esta pronta.",
+    "statusMessage.playingNextCleared":
+      "Jogar depois limpo. A fila fica aberta quando voce precisar.",
     "statusMessage.sourceConnected":
       "Fonte conectada. Atualize quando quiser.",
     "statusMessage.guideRefreshed":
@@ -1737,6 +1833,10 @@ const messages = {
       "Escolha até três jogos para Jogando agora.",
     "profileAction.duplicateCurrentPlaying":
       "Escolha três jogos diferentes para Jogando agora.",
+    "profileAction.needPlayingNextLogin":
+      "Entre antes de alterar Jogar depois.",
+    "profileAction.invalidPlayingNext":
+      "Escolha até três jogos para Jogar depois.",
     "profileAction.onlyShelfGames":
       "Só jogos que já estão na sua estante podem ser destacados.",
     "profileAction.needFinishedLogin":

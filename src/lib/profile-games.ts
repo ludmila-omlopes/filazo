@@ -11,16 +11,17 @@ type SortableProfileGameEntry = {
 };
 
 // Default catalog order: group games by where they sit in the play lifecycle.
-// Playing first, then finished (credits rolled / completed), backlog, wishlist,
-// owned, and dropped last (dropped is hidden unless dormant entries are shown).
+// Playing first, then queued-up games, finished, backlog, wishlist, owned, and
+// dropped last (dropped is hidden unless dormant entries are shown).
 const STATUS_ORDER: Record<string, number> = {
   PLAYING: 0,
-  FINISHED: 1,
-  COMPLETED: 1,
-  BACKLOG: 2,
-  WISHLIST: 3,
-  OWNED: 4,
-  DROPPED: 5,
+  PLAYING_NEXT: 1,
+  FINISHED: 2,
+  COMPLETED: 2,
+  BACKLOG: 3,
+  WISHLIST: 4,
+  OWNED: 5,
+  DROPPED: 6,
 };
 
 function statusRank(entry: SortableProfileGameEntry) {

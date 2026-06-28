@@ -11,14 +11,35 @@ const entries = [
   createEntry("Alphabetical First", "2026-02-01T00:00:00.000Z", 10),
 ];
 
-test("games default to newest sorting so new zero-playtime games are visible", () => {
-  assert.equal(parseProfileGameSort(undefined), "added");
+test("games default to lifecycle sorting with playing next after playing", () => {
+  assert.equal(parseProfileGameSort(undefined), "status");
 
-  const sorted = sortProfileGameEntries(entries, "added");
+  const sorted = sortProfileGameEntries([
+    createEntry("Owned", "2026-05-01T00:00:00.000Z", 0, "OWNED"),
+    createEntry("Dropped", "2026-05-02T00:00:00.000Z", 0, "DROPPED"),
+    createEntry("Playing", "2026-01-01T00:00:00.000Z", 20, "PLAYING"),
+    createEntry(
+      "Playing next",
+      "2026-02-01T00:00:00.000Z",
+      0,
+      "PLAYING_NEXT",
+    ),
+    createEntry("Backlog", "2026-03-01T00:00:00.000Z", 0, "BACKLOG"),
+    createEntry("Wishlist", "2026-04-01T00:00:00.000Z", 0, "WISHLIST"),
+    createEntry("Completed", "2026-06-01T00:00:00.000Z", 300, "COMPLETED"),
+  ], "status");
 
   assert.deepEqual(
     sorted.map((entry) => entry.game.name),
-    ["Newest Zero Playtime", "Alphabetical First", "Older Long Game"],
+    [
+      "Playing",
+      "Playing next",
+      "Completed",
+      "Backlog",
+      "Wishlist",
+      "Owned",
+      "Dropped",
+    ],
   );
 });
 
@@ -33,10 +54,18 @@ test("games can still be sorted by playtime or title", () => {
   );
 });
 
-function createEntry(name, createdAt, playtimeMinutes) {
+function createEntry(
+  name,
+  createdAt,
+  playtimeMinutes,
+  status = "OWNED",
+  finishedAt = null,
+) {
   return {
     createdAt: new Date(createdAt),
+    finishedAt,
     playtimeMinutes,
+    status,
     game: {
       name,
     },

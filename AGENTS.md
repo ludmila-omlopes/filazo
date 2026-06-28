@@ -79,6 +79,13 @@ The core architectural rule is: external providers should attach to one internal
 - Keep source syncing, CSV import, and manual game add flows in the Sources tab. Do not repeat source syncing flows on the profile Home tab.
 - Do not expose IGDB as a user-facing feature name. Treat it as the internal metadata/search provider and use plain product language such as "game search" or "metadata".
 - When extending features, prefer fitting them into the current canonical catalog model instead of adding isolated one-off screens or tables.
+- Do not position badges, status pills, or controls over card content to make them fit. Reserve space in the normal layout. Use overlays only for true modal/popover/lightbox surfaces or intentional media controls, and verify they do not cover text, badges, or controls.
+
+## Client Component Hook Safety
+
+- Do not put freshly created functions, arrays, or objects in `useEffect` dependency arrays. Memoize derived values such as translators with `useMemo`, or depend on their stable inputs instead.
+- Before calling `setState` inside `useEffect`, check whether the value actually changes. Prefer updater functions that return the current state when no update is needed.
+- When debugging "Maximum update depth exceeded", first inspect effect dependencies for unstable values created during render, especially translation helpers and derived collections.
 
 ## Editing Guidance
 

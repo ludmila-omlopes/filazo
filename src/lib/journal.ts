@@ -627,6 +627,15 @@ function parsePhotoStatus(statusText: string | null) {
     return UserGameStatus.WISHLIST;
   }
 
+  if (
+    normalized.includes("playing next") ||
+    normalized.includes("play next") ||
+    normalized.includes("up next") ||
+    normalized === "next"
+  ) {
+    return UserGameStatus.PLAYING_NEXT;
+  }
+
   if (normalized.includes("play")) {
     return UserGameStatus.PLAYING;
   }

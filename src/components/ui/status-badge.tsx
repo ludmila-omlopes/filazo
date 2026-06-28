@@ -7,6 +7,7 @@ const statusStyles: Record<string, string> = {
   OWNED: "bg-sage-soft text-ink",
   WISHLIST: "bg-sand-soft text-ink",
   PLAYING: "bg-sky-soft text-ink",
+  PLAYING_NEXT: "bg-sage-soft text-ink",
   PAUSED: "bg-canvas text-ink-soft",
   COMPLETED: "bg-fern-soft text-ink",
   FINISHED: "bg-fern-soft text-ink",
@@ -42,6 +43,7 @@ export function StatusBadge({
 // Passive states (owned/backlog/paused) stay muted; the row carries their tone.
 const statusLabelStyles: Record<string, string> = {
   PLAYING: "text-sky-strong",
+  PLAYING_NEXT: "text-ink",
   WISHLIST: "text-sand-strong",
   COMPLETED: "text-fern-strong",
   FINISHED: "text-fern-strong",
@@ -88,6 +90,7 @@ export function StatusLabel({
  */
 const rowAccents: Record<string, string> = {
   PLAYING: "border-l-sky bg-sky-soft/80",
+  PLAYING_NEXT: "border-l-sage bg-sage-soft/70",
   WISHLIST: "border-l-sand bg-sand-soft/70",
   COMPLETED: "border-l-fern bg-fern-soft/90",
   FINISHED: "border-l-fern bg-fern-soft/90",

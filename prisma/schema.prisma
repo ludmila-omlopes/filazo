@@ -20,6 +20,7 @@ enum UserGameStatus {
   OWNED
   WISHLIST
   PLAYING
+  PLAYING_NEXT
   BACKLOG
   COMPLETED
   DROPPED
@@ -207,6 +208,7 @@ model UserGameEntry {
   userIntent        String?
   desiredSessionMin Int?
   currentPlayingSlot Int?
+  playingNextSlot   Int?
   lastSyncedAt      DateTime?
   rawData           Json?
   createdAt         DateTime          @default(now())

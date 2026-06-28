@@ -51,6 +51,10 @@ test("generated Prisma client includes synced Steam user game fields", () => {
     model.fields.some((field) => field.name === "currentPlayingSlot"),
     "Run npm run db:generate after changing prisma/schema.prisma.",
   );
+  assert.ok(
+    model.fields.some((field) => field.name === "playingNextSlot"),
+    "Run npm run db:generate after changing prisma/schema.prisma.",
+  );
   assert.ok(gameModel, "Game model should exist in generated Prisma client");
   assert.ok(
     gameModel.fields.some((field) => field.name === "hltbMainStoryMinutes"),
@@ -107,6 +111,11 @@ test("generated Prisma client includes synced Steam user game fields", () => {
     UserGameStatus.DROPPED,
     "DROPPED",
     "Run npm run db:generate after adding dropped status to prisma/schema.prisma.",
+  );
+  assert.equal(
+    UserGameStatus.PLAYING_NEXT,
+    "PLAYING_NEXT",
+    "Run npm run db:generate after adding playing-next status to prisma/schema.prisma.",
   );
 });
 
