@@ -650,6 +650,8 @@ export async function importPhotoCatalogAction(formData: FormData) {
         noVisibleGames: t("profileAction.photoNoVisibleGames"),
         visionUnavailable: t("profileAction.photoVisionUnavailable"),
         needsAiKey: t("profileAction.photoNeedsAiKey"),
+        fileTooLarge: t("profileAction.photoFileTooLarge"),
+        aiDisabled: t("profileAction.photoAiDisabled"),
         lowConfidence: t("profileAction.photoLowConfidence"),
         rowFailed: t("profileAction.photoRowFailed"),
         importFailed: t("profileAction.photoImportFailed"),

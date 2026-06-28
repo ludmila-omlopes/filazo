@@ -9,6 +9,7 @@ import { VoiceMemoryInput } from "@/components/voice-memory-input";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
+import type { AiSettingsValues } from "@/lib/ai-settings";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { cn, formatDate } from "@/lib/utils";
 import type { ProfileData, ProfileEntry } from "./profile-types";
@@ -204,10 +205,12 @@ function JournalPageCard({
 
 export function JournalTab({
   activeEntryId,
+  aiSettings,
   locale,
   profile,
 }: {
   activeEntryId: string | null;
+  aiSettings: AiSettingsValues;
   locale: Locale;
   profile: ProfileData;
 }) {
@@ -298,7 +301,9 @@ export function JournalTab({
                   <Mic className="h-4 w-4" />
                   {t("journal.startWithVoice")}
                 </div>
-                <VoiceMemoryInput />
+                <VoiceMemoryInput
+                  maxRecordingSeconds={aiSettings.voiceRecordingMaxSeconds}
+                />
               </div>
 
               <details className="rounded-inner border border-edge bg-canvas/70 p-4">

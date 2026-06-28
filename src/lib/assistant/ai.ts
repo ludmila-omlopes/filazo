@@ -8,6 +8,8 @@ import {
   type LibrarySummary,
 } from "./scoring.ts";
 import { getOpenAiConfig } from "../openai.ts";
+import { runWithAiBudget } from "../ai-budget.ts";
+import { getAiSettings } from "../ai-settings.ts";
 
 export type AssistantAiInput = {
   userLibrarySummary: LibrarySummary;
@@ -49,6 +51,7 @@ export type PlayNextRecommendationInput = {
 
 type AssistantAiOptions = {
   allowAi?: boolean;
+  userId?: string;
 };
 
 const AssistantAiOutputSchema = z.object({
@@ -415,8 +418,17 @@ export async function recommendPlayNextGames(
     };
   }
 
+  const aiSettings = await getAiSettings();
+  if (!aiSettings.assistantPlayNextEnabled) {
+    return {
+      recommendations: fallbackRecommendations,
+      model: null,
+      usedAi: false,
+    };
+  }
+
   const config = getOpenAiConfig();
-  if (!config || fallbackRecommendations.length < 3) {
+  if (!config || fallbackRecommendations.length < 3 || !options.userId) {
     return {
       recommendations: fallbackRecommendations,
       model: config?.model ?? null,
@@ -425,104 +437,116 @@ export async function recommendPlayNextGames(
   }
 
   try {
-    const response = await fetch(`${config.baseUrl}/responses`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
+    return await runWithAiBudget({
+      feature: "assistant_play_next",
+      inputSummary: {
+        candidateCount: input.entries.length,
+        ruleInsightCount: input.ruleInsights.length,
       },
-      body: JSON.stringify({
-        model: config.model,
-        input: [
-          {
-            role: "system",
-            content:
-              "You are a calm game-library assistant focused on giving the user a good next-game experience from their existing shelf. Return concise JSON only. Recommend only games from the provided candidateGames list. Voice rule: gentle over gamified; treat large libraries as abundance, not debt.",
+      model: config.model,
+      userId: options.userId,
+      execute: async () => {
+        const response = await fetch(`${config.baseUrl}/responses`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            "Content-Type": "application/json",
           },
-          {
-            role: "user",
-            content: JSON.stringify({
-              instructions: [
-                "Pick exactly 3 games from candidateGames.",
-                "Use entryId, gameId, slug, and title exactly as provided.",
-                "Do not invent games or recommend anything outside candidateGames.",
-                "Prefer games the user owns, is playing, or has on the shelf before curiosity-only games.",
-                "Maximize genre variety; choose different primary genres whenever the catalog data makes that possible.",
-                "Prioritize low activation energy, avoiding choice overload, progress/playtime signals, and variety of cognitive or emotional effort.",
-                "Write one short user-facing reason per pick. Avoid pressure, deadline, and task-list language.",
-              ],
-              catalogContext: buildPlayNextContext(input),
-            }),
-          },
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "play_next_recommendations",
-            strict: true,
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                recommendations: {
-                  type: "array",
-                  minItems: 3,
-                  maxItems: 3,
-                  items: {
-                    type: "object",
-                    additionalProperties: false,
-                    properties: {
-                      entryId: { type: "string" },
-                      gameId: { type: "string" },
-                      slug: { type: "string" },
-                      title: { type: "string" },
-                      primaryGenre: {
-                        type: ["string", "null"],
+          body: JSON.stringify({
+            model: config.model,
+            max_output_tokens: aiSettings.assistantPlayNextMaxOutputTokens,
+            input: [
+              {
+                role: "system",
+                content:
+                  "You are a calm game-library assistant focused on giving the user a good next-game experience from their existing shelf. Return concise JSON only. Recommend only games from the provided candidateGames list. Voice rule: gentle over gamified; treat large libraries as abundance, not debt.",
+              },
+              {
+                role: "user",
+                content: JSON.stringify({
+                  instructions: [
+                    "Pick exactly 3 games from candidateGames.",
+                    "Use entryId, gameId, slug, and title exactly as provided.",
+                    "Do not invent games or recommend anything outside candidateGames.",
+                    "Prefer games the user owns, is playing, or has on the shelf before curiosity-only games.",
+                    "Maximize genre variety; choose different primary genres whenever the catalog data makes that possible.",
+                    "Prioritize low activation energy, avoiding choice overload, progress/playtime signals, and variety of cognitive or emotional effort.",
+                    "Write one short user-facing reason per pick. Avoid pressure, deadline, and task-list language.",
+                  ],
+                  catalogContext: buildPlayNextContext(input),
+                }),
+              },
+            ],
+            text: {
+              format: {
+                type: "json_schema",
+                name: "play_next_recommendations",
+                strict: true,
+                schema: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    recommendations: {
+                      type: "array",
+                      minItems: 3,
+                      maxItems: 3,
+                      items: {
+                        type: "object",
+                        additionalProperties: false,
+                        properties: {
+                          entryId: { type: "string" },
+                          gameId: { type: "string" },
+                          slug: { type: "string" },
+                          title: { type: "string" },
+                          primaryGenre: {
+                            type: ["string", "null"],
+                          },
+                          expectedEffort: { type: "string" },
+                          moodFit: { type: "string" },
+                          reason: { type: "string" },
+                        },
+                        required: [
+                          "entryId",
+                          "gameId",
+                          "slug",
+                          "title",
+                          "primaryGenre",
+                          "expectedEffort",
+                          "moodFit",
+                          "reason",
+                        ],
                       },
-                      expectedEffort: { type: "string" },
-                      moodFit: { type: "string" },
-                      reason: { type: "string" },
                     },
-                    required: [
-                      "entryId",
-                      "gameId",
-                      "slug",
-                      "title",
-                      "primaryGenre",
-                      "expectedEffort",
-                      "moodFit",
-                      "reason",
-                    ],
                   },
+                  required: ["recommendations"],
                 },
               },
-              required: ["recommendations"],
             },
-          },
-        },
-      }),
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`OpenAI request did not complete with ${response.status}.`);
+        }
+
+        const json = await response.json();
+        const outputText = extractOutputText(json);
+        if (!outputText) {
+          throw new Error("OpenAI response did not include output text.");
+        }
+
+        const output = PlayNextRecommendationSchema.parse(JSON.parse(outputText));
+
+        return {
+          recommendations: validateCatalogRecommendations(
+            output.recommendations,
+            input,
+          ),
+          model: config.model,
+          usedAi: true,
+        };
+      },
     });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI request did not complete with ${response.status}.`);
-    }
-
-    const json = await response.json();
-    const outputText = extractOutputText(json);
-    if (!outputText) {
-      throw new Error("OpenAI response did not include output text.");
-    }
-
-    const output = PlayNextRecommendationSchema.parse(JSON.parse(outputText));
-
-    return {
-      recommendations: validateCatalogRecommendations(
-        output.recommendations,
-        input,
-      ),
-      model: config.model,
-      usedAi: true,
-    };
   } catch {
     return {
       recommendations: fallbackRecommendations,
@@ -544,8 +568,17 @@ export async function summarizeAssistantInsights(
     };
   }
 
+  const aiSettings = await getAiSettings();
+  if (!aiSettings.assistantSummaryEnabled) {
+    return {
+      output: buildFallbackAssistantSummary(input),
+      model: null,
+      usedAi: false,
+    };
+  }
+
   const config = getOpenAiConfig();
-  if (!config) {
+  if (!config || !options.userId) {
     return {
       output: buildFallbackAssistantSummary(input),
       model: null,
@@ -554,71 +587,82 @@ export async function summarizeAssistantInsights(
   }
 
   try {
-    const response = await fetch(`${config.baseUrl}/responses`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
+    return await runWithAiBudget({
+      feature: "assistant_summary",
+      inputSummary: {
+        ruleInsightCount: input.ruleInsights.length,
       },
-      body: JSON.stringify({
-        model: config.model,
-        input: [
-          {
-            role: "system",
-            content:
-              "You are a calm game-library decision assistant. Return concise JSON only. Voice rule: gentle over gamified; treat large libraries as abundance, not debt. Use shelf and curiosity language, and avoid pressure, deadline, and task-list language.",
+      model: config.model,
+      userId: options.userId,
+      execute: async () => {
+        const response = await fetch(`${config.baseUrl}/responses`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            "Content-Type": "application/json",
           },
-          {
-            role: "user",
-            content: JSON.stringify(input),
-          },
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "assistant_ai_output",
-            strict: true,
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                headline: { type: "string" },
-                explanation: { type: "string" },
-                nextQuestion: { type: "string" },
-                actionLabel: { type: "string" },
-                caveats: {
-                  type: "array",
-                  items: { type: "string" },
+          body: JSON.stringify({
+            model: config.model,
+            max_output_tokens: aiSettings.assistantSummaryMaxOutputTokens,
+            input: [
+              {
+                role: "system",
+                content:
+                  "You are a calm game-library decision assistant. Return concise JSON only. Voice rule: gentle over gamified; treat large libraries as abundance, not debt. Use shelf and curiosity language, and avoid pressure, deadline, and task-list language.",
+              },
+              {
+                role: "user",
+                content: JSON.stringify(input),
+              },
+            ],
+            text: {
+              format: {
+                type: "json_schema",
+                name: "assistant_ai_output",
+                strict: true,
+                schema: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    headline: { type: "string" },
+                    explanation: { type: "string" },
+                    nextQuestion: { type: "string" },
+                    actionLabel: { type: "string" },
+                    caveats: {
+                      type: "array",
+                      items: { type: "string" },
+                    },
+                  },
+                  required: [
+                    "headline",
+                    "explanation",
+                    "nextQuestion",
+                    "actionLabel",
+                    "caveats",
+                  ],
                 },
               },
-              required: [
-                "headline",
-                "explanation",
-                "nextQuestion",
-                "actionLabel",
-                "caveats",
-              ],
             },
-          },
-        },
-      }),
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`OpenAI request did not complete with ${response.status}.`);
+        }
+
+        const json = await response.json();
+        const outputText = extractOutputText(json);
+        if (!outputText) {
+          throw new Error("OpenAI response did not include output text.");
+        }
+
+        return {
+          output: AssistantAiOutputSchema.parse(JSON.parse(outputText)),
+          model: config.model,
+          usedAi: true,
+        };
+      },
     });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI request did not complete with ${response.status}.`);
-    }
-
-    const json = await response.json();
-    const outputText = extractOutputText(json);
-    if (!outputText) {
-      throw new Error("OpenAI response did not include output text.");
-    }
-
-    return {
-      output: AssistantAiOutputSchema.parse(JSON.parse(outputText)),
-      model: config.model,
-      usedAi: true,
-    };
   } catch {
     return {
       output: buildFallbackAssistantSummary(input),

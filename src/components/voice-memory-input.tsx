@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 
+const DEFAULT_MAX_RECORDING_SECONDS = 180;
+
 function getRecorderMimeType() {
   if (typeof MediaRecorder === "undefined") {
     return "";
@@ -38,8 +40,13 @@ function formatDuration(seconds: number) {
   return `${minutes}:${remainingSeconds}`;
 }
 
-export function VoiceMemoryInput() {
+export function VoiceMemoryInput({
+  maxRecordingSeconds = DEFAULT_MAX_RECORDING_SECONDS,
+}: {
+  maxRecordingSeconds?: number;
+}) {
   const t = useTranslations();
+  const recordingLimitSeconds = Math.max(1, Math.floor(maxRecordingSeconds));
   const fileInputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
@@ -70,11 +77,22 @@ export function VoiceMemoryInput() {
     }
 
     const interval = window.setInterval(() => {
-      setSeconds((current) => current + 1);
+      setSeconds((current) => {
+        const next = current + 1;
+        if (next >= recordingLimitSeconds) {
+          window.setTimeout(() => {
+            if (recorderRef.current?.state === "recording") {
+              recorderRef.current.stop();
+            }
+            setIsRecording(false);
+          }, 0);
+        }
+        return next;
+      });
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [isRecording, t]);
+  }, [isRecording, recordingLimitSeconds]);
 
   useEffect(() => {
     return () => {

@@ -3,6 +3,8 @@ import { UserGameStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getOpenAiConfig, type OpenAiConfig } from "@/lib/openai";
+import { runWithAiBudget } from "../ai-budget.ts";
+import { getAiSettings, type AiSettingsValues } from "../ai-settings.ts";
 import type { Locale } from "@/lib/i18n";
 import {
   listGamesArgsSchema,
@@ -28,8 +30,6 @@ export const PLAYER_PROFILE_EMPTY_MESSAGE =
 
 export const PLAYER_PROFILE_AI_UNAVAILABLE_MESSAGE =
   "The AI module is unavailable. Set OPENAI_API_KEY to generate a player profile.";
-
-const MAX_AGENT_TURNS = 12;
 
 const PlayerProfilePayloadSchema = z.object({
   summary: z.string().min(1),
@@ -229,6 +229,7 @@ const AGENT_INSTRUCTIONS = [
   "Recommendations must come from games returned by the tools, using their exact title and slug. Never invent games.",
   "Voice rule: gentle over gamified. Treat large libraries as abundance, not debt.",
   "Use shelf and curiosity language. Avoid pressure, deadline, and task-list language.",
+  "Keep the investigation short: call the evidence-gathering tools you need in the first response, then submit the profile as soon as the tool outputs return.",
   "When you have enough evidence, call submit_player_profile exactly once.",
 ].join(" ");
 
@@ -247,21 +248,38 @@ type ResponsesApiResult = {
 async function callResponsesApi(
   config: OpenAiConfig,
   body: Record<string, unknown>,
+  userId: string,
+  aiSettings: AiSettingsValues,
 ): Promise<ResponsesApiResult> {
-  const response = await fetch(`${config.baseUrl}/responses`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiKey}`,
-      "Content-Type": "application/json",
+  return runWithAiBudget({
+    feature: "player_profile",
+    inputSummary: {
+      inputItemCount: Array.isArray(body.input) ? body.input.length : null,
+      toolCount: Array.isArray(body.tools) ? body.tools.length : null,
     },
-    body: JSON.stringify({ model: config.model, ...body }),
+    model: config.model,
+    userId,
+    execute: async () => {
+      const response = await fetch(`${config.baseUrl}/responses`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${config.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: config.model,
+          max_output_tokens: aiSettings.playerProfileMaxOutputTokens,
+          ...body,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI request did not complete with status ${response.status}.`);
+      }
+
+      return (await response.json()) as ResponsesApiResult;
+    },
   });
-
-  if (!response.ok) {
-    throw new Error(`OpenAI request did not complete with status ${response.status}.`);
-  }
-
-  return (await response.json()) as ResponsesApiResult;
 }
 
 function parseToolArgs(rawArguments: string | undefined) {
@@ -349,6 +367,10 @@ export async function generatePlayerProfile(
   if (!config) {
     throw new Error(PLAYER_PROFILE_AI_UNAVAILABLE_MESSAGE);
   }
+  const aiSettings = await getAiSettings();
+  if (!aiSettings.playerProfileEnabled) {
+    throw new Error("Player profile generation is disabled in admin settings.");
+  }
 
   const languageInstruction =
     locale === "pt-BR"
@@ -375,9 +397,13 @@ export async function generatePlayerProfile(
     input: inputItems,
     tools: AGENT_TOOLS,
     tool_choice: "required",
-  });
+  }, userId, aiSettings);
 
-  for (let turn = 0; turn < MAX_AGENT_TURNS; turn += 1) {
+  for (
+    let callIndex = 1;
+    callIndex <= aiSettings.playerProfileMaxCalls;
+    callIndex += 1
+  ) {
     const outputItems = response.output ?? [];
     const functionCalls = outputItems.filter(
       (item) => item.type === "function_call" && item.name,
@@ -425,12 +451,16 @@ export async function generatePlayerProfile(
       });
     }
 
+    if (callIndex >= aiSettings.playerProfileMaxCalls) {
+      break;
+    }
+
     response = await callResponsesApi(config, {
       instructions,
       input: inputItems,
       tools: AGENT_TOOLS,
       tool_choice: "required",
-    });
+    }, userId, aiSettings);
   }
 
   throw new Error(

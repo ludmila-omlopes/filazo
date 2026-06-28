@@ -17,9 +17,14 @@ import {
   runPlayerFeedback,
 } from "@/lib/assistant/library-tools";
 import {
-  getAssistantChatGate,
   recordAssistantChatRun,
 } from "@/lib/assistant/queries";
+import {
+  markAiBudgetFailed,
+  markAiBudgetUsed,
+  reserveAiBudget,
+} from "@/lib/ai-budget";
+import { getAiSettings } from "@/lib/ai-settings";
 import { getSessionUserId } from "@/lib/session";
 import { getOpenAiConfig } from "@/lib/openai";
 
@@ -47,6 +52,14 @@ export async function POST(request: Request) {
     );
   }
 
+  const aiSettings = await getAiSettings();
+  if (!aiSettings.assistantChatEnabled) {
+    return NextResponse.json(
+      { error: "The library chat is disabled in admin settings." },
+      { status: 503 },
+    );
+  }
+
   const config = getOpenAiConfig();
   if (!config) {
     return NextResponse.json(
@@ -69,9 +82,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const gate = await getAssistantChatGate(userId);
-  if (!gate.allowed) {
-    return NextResponse.json({ error: gate.message }, { status: 429 });
+  const budget = await reserveAiBudget({
+    feature: "assistant_chat",
+    inputSummary: {
+      maxSteps: aiSettings.chatMaxSteps,
+      messageCount: messages.length,
+    },
+    model: config.model,
+    units: aiSettings.chatBudgetUnits,
+    userId,
+  });
+  if (!budget.allowed) {
+    return NextResponse.json({ error: budget.message }, { status: 429 });
   }
 
   const entries = await loadLibraryEntries(userId);
@@ -88,7 +110,8 @@ export async function POST(request: Request) {
     model: openai.chat(modelName),
     system: CHAT_SYSTEM_PROMPT,
     messages: await convertToModelMessages(messages),
-    stopWhen: stepCountIs(8),
+    maxOutputTokens: aiSettings.chatMaxOutputTokens,
+    stopWhen: stepCountIs(aiSettings.chatMaxSteps),
     tools: {
       get_library_overview: tool({
         description:
@@ -115,8 +138,16 @@ export async function POST(request: Request) {
         execute: async () => runGenreStats(entries),
       }),
     },
+    onError: async ({ error }) => {
+      await markAiBudgetFailed(budget.reservation, error);
+    },
     onFinish: async ({ steps, totalUsage }) => {
       try {
+        await markAiBudgetUsed(budget.reservation, {
+          inputTokens: totalUsage.inputTokens ?? null,
+          outputTokens: totalUsage.outputTokens ?? null,
+          totalTokens: totalUsage.totalTokens ?? null,
+        });
         await recordAssistantChatRun({
           userId,
           model: modelName,

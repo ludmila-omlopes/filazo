@@ -339,6 +339,38 @@ model AssistantRun {
   @@index([userId, createdAt])
 }
 
+model AiSettings {
+  id                                        String   @id
+  assistantChatEnabled                      Boolean  @default(true)
+  assistantPlayNextEnabled                  Boolean  @default(true)
+  assistantSummaryEnabled                   Boolean  @default(true)
+  playerProfileEnabled                      Boolean  @default(true)
+  photoImportEnabled                        Boolean  @default(true)
+  voiceTranscriptionEnabled                 Boolean  @default(true)
+  voiceTranslationEnabled                   Boolean  @default(true)
+  storyCompletionEnabled                    Boolean  @default(true)
+  userDailyLimit                            Int      @default(20)
+  globalDailyLimit                          Int      @default(100)
+  chatBudgetUnits                           Int      @default(3)
+  chatMaxSteps                              Int      @default(3)
+  chatMaxOutputTokens                       Int      @default(700)
+  assistantPlayNextMaxOutputTokens          Int      @default(900)
+  assistantSummaryMaxOutputTokens           Int      @default(650)
+  playerProfileMaxCalls                     Int      @default(3)
+  playerProfileMaxOutputTokens              Int      @default(1400)
+  photoImportMaxFiles                       Int      @default(2)
+  photoImportMaxFileBytes                   Int      @default(4194304)
+  photoImportMaxOutputTokens                Int      @default(1000)
+  photoImportMaxCandidates                  Int      @default(30)
+  voiceMaxFileBytes                         Int      @default(10485760)
+  voiceRecordingMaxSeconds                  Int      @default(180)
+  voiceTranslationMaxOutputTokens           Int      @default(900)
+  storyCompletionMaxClassificationsPerRun   Int      @default(10)
+  storyCompletionMaxOutputTokens            Int      @default(220)
+  createdAt                                 DateTime @default(now())
+  updatedAt                                 DateTime @updatedAt
+}
+
 model PlayerProfile {
   id        String   @id @default(cuid())
   userId    String   @unique

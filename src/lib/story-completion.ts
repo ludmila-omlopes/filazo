@@ -8,6 +8,8 @@ import { getTitleTrophies, getUserTrophiesEarnedForTitle } from "psn-api";
 import { getPlayStationAuthorizationForAccount } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
 import { getOpenAiConfig } from "@/lib/openai";
+import { runWithAiBudget } from "./ai-budget.ts";
+import { getAiSettings, type AiSettingsValues } from "./ai-settings.ts";
 import {
   classifyStoryAchievementHeuristically,
   type StoryAchievementCandidate,
@@ -34,87 +36,101 @@ type AiClassification = {
 async function classifyStoryAchievementWithAi(
   gameName: string,
   candidates: StoryAchievementCandidate[],
-): Promise<StoryAchievementCandidate | null> {
+  userId: string,
+  aiSettings: AiSettingsValues,
+): Promise<StoryAchievementCandidate | null | undefined> {
   const config = getOpenAiConfig();
-  if (!config || candidates.length === 0) {
+  if (!config || candidates.length === 0 || !aiSettings.storyCompletionEnabled) {
     return null;
   }
 
   try {
-    const response = await fetch(`${config.baseUrl}/responses`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        "Content-Type": "application/json",
+    return await runWithAiBudget({
+      feature: "story_completion",
+      inputSummary: {
+        candidateCount: candidates.length,
+        gameName,
       },
-      body: JSON.stringify({
-        model: config.model,
-        input: [
-          {
-            role: "system",
-            content:
-              "You identify which single achievement or trophy a video game awards when the player finishes the main story (when the credits roll). Ignore collectibles, difficulty-only, multiplayer, DLC, and 100%/platinum achievements. Return JSON only.",
+      model: config.model,
+      userId,
+      execute: async () => {
+        const response = await fetch(`${config.baseUrl}/responses`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${config.apiKey}`,
+            "Content-Type": "application/json",
           },
-          {
-            role: "user",
-            content: JSON.stringify({
-              game: gameName,
-              instructions:
-                "Return the id of the achievement granted for completing the main story or seeing the credits. If no listed achievement clearly marks story completion, return null.",
-              achievements: candidates.map((candidate) => ({
-                id: candidate.id,
-                name: candidate.name,
-                description: candidate.description ?? null,
-              })),
-            }),
-          },
-        ],
-        text: {
-          format: {
-            type: "json_schema",
-            name: "story_achievement",
-            strict: true,
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                achievementId: { type: ["string", "null"] },
+          body: JSON.stringify({
+            model: config.model,
+            max_output_tokens: aiSettings.storyCompletionMaxOutputTokens,
+            input: [
+              {
+                role: "system",
+                content:
+                  "You identify which single achievement or trophy a video game awards when the player finishes the main story (when the credits roll). Ignore collectibles, difficulty-only, multiplayer, DLC, and 100%/platinum achievements. Return JSON only.",
               },
-              required: ["achievementId"],
+              {
+                role: "user",
+                content: JSON.stringify({
+                  game: gameName,
+                  instructions:
+                    "Return the id of the achievement granted for completing the main story or seeing the credits. If no listed achievement clearly marks story completion, return null.",
+                  achievements: candidates.map((candidate) => ({
+                    id: candidate.id,
+                    name: candidate.name,
+                    description: candidate.description ?? null,
+                  })),
+                }),
+              },
+            ],
+            text: {
+              format: {
+                type: "json_schema",
+                name: "story_achievement",
+                strict: true,
+                schema: {
+                  type: "object",
+                  additionalProperties: false,
+                  properties: {
+                    achievementId: { type: ["string", "null"] },
+                  },
+                  required: ["achievementId"],
+                },
+              },
             },
-          },
-        },
-      }),
+          }),
+        });
+
+        if (!response.ok) {
+          return undefined;
+        }
+
+        const json = (await response.json()) as {
+          output_text?: string;
+          output?: Array<{ content?: Array<{ text?: string }> }>;
+        };
+        const outputText =
+          json.output_text ??
+          json.output
+            ?.flatMap((item) => item.content ?? [])
+            .find((content) => typeof content.text === "string")?.text;
+        if (!outputText) {
+          return undefined;
+        }
+
+        const parsed = JSON.parse(outputText) as AiClassification;
+        if (!parsed.achievementId) {
+          return null;
+        }
+
+        return (
+          candidates.find((candidate) => candidate.id === parsed.achievementId) ??
+          null
+        );
+      },
     });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const json = (await response.json()) as {
-      output_text?: string;
-      output?: Array<{ content?: Array<{ text?: string }> }>;
-    };
-    const outputText =
-      json.output_text ??
-      json.output
-        ?.flatMap((item) => item.content ?? [])
-        .find((content) => typeof content.text === "string")?.text;
-    if (!outputText) {
-      return null;
-    }
-
-    const parsed = JSON.parse(outputText) as AiClassification;
-    if (!parsed.achievementId) {
-      return null;
-    }
-
-    return (
-      candidates.find((candidate) => candidate.id === parsed.achievementId) ??
-      null
-    );
   } catch {
-    return null;
+    return undefined;
   }
 }
 
@@ -137,6 +153,9 @@ async function resolveStoryAchievementForLink(
   link: GameProviderLink,
   gameName: string,
   fetchCandidates: () => Promise<StoryAchievementCandidate[]>,
+  userId: string,
+  aiClassificationBudget: { remaining: number },
+  aiSettings: AiSettingsValues,
 ): Promise<StoryAchievementResolution> {
   if (isStoryCacheFresh(link)) {
     if (link.storyAchievementId) {
@@ -152,9 +171,32 @@ async function resolveStoryAchievementForLink(
   }
 
   const candidates = await fetchCandidates();
-  const aiPick = await classifyStoryAchievementWithAi(gameName, candidates);
-  const pick = aiPick ?? classifyStoryAchievementHeuristically(candidates);
-  const source: "ai" | "heuristic" = aiPick ? "ai" : "heuristic";
+  const heuristicPick = classifyStoryAchievementHeuristically(candidates);
+  let pick = heuristicPick;
+  let source: "ai" | "heuristic" = "heuristic";
+  let attemptedAi = false;
+  const canUseAi =
+    aiSettings.storyCompletionEnabled && Boolean(getOpenAiConfig());
+
+  if (!pick && canUseAi && aiClassificationBudget.remaining > 0) {
+    aiClassificationBudget.remaining -= 1;
+    attemptedAi = true;
+    const aiPick = await classifyStoryAchievementWithAi(
+      gameName,
+      candidates,
+      userId,
+      aiSettings,
+    );
+    if (aiPick === undefined) {
+      return null;
+    }
+    pick = aiPick;
+    source = "ai";
+  }
+
+  if (!pick && !attemptedAi && aiClassificationBudget.remaining <= 0) {
+    return null;
+  }
 
   await prisma.gameProviderLink.update({
     where: { id: link.id },
@@ -373,6 +415,9 @@ async function detectEntryViaSteam(
   steamAccount: ExternalAccount,
   apiKey: string,
   resolveMemo: Map<string, Promise<StoryAchievementResolution>>,
+  aiClassificationBudget: { remaining: number },
+  userId: string,
+  aiSettings: AiSettingsValues,
 ) {
   const link = entry.game.providerLinks.find(
     (candidate) => candidate.provider === ExternalProvider.STEAM,
@@ -383,8 +428,13 @@ async function detectEntryViaSteam(
 
   let resolution = resolveMemo.get(link.id);
   if (!resolution) {
-    resolution = resolveStoryAchievementForLink(link, entry.game.name, () =>
-      fetchSteamAchievementSchema(apiKey, link.providerGameId),
+    resolution = resolveStoryAchievementForLink(
+      link,
+      entry.game.name,
+      () => fetchSteamAchievementSchema(apiKey, link.providerGameId),
+      userId,
+      aiClassificationBudget,
+      aiSettings,
     );
     resolveMemo.set(link.id, resolution);
   }
@@ -412,6 +462,9 @@ async function detectEntryViaPlayStation(
   entry: DetectionEntry,
   authorization: { accessToken: string },
   resolveMemo: Map<string, Promise<StoryAchievementResolution>>,
+  aiClassificationBudget: { remaining: number },
+  userId: string,
+  aiSettings: AiSettingsValues,
 ) {
   const link = entry.game.providerLinks.find(
     (candidate) =>
@@ -429,8 +482,13 @@ async function detectEntryViaPlayStation(
 
   let resolution = resolveMemo.get(link.id);
   if (!resolution) {
-    resolution = resolveStoryAchievementForLink(link, entry.game.name, () =>
-      fetchPlayStationTrophyCandidates(authorization, target),
+    resolution = resolveStoryAchievementForLink(
+      link,
+      entry.game.name,
+      () => fetchPlayStationTrophyCandidates(authorization, target),
+      userId,
+      aiClassificationBudget,
+      aiSettings,
     );
     resolveMemo.set(link.id, resolution);
   }
@@ -463,7 +521,7 @@ async function detectEntryViaPlayStation(
 export async function detectFinishedGamesForUser(
   userId: string,
 ): Promise<StoryCompletionDetectionResult> {
-  const [entries, steamAccount, playStationAccount] = await Promise.all([
+  const [entries, steamAccount, playStationAccount, aiSettings] = await Promise.all([
     loadDetectionEntries(userId),
     prisma.externalAccount.findFirst({
       where: { userId, provider: ExternalProvider.STEAM },
@@ -471,6 +529,7 @@ export async function detectFinishedGamesForUser(
     prisma.externalAccount.findFirst({
       where: { userId, provider: ExternalProvider.PLAYSTATION },
     }),
+    getAiSettings(),
   ]);
 
   const steamApiKey = process.env.STEAM_API_KEY;
@@ -485,6 +544,9 @@ export async function detectFinishedGamesForUser(
   }
 
   const resolveMemo = new Map<string, Promise<StoryAchievementResolution>>();
+  const aiClassificationBudget = {
+    remaining: aiSettings.storyCompletionMaxClassificationsPerRun,
+  };
   const finishedTitles: string[] = [];
   let scannedCount = 0;
 
@@ -503,6 +565,9 @@ export async function detectFinishedGamesForUser(
               steamAccount,
               steamApiKey,
               resolveMemo,
+              aiClassificationBudget,
+              userId,
+              aiSettings,
             );
             if (finished) {
               return { entry, finished: true, scanned: true };
@@ -514,6 +579,9 @@ export async function detectFinishedGamesForUser(
               entry,
               playStationAuthorization,
               resolveMemo,
+              aiClassificationBudget,
+              userId,
+              aiSettings,
             );
             if (finished) {
               return { entry, finished: true, scanned: true };
