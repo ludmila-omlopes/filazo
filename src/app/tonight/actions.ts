@@ -3,14 +3,14 @@
 import { UserGameStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { setFilazoTheme } from "@/app/theme-actions";
+import { setFilazoThemeMode } from "@/app/theme-actions";
 import { createTranslator } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
 
 export async function dimTheLightsAction() {
-  await setFilazoTheme("night");
+  await setFilazoThemeMode("night");
   revalidatePath("/tonight");
 }
 

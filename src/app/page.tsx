@@ -1,7 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import type { CSSProperties } from "react";
 import type { Prisma } from "@prisma/client";
 import { AuthDialog } from "@/components/auth-dialog";
 import { GameCard, type GameCardGame } from "@/components/game-card";
+import { PhaseBadge } from "@/components/theme-runtime";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
@@ -10,7 +14,27 @@ import { createTranslator } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
-import { formatNumber } from "@/lib/utils";
+import { FILAZO_THEME_COOKIE, parseFilazoThemeMode } from "@/lib/theme";
+import { cn, formatNumber } from "@/lib/utils";
+
+/** Frosted-glass surface for landing cards over the time-of-day gradient,
+ *  matching the scrolled site header. */
+const GLASS_CARD = "border-edge/70 bg-surface/65 backdrop-blur-md";
+
+/** Glass highlight for the call-to-action: the same frosted surface as the
+ *  cards (so it no longer reads as a heavy dark block) with a lilac accent
+ *  border + glow bar to keep it the page's highlight. Theme-aware content. */
+const GLASS_HIGHLIGHT = "border-sage/40 bg-surface/70 backdrop-blur-md";
+
+/** Glowing lilac primary CTA (image-2 style). Sage stays a light lilac in both
+ *  themes, so the fixed dark text reads on the light day and dark night pages. */
+const HERO_CTA =
+  "h-12 bg-sage px-7 text-base font-bold text-dusk-deep shadow-[0_10px_34px_-10px_rgba(159,153,209,0.85)] hover:bg-sage/90";
+
+/** Theme-aware secondary button for the container-less hero — `ink` flips with
+ *  the theme, so it reads on the light day page and the dark night page. */
+const HERO_GHOST_BUTTON =
+  "h-12 border border-ink/15 bg-ink/5 px-7 text-base font-semibold text-ink hover:bg-ink/10";
 
 const homeShowcaseSelect = {
   aggregatedRating: true,
@@ -185,6 +209,10 @@ async function getHomeData() {
 export default async function Home() {
   const locale = await getRequestLocale();
   const t = createTranslator(locale);
+  const cookieStore = await cookies();
+  const mode = parseFilazoThemeMode(
+    cookieStore.get(FILAZO_THEME_COOKIE)?.value,
+  );
   const [homeData, sessionUserId] = await Promise.all([
     getHomeData(),
     getSessionUserId(),
@@ -206,40 +234,32 @@ export default async function Home() {
     >
       {databaseNotice ? <Notice tone="error">{databaseNotice}</Notice> : null}
 
-      <section className="relative min-h-[560px] overflow-hidden rounded-card border border-edge bg-dusk-deep text-cream shadow-float">
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-[linear-gradient(135deg,rgba(159,153,209,0.18),rgba(134,186,218,0.1)_45%,rgba(255,227,179,0.14))]"
-        />
+      <section className="relative min-h-[540px] overflow-visible">
+        <div className="absolute right-0 top-1 z-20 max-md:hidden">
+          <PhaseBadge locale={locale} mode={mode} />
+        </div>
         {showcaseGames.length ? (
-          <CatalogHeroArtifacts games={showcaseGames.slice(0, 3)} locale={locale} />
+          <CatalogHeroArtifacts games={showcaseGames.slice(0, 3)} />
         ) : null}
 
-        <div className="relative z-10 flex min-h-[560px] items-center px-14 py-20 max-md:px-7 max-md:py-12">
+        <div className="relative z-10 flex min-h-[540px] items-center px-4 py-12 max-md:py-8">
           <div className="max-w-[620px]">
-            <p className="text-kicker font-bold uppercase text-glow/90">
-              {t("landing.kicker")}
-            </p>
-            <h1 className="mt-5 text-display font-normal leading-[1.03]">
+            <h1 className="text-display font-normal leading-[1.03] text-ink">
               {t("landing.title").split("\n")[0]},
               <br />
               {t("landing.title").split("\n")[1]}
             </h1>
-            <p className="mt-6 max-w-[45ch] text-lg leading-relaxed text-cream/75">
+            <p className="mt-6 max-w-[45ch] text-lg leading-relaxed text-ink-soft">
               {t("landing.body")}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               {isSignedIn ? (
-                <Button
-                  asChild
-                  size="lg"
-                  className="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
-                >
+                <Button asChild size="lg" className={HERO_CTA}>
                   <Link href="/profile">{t("landing.openLibrary")}</Link>
                 </Button>
               ) : (
                 <AuthDialog
-                  triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+                  triggerClassName={HERO_CTA}
                   triggerLabel={t("auth.trigger.signIn")}
                   triggerSize="lg"
                 />
@@ -248,7 +268,7 @@ export default async function Home() {
                 asChild
                 variant="ghost"
                 size="lg"
-                className="h-12 border border-cream/25 bg-cream/8 px-7 text-base font-semibold text-cream hover:bg-cream/14 hover:text-cream"
+                className={HERO_GHOST_BUTTON}
               >
                 <Link href="/tonight">{t("landing.openTonight")}</Link>
               </Button>
@@ -256,12 +276,12 @@ export default async function Home() {
                 asChild
                 variant="ghost"
                 size="lg"
-                className="h-12 border border-cream/15 bg-transparent px-7 text-base font-semibold text-cream/85 hover:bg-cream/12 hover:text-cream"
+                className={HERO_GHOST_BUTTON}
               >
                 <Link href="/profile?tab=integrations">{t("common.addGames")}</Link>
               </Button>
             </div>
-            <p className="mt-5 text-sm text-cream/55">
+            <p className="mt-5 text-sm text-ink-soft">
               {t("landing.indexedCount", {
                 count: formatNumber(catalogCount, locale),
               })}
@@ -308,6 +328,7 @@ export default async function Home() {
           <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-3 max-md:grid-cols-2">
             {showcaseGames.map((game) => (
               <GameCard
+                className={GLASS_CARD}
                 game={game}
                 key={game.slug}
                 platformName="Catalog"
@@ -317,7 +338,7 @@ export default async function Home() {
             ))}
           </div>
         ) : (
-          <Card tactile className="mx-4">
+          <Card tactile className={cn("mx-4", GLASS_CARD)}>
             <CardContent className="p-6">
               <p className="font-semibold text-ink">
                 {t("landing.noShowcaseTitle")}
@@ -346,7 +367,12 @@ export default async function Home() {
         </blockquote>
       </section>
 
-      <section className="relative overflow-hidden rounded-card border border-edge bg-dusk text-cream shadow-rest">
+      <section
+        className={cn(
+          "relative overflow-hidden rounded-card border text-ink shadow-lift",
+          GLASS_HIGHLIGHT,
+        )}
+      >
         <div aria-hidden className="absolute inset-x-0 top-0 h-2 bg-glow" />
         <div className="relative z-10 flex flex-col items-center gap-6 px-10 py-16 text-center max-md:px-6">
           <h2 className="max-w-[22ch] text-section-title font-normal leading-snug">
@@ -356,16 +382,12 @@ export default async function Home() {
           </h2>
           <div className="flex flex-wrap items-center justify-center gap-4">
             {isSignedIn ? (
-              <Button
-                asChild
-                size="lg"
-                className="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
-              >
+              <Button asChild size="lg" className={HERO_CTA}>
                 <Link href="/profile">{t("landing.openLibrary")}</Link>
               </Button>
             ) : (
               <AuthDialog
-                triggerClassName="h-12 bg-cream px-7 text-base font-bold text-dusk-deep hover:bg-glow"
+                triggerClassName={HERO_CTA}
                 triggerLabel={t("auth.trigger.signIn")}
                 triggerSize="lg"
               />
@@ -374,12 +396,12 @@ export default async function Home() {
               asChild
               variant="ghost"
               size="lg"
-              className="h-12 border border-cream/25 px-7 text-base font-semibold text-cream hover:bg-cream/10 hover:text-cream"
+              className={HERO_GHOST_BUTTON}
             >
               <Link href="/profile?tab=integrations">{t("common.addGames")}</Link>
             </Button>
           </div>
-          <p className="text-xs text-cream/40">
+          <p className="text-xs text-ink-soft">
             {t("landing.ctaFoot", {
               count: formatNumber(enrichedCount, locale),
             })}
@@ -390,15 +412,7 @@ export default async function Home() {
   );
 }
 
-function CatalogHeroArtifacts({
-  games,
-  locale,
-}: {
-  games: GameCardGame[];
-  locale: "en" | "pt-BR";
-}) {
-  const t = createTranslator(locale);
-
+function CatalogHeroArtifacts({ games }: { games: GameCardGame[] }) {
   if (!games.length) {
     return null;
   }
@@ -408,19 +422,19 @@ function CatalogHeroArtifacts({
   const thirdGame = games[2] ?? games[0];
 
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute right-0 top-0 h-full w-[36%] min-w-[300px] border-l border-cream/10 bg-dusk/45 max-md:w-[54%] max-sm:opacity-45">
-        <div className="grid h-full grid-cols-6 gap-2 p-5 opacity-85">
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-visible">
+      <div className="absolute right-0 top-0 h-full w-[36%] min-w-[300px] max-md:w-[54%] max-sm:opacity-45">
+        <div className="grid h-full grid-cols-6 gap-2 p-5 opacity-50">
           {[
             "bg-sage",
             "bg-sky",
             "bg-sand",
             "bg-clay",
             "bg-dusk-lavender",
-            "bg-cream/80",
+            "bg-ink/15",
           ].map((tone, index) => (
             <div
-              className={`${tone} rounded-inner border border-cream/12 opacity-70`}
+              className={`${tone} rounded-inner border border-ink/10 opacity-70`}
               key={`${tone}-${index}`}
             />
           ))}
@@ -429,20 +443,21 @@ function CatalogHeroArtifacts({
 
       <div className="absolute bottom-10 right-14 h-[330px] w-[280px] max-lg:right-7 max-md:bottom-6 max-md:opacity-60 max-sm:hidden">
         <CatalogCard
-          className="absolute left-1 top-10 rotate-[-7deg] opacity-55"
+          className="absolute left-1 top-10 opacity-55"
+          delay="-5.3s"
           game={secondGame}
-          marker={t("landing.marker.csv")}
+          tilt={-7}
         />
         <CatalogCard
-          className="absolute right-0 top-0 rotate-[5deg] opacity-70"
+          className="absolute right-0 top-0 opacity-70"
+          delay="-2.6s"
           game={thirdGame}
-          marker={t("landing.marker.metadata")}
+          tilt={5}
         />
         <CatalogCard
           className="absolute left-8 top-20 shadow-float"
           game={frontGame}
-          marker={t("landing.marker.tonight")}
-          note={t("landing.shortReturn")}
+          tilt={-2}
         />
       </div>
     </div>
@@ -452,30 +467,41 @@ function CatalogHeroArtifacts({
 function CatalogCard({
   className,
   game,
-  marker,
-  note = "catalog entry",
+  tilt = 0,
+  delay = "0s",
 }: {
   className?: string;
   game: GameCardGame;
-  marker: string;
-  note?: string;
+  tilt?: number;
+  delay?: string;
 }) {
   return (
     <div
-      className={`w-[230px] rounded-card border border-cream/25 bg-cream p-4 text-dusk-deep shadow-lift ${className ?? ""}`}
+      className={cn(
+        "printed-cover relative aspect-[3/4] w-[230px] overflow-hidden rounded-card border border-ink/10 bg-sage-soft shadow-lift animate-drift-slow",
+        className,
+      )}
+      style={
+        {
+          "--card-tilt": `${tilt}deg`,
+          transform: `rotate(${tilt}deg)`,
+          animationDelay: delay,
+        } as CSSProperties
+      }
     >
-      <div className="mb-4 flex items-center justify-between gap-3 border-b border-dusk-deep/15 pb-3">
-        <span className="text-xs font-bold uppercase text-dusk-deep/65">
-          {marker}
-        </span>
-        <span className="h-3 w-8 rounded-[2px] bg-glow" />
-      </div>
-      <div className="aspect-[3/4] rounded-inner border border-dusk-deep/15 bg-sage-soft p-3">
-        <div className="grid h-full place-items-center rounded-[6px] border border-dusk-deep/10 bg-cream/85 text-center font-display text-xl leading-tight text-dusk-deep">
+      {game.coverUrl ? (
+        <Image
+          alt=""
+          className="object-cover"
+          fill
+          sizes="230px"
+          src={game.coverUrl}
+        />
+      ) : (
+        <div className="grid h-full place-items-center bg-cream/85 p-3 text-center font-display text-lg leading-tight text-dusk-deep">
           {game.name}
         </div>
-      </div>
-      <p className="mt-3 text-sm font-bold">{note}</p>
+      )}
     </div>
   );
 }
@@ -490,7 +516,7 @@ function EveningStep({
   line: string;
 }) {
   return (
-    <Card tactile className="py-0">
+    <Card tactile className={cn(GLASS_CARD, "py-0")}>
       <CardContent className="flex items-start gap-5 p-6">
           <span className="font-display text-[4rem] font-normal italic leading-none text-sage/70 max-sm:text-[3rem]">
           {number}
