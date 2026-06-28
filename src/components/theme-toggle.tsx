@@ -1,50 +1,43 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Clock, Moon, Sun } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { setFilazoTheme } from "@/app/theme-actions";
+import { setFilazoThemeMode } from "@/app/theme-actions";
 import { cn } from "@/lib/utils";
-import type { FilazoTheme } from "@/lib/theme";
+import type { FilazoThemeMode } from "@/lib/theme";
 import { useTranslations } from "./locale-provider";
 
 type ThemeOption = {
-  value: FilazoTheme;
-  label: string;
+  value: FilazoThemeMode;
+  labelKey: "theme.dayLabel" | "theme.nightLabel" | "theme.autoLabel";
   icon: typeof Sun;
 };
 
 const themeOptions: ThemeOption[] = [
-  {
-    value: "day",
-    label: "Day - browse the catalog",
-    icon: Sun,
-  },
-  {
-    value: "night",
-    label: "Night - pick something to play",
-    icon: Moon,
-  },
+  { value: "day", labelKey: "theme.dayLabel", icon: Sun },
+  { value: "auto", labelKey: "theme.autoLabel", icon: Clock },
+  { value: "night", labelKey: "theme.nightLabel", icon: Moon },
 ];
 
-export function ThemeToggle({ theme }: { theme: FilazoTheme }) {
+export function ThemeToggle({ mode }: { mode: FilazoThemeMode }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [optimisticTheme, setOptimisticTheme] = useState(theme);
+  const [optimisticMode, setOptimisticMode] = useState(mode);
   const t = useTranslations();
 
   useEffect(() => {
-    setOptimisticTheme(theme);
-  }, [theme]);
+    setOptimisticMode(mode);
+  }, [mode]);
 
-  function chooseTheme(nextTheme: FilazoTheme) {
-    if (nextTheme === optimisticTheme || isPending) {
+  function chooseMode(nextMode: FilazoThemeMode) {
+    if (nextMode === optimisticMode || isPending) {
       return;
     }
 
-    setOptimisticTheme(nextTheme);
+    setOptimisticMode(nextMode);
     startTransition(async () => {
-      await setFilazoTheme(nextTheme);
+      await setFilazoThemeMode(nextMode);
       router.refresh();
     });
   }
@@ -55,10 +48,9 @@ export function ThemeToggle({ theme }: { theme: FilazoTheme }) {
       aria-label={t("theme.label")}
       role="group"
     >
-      {themeOptions.map(({ value, icon: Icon }) => {
-        const isActive = optimisticTheme === value;
-        const label =
-          value === "day" ? t("theme.dayLabel") : t("theme.nightLabel");
+      {themeOptions.map(({ value, labelKey, icon: Icon }) => {
+        const isActive = optimisticMode === value;
+        const label = t(labelKey);
 
         return (
           <button
@@ -72,7 +64,7 @@ export function ThemeToggle({ theme }: { theme: FilazoTheme }) {
             )}
             disabled={isPending}
             key={value}
-            onClick={() => chooseTheme(value)}
+            onClick={() => chooseMode(value)}
             title={label}
             type="button"
           >

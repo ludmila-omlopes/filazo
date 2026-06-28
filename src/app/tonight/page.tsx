@@ -9,7 +9,7 @@ import {
 } from "@/lib/assistant/queries";
 import { getRequestLocale } from "@/lib/request-locale";
 import { readStringList } from "@/lib/assistant/scoring";
-import { FILAZO_THEME_COOKIE, parseFilazoTheme } from "@/lib/theme";
+import { FILAZO_THEME_COOKIE, parseFilazoThemeMode } from "@/lib/theme";
 import { getSessionUserId } from "@/lib/session";
 import { TonightRoom, type TonightMood, type TonightPick } from "./_components/tonight-room";
 
@@ -120,7 +120,7 @@ export default async function TonightPage({
   const t = createTranslator(locale);
   const userId = await getSessionUserId();
   const cookieStore = await cookies();
-  const theme = parseFilazoTheme(cookieStore.get(FILAZO_THEME_COOKIE)?.value);
+  const mode = parseFilazoThemeMode(cookieStore.get(FILAZO_THEME_COOKIE)?.value);
   const query = await searchParams;
   const mood = moodLabels.some(([value]) => value === query.mood)
     ? query.mood!
@@ -214,7 +214,8 @@ export default async function TonightPage({
       <TonightRoom
         alternatives={alternatives}
         currentMood={mood}
-        isNight={theme === "night"}
+        deck={orderedPicks.slice(0, 8)}
+        isNight={mode === "night"}
         locale={locale}
         message={query.message}
         moods={moods}

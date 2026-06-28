@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Check, Moon } from "lucide-react";
 import { GameCard } from "@/components/game-card";
@@ -40,6 +41,7 @@ export type TonightMood = {
 export function TonightRoom({
   alternatives,
   currentMood,
+  deck,
   isNight,
   locale,
   message,
@@ -50,6 +52,7 @@ export function TonightRoom({
 }: {
   alternatives: TonightPick[];
   currentMood: string;
+  deck: TonightPick[];
   isNight: boolean;
   locale: Locale;
   message?: string;
@@ -59,6 +62,7 @@ export function TonightRoom({
   playingPick: TonightPick | null;
 }) {
   const t = createTranslator(locale);
+  const [dealt, setDealt] = useState<TonightPick | null>(null);
 
   if (!pick) {
     return (
@@ -74,6 +78,19 @@ export function TonightRoom({
         </EmptyState>
       </div>
     );
+  }
+
+  const activePick = dealt ?? pick;
+  const canDeal = deck.length > 1;
+
+  function deal() {
+    const pool = deck.filter(
+      (candidate) => candidate.entryId !== activePick.entryId,
+    );
+    if (!pool.length) {
+      return;
+    }
+    setDealt(pool[Math.floor(Math.random() * pool.length)]);
   }
 
   return (
@@ -142,27 +159,49 @@ export function TonightRoom({
           </div>
         </div>
 
+        {canDeal ? (
+          <div className="flex flex-col items-center gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-cream/45">
+              {t("tonight.dealHint")}
+            </p>
+            <button
+              className="group/deal inline-flex items-center gap-3 rounded-pill border border-cream/15 bg-cream/8 px-5 py-2.5 text-sm font-bold text-cream/85 transition-colors hover:bg-cream/14 hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow focus-visible:ring-offset-2 focus-visible:ring-offset-dusk-deep"
+              onClick={deal}
+              type="button"
+            >
+              <span aria-hidden className="relative h-5 w-7 flex-none">
+                <span className="absolute inset-y-0 left-0 w-4 -rotate-12 rounded-[3px] border border-cream/35 bg-cream/15 transition-transform duration-200 group-hover/deal:-translate-x-0.5 group-hover/deal:-rotate-[20deg]" />
+                <span className="absolute inset-y-0 left-1.5 w-4 rotate-6 rounded-[3px] border border-cream/35 bg-cream/20 transition-transform duration-200 group-hover/deal:translate-x-0.5 group-hover/deal:rotate-[14deg]" />
+                <span className="absolute inset-y-0 left-3 w-4 rounded-[3px] border border-glow/60 bg-glow/30" />
+              </span>
+              {t("tonight.dealMe")}
+            </button>
+          </div>
+        ) : null}
+
         <div className="mx-auto grid w-full max-w-[460px] gap-4">
           <GameCard
-            className="bg-cream text-dusk-deep shadow-float"
-            completionPercent={pick.entry.completionPercent}
-            description={pick.reason}
+            className="bg-cream text-dusk-deep shadow-float motion-safe:animate-current-playing-place"
+            completionPercent={activePick.entry.completionPercent}
+            description={activePick.reason}
             eyebrow={t("tonight.suggested")}
-            game={pick.entry.game}
+            game={activePick.entry.game}
+            key={activePick.entryId}
             locale={locale}
-            platformName={pick.entry.platformName}
-            playtimeMinutes={pick.entry.playtimeMinutes}
+            platformName={activePick.entry.platformName}
+            playtimeMinutes={activePick.entry.playtimeMinutes}
             status={
-              pick.entry.finishedAt && pick.entry.status !== "COMPLETED"
+              activePick.entry.finishedAt &&
+              activePick.entry.status !== "COMPLETED"
                 ? "FINISHED"
-                : pick.entry.status
+                : activePick.entry.status
             }
             variant="slot"
           />
 
           <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
             <form action={chooseTonightGameAction}>
-              <input type="hidden" name="entryId" value={pick.entryId} />
+              <input type="hidden" name="entryId" value={activePick.entryId} />
               <Button className="w-full" type="submit">
                 <Check aria-hidden />
                 {t("tonight.chooseThis")}

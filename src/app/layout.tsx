@@ -16,6 +16,7 @@ import { LocaleToggle } from "@/components/locale-toggle";
 import { SignOutForm } from "@/components/sign-out-form";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeaderFrame } from "@/components/site-header-frame";
+import { ThemeRuntime } from "@/components/theme-runtime";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { createTranslator } from "@/lib/i18n";
@@ -23,13 +24,20 @@ import { isAdminEmail } from "@/lib/beta-access";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
-import { FILAZO_THEME_COOKIE, parseFilazoTheme } from "@/lib/theme";
+import { FILAZO_THEME_COOKIE, parseFilazoThemeMode } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "filazo",
   description:
     "A calm catalog for your game library. Sync Steam, import CSVs, and keep every title easy to find.",
 };
+
+/**
+ * Runs before first paint: resolves the saved mode (and, for "auto", the
+ * visitor's local time of day) onto <html data-theme/data-phase> so there is no
+ * flash of the wrong theme. ThemeRuntime then keeps it in sync after hydration.
+ */
+const themeBootstrapScript = `(function(){try{var m=document.cookie.match(/(?:^|; )filazo-theme=([^;]+)/);var mode=m?decodeURIComponent(m[1]):'day';var r=document.documentElement;if(mode==='auto'){var h=new Date().getHours();var p=h<6?'night':h<11?'morning':h<17?'afternoon':h<19?'dusk':h<21?'evening':'night';r.dataset.theme=(p==='morning'||p==='afternoon')?'day':'night';r.dataset.phase=p;}else{r.dataset.theme=mode==='night'?'night':'day';}}catch(e){}})();`;
 
 async function getNavigationUser(userId: string | null) {
   if (!userId) {
@@ -58,15 +66,18 @@ export default async function RootLayout({
   const locale = await getRequestLocale();
   const t = createTranslator(locale);
   const cookieStore = await cookies();
-  const theme = parseFilazoTheme(
+  const mode = parseFilazoThemeMode(
     cookieStore.get(FILAZO_THEME_COOKIE)?.value,
   );
+  const initialTheme = mode === "night" ? "night" : "day";
   const userId = await getSessionUserId();
   const navigationUser = await getNavigationUser(userId);
 
   return (
-    <html lang={locale} data-theme={theme}>
+    <html lang={locale} data-theme={initialTheme} suppressHydrationWarning>
       <body>
+        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        <ThemeRuntime mode={mode} />
         <LocaleProvider locale={locale}>
           <Button
             asChild
@@ -110,7 +121,7 @@ export default async function RootLayout({
                   </Link>
                 )}
                 <LocaleToggle locale={locale} />
-                <ThemeToggle theme={theme} />
+                <ThemeToggle mode={mode} />
                 {navigationUser ? (
                   <div className="inline-flex items-center gap-3">
                     <span className="max-w-[16ch] truncate text-sm font-semibold">

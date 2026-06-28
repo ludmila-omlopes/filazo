@@ -99,6 +99,7 @@
     var(--color-canvas) 62%,
     #edf6fb 100%
   );
+  --hero-bg: linear-gradient(135deg, #2f2b50 0%, #25243f 52%, #2c2542 100%);
   color-scheme: light;
 }
 
@@ -140,7 +141,36 @@
     #24354e 72%,
     #18172a 100%
   );
+  --hero-bg: linear-gradient(135deg, #211f38 0%, #25243f 55%, #1a1930 100%);
   color-scheme: dark;
+}
+
+/* Auto mode: the global website background drifts through the day. Each phase
+   is paired by the bootstrap script with a matching data-theme (morning and
+   afternoon stay light; dusk onward goes dark), so text contrast holds. These
+   come after the theme blocks so they win for --background-body. */
+/* Paired values: --background-body tints the whole page (light by day), while
+   --hero-bg keeps the landing hero a dark room that only shifts hue, so its
+   cream content stays readable through every phase. */
+[data-phase="morning"] {
+  --background-body: linear-gradient(135deg, #fff3df 0%, #fde7ef 38%, #ecf3fb 100%);
+  --hero-bg: linear-gradient(135deg, #3a3152 0%, #4d3b54 50%, #63504c 100%);
+}
+[data-phase="afternoon"] {
+  --background-body: linear-gradient(135deg, #fffaf0 0%, #f3f0fb 36%, #e7f2fb 100%);
+  --hero-bg: linear-gradient(135deg, #2f3358 0%, #34466c 55%, #2f405e 100%);
+}
+[data-phase="dusk"] {
+  --background-body: linear-gradient(150deg, #3b2f5e 0%, #6c4a6f 48%, #b5714f 100%);
+  --hero-bg: linear-gradient(135deg, #352a5a 0%, #5a3f63 50%, #84544f 100%);
+}
+[data-phase="evening"] {
+  --background-body: linear-gradient(150deg, #2c2550 0%, #392f5a 55%, #221d3c 100%);
+  --hero-bg: linear-gradient(135deg, #2c2550 0%, #392f5a 58%, #241f3e 100%);
+}
+[data-phase="night"] {
+  --background-body: linear-gradient(150deg, #1a1930 0%, #201f37 55%, #121120 100%);
+  --hero-bg: linear-gradient(135deg, #1f1d38 0%, #25243f 55%, #181730 100%);
 }
 
 @media (min-width: 768px) {
