@@ -41,6 +41,12 @@ export function getAssistantSignalDisplayLabel(
       BUY_RISK: translate(locale, "signal.BUY_RISK"),
       RETURN_CANDIDATE: translate(locale, "signal.RETURN_CANDIDATE"),
       RELEASE_CANDIDATE: translate(locale, "signal.RELEASE_CANDIDATE"),
+      FINISH_BEFORE_RELEASE: translate(locale, "signal.FINISH_BEFORE_RELEASE"),
+      RISKY_TO_START_BEFORE_RELEASE: translate(
+        locale,
+        "signal.RISKY_TO_START_BEFORE_RELEASE",
+      ),
+      UPCOMING_RELEASE_WATCH: translate(locale, "signal.UPCOMING_RELEASE_WATCH"),
     })[signal] ??
     signal
       .toLowerCase()

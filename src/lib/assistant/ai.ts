@@ -149,16 +149,23 @@ function getExpectedEffort(entry: AssistantEntry) {
   return "Longer commitment";
 }
 
+function isPlayNextSignal(insight: AssistantInsight) {
+  const excludedSignals: AssistantSignalType[] = [
+    AssistantSignalType.RELEASE_CANDIDATE,
+    AssistantSignalType.RISKY_TO_START_BEFORE_RELEASE,
+    AssistantSignalType.UPCOMING_RELEASE_WATCH,
+    AssistantSignalType.WISHLIST_RISK,
+  ];
+
+  return !excludedSignals.includes(insight.signalType);
+}
+
 function scorePlayNextCandidate(
   entry: AssistantEntry,
   insights: AssistantInsight[],
 ) {
   const bestInsightScore = insights
-    .filter(
-      (insight) =>
-        insight.signalType !== AssistantSignalType.RELEASE_CANDIDATE &&
-        insight.signalType !== AssistantSignalType.WISHLIST_RISK,
-    )
+    .filter(isPlayNextSignal)
     .reduce((score, insight) => Math.max(score, insight.score), 0);
   const remainingTime = estimateRemainingTime(entry);
   const statusScore =
@@ -183,11 +190,7 @@ function getRecommendationReason(
   entry: AssistantEntry,
   insights: AssistantInsight[],
 ) {
-  const usefulInsight = insights.find(
-    (insight) =>
-      insight.signalType !== AssistantSignalType.RELEASE_CANDIDATE &&
-      insight.signalType !== AssistantSignalType.WISHLIST_RISK,
-  );
+  const usefulInsight = insights.find(isPlayNextSignal);
   const evidence = usefulInsight?.reasons[0]?.evidence;
 
   if (evidence && usefulInsight?.suggestedAction) {

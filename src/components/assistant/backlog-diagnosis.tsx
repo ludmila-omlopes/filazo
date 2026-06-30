@@ -20,6 +20,9 @@ export function BacklogDiagnosis({
     [getAssistantSignalDisplayLabel(AssistantSignalType.SAMPLED_DROPPED), AssistantSignalType.SAMPLED_DROPPED],
     [getAssistantSignalDisplayLabel(AssistantSignalType.STALE_PLAYING), AssistantSignalType.STALE_PLAYING],
     [getAssistantSignalDisplayLabel(AssistantSignalType.FINISHABLE_SOON), AssistantSignalType.FINISHABLE_SOON],
+    [getAssistantSignalDisplayLabel(AssistantSignalType.FINISH_BEFORE_RELEASE), AssistantSignalType.FINISH_BEFORE_RELEASE],
+    [getAssistantSignalDisplayLabel(AssistantSignalType.RISKY_TO_START_BEFORE_RELEASE), AssistantSignalType.RISKY_TO_START_BEFORE_RELEASE],
+    [getAssistantSignalDisplayLabel(AssistantSignalType.UPCOMING_RELEASE_WATCH), AssistantSignalType.UPCOMING_RELEASE_WATCH],
     [getAssistantSignalDisplayLabel(AssistantSignalType.LIKELY_FINISHED), AssistantSignalType.LIKELY_FINISHED],
     [getAssistantSignalDisplayLabel(AssistantSignalType.WISHLIST_RISK), AssistantSignalType.WISHLIST_RISK],
   ] as const;

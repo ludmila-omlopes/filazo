@@ -78,6 +78,15 @@ const messages = {
       "Public registrations are closed. If you do not have an account yet, request access through the beta tester signup.",
     "auth.dialog.requestBeta": "Request beta access",
     "auth.signOut": "Sign out",
+    "auth.browserRequired.kicker": "Google sign-in",
+    "auth.browserRequired.title": "Open filazo in your browser to continue.",
+    "auth.browserRequired.body":
+      "Google blocks sign-in inside embedded browsers like Threads, Instagram, and Facebook. Open this page in Chrome, Safari, Edge, or another regular browser, then try Google sign-in again.",
+    "auth.browserRequired.notice":
+      "If you are seeing this inside an app, use that app's browser menu and choose Open in browser.",
+    "auth.browserRequired.addressLabel": "filazo address",
+    "auth.browserRequired.back": "Back to filazo",
+    "auth.browserRequired.open": "Open filazo",
 
     "auth.error.invalidEmailOrPassword":
       "Use a valid email and a password with at least 8 characters.",
@@ -185,6 +194,11 @@ const messages = {
       "This area is restricted to the admin. Sign in with Google using ludmila.omlopes@gmail.com.",
     "admin.signInGoogle": "Sign in with Google",
     "admin.reviewed": "Request updated.",
+    "admin.email.sent": "Approval email sent.",
+    "admin.email.skipped":
+      "Approval updated, but the email was not sent because email is not fully configured.",
+    "admin.email.failed":
+      "Approval updated, but the email failed. Send it manually for now.",
     "admin.kicker": "Admin",
     "admin.title": "Beta testers",
     "admin.body":
@@ -205,6 +219,9 @@ const messages = {
     "admin.approve": "Approve",
     "admin.reject": "Decline",
     "admin.empty": "No application has been submitted yet.",
+    "admin.approvedEmails.kicker": "Manual email fallback",
+    "admin.approvedEmails.title": "Approved tester emails",
+    "admin.approvedEmails.empty": "No approved testers yet.",
     "admin.error.justificationRequired":
       "Justification is required to approve or decline.",
     "admin.ai.kicker": "AI controls",
@@ -813,6 +830,9 @@ const messages = {
     "signal.BUY_RISK": "pause before buying",
     "signal.RETURN_CANDIDATE": "worth a gentle return",
     "signal.RELEASE_CANDIDATE": "ready to release",
+    "signal.FINISH_BEFORE_RELEASE": "finish before launch",
+    "signal.RISKY_TO_START_BEFORE_RELEASE": "poor launch-window start",
+    "signal.UPCOMING_RELEASE_WATCH": "new release soon",
 
     "statusMessage.steamRefreshed": "Steam refreshed. {count} games updated.",
     "statusMessage.profileCreated":
@@ -1013,6 +1033,15 @@ const messages = {
       "Novos registros estão fechados. Se você ainda não tem conta, solicite acesso pelo cadastro de beta tester.",
     "auth.dialog.requestBeta": "Solicitar acesso beta",
     "auth.signOut": "Sair",
+    "auth.browserRequired.kicker": "Login com Google",
+    "auth.browserRequired.title": "Abra a filazo no navegador para continuar.",
+    "auth.browserRequired.body":
+      "O Google bloqueia login dentro de navegadores internos de apps como Threads, Instagram e Facebook. Abra esta página no Chrome, Safari, Edge ou outro navegador comum e tente o login com Google de novo.",
+    "auth.browserRequired.notice":
+      "Se você está vendo isto dentro de um app, use o menu do navegador desse app e escolha Abrir no navegador.",
+    "auth.browserRequired.addressLabel": "Endereço da filazo",
+    "auth.browserRequired.back": "Voltar para a filazo",
+    "auth.browserRequired.open": "Abrir filazo",
 
     "auth.error.invalidEmailOrPassword":
       "Use um e-mail válido e uma senha com pelo menos 8 caracteres.",
@@ -1123,6 +1152,11 @@ const messages = {
       "Esta área é restrita ao admin. Entre com o Google usando ludmila.omlopes@gmail.com.",
     "admin.signInGoogle": "Entrar com Google",
     "admin.reviewed": "Solicitação atualizada.",
+    "admin.email.sent": "E-mail de aprovação enviado.",
+    "admin.email.skipped":
+      "Aprovação atualizada, mas o e-mail não foi enviado porque o envio não está totalmente configurado.",
+    "admin.email.failed":
+      "Aprovação atualizada, mas o e-mail falhou. Envie manualmente por enquanto.",
     "admin.kicker": "Admin",
     "admin.title": "Beta testers",
     "admin.body":
@@ -1143,6 +1177,9 @@ const messages = {
     "admin.approve": "Aprovar",
     "admin.reject": "Recusar",
     "admin.empty": "Nenhuma solicitação enviada ainda.",
+    "admin.approvedEmails.kicker": "Fallback manual de e-mail",
+    "admin.approvedEmails.title": "E-mails de testers aprovados",
+    "admin.approvedEmails.empty": "Nenhum tester aprovado ainda.",
     "admin.error.justificationRequired":
       "Justificativa obrigatória para aprovar ou recusar.",
     "admin.ai.kicker": "Controles de IA",
@@ -1751,6 +1788,9 @@ const messages = {
     "signal.BUY_RISK": "espere antes de comprar",
     "signal.RETURN_CANDIDATE": "vale um retorno leve",
     "signal.RELEASE_CANDIDATE": "pronto para liberar",
+    "signal.FINISH_BEFORE_RELEASE": "terminar antes do lançamento",
+    "signal.RISKY_TO_START_BEFORE_RELEASE": "ruim para começar agora",
+    "signal.UPCOMING_RELEASE_WATCH": "lançamento perto",
 
     "statusMessage.steamRefreshed": "Steam atualizada. {count} jogos mudaram.",
     "statusMessage.profileCreated":

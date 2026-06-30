@@ -13,6 +13,7 @@ It is designed around a canonical local game catalog that can absorb data from m
 - IGDB metadata enrichment for covers, release dates, platforms, screenshots, and ratings
 - HowLongToBeat completion-time enrichment for main story, main + extras, and completionist estimates
 - Metacritic metascore enrichment when Steam Store metadata exposes a score
+- Cached upcoming-release signals for release-aware backlog recommendations
 - Optional rule-based and AI-assisted backlog assistance
 - Optional user review import, game journaling, and onboarding preferences
 
@@ -31,7 +32,7 @@ The current app already includes a landing page, a closed-registration modal sig
 
 The app is centered on a canonical `Game` record.
 
-- `Game` stores the normalized catalog entry plus shared IGDB, HLTB, and Metacritic metadata
+- `Game` stores the normalized catalog entry plus shared IGDB, HLTB, Metacritic, and upcoming-release cache metadata
 - `GameProviderLink` links a canonical game to an external provider ID like a Steam app ID
 - `UserGameEntry` stores user ownership, wishlist state, playtime, dropped state, last played date, achievement progress (`completionPercent`), up to one optional current-playing slot (`currentPlayingSlot`), up to one optional playing-next queue slot (`playingNextSlot`), and a separate finished state (`finishedAt`/`finishedSource`) for a game; finished means the credits rolled, which is independent of 100% achievement completion
 - `GameProviderLink` also caches the detected story-completion ("credits roll") achievement per provider (`storyAchievementId`, `storyAchievementName`, `storyAchievementSource`, `storyAchievementCheckedAt`)
@@ -86,6 +87,7 @@ Optional, depending on what you want to use:
 
 - Steam Web API key for owned library sync
 - Google OAuth credentials for existing Google login and beta tester access requests
+- Resend credentials for automatic beta approval emails
 - Microsoft OAuth app credentials for Xbox account sync
 - IGDB client credentials for metadata enrichment
 
@@ -118,6 +120,12 @@ XBOX_CLIENT_SECRET=""
 IGDB_CLIENT_ID=""
 IGDB_CLIENT_SECRET=""
 
+# Transactional email for beta approvals
+RESEND_API_KEY=""
+BETA_APPROVAL_FROM_EMAIL=""
+BETA_APPROVAL_REPLY_TO=""
+BETA_DISCORD_INVITE_URL=""
+
 # Optional AI assistant
 # OPENAI_BASE_URL points OpenAI-compatible chat/responses calls at any gateway.
 # Leave unset for OpenAI, or use a gateway like OpenRouter for more model
@@ -142,11 +150,12 @@ Notes:
 - `AUTH_SECRET` should be a long random string in any non-local environment.
 - `DATABASE_URL` is required for catalog features and must point to a PostgreSQL database.
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable the Google button in the login popup and the beta access login. Add both `${APP_URL}/api/auth/google/callback` and `${APP_URL}/api/auth/youtube/callback` as authorized redirect URIs in Google Cloud. The beta access flow uses Google identity scopes only (`openid email profile`), which avoids the blocked-app behavior triggered by unnecessary YouTube scopes.
+- `RESEND_API_KEY` and `BETA_APPROVAL_FROM_EMAIL` enable automatic approval emails when an admin approves a beta tester. `BETA_APPROVAL_REPLY_TO` is optional. `BETA_DISCORD_INVITE_URL` adds the beta Discord invite to the approval email. If Resend is not configured, approvals still succeed and the app logs that the email was skipped.
 - `STEAM_API_KEY` is required for owned library sync. Steam sign-in itself uses OpenID.
 - PlayStation sync does not require an app key. Users provide an NPSSO token in the profile page; the app exchanges it for PlayStation API tokens, stores encrypted refresh/access tokens, and does not store the NPSSO.
 - `XBOX_CLIENT_ID` is required for Xbox account sync. Register a Microsoft OAuth app for personal Microsoft accounts and add `${APP_URL}/api/auth/xbox/callback` as a web redirect URI. `XBOX_CLIENT_SECRET` is recommended for web app token exchange.
 - Xbox sync stores encrypted Microsoft refresh/access tokens in `ExternalAccount.metadata`. It imports Xbox achievement-history and recent-title-history records, not a guaranteed complete ownership library; Xbox CSV remains the fallback for owned games with no achievement activity.
-- IGDB enrichment is optional. If IGDB credentials are missing, the app still works, but imported/synced games stay with local metadata only.
+- IGDB enrichment is optional. If IGDB credentials are missing, the app still works, but imported/synced games stay with local metadata only and assistant refreshes skip upcoming-release cache checks.
 - HowLongToBeat enrichment is optional and best-effort. If the website-backed search is unavailable, imports and Steam sync continue without completion-time estimates.
 - Metacritic enrichment is optional and best-effort. If Steam Store app metadata does not expose a Metacritic score, the canonical game keeps an empty metascore.
 - The Assistant tab works without AI. If `OPENAI_API_KEY` is set, the app can use OpenAI's Responses API to recommend three low-friction play-next picks and turn rule-based insights into short explanations. Only library summaries, selected game metadata, progress/playtime signals, source/provider labels, and rule outputs are sent.
@@ -282,7 +291,7 @@ sync after Steam sign-in.
 1. Logged-out users open the login popup from the header, home page, or `/login`.
 2. Existing users can enter a first-party filazo account with email/password or continue with an already known Google account.
 3. New public registrations are closed. New beta candidates use `/beta`, sign in with Google, and submit their name plus played platforms, including an open retrogames field.
-4. The admin area at `/admin` is restricted to `ludmila.omlopes@gmail.com`. It can approve or reject beta testers with a required justification and configure global AI feature toggles, budgets, and per-feature limits.
+4. The admin area at `/admin` is restricted to `ludmila.omlopes@gmail.com`. It can approve or reject beta testers with a required justification, send an approval email when Resend is configured, and configure global AI feature toggles, budgets, and per-feature limits.
 5. Approved beta testers receive full platform access for 1 year from approval.
 6. Logged-in users manage Steam, PlayStation, and Xbox from `/profile?tab=integrations`.
 7. Disconnecting a provider deletes the `ExternalAccount` row and removes stored external credentials or account links.
@@ -304,6 +313,8 @@ Steam sync stores `lastPlayedAt` from Steam's `rtime_last_played` field when Ste
 HowLongToBeat stores completion estimates on the canonical `Game` as minutes and links the HLTB game ID through `GameProviderLink`. HLTB does not expose an official public API, so failures or search misses are ignored instead of blocking catalog resolution. User entries estimate remaining time from the default HLTB target, preferring main + extras, then main story, then completionist; completion percentage is used first, otherwise recorded playtime is subtracted.
 
 Metacritic stores the critic metascore on the canonical `Game` and links the Metacritic URL through `GameProviderLink` when Steam Store metadata provides it. This avoids scraping Metacritic directly and keeps missing scores non-blocking.
+
+Upcoming-release checks run during assistant refreshes for stale finished-game history. Results are cached on the canonical `Game` as provider-neutral release metadata plus `upcomingReleasesCheckedAt`, so later assistant runs can reuse the global catalog data instead of fetching repeatedly. Missing IGDB credentials or failed lookups leave the assistant on deterministic local signals.
 
 ### Reviews, journals, and photo imports
 
