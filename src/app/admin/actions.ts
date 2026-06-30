@@ -14,6 +14,7 @@ import {
   saveAiSettings,
   type AiSettingsValues,
 } from "@/lib/ai-settings";
+import { sendBetaApprovalEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { getRequestTranslator } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
@@ -100,7 +101,7 @@ export async function reviewBetaApplicationAction(formData: FormData) {
     );
   }
 
-  await prisma.betaTesterApplication.update({
+  const application = await prisma.betaTesterApplication.update({
     where: { id: parsed.data.applicationId },
     data: {
       status:
@@ -113,11 +114,43 @@ export async function reviewBetaApplicationAction(formData: FormData) {
       accessExpiresAt:
         parsed.data.decision === "approve" ? oneYearFromNow() : null,
     },
+    include: {
+      user: true,
+    },
   });
+  const redirectParams = new URLSearchParams({ reviewed: "1" });
+
+  if (
+    parsed.data.decision === "approve" &&
+    application.user.email
+  ) {
+    try {
+      const result = await sendBetaApprovalEmail({
+        to: application.user.email,
+        recipientName:
+          application.name ??
+          application.user.displayName ??
+          application.user.email.split("@")[0],
+      });
+      redirectParams.set(
+        result.sent ? "emailSent" : "emailSkipped",
+        "1",
+      );
+    } catch (error) {
+      redirectParams.set("emailFailed", "1");
+      console.error("Failed to send beta approval email.", {
+        applicationId: application.id,
+        userId: application.userId,
+        error,
+      });
+    }
+  } else if (parsed.data.decision === "approve") {
+    redirectParams.set("emailSkipped", "1");
+  }
 
   revalidatePath("/admin");
   revalidatePath("/beta");
-  redirect("/admin?reviewed=1");
+  redirect(`/admin?${redirectParams.toString()}`);
 }
 
 export async function updateAiSettingsAction(formData: FormData) {

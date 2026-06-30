@@ -19,6 +19,9 @@ import { getSessionUserId } from "@/lib/session";
 
 type AdminSearchParams = Promise<{
   aiSettings?: string;
+  emailFailed?: string;
+  emailSent?: string;
+  emailSkipped?: string;
   error?: string;
   reviewed?: string;
 }>;
@@ -485,12 +488,24 @@ export default async function AdminPage({
   const pendingCount = applications.filter(
     (application) => application.status === BetaTesterStatus.PENDING,
   ).length;
+  const approvedApplications = applications.filter(
+    (application) => application.status === BetaTesterStatus.APPROVED,
+  );
 
   return (
     <main id="main-content" className="mx-auto grid w-full max-w-[1100px] gap-8">
       {query.error ? <Notice tone="error">{query.error}</Notice> : null}
       {query.reviewed ? (
         <Notice tone="success">{t("admin.reviewed")}</Notice>
+      ) : null}
+      {query.emailSent ? (
+        <Notice tone="success">{t("admin.email.sent")}</Notice>
+      ) : null}
+      {query.emailSkipped ? (
+        <Notice tone="info">{t("admin.email.skipped")}</Notice>
+      ) : null}
+      {query.emailFailed ? (
+        <Notice tone="error">{t("admin.email.failed")}</Notice>
       ) : null}
       {query.aiSettings ? (
         <Notice tone="success">{t("admin.ai.saved")}</Notice>
@@ -530,6 +545,55 @@ export default async function AdminPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card tactile>
+        <CardContent className="grid gap-4 p-6">
+          <div>
+            <p className="text-kicker font-bold uppercase text-ink-soft">
+              {t("admin.approvedEmails.kicker")}
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-medium">
+              {t("admin.approvedEmails.title")}
+            </h2>
+          </div>
+          {approvedApplications.length ? (
+            <div className="grid gap-2">
+              {approvedApplications.map((application) => {
+                const email = application.user.email;
+
+                return (
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-inner border border-edge bg-surface px-4 py-3"
+                    key={application.id}
+                  >
+                    <span className="font-semibold">
+                      {application.name ??
+                        application.user.displayName ??
+                        t("admin.noName")}
+                    </span>
+                    {email ? (
+                      <a
+                        className="break-all text-sm font-bold text-ink underline decoration-ink/30 underline-offset-4"
+                        href={`mailto:${email}`}
+                      >
+                        {email}
+                      </a>
+                    ) : (
+                      <span className="text-sm text-ink-soft">
+                        {t("admin.noEmail")}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm font-semibold text-ink-soft">
+              {t("admin.approvedEmails.empty")}
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <AiSettingsForm locale={locale} settings={aiSettings} t={t} />
 
