@@ -2,6 +2,11 @@ import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createGoogleAuthUrl, getYoutubeRedirectUri } from "@/lib/google-auth";
+import {
+  createBrowserRequiredUrl,
+  getSafeOAuthReturnPath,
+  isGoogleOAuthBlockedUserAgent,
+} from "@/lib/oauth-browser";
 import { getRequestTranslator } from "@/lib/request-locale";
 
 export const YOUTUBE_OAUTH_STATE_COOKIE = "filazo-youtube-oauth-state";
@@ -20,8 +25,19 @@ function setOAuthCookie(name: string, value: string) {
 }
 
 export async function GET(request: Request) {
+  const requestUrl = new URL(request.url);
+  const returnPath = getSafeOAuthReturnPath(
+    requestUrl.searchParams.get("next"),
+    "/beta",
+  );
+
   try {
-    const requestUrl = new URL(request.url);
+    if (isGoogleOAuthBlockedUserAgent(request.headers.get("user-agent"))) {
+      return NextResponse.redirect(
+        createBrowserRequiredUrl(requestUrl, returnPath),
+      );
+    }
+
     const origin = process.env.APP_URL || requestUrl.origin;
     const state = crypto.randomBytes(16).toString("hex");
     const nonce = crypto.randomBytes(16).toString("hex");
@@ -44,9 +60,9 @@ export async function GET(request: Request) {
       error instanceof Error
         ? error.message
         : t("auth.error.youtubeStartFailed");
+    const errorUrl = new URL(returnPath, request.url);
+    errorUrl.searchParams.set("error", message);
 
-    return NextResponse.redirect(
-      new URL(`/beta?error=${encodeURIComponent(message)}`, request.url),
-    );
+    return NextResponse.redirect(errorUrl);
   }
 }

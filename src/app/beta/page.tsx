@@ -110,7 +110,7 @@ export default async function BetaPage({
               className="min-h-12 w-fit bg-cream px-7 text-base text-dusk-deep hover:bg-glow"
               size="lg"
             >
-              <a href="/api/auth/youtube">
+              <a href="/api/auth/youtube?next=/beta">
                 {t("beta.signInGoogle")}
               </a>
             </Button>

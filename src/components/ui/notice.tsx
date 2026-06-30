@@ -5,6 +5,7 @@ const tones = {
   success: "bg-sage-soft",
   error: "bg-clay-soft",
   info: "bg-sky-soft",
+  warning: "bg-sand-soft",
 } as const;
 
 /** Soft, tinted message banner for sync results, errors, and hints. */
