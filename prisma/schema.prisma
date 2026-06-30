@@ -70,6 +70,9 @@ enum AssistantSignalType {
   BUY_RISK
   RETURN_CANDIDATE
   RELEASE_CANDIDATE
+  FINISH_BEFORE_RELEASE
+  RISKY_TO_START_BEFORE_RELEASE
+  UPCOMING_RELEASE_WATCH
 }
 
 enum BetaTesterStatus {
@@ -149,6 +152,8 @@ model Game {
   metacriticScore          Int?
   metacriticUrl            String?
   metacriticUpdatedAt      DateTime?
+  upcomingReleases         Json?
+  upcomingReleasesCheckedAt DateTime?
   createdAt                DateTime           @default(now())
   updatedAt                DateTime           @updatedAt
   providerLinks            GameProviderLink[]

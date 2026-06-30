@@ -6,6 +6,7 @@ import {
   UserGameStatus,
 } from "@prisma/client";
 import { estimateRemainingTime, isEntryFinished } from "../time-estimates.ts";
+import { normalizeTitle } from "../utils.ts";
 
 export type AssistantReason = {
   code: string;
@@ -27,6 +28,7 @@ export type AssistantGame = {
   id: string;
   slug: string;
   name: string;
+  igdbId?: number | null;
   summary?: string | null;
   genres?: unknown;
   platforms?: unknown;
@@ -35,6 +37,8 @@ export type AssistantGame = {
   hltbMainStoryMinutes?: number | null;
   hltbMainExtraMinutes?: number | null;
   hltbCompletionistMinutes?: number | null;
+  upcomingReleases?: unknown;
+  upcomingReleasesCheckedAt?: Date | null;
   providerLinks?: Array<{
     provider: ExternalProvider;
     hasStoreUrl: boolean;
@@ -71,6 +75,28 @@ export type LibrarySummary = {
 };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const RELEASE_SIGNAL_WINDOW_DAYS = 180;
+const RELEASE_FINISH_MINUTES_PER_DAY = 45;
+const RELEASE_MIN_ACTION_WINDOW_MINUTES = 240;
+const TITLE_FAMILY_STOP_WORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "complete",
+  "definitive",
+  "deluxe",
+  "edition",
+  "editions",
+  "game",
+  "goty",
+  "of",
+  "remake",
+  "remaster",
+  "remastered",
+  "the",
+  "ultimate",
+  "year",
+]);
 
 function clampScore(value: number) {
   return Math.min(100, Math.max(0, Math.round(value)));
@@ -118,6 +144,227 @@ export function readStringList(value: unknown): string[] {
       return "";
     })
     .filter(Boolean);
+}
+
+type CachedUpcomingRelease = {
+  igdbId: number | null;
+  title: string;
+  releaseDate: string;
+  relationType: string;
+  parentGameIgdbId: number | null;
+  franchiseNames: string[];
+  collectionNames: string[];
+};
+
+type UpcomingReleaseCache = {
+  sourceGameName: string;
+  franchiseNames: string[];
+  collectionNames: string[];
+  releases: CachedUpcomingRelease[];
+};
+
+type UpcomingReleaseContext = {
+  sourceEntryId: string;
+  sourceGameId: string;
+  sourceGameName: string;
+  release: CachedUpcomingRelease;
+  releaseDate: Date;
+  daysUntilRelease: number;
+  familyKeys: Set<string>;
+};
+
+type UpcomingReleaseMatch = {
+  context: UpcomingReleaseContext;
+  matchType: "direct" | "series";
+};
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === "object" && !Array.isArray(value));
+}
+
+function readStringArray(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function readNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function readUpcomingReleaseCache(value: unknown): UpcomingReleaseCache | null {
+  if (!isObject(value) || !Array.isArray(value.releases)) {
+    return null;
+  }
+
+  const sourceGame = isObject(value.sourceGame) ? value.sourceGame : null;
+  const relationKeys = isObject(value.relationKeys) ? value.relationKeys : null;
+  const sourceGameName =
+    typeof sourceGame?.name === "string" ? sourceGame.name : null;
+  if (!sourceGameName) {
+    return null;
+  }
+
+  return {
+    sourceGameName,
+    franchiseNames: readStringArray(relationKeys?.franchiseNames),
+    collectionNames: readStringArray(relationKeys?.collectionNames),
+    releases: value.releases
+      .map((release) => {
+        if (!isObject(release)) {
+          return null;
+        }
+
+        const title = release.title;
+        const releaseDate = release.releaseDate;
+        const relationType = release.relationType;
+        if (
+          typeof title !== "string" ||
+          typeof releaseDate !== "string" ||
+          typeof relationType !== "string"
+        ) {
+          return null;
+        }
+
+        return {
+          igdbId: readNumber(release.igdbId),
+          title,
+          releaseDate,
+          relationType,
+          parentGameIgdbId: readNumber(release.parentGameIgdbId),
+          franchiseNames: readStringArray(release.franchiseNames),
+          collectionNames: readStringArray(release.collectionNames),
+        } satisfies CachedUpcomingRelease;
+      })
+      .filter(
+        (release): release is CachedUpcomingRelease => release !== null,
+      ),
+  };
+}
+
+function getTitleFamilyKey(value: string) {
+  const root = value.split(/[:(]|\s+-\s+/)[0] ?? value;
+  const tokens = normalizeTitle(root)
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .filter(
+      (token) =>
+        !TITLE_FAMILY_STOP_WORDS.has(token) &&
+        !/^\d+$/.test(token) &&
+        !/^(i|ii|iii|iv|v|vi|vii|viii|ix|x)$/i.test(token),
+    );
+
+  if (tokens.length >= 2) {
+    return tokens.slice(0, 2).join(" ");
+  }
+
+  if (tokens[0] && tokens[0].length >= 5) {
+    return tokens[0];
+  }
+
+  return null;
+}
+
+function getReleaseFamilyKeys(
+  cache: UpcomingReleaseCache,
+  release: CachedUpcomingRelease,
+) {
+  return new Set(
+    [
+      cache.sourceGameName,
+      release.title,
+      ...cache.franchiseNames,
+      ...cache.collectionNames,
+      ...release.franchiseNames,
+      ...release.collectionNames,
+    ]
+      .map(getTitleFamilyKey)
+      .filter((key): key is string => Boolean(key)),
+  );
+}
+
+function buildUpcomingReleaseContexts(
+  entries: AssistantEntry[],
+  now: Date,
+): UpcomingReleaseContext[] {
+  const contexts: UpcomingReleaseContext[] = [];
+
+  for (const entry of entries) {
+    if (!isEntryFinished(entry)) {
+      continue;
+    }
+
+    const cache = readUpcomingReleaseCache(entry.game.upcomingReleases);
+    if (!cache) {
+      continue;
+    }
+
+    for (const release of cache.releases) {
+      const releaseDate = new Date(release.releaseDate);
+      if (!Number.isFinite(releaseDate.getTime())) {
+        continue;
+      }
+
+      const daysUntilRelease = Math.ceil(
+        (releaseDate.getTime() - now.getTime()) / DAY_MS,
+      );
+      if (
+        daysUntilRelease < 0 ||
+        daysUntilRelease > RELEASE_SIGNAL_WINDOW_DAYS
+      ) {
+        continue;
+      }
+
+      contexts.push({
+        sourceEntryId: entry.id,
+        sourceGameId: entry.game.id,
+        sourceGameName: cache.sourceGameName,
+        release,
+        releaseDate,
+        daysUntilRelease,
+        familyKeys: getReleaseFamilyKeys(cache, release),
+      });
+    }
+  }
+
+  return contexts.sort(
+    (left, right) =>
+      left.releaseDate.getTime() - right.releaseDate.getTime(),
+  );
+}
+
+function getBestUpcomingReleaseMatch(
+  entry: AssistantEntry,
+  contexts: UpcomingReleaseContext[],
+): UpcomingReleaseMatch | null {
+  const entryIgdbId = entry.game.igdbId ?? null;
+  const entryFamilyKey = getTitleFamilyKey(entry.game.name);
+  const matches = contexts
+    .map((context): UpcomingReleaseMatch | null => {
+      if (
+        entryIgdbId &&
+        (context.release.parentGameIgdbId === entryIgdbId ||
+          context.release.igdbId === entryIgdbId)
+      ) {
+        return { context, matchType: "direct" };
+      }
+
+      if (entryFamilyKey && context.familyKeys.has(entryFamilyKey)) {
+        return { context, matchType: "series" };
+      }
+
+      return null;
+    })
+    .filter((match): match is UpcomingReleaseMatch => match !== null);
+
+  return matches.sort((left, right) => {
+    if (left.matchType !== right.matchType) {
+      return left.matchType === "direct" ? -1 : 1;
+    }
+
+    return left.context.daysUntilRelease - right.context.daysUntilRelease;
+  })[0] ?? null;
 }
 
 function genreOverlap(left: AssistantEntry, right: AssistantEntry) {
@@ -349,6 +596,119 @@ function getWishlistRiskInsight(entry: AssistantEntry, entries: AssistantEntry[]
   };
 }
 
+function formatIsoDate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function getReleaseAwareInsight(
+  entry: AssistantEntry,
+  contexts: UpcomingReleaseContext[],
+): AssistantInsight | null {
+  if (
+    entry.status === UserGameStatus.WISHLIST ||
+    entry.activeBacklog === false
+  ) {
+    return null;
+  }
+
+  const match = getBestUpcomingReleaseMatch(entry, contexts);
+  if (!match) {
+    return null;
+  }
+
+  const { context, matchType } = match;
+  const remainingTime = estimateRemainingTime(entry);
+  const actionWindowMinutes = Math.max(
+    RELEASE_MIN_ACTION_WINDOW_MINUTES,
+    context.daysUntilRelease * RELEASE_FINISH_MINUTES_PER_DAY,
+  );
+  const remainingMinutes = remainingTime?.remainingMinutes ?? null;
+  const tooLongForWindow =
+    remainingMinutes !== null && remainingMinutes > actionWindowMinutes;
+  const shortEnoughForWindow =
+    remainingMinutes !== null && remainingMinutes <= actionWindowMinutes;
+  const hasStarted = (entry.playtimeMinutes ?? 0) > 0;
+  const releaseEvidence = `${context.release.title} is dated ${formatIsoDate(
+    context.releaseDate,
+  )}, ${context.daysUntilRelease} days from now.`;
+  const historyEvidence =
+    context.sourceGameId === entry.game.id
+      ? `${entry.game.name} has a related upcoming release in the shared catalog.`
+      : `You have credits rolled on ${context.sourceGameName}, which looks related to ${entry.game.name}.`;
+  const timeEvidence =
+    remainingMinutes !== null && remainingTime
+      ? `${entry.game.name} has ${formatRemainingMinutes(
+          remainingMinutes,
+        )} based on ${remainingTime.targetLabel}.`
+      : `${entry.game.name} does not have enough time-estimate data yet.`;
+  const confidenceBase = matchType === "direct" ? 86 : 70;
+
+  if (tooLongForWindow) {
+    return {
+      entryId: entry.id,
+      signalType: AssistantSignalType.RISKY_TO_START_BEFORE_RELEASE,
+      friction: BacklogFriction.TIME_COMMITMENT,
+      score: clampScore(
+        82 +
+          Math.max(0, RELEASE_SIGNAL_WINDOW_DAYS - context.daysUntilRelease) /
+            5,
+      ),
+      confidence: confidenceBase,
+      reasons: [
+        buildReason("related_release", "New release soon", releaseEvidence),
+        buildReason("finished_history", "Finished history", historyEvidence),
+        buildReason("too_long", "Long for the window", timeEvidence),
+      ],
+      suggestedAction:
+        "Do not start this for the launch window; keep it for later unless you want it for its own sake.",
+    };
+  }
+
+  if (shortEnoughForWindow) {
+    return {
+      entryId: entry.id,
+      signalType: AssistantSignalType.FINISH_BEFORE_RELEASE,
+      friction: BacklogFriction.COMPLETION_PRESSURE,
+      score: clampScore(
+        84 +
+          Math.max(0, RELEASE_SIGNAL_WINDOW_DAYS - context.daysUntilRelease) /
+            6 +
+          (entry.status === UserGameStatus.PLAYING ? 8 : 0),
+      ),
+      confidence: confidenceBase,
+      reasons: [
+        buildReason("related_release", "New release soon", releaseEvidence),
+        buildReason("finished_history", "Finished history", historyEvidence),
+        buildReason("finish_window", "Fits the window", timeEvidence),
+      ],
+      suggestedAction:
+        "Make this the related-game pick if you want to arrive warm; it looks short enough to finish before launch.",
+    };
+  }
+
+  if (!hasStarted && entry.status !== UserGameStatus.PLAYING) {
+    return null;
+  }
+
+  return {
+    entryId: entry.id,
+    signalType: AssistantSignalType.UPCOMING_RELEASE_WATCH,
+    friction: BacklogFriction.UNKNOWN,
+    score: clampScore(
+      60 +
+        Math.max(0, RELEASE_SIGNAL_WINDOW_DAYS - context.daysUntilRelease) / 8,
+    ),
+    confidence: Math.max(55, confidenceBase - 15),
+    reasons: [
+      buildReason("related_release", "New release soon", releaseEvidence),
+      buildReason("finished_history", "Finished history", historyEvidence),
+      buildReason("missing_time_estimate", "Missing time estimate", timeEvidence),
+    ],
+    suggestedAction:
+      "Keep this nearby only if it already fits the mood; the catalog needs more time data before making a stronger call.",
+  };
+}
+
 function getReleaseCandidateInsight(entry: AssistantEntry, now: Date): AssistantInsight | null {
   if (
     isEntryFinished(entry) ||
@@ -439,6 +799,7 @@ export function buildLibrarySummary(entries: AssistantEntry[]): LibrarySummary {
 
 export function scoreBacklogEntries(entries: AssistantEntry[], now = new Date()) {
   const insights: AssistantInsight[] = [];
+  const upcomingReleaseContexts = buildUpcomingReleaseContexts(entries, now);
 
   for (const entry of entries) {
     if (entry.activeBacklog === false || isEntryFinished(entry)) {
@@ -453,6 +814,7 @@ export function scoreBacklogEntries(entries: AssistantEntry[], now = new Date())
         getFinishableSoonInsight(entry),
         getLikelyFinishedInsight(entry, now),
         getWishlistRiskInsight(entry, entries),
+        getReleaseAwareInsight(entry, upcomingReleaseContexts),
         getReleaseCandidateInsight(entry, now),
       ].filter((insight): insight is AssistantInsight => Boolean(insight)),
     );

@@ -89,6 +89,60 @@ test("short HLTB remaining time can make a game finishable soon", () => {
   );
 });
 
+test("finished history can make a related short game worth finishing before release", () => {
+  const insights = scoreBacklogEntries([
+    createEntry({
+      name: "Hollow Knight",
+      status: UserGameStatus.COMPLETED,
+      igdbId: 1,
+      upcomingReleases: createReleaseCache({
+        releaseDate: "2026-07-01",
+        releaseTitle: "Hollow Knight: Silksong",
+        sourceIgdbId: 1,
+        sourceName: "Hollow Knight",
+      }),
+    }),
+    createEntry({
+      name: "Hollow Knight: Voidheart Edition",
+      status: UserGameStatus.BACKLOG,
+      igdbId: 2,
+      playtimeMinutes: 300,
+      hltbMainStoryMinutes: 600,
+    }),
+  ], now);
+
+  assert.ok(
+    insights.some((insight) => insight.signalType === AssistantSignalType.FINISH_BEFORE_RELEASE),
+  );
+});
+
+test("long related games are marked as risky starts near an upcoming release", () => {
+  const insights = scoreBacklogEntries([
+    createEntry({
+      name: "Dark Souls",
+      status: UserGameStatus.COMPLETED,
+      igdbId: 10,
+      upcomingReleases: createReleaseCache({
+        releaseDate: "2026-06-10",
+        releaseTitle: "Dark Souls IV",
+        sourceIgdbId: 10,
+        sourceName: "Dark Souls",
+      }),
+    }),
+    createEntry({
+      name: "Dark Souls II",
+      status: UserGameStatus.BACKLOG,
+      igdbId: 11,
+      playtimeMinutes: 0,
+      hltbMainStoryMinutes: 2400,
+    }),
+  ], now);
+
+  assert.ok(
+    insights.some((insight) => insight.signalType === AssistantSignalType.RISKY_TO_START_BEFORE_RELEASE),
+  );
+});
+
 test("wishlist game similar to untouched owned games gets wishlist risk", () => {
   const insights = scoreBacklogEntries([
     createEntry({ name: "Wanted RPG", status: UserGameStatus.WISHLIST, genres: ["RPG"] }),
@@ -159,6 +213,8 @@ function createEntry({
   isFavorite = false,
   activeBacklog = true,
   genres = [],
+  igdbId = null,
+  upcomingReleases = null,
   hltbMainStoryMinutes = null,
   hltbMainExtraMinutes = null,
   hltbCompletionistMinutes = null,
@@ -176,12 +232,56 @@ function createEntry({
       id: `${name}-game`,
       slug: name.toLowerCase().replaceAll(" ", "-"),
       name,
+      igdbId,
       genres,
       platforms: [],
       aggregatedRating: null,
       hltbMainStoryMinutes,
       hltbMainExtraMinutes,
       hltbCompletionistMinutes,
+      upcomingReleases,
+      upcomingReleasesCheckedAt: upcomingReleases ? now : null,
     },
+  };
+}
+
+function createReleaseCache({
+  releaseDate,
+  releaseTitle,
+  sourceIgdbId,
+  sourceName,
+}) {
+  return {
+    version: 1,
+    source: "IGDB",
+    checkedAt: now.toISOString(),
+    horizonDays: 365,
+    sourceGame: {
+      igdbId: sourceIgdbId,
+      name: sourceName,
+      slug: null,
+      url: null,
+    },
+    relationKeys: {
+      franchiseNames: [],
+      collectionNames: [],
+    },
+    releases: [
+      {
+        provider: "IGDB",
+        providerGameId: String(sourceIgdbId + 100),
+        igdbId: sourceIgdbId + 100,
+        title: releaseTitle,
+        slug: null,
+        summary: null,
+        releaseDate: new Date(`${releaseDate}T00:00:00.000Z`).toISOString(),
+        relationType: "sequel_or_related",
+        gameType: null,
+        parentGameIgdbId: null,
+        url: null,
+        franchiseNames: [],
+        collectionNames: [],
+      },
+    ],
   };
 }

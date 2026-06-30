@@ -830,6 +830,9 @@ const messages = {
     "signal.BUY_RISK": "pause before buying",
     "signal.RETURN_CANDIDATE": "worth a gentle return",
     "signal.RELEASE_CANDIDATE": "ready to release",
+    "signal.FINISH_BEFORE_RELEASE": "finish before launch",
+    "signal.RISKY_TO_START_BEFORE_RELEASE": "poor launch-window start",
+    "signal.UPCOMING_RELEASE_WATCH": "new release soon",
 
     "statusMessage.steamRefreshed": "Steam refreshed. {count} games updated.",
     "statusMessage.profileCreated":
@@ -1785,6 +1788,9 @@ const messages = {
     "signal.BUY_RISK": "espere antes de comprar",
     "signal.RETURN_CANDIDATE": "vale um retorno leve",
     "signal.RELEASE_CANDIDATE": "pronto para liberar",
+    "signal.FINISH_BEFORE_RELEASE": "terminar antes do lançamento",
+    "signal.RISKY_TO_START_BEFORE_RELEASE": "ruim para começar agora",
+    "signal.UPCOMING_RELEASE_WATCH": "lançamento perto",
 
     "statusMessage.steamRefreshed": "Steam atualizada. {count} jogos mudaram.",
     "statusMessage.profileCreated":

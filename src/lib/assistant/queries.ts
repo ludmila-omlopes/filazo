@@ -20,6 +20,7 @@ import {
   type AssistantInsight,
 } from "@/lib/assistant/scoring";
 import { prisma } from "@/lib/prisma";
+import { refreshUpcomingReleaseCachesForEntries } from "@/lib/upcoming-releases";
 
 export type AssistantProfileData = Awaited<ReturnType<typeof getAssistantProfileData>>;
 
@@ -103,6 +104,7 @@ function toAssistantEntry(
       id: entry.game.id,
       slug: entry.game.slug,
       name: entry.game.name,
+      igdbId: entry.game.igdbId,
       summary: entry.game.summary,
       genres: entry.game.genres,
       platforms: entry.game.platforms,
@@ -111,6 +113,8 @@ function toAssistantEntry(
       hltbMainStoryMinutes: entry.game.hltbMainStoryMinutes,
       hltbMainExtraMinutes: entry.game.hltbMainExtraMinutes,
       hltbCompletionistMinutes: entry.game.hltbCompletionistMinutes,
+      upcomingReleases: entry.game.upcomingReleases,
+      upcomingReleasesCheckedAt: entry.game.upcomingReleasesCheckedAt,
       providerLinks: entry.game.providerLinks.map((link) => ({
         provider: link.provider,
         hasStoreUrl: Boolean(link.storeUrl),
@@ -639,7 +643,7 @@ export async function getAssistantSignalEntryIds(
 }
 
 export async function refreshAssistantInsightsForUser(userId: string) {
-  const [entries, latestRun] = await Promise.all([
+  const [initialEntries, latestRun] = await Promise.all([
     prisma.userGameEntry.findMany({
       where: { userId },
       include: {
@@ -658,6 +662,21 @@ export async function refreshAssistantInsightsForUser(userId: string) {
       orderBy: { createdAt: "desc" },
     }),
   ]);
+  let entries = initialEntries;
+  const releaseRefresh = await refreshUpcomingReleaseCachesForEntries(entries);
+  if (releaseRefresh.updatedCount > 0) {
+    entries = await prisma.userGameEntry.findMany({
+      where: { userId },
+      include: {
+        game: {
+          include: {
+            providerLinks: true,
+          },
+        },
+      },
+    });
+  }
+
   const assistantEntries = entries.map(toAssistantEntry);
   const ruleInsights = scoreBacklogEntries(assistantEntries);
   const userLibrarySummary = buildLibrarySummary(assistantEntries);
@@ -723,6 +742,7 @@ export async function refreshAssistantInsightsForUser(userId: string) {
         userLibrarySummary,
         insightCount: ruleInsights.length,
         recommendationCandidateCount: assistantEntries.length,
+        releaseRefresh,
         ai: {
           allowAi: aiDecision.allowAi,
           skippedReason: aiDecision.skippedReason,
@@ -789,6 +809,7 @@ export function selectPlayNext(insights: AssistantInsightPayload[]) {
   }
 
   return [
+    bySignal.get(AssistantSignalType.FINISH_BEFORE_RELEASE),
     bySignal.get(AssistantSignalType.FINISHABLE_SOON),
     bySignal.get(AssistantSignalType.STALE_PLAYING),
     bySignal.get(AssistantSignalType.SAMPLED_DROPPED),
