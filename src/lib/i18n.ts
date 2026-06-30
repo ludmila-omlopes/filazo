@@ -78,6 +78,15 @@ const messages = {
       "Public registrations are closed. If you do not have an account yet, request access through the beta tester signup.",
     "auth.dialog.requestBeta": "Request beta access",
     "auth.signOut": "Sign out",
+    "auth.browserRequired.kicker": "Google sign-in",
+    "auth.browserRequired.title": "Open filazo in your browser to continue.",
+    "auth.browserRequired.body":
+      "Google blocks sign-in inside embedded browsers like Threads, Instagram, and Facebook. Open this page in Chrome, Safari, Edge, or another regular browser, then try Google sign-in again.",
+    "auth.browserRequired.notice":
+      "If you are seeing this inside an app, use that app's browser menu and choose Open in browser.",
+    "auth.browserRequired.addressLabel": "filazo address",
+    "auth.browserRequired.back": "Back to filazo",
+    "auth.browserRequired.open": "Open filazo",
 
     "auth.error.invalidEmailOrPassword":
       "Use a valid email and a password with at least 8 characters.",
@@ -1013,6 +1022,15 @@ const messages = {
       "Novos registros estão fechados. Se você ainda não tem conta, solicite acesso pelo cadastro de beta tester.",
     "auth.dialog.requestBeta": "Solicitar acesso beta",
     "auth.signOut": "Sair",
+    "auth.browserRequired.kicker": "Login com Google",
+    "auth.browserRequired.title": "Abra a filazo no navegador para continuar.",
+    "auth.browserRequired.body":
+      "O Google bloqueia login dentro de navegadores internos de apps como Threads, Instagram e Facebook. Abra esta página no Chrome, Safari, Edge ou outro navegador comum e tente o login com Google de novo.",
+    "auth.browserRequired.notice":
+      "Se você está vendo isto dentro de um app, use o menu do navegador desse app e escolha Abrir no navegador.",
+    "auth.browserRequired.addressLabel": "Endereço da filazo",
+    "auth.browserRequired.back": "Voltar para a filazo",
+    "auth.browserRequired.open": "Abrir filazo",
 
     "auth.error.invalidEmailOrPassword":
       "Use um e-mail válido e uma senha com pelo menos 8 caracteres.",
