@@ -194,6 +194,11 @@ const messages = {
       "This area is restricted to the admin. Sign in with Google using ludmila.omlopes@gmail.com.",
     "admin.signInGoogle": "Sign in with Google",
     "admin.reviewed": "Request updated.",
+    "admin.email.sent": "Approval email sent.",
+    "admin.email.skipped":
+      "Approval updated, but the email was not sent because email is not fully configured.",
+    "admin.email.failed":
+      "Approval updated, but the email failed. Send it manually for now.",
     "admin.kicker": "Admin",
     "admin.title": "Beta testers",
     "admin.body":
@@ -214,6 +219,9 @@ const messages = {
     "admin.approve": "Approve",
     "admin.reject": "Decline",
     "admin.empty": "No application has been submitted yet.",
+    "admin.approvedEmails.kicker": "Manual email fallback",
+    "admin.approvedEmails.title": "Approved tester emails",
+    "admin.approvedEmails.empty": "No approved testers yet.",
     "admin.error.justificationRequired":
       "Justification is required to approve or decline.",
     "admin.ai.kicker": "AI controls",
@@ -1141,6 +1149,11 @@ const messages = {
       "Esta área é restrita ao admin. Entre com o Google usando ludmila.omlopes@gmail.com.",
     "admin.signInGoogle": "Entrar com Google",
     "admin.reviewed": "Solicitação atualizada.",
+    "admin.email.sent": "E-mail de aprovação enviado.",
+    "admin.email.skipped":
+      "Aprovação atualizada, mas o e-mail não foi enviado porque o envio não está totalmente configurado.",
+    "admin.email.failed":
+      "Aprovação atualizada, mas o e-mail falhou. Envie manualmente por enquanto.",
     "admin.kicker": "Admin",
     "admin.title": "Beta testers",
     "admin.body":
@@ -1161,6 +1174,9 @@ const messages = {
     "admin.approve": "Aprovar",
     "admin.reject": "Recusar",
     "admin.empty": "Nenhuma solicitação enviada ainda.",
+    "admin.approvedEmails.kicker": "Fallback manual de e-mail",
+    "admin.approvedEmails.title": "E-mails de testers aprovados",
+    "admin.approvedEmails.empty": "Nenhum tester aprovado ainda.",
     "admin.error.justificationRequired":
       "Justificativa obrigatória para aprovar ou recusar.",
     "admin.ai.kicker": "Controles de IA",

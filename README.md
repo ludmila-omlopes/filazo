@@ -86,6 +86,7 @@ Optional, depending on what you want to use:
 
 - Steam Web API key for owned library sync
 - Google OAuth credentials for existing Google login and beta tester access requests
+- Resend credentials for automatic beta approval emails
 - Microsoft OAuth app credentials for Xbox account sync
 - IGDB client credentials for metadata enrichment
 
@@ -118,6 +119,12 @@ XBOX_CLIENT_SECRET=""
 IGDB_CLIENT_ID=""
 IGDB_CLIENT_SECRET=""
 
+# Transactional email for beta approvals
+RESEND_API_KEY=""
+BETA_APPROVAL_FROM_EMAIL=""
+BETA_APPROVAL_REPLY_TO=""
+BETA_DISCORD_INVITE_URL=""
+
 # Optional AI assistant
 # OPENAI_BASE_URL points OpenAI-compatible chat/responses calls at any gateway.
 # Leave unset for OpenAI, or use a gateway like OpenRouter for more model
@@ -142,6 +149,7 @@ Notes:
 - `AUTH_SECRET` should be a long random string in any non-local environment.
 - `DATABASE_URL` is required for catalog features and must point to a PostgreSQL database.
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable the Google button in the login popup and the beta access login. Add both `${APP_URL}/api/auth/google/callback` and `${APP_URL}/api/auth/youtube/callback` as authorized redirect URIs in Google Cloud. The beta access flow uses Google identity scopes only (`openid email profile`), which avoids the blocked-app behavior triggered by unnecessary YouTube scopes.
+- `RESEND_API_KEY` and `BETA_APPROVAL_FROM_EMAIL` enable automatic approval emails when an admin approves a beta tester. `BETA_APPROVAL_REPLY_TO` is optional. `BETA_DISCORD_INVITE_URL` adds the beta Discord invite to the approval email. If Resend is not configured, approvals still succeed and the app logs that the email was skipped.
 - `STEAM_API_KEY` is required for owned library sync. Steam sign-in itself uses OpenID.
 - PlayStation sync does not require an app key. Users provide an NPSSO token in the profile page; the app exchanges it for PlayStation API tokens, stores encrypted refresh/access tokens, and does not store the NPSSO.
 - `XBOX_CLIENT_ID` is required for Xbox account sync. Register a Microsoft OAuth app for personal Microsoft accounts and add `${APP_URL}/api/auth/xbox/callback` as a web redirect URI. `XBOX_CLIENT_SECRET` is recommended for web app token exchange.
@@ -282,7 +290,7 @@ sync after Steam sign-in.
 1. Logged-out users open the login popup from the header, home page, or `/login`.
 2. Existing users can enter a first-party filazo account with email/password or continue with an already known Google account.
 3. New public registrations are closed. New beta candidates use `/beta`, sign in with Google, and submit their name plus played platforms, including an open retrogames field.
-4. The admin area at `/admin` is restricted to `ludmila.omlopes@gmail.com`. It can approve or reject beta testers with a required justification and configure global AI feature toggles, budgets, and per-feature limits.
+4. The admin area at `/admin` is restricted to `ludmila.omlopes@gmail.com`. It can approve or reject beta testers with a required justification, send an approval email when Resend is configured, and configure global AI feature toggles, budgets, and per-feature limits.
 5. Approved beta testers receive full platform access for 1 year from approval.
 6. Logged-in users manage Steam, PlayStation, and Xbox from `/profile?tab=integrations`.
 7. Disconnecting a provider deletes the `ExternalAccount` row and removes stored external credentials or account links.
