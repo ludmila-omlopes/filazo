@@ -766,3 +766,31 @@ export async function syncXboxLibraryForAccount(account: ExternalAccount) {
     profile,
   };
 }
+
+export async function fetchXboxAchievementProgressForTitle(
+  account: ExternalAccount,
+  providerGameIds: string[],
+) {
+  const { authorization } = await getAuthorizationForAccount(account);
+  const [achievementTitles, titleHubTitles] = await Promise.all([
+    fetchAchievementTitleHistory(authorization),
+    fetchTitleHubHistory(authorization).catch(() => []),
+  ]);
+  const games = mergeXboxTitles(achievementTitles, titleHubTitles);
+  const providerGameIdSet = new Set(providerGameIds);
+  const game = games.find((candidate) =>
+    [candidate.providerGameId, ...(candidate.providerGameIds ?? [])].some(
+      (providerGameId) => providerGameIdSet.has(providerGameId),
+    ),
+  );
+
+  if (!game) {
+    return null;
+  }
+
+  return {
+    completionPercent: game.completionPercent,
+    lastPlayedAt: game.lastPlayedAt,
+    rawData: game.rawData,
+  };
+}

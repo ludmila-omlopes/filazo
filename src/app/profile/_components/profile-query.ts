@@ -69,6 +69,14 @@ export function parseActiveTab(value: string | undefined): ProfileTab {
     return "journal";
   }
 
+  if (
+    value === "player-profile" ||
+    value === "playerProfile" ||
+    value === "profile"
+  ) {
+    return "playerProfile";
+  }
+
   if (value === "integrations" || value === "sources") {
     return "integrations";
   }

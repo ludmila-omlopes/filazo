@@ -32,7 +32,7 @@ function formatAssistantCooldown(
     : t("assistant.tab.inMinutes", { count: minutes });
 }
 
-export function AssistantCorner({
+export function PlayerProfileTab({
   aiSettings,
   locale,
   playerProfile,

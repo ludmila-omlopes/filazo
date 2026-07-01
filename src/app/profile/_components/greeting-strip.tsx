@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { createTranslator, type Locale } from "@/lib/i18n";
-import { formatNumber } from "@/lib/utils";
 import type { ProfileData } from "./profile-types";
 
 function getGreetingLine(locale: Locale) {
@@ -26,7 +25,6 @@ export function GreetingStrip({
   locale: Locale;
   profile: ProfileData;
 }) {
-  const connectedCount = profile.user.externalAccounts.length;
   const t = createTranslator(locale);
 
   return (
@@ -40,17 +38,7 @@ export function GreetingStrip({
           <p className="mt-2 max-w-[52ch] leading-relaxed text-ink-soft">
             {t("profile.greeting.body", {
               greeting: getGreetingLine(locale),
-              count: formatNumber(profile.user.gameEntries.length, locale),
             })}
-          </p>
-          <p className="mt-2 text-sm font-semibold text-ink-soft">
-            {connectedCount
-              ? connectedCount === 1
-                ? t("profile.greeting.connectedOne")
-                : t("profile.greeting.connectedMany", {
-                    count: formatNumber(connectedCount, locale),
-                  })
-              : t("profile.greeting.connectedNone")}
           </p>
         </div>
         <div className="flex flex-wrap justify-end gap-3 max-md:justify-start">

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { AssistantCorner, AssistantTab } from "./_components/assistant-tab";
+import { AssistantTab, PlayerProfileTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
 import { FavoriteGames } from "./_components/favorite-games";
 import { GreetingStrip } from "./_components/greeting-strip";
@@ -99,7 +99,9 @@ export default async function ProfilePage({
   const assistant =
     activeTab === "assistant" ? await getAssistantProfileData(userId) : null;
   const playerProfile =
-    activeTab === "overview" ? await getPlayerProfileForUser(userId) : null;
+    activeTab === "overview" || activeTab === "playerProfile"
+      ? await getPlayerProfileForUser(userId)
+      : null;
   const aiSettings = await getAiSettings();
   const signalEntryIds =
     activeTab === "games" && activeSignal
@@ -145,13 +147,16 @@ export default async function ProfilePage({
               profile={profile}
             />
             <PlayingNextPanel locale={locale} profile={profile} />
-            <AssistantCorner
-              aiSettings={aiSettings}
-              locale={locale}
-              playerProfile={playerProfile}
-              profile={profile}
-            />
           </>
+        ) : null}
+
+        {activeTab === "playerProfile" ? (
+          <PlayerProfileTab
+            aiSettings={aiSettings}
+            locale={locale}
+            playerProfile={playerProfile}
+            profile={profile}
+          />
         ) : null}
 
         {activeTab === "assistant" && assistant ? (

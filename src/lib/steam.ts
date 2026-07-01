@@ -45,7 +45,7 @@ type SteamPlayerAchievementsResponse = {
   };
 };
 
-type SteamAchievementCompletion = {
+export type SteamAchievementCompletion = {
   completionPercent: number | null;
   unlockedAchievements: number;
   totalAchievements: number;
@@ -253,7 +253,7 @@ async function fetchSteamAchievementCompletions(
   return completions;
 }
 
-async function fetchSteamAchievementCompletion(
+export async function fetchSteamAchievementCompletion(
   steamId: string,
   appId: number,
 ): Promise<SteamAchievementCompletion> {

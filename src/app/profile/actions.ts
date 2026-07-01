@@ -27,6 +27,10 @@ import {
 } from "@/lib/journal";
 import { connectPlayStationAccountForUser } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
+import {
+  refreshUserGameEntryProviderProgress,
+  type ProviderProgressRefreshStatus,
+} from "@/lib/provider-progress";
 import { getRequestLocale } from "@/lib/request-locale";
 import { syncUserReviews } from "@/lib/reviews";
 import { getSessionUserId } from "@/lib/session";
@@ -140,6 +144,14 @@ type PlayingNextSelection = {
 
 type CurrentPlayingSaveResult =
   | { ok: true }
+  | { ok: false; message: string };
+
+type CurrentPlayingGameActionResult =
+  | {
+      ok: true;
+      gameName: string;
+      providerRefreshStatus: ProviderProgressRefreshStatus;
+    }
   | { ok: false; message: string };
 
 function parseCurrentPlayingSelections(
@@ -1703,23 +1715,19 @@ export async function markFinishedAction(formData: FormData) {
   }
 }
 
-export async function markDroppedAction(formData: FormData) {
-  const userId = await getSessionUserId();
-  if (!userId) {
-    return;
-  }
-
-  const entryId = formData.get("entryId");
-  if (typeof entryId !== "string" || !entryId) {
-    return;
-  }
-
+async function markEntryDroppedForUser({
+  entryId,
+  userId,
+}: {
+  entryId: string;
+  userId: string;
+}) {
   const entry = await prisma.userGameEntry.findUnique({
     where: { id: entryId },
   });
 
   if (!entry || entry.userId !== userId) {
-    return;
+    return null;
   }
 
   const restoring = entry.status === UserGameStatus.DROPPED;
@@ -1785,6 +1793,156 @@ export async function markDroppedAction(formData: FormData) {
       },
     });
   }
+
+  return {
+    gameId: entry.gameId,
+    restoring,
+  };
+}
+
+export async function currentPlayingDropAction(
+  formData: FormData,
+): Promise<CurrentPlayingGameActionResult> {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return {
+      ok: false,
+      message: t("profileAction.needCurrentPlayingLogin"),
+    };
+  }
+
+  const entryId = formData.get("entryId");
+  if (typeof entryId !== "string" || !entryId) {
+    return {
+      ok: false,
+      message: t("profileAction.invalidCurrentPlaying"),
+    };
+  }
+
+  const entry = await prisma.userGameEntry.findFirst({
+    where: {
+      id: entryId,
+      userId,
+      currentPlayingSlot: {
+        not: null,
+      },
+    },
+    select: {
+      game: {
+        select: {
+          name: true,
+          slug: true,
+        },
+      },
+    },
+  });
+
+  if (!entry) {
+    return {
+      ok: false,
+      message: t("profileAction.invalidCurrentPlaying"),
+    };
+  }
+
+  await markEntryDroppedForUser({ entryId, userId });
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  revalidatePath(`/games/${entry.game.slug}`);
+
+  return {
+    ok: true,
+    gameName: entry.game.name,
+    providerRefreshStatus: "unavailable",
+  };
+}
+
+export async function currentPlayingFinishAction(
+  formData: FormData,
+): Promise<CurrentPlayingGameActionResult> {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return {
+      ok: false,
+      message: t("profileAction.needCurrentPlayingLogin"),
+    };
+  }
+
+  const entryId = formData.get("entryId");
+  if (typeof entryId !== "string" || !entryId) {
+    return {
+      ok: false,
+      message: t("profileAction.invalidCurrentPlaying"),
+    };
+  }
+
+  const entry = await prisma.userGameEntry.findFirst({
+    where: {
+      id: entryId,
+      userId,
+      currentPlayingSlot: {
+        not: null,
+      },
+    },
+    select: {
+      game: {
+        select: {
+          name: true,
+          slug: true,
+        },
+      },
+    },
+  });
+
+  if (!entry) {
+    return {
+      ok: false,
+      message: t("profileAction.invalidCurrentPlaying"),
+    };
+  }
+
+  await prisma.userGameEntry.update({
+    where: { id: entryId },
+    data: {
+      currentPlayingSlot: null,
+      finishedAt: new Date(),
+      finishedSource: "manual",
+      playingNextSlot: null,
+    },
+  });
+
+  const refreshResult = await refreshUserGameEntryProviderProgress({
+    entryId,
+    userId,
+  });
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  revalidatePath(`/games/${entry.game.slug}`);
+
+  return {
+    ok: true,
+    gameName: entry.game.name,
+    providerRefreshStatus: refreshResult.status,
+  };
+}
+
+export async function markDroppedAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return;
+  }
+
+  const entryId = formData.get("entryId");
+  if (typeof entryId !== "string" || !entryId) {
+    return;
+  }
+
+  await markEntryDroppedForUser({ entryId, userId });
 
   revalidatePath("/profile");
   revalidatePath("/");

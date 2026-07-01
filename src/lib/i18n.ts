@@ -252,9 +252,9 @@ const messages = {
     "profile.greeting.evening": "Good evening. Pick one, or just browse.",
     "profile.greeting.label": "Library home",
     "profile.greeting.body":
-      "{greeting} {count} games have a readable place here.",
-    "profile.greeting.connectedOne": "1 source connected.",
-    "profile.greeting.connectedMany": "{count} sources connected.",
+      "{greeting} Keep your attention on the three games you chose. The rest can wait.",
+    "profile.greeting.connectedOne": "Source connected.",
+    "profile.greeting.connectedMany": "Sources connected.",
     "profile.greeting.connectedNone": "No sources connected yet.",
     "profile.greeting.pickTonight": "Pick for tonight",
     "profile.greeting.browseShelf": "Browse shelf",
@@ -269,6 +269,8 @@ const messages = {
     "profile.rail.guideHint": "Gentle suggestions",
     "profile.rail.journal": "Journal",
     "profile.rail.journalHint": "Diary pages",
+    "profile.rail.playerProfile": "Profile",
+    "profile.rail.playerProfileHint": "Your player read",
     "profile.rail.setup": "Setup",
     "profile.rail.setupHint": "Preferences",
     "profile.rail.avatarAlt": "{name} avatar",
@@ -390,6 +392,22 @@ const messages = {
     "profile.currentPlaying.remove": "Remove {name}",
     "profile.currentPlaying.dragOut": "Drag out to remove",
     "profile.currentPlaying.fillOpenSpots": "Fill open spots",
+    "profile.currentPlaying.finish": "Finished",
+    "profile.currentPlaying.drop": "Drop game",
+    "profile.currentPlaying.removeFromView": "Unpin",
+    "profile.currentPlaying.actionFailed":
+      "That update did not save. Try again in a moment.",
+    "profile.currentPlaying.finishedDialogLabel": "Finished",
+    "profile.currentPlaying.finishedDialogTitle": "Credits rolled.",
+    "profile.currentPlaying.finishedDialogBody":
+      "{name} is off your active list. A good place to leave it.",
+    "profile.currentPlaying.dismissCelebration": "Close congratulations",
+    "profile.currentPlaying.refresh.refreshed":
+      "Achievement or trophy progress was refreshed.",
+    "profile.currentPlaying.refresh.unavailable":
+      "Provider progress was not available, so the finish was saved without it.",
+    "profile.currentPlaying.refresh.failed":
+      "Provider refresh did not complete, but the finish was saved.",
     "profile.currentPlaying.help":
       "Leave any slot empty to clear it. You can feature fewer than three games if that feels better.",
     "profile.currentPlaying.reason.playing":
@@ -1210,9 +1228,9 @@ const messages = {
     "profile.greeting.evening": "Boa noite. Escolha uma, ou só navegue.",
     "profile.greeting.label": "Início da biblioteca",
     "profile.greeting.body":
-      "{greeting} {count} jogos já têm um lugar legível aqui.",
-    "profile.greeting.connectedOne": "1 fonte conectada.",
-    "profile.greeting.connectedMany": "{count} fontes conectadas.",
+      "{greeting} Fique nos três jogos que você escolheu. O resto pode esperar.",
+    "profile.greeting.connectedOne": "Fonte conectada.",
+    "profile.greeting.connectedMany": "Fontes conectadas.",
     "profile.greeting.connectedNone": "Nenhuma fonte conectada ainda.",
     "profile.greeting.pickTonight": "Escolher para hoje",
     "profile.greeting.browseShelf": "Ver estante",
@@ -1227,6 +1245,8 @@ const messages = {
     "profile.rail.guideHint": "Sugestões leves",
     "profile.rail.journal": "Diário",
     "profile.rail.journalHint": "Páginas do diário",
+    "profile.rail.playerProfile": "Perfil",
+    "profile.rail.playerProfileHint": "Leitura da jogadora",
     "profile.rail.setup": "Ajustes",
     "profile.rail.setupHint": "Preferências",
     "profile.rail.avatarAlt": "avatar de {name}",
@@ -1348,6 +1368,22 @@ const messages = {
     "profile.currentPlaying.remove": "Remover {name}",
     "profile.currentPlaying.dragOut": 'Arraste para fora para remover',
     "profile.currentPlaying.fillOpenSpots": "Preencher espaços",
+    "profile.currentPlaying.finish": "Concluído",
+    "profile.currentPlaying.drop": "Largar jogo",
+    "profile.currentPlaying.removeFromView": "Tirar da lista",
+    "profile.currentPlaying.actionFailed":
+      "Essa atualização não foi salva. Tente de novo em instantes.",
+    "profile.currentPlaying.finishedDialogLabel": "Concluído",
+    "profile.currentPlaying.finishedDialogTitle": "Créditos concluídos.",
+    "profile.currentPlaying.finishedDialogBody":
+      "{name} saiu da sua lista ativa. Um bom lugar para deixar.",
+    "profile.currentPlaying.dismissCelebration": "Fechar parabéns",
+    "profile.currentPlaying.refresh.refreshed":
+      "O progresso de conquistas ou troféus foi atualizado.",
+    "profile.currentPlaying.refresh.unavailable":
+      "O progresso da fonte não estava disponível, então a conclusão foi salva sem isso.",
+    "profile.currentPlaying.refresh.failed":
+      "A atualização da fonte não terminou, mas a conclusão foi salva.",
     "profile.currentPlaying.help":
       "Deixe qualquer espaço vazio para limpar. Você pode destacar menos de três jogos se isso fizer mais sentido.",
     "profile.currentPlaying.reason.playing":

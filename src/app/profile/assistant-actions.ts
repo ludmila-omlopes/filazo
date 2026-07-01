@@ -52,7 +52,7 @@ export async function generatePlayerProfileAction() {
   const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect(`/profile?error=${encodeURIComponent(t("assistantAction.needProfileLogin"))}`);
+    redirect(`/profile?tab=player-profile&error=${encodeURIComponent(t("assistantAction.needProfileLogin"))}`);
   }
 
   let result: Awaited<ReturnType<typeof generatePlayerProfile>>;
@@ -63,16 +63,16 @@ export async function generatePlayerProfileAction() {
       error instanceof Error
         ? error.message
         : t("assistantAction.profileFailed");
-    redirect(`/profile?error=${encodeURIComponent(message)}`);
+    redirect(`/profile?tab=player-profile&error=${encodeURIComponent(message)}`);
   }
 
   if (result.status === "EMPTY") {
-    redirect("/profile?playerProfile=empty");
+    redirect("/profile?tab=player-profile&playerProfile=empty");
   }
 
   await savePlayerProfile(userId, result);
   revalidatePath("/profile");
-  redirect("/profile?playerProfile=updated");
+  redirect("/profile?tab=player-profile&playerProfile=updated");
 }
 
 export async function updateGameIntentAction(formData: FormData) {
