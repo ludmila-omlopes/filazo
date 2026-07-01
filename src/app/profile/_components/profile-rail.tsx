@@ -6,6 +6,7 @@ import {
   LibraryBig,
   SlidersHorizontal,
   Sparkles,
+  UserRound,
 } from "lucide-react";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { cn, formatNumber } from "@/lib/utils";
@@ -39,6 +40,13 @@ const railItems = [
     labelKey: "profile.rail.journal" as const,
     hintKey: "profile.rail.journalHint" as const,
     icon: BookOpen,
+  },
+  {
+    tab: "playerProfile" as const,
+    href: "/profile?tab=player-profile",
+    labelKey: "profile.rail.playerProfile" as const,
+    hintKey: "profile.rail.playerProfileHint" as const,
+    icon: UserRound,
   },
   {
     tab: "assistant" as const,
