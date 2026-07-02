@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { ExternalProvider, type ExternalAccount, type Prisma } from "@prisma/client";
+import { getAuthSecret } from "@/lib/auth-secret";
 import { prisma } from "@/lib/prisma";
 import type { ProviderProfile, SyncedLibraryGame } from "@/lib/providers/contracts";
 
@@ -142,7 +143,7 @@ export function createXboxAuthUrl(origin: string, state?: string) {
 }
 
 function getTokenEncryptionKey() {
-  const secret = process.env.AUTH_SECRET || "local-dev-secret-change-me";
+  const secret = getAuthSecret();
   return crypto.createHash("sha256").update(secret).digest();
 }
 
