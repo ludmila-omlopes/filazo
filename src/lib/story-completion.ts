@@ -9,6 +9,7 @@ import { getPlayStationAuthorizationForAccount } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
 import { getOpenAiConfig } from "@/lib/openai";
 import { runWithAiBudget } from "./ai-budget.ts";
+import { estimateTokensFromValue } from "./ai-estimates.ts";
 import { getAiSettings, type AiSettingsValues } from "./ai-settings.ts";
 import {
   classifyStoryAchievementHeuristically,
@@ -47,6 +48,11 @@ async function classifyStoryAchievementWithAi(
   try {
     return await runWithAiBudget({
       feature: "story_completion",
+      estimatedInputTokens: estimateTokensFromValue({
+        candidates,
+        gameName,
+      }),
+      estimatedOutputTokens: aiSettings.storyCompletionMaxOutputTokens,
       inputSummary: {
         candidateCount: candidates.length,
         gameName,
@@ -545,7 +551,7 @@ export async function detectFinishedGamesForUser(
 
   const resolveMemo = new Map<string, Promise<StoryAchievementResolution>>();
   const aiClassificationBudget = {
-    remaining: aiSettings.storyCompletionMaxClassificationsPerRun,
+    remaining: Number.POSITIVE_INFINITY,
   };
   const finishedTitles: string[] = [];
   let scannedCount = 0;

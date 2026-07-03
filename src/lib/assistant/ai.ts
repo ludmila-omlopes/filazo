@@ -10,6 +10,7 @@ import {
 import { getOpenAiConfig } from "../openai.ts";
 import { runWithAiBudget } from "../ai-budget.ts";
 import { getAiSettings } from "../ai-settings.ts";
+import { estimateTokensFromValue } from "../ai-estimates.ts";
 
 export type AssistantAiInput = {
   userLibrarySummary: LibrarySummary;
@@ -444,6 +445,11 @@ export async function recommendPlayNextGames(
   try {
     return await runWithAiBudget({
       feature: "assistant_play_next",
+      estimatedInputTokens: estimateTokensFromValue({
+        catalogContext: buildPlayNextContext(input),
+        ruleInsightCount: input.ruleInsights.length,
+      }),
+      estimatedOutputTokens: aiSettings.assistantPlayNextMaxOutputTokens,
       inputSummary: {
         candidateCount: input.entries.length,
         ruleInsightCount: input.ruleInsights.length,
@@ -594,6 +600,8 @@ export async function summarizeAssistantInsights(
   try {
     return await runWithAiBudget({
       feature: "assistant_summary",
+      estimatedInputTokens: estimateTokensFromValue(input),
+      estimatedOutputTokens: aiSettings.assistantSummaryMaxOutputTokens,
       inputSummary: {
         ruleInsightCount: input.ruleInsights.length,
       },

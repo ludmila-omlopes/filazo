@@ -1,5 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma.ts";
+import {
+  estimateAiCostUsd,
+  getAiEstimateConfig,
+} from "./ai-estimates.ts";
 import { getAiSettings, isAiFeatureEnabled } from "./ai-settings.ts";
 
 export type AiBudgetFeature =
@@ -9,15 +13,19 @@ export type AiBudgetFeature =
   | "photo_import"
   | "player_profile"
   | "story_completion"
-  | "voice_transcription"
-  | "voice_translation";
+  | "voice_transcription";
 
 type AiBudgetReservation = {
-  ids: string[];
+  countedCalls: number;
+  countedFiles: number;
+  estimatedInputTokens: number;
+  estimatedOutputTokens: number;
+  estimatedTokens: number;
+  estimatedUsd: number;
   feature: AiBudgetFeature;
   groupId: string;
+  id: string;
   model: string | null;
-  units: number;
   userId: string;
 };
 
@@ -29,10 +37,24 @@ type AiBudgetReserveResult =
   | {
       allowed: false;
       message: string;
-      reason: "FEATURE_DISABLED" | "USER_DAILY_LIMIT" | "GLOBAL_DAILY_LIMIT";
+      reason:
+        | "FEATURE_DISABLED"
+        | "USER_DAILY_SPEND_LIMIT"
+        | "FEATURE_DAILY_TOKEN_LIMIT"
+        | "FEATURE_DAILY_CALL_LIMIT"
+        | "FEATURE_DAILY_FILE_LIMIT"
+        | "FEATURE_WEEKLY_CALL_LIMIT";
     };
 
-const AI_BUDGET_WINDOW_MS = 24 * 60 * 60 * 1000;
+type BudgetUsage = {
+  calls: number;
+  files: number;
+  tokens: number;
+  usd: number;
+};
+
+const AI_BUDGET_DAY_MS = 24 * 60 * 60 * 1000;
+const AI_BUDGET_WEEK_MS = 7 * AI_BUDGET_DAY_MS;
 const AI_BUDGET_COUNTED_STATUSES = [
   "AI_BUDGET_RESERVED",
   "AI_BUDGET_USED",
@@ -46,16 +68,8 @@ export class AiBudgetExceededError extends Error {
   }
 }
 
-export async function getAiBudgetLimits() {
-  const settings = await getAiSettings();
-  return {
-    userDailyLimit: settings.userDailyLimit,
-    globalDailyLimit: settings.globalDailyLimit,
-  };
-}
-
-function getWindowStart(now: Date) {
-  return new Date(now.getTime() - AI_BUDGET_WINDOW_MS);
+function getWindowStart(now: Date, windowMs: number) {
+  return new Date(now.getTime() - windowMs);
 }
 
 function getCountedStatusFilter() {
@@ -71,56 +85,367 @@ function isSerializableConflict(error: unknown) {
   );
 }
 
-export async function getAiBudgetUsageForUser(userId: string, now = new Date()) {
-  const limits = await getAiBudgetLimits();
-  const oneDayAgo = getWindowStart(now);
-  const [userUsedToday, globalUsedToday] = await Promise.all([
-    prisma.assistantRun.count({
-      where: {
-        userId,
-        status: getCountedStatusFilter(),
-        createdAt: { gte: oneDayAgo },
-      },
-    }),
-    prisma.assistantRun.count({
-      where: {
-        status: getCountedStatusFilter(),
-        createdAt: { gte: oneDayAgo },
-      },
-    }),
-  ]);
-  const userRemainingToday = Math.max(
-    0,
-    limits.userDailyLimit - userUsedToday,
-  );
-  const globalRemainingToday = Math.max(
-    0,
-    limits.globalDailyLimit - globalUsedToday,
-  );
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readNumber(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function readFeature(value: unknown): AiBudgetFeature | null {
+  switch (value) {
+    case "assistant_chat":
+    case "assistant_play_next":
+    case "assistant_summary":
+    case "photo_import":
+    case "player_profile":
+    case "story_completion":
+    case "voice_transcription":
+      return value;
+    default:
+      return null;
+  }
+}
+
+function readUsageFromOutput(outputSummary: unknown) {
+  if (!isRecord(outputSummary)) {
+    return null;
+  }
+
+  const directInputTokens = readNumber(outputSummary.inputTokens);
+  const directOutputTokens = readNumber(outputSummary.outputTokens);
+  const directTotalTokens = readNumber(outputSummary.totalTokens);
+  if (directInputTokens || directOutputTokens || directTotalTokens) {
+    return {
+      inputTokens: directInputTokens,
+      outputTokens: directOutputTokens,
+      totalTokens: directTotalTokens || directInputTokens + directOutputTokens,
+    };
+  }
+
+  if (isRecord(outputSummary.usage)) {
+    const inputTokens = readNumber(outputSummary.usage.inputTokens);
+    const outputTokens = readNumber(outputSummary.usage.outputTokens);
+    const totalTokens = readNumber(outputSummary.usage.totalTokens);
+    return {
+      inputTokens,
+      outputTokens,
+      totalTokens: totalTokens || inputTokens + outputTokens,
+    };
+  }
+
+  return null;
+}
+
+function getBudgetUsageFromRun(run: {
+  inputSummary: Prisma.JsonValue;
+  outputSummary: Prisma.JsonValue;
+}) {
+  const inputSummary = isRecord(run.inputSummary) ? run.inputSummary : null;
+  if (inputSummary?.kind !== "ai_budget") {
+    return null;
+  }
+
+  const feature = readFeature(inputSummary.feature);
+  if (!feature) {
+    return null;
+  }
+
+  const estimatedUsage = isRecord(inputSummary.estimatedUsage)
+    ? inputSummary.estimatedUsage
+    : null;
+  const outputSummary = isRecord(run.outputSummary) ? run.outputSummary : null;
+  const actualUsage = outputSummary
+    ? readUsageFromOutput(outputSummary.output)
+    : null;
+  const estimatedInputTokens = readNumber(estimatedUsage?.inputTokens);
+  const estimatedOutputTokens = readNumber(estimatedUsage?.outputTokens);
+  const estimatedTokens =
+    readNumber(estimatedUsage?.totalTokens) ||
+    estimatedInputTokens + estimatedOutputTokens;
+  const actualTokens = actualUsage?.totalTokens ?? 0;
+  const inputTokens = actualUsage?.inputTokens ?? estimatedInputTokens;
+  const outputTokens = actualUsage?.outputTokens ?? estimatedOutputTokens;
+  const tokens = actualTokens || estimatedTokens;
+  const config = getAiEstimateConfig();
+  const usd = actualUsage
+    ? estimateAiCostUsd({
+        config,
+        inputTokens,
+        outputTokens,
+      })
+    : readNumber(estimatedUsage?.usd);
 
   return {
-    ...limits,
-    userUsedToday,
-    globalUsedToday,
-    userRemainingToday,
-    globalRemainingToday,
-    effectiveRemainingToday: Math.min(userRemainingToday, globalRemainingToday),
+    calls: Math.max(0, readNumber(inputSummary.countedCalls)),
+    feature,
+    files: Math.max(0, readNumber(inputSummary.countedFiles)),
+    tokens: Math.max(0, tokens),
+    usd: Math.max(0, usd),
   };
 }
 
+function addUsage(target: BudgetUsage, usage: BudgetUsage) {
+  target.calls += usage.calls;
+  target.files += usage.files;
+  target.tokens += usage.tokens;
+  target.usd += usage.usd;
+}
+
+function emptyUsage(): BudgetUsage {
+  return {
+    calls: 0,
+    files: 0,
+    tokens: 0,
+    usd: 0,
+  };
+}
+
+async function getBudgetUsage({
+  now,
+  userId,
+}: {
+  now: Date;
+  userId: string;
+}) {
+  const weekStart = getWindowStart(now, AI_BUDGET_WEEK_MS);
+  const dayStart = getWindowStart(now, AI_BUDGET_DAY_MS);
+  const runs = await prisma.assistantRun.findMany({
+    where: {
+      userId,
+      status: getCountedStatusFilter(),
+      createdAt: { gte: weekStart },
+    },
+    select: {
+      createdAt: true,
+      inputSummary: true,
+      outputSummary: true,
+    },
+  });
+  const daily = emptyUsage();
+  const weekly = emptyUsage();
+  const dailyByFeature = new Map<AiBudgetFeature, BudgetUsage>();
+  const weeklyByFeature = new Map<AiBudgetFeature, BudgetUsage>();
+
+  for (const run of runs) {
+    const usage = getBudgetUsageFromRun(run);
+    if (!usage) {
+      continue;
+    }
+
+    const budgetUsage = {
+      calls: usage.calls,
+      files: usage.files,
+      tokens: usage.tokens,
+      usd: usage.usd,
+    };
+    addUsage(weekly, budgetUsage);
+    addUsage(
+      weeklyByFeature.get(usage.feature) ?? weeklyByFeature.set(usage.feature, emptyUsage()).get(usage.feature)!,
+      budgetUsage,
+    );
+
+    if (run.createdAt >= dayStart) {
+      addUsage(daily, budgetUsage);
+      addUsage(
+        dailyByFeature.get(usage.feature) ?? dailyByFeature.set(usage.feature, emptyUsage()).get(usage.feature)!,
+        budgetUsage,
+      );
+    }
+  }
+
+  return {
+    daily,
+    dailyByFeature,
+    weekly,
+    weeklyByFeature,
+  };
+}
+
+export async function getAiBudgetUsageForUser(userId: string, now = new Date()) {
+  const [settings, usage] = await Promise.all([
+    getAiSettings(),
+    getBudgetUsage({ now, userId }),
+  ]);
+  const chatUsage = usage.dailyByFeature.get("assistant_chat") ?? emptyUsage();
+  const playNextUsage =
+    usage.dailyByFeature.get("assistant_play_next") ?? emptyUsage();
+  const profileWeeklyUsage =
+    usage.weeklyByFeature.get("player_profile") ?? emptyUsage();
+  const photoUsage = usage.dailyByFeature.get("photo_import") ?? emptyUsage();
+  const voiceUsage =
+    usage.dailyByFeature.get("voice_transcription") ?? emptyUsage();
+  const spendRemainingToday = Math.max(
+    0,
+    settings.userDailySpendLimitUsd - usage.daily.usd,
+  );
+  const chatRemainingTokens = Math.max(
+    0,
+    settings.chatDailyTokenLimit - chatUsage.tokens,
+  );
+  const playNextRemainingTokens = Math.max(
+    0,
+    settings.assistantPlayNextDailyTokenLimit - playNextUsage.tokens,
+  );
+
+  return {
+    assistantPlayNextDailyTokenLimit:
+      settings.assistantPlayNextDailyTokenLimit,
+    assistantPlayNextRemainingTokensToday: playNextRemainingTokens,
+    assistantPlayNextTokensUsedToday: playNextUsage.tokens,
+    chatDailyTokenLimit: settings.chatDailyTokenLimit,
+    chatRemainingTokensToday: chatRemainingTokens,
+    chatTokensUsedToday: chatUsage.tokens,
+    effectiveRemainingToday: Math.floor(
+      Math.min(spendRemainingToday * 1000, chatRemainingTokens),
+    ),
+    photoImportCallsRemainingToday: Math.max(
+      0,
+      settings.photoImportDailyCallLimit - photoUsage.calls,
+    ),
+    photoImportCallsUsedToday: photoUsage.calls,
+    photoImportDailyCallLimit: settings.photoImportDailyCallLimit,
+    photoImportDailyFileLimit: settings.photoImportDailyFileLimit,
+    photoImportFilesRemainingToday: Math.max(
+      0,
+      settings.photoImportDailyFileLimit - photoUsage.files,
+    ),
+    photoImportFilesUsedToday: photoUsage.files,
+    playerProfileCallsRemainingThisWeek: Math.max(
+      0,
+      settings.playerProfileWeeklyCallLimit - profileWeeklyUsage.calls,
+    ),
+    playerProfileCallsUsedThisWeek: profileWeeklyUsage.calls,
+    playerProfileWeeklyCallLimit: settings.playerProfileWeeklyCallLimit,
+    spendRemainingToday,
+    spendUsedToday: usage.daily.usd,
+    userDailySpendLimitUsd: settings.userDailySpendLimitUsd,
+    userDailyLimit: settings.userDailySpendLimitUsd,
+    userRemainingToday: spendRemainingToday,
+    userUsedToday: usage.daily.usd,
+    globalDailyLimit: settings.userDailySpendLimitUsd,
+    globalRemainingToday: spendRemainingToday,
+    voiceTranscriptionCallsRemainingToday: Math.max(
+      0,
+      settings.voiceTranscriptionDailyCallLimit - voiceUsage.calls,
+    ),
+    voiceTranscriptionCallsUsedToday: voiceUsage.calls,
+    voiceTranscriptionDailyCallLimit:
+      settings.voiceTranscriptionDailyCallLimit,
+  };
+}
+
+function getFeatureLimitFailure({
+  feature,
+  settings,
+  usage,
+  estimatedTokens,
+  countedCalls,
+  countedFiles,
+}: {
+  feature: AiBudgetFeature;
+  settings: Awaited<ReturnType<typeof getAiSettings>>;
+  usage: Awaited<ReturnType<typeof getBudgetUsage>>;
+  estimatedTokens: number;
+  countedCalls: number;
+  countedFiles: number;
+}): AiBudgetReserveResult | null {
+  const dailyFeature = usage.dailyByFeature.get(feature) ?? emptyUsage();
+  const weeklyFeature = usage.weeklyByFeature.get(feature) ?? emptyUsage();
+
+  if (
+    feature === "assistant_chat" &&
+    dailyFeature.tokens + estimatedTokens > settings.chatDailyTokenLimit
+  ) {
+    return {
+      allowed: false,
+      reason: "FEATURE_DAILY_TOKEN_LIMIT",
+      message: "Daily library chat token limit reached. Try again tomorrow.",
+    };
+  }
+
+  if (
+    feature === "assistant_play_next" &&
+    dailyFeature.tokens + estimatedTokens >
+      settings.assistantPlayNextDailyTokenLimit
+  ) {
+    return {
+      allowed: false,
+      reason: "FEATURE_DAILY_TOKEN_LIMIT",
+      message:
+        "Daily play-next recommendation token limit reached. Try again tomorrow.",
+    };
+  }
+
+  if (
+    feature === "player_profile" &&
+    weeklyFeature.calls + countedCalls > settings.playerProfileWeeklyCallLimit
+  ) {
+    return {
+      allowed: false,
+      reason: "FEATURE_WEEKLY_CALL_LIMIT",
+      message:
+        "Weekly player profile AI limit reached. Try again next week.",
+    };
+  }
+
+  if (
+    feature === "photo_import" &&
+    dailyFeature.calls + countedCalls > settings.photoImportDailyCallLimit
+  ) {
+    return {
+      allowed: false,
+      reason: "FEATURE_DAILY_CALL_LIMIT",
+      message: "Daily photo import AI call limit reached. Try again tomorrow.",
+    };
+  }
+
+  if (
+    feature === "photo_import" &&
+    dailyFeature.files + countedFiles > settings.photoImportDailyFileLimit
+  ) {
+    return {
+      allowed: false,
+      reason: "FEATURE_DAILY_FILE_LIMIT",
+      message: "Daily photo import image limit reached. Try again tomorrow.",
+    };
+  }
+
+  if (
+    feature === "voice_transcription" &&
+    dailyFeature.calls + countedCalls >
+      settings.voiceTranscriptionDailyCallLimit
+  ) {
+    return {
+      allowed: false,
+      reason: "FEATURE_DAILY_CALL_LIMIT",
+      message: "Daily voice transcription limit reached. Try again tomorrow.",
+    };
+  }
+
+  return null;
+}
+
 async function reserveAiBudgetOnce({
+  countedCalls,
+  countedFiles,
+  estimatedInputTokens,
+  estimatedOutputTokens,
   feature,
   inputSummary,
   model,
   now,
-  units,
   userId,
 }: {
+  countedCalls: number;
+  countedFiles: number;
+  estimatedInputTokens: number;
+  estimatedOutputTokens: number;
   feature: AiBudgetFeature;
   inputSummary?: Prisma.InputJsonValue;
   model?: string | null;
   now: Date;
-  units: number;
   userId: string;
 }): Promise<AiBudgetReserveResult> {
   const settings = await getAiSettings();
@@ -132,119 +457,127 @@ async function reserveAiBudgetOnce({
     };
   }
 
-  const limits = {
-    userDailyLimit: settings.userDailyLimit,
-    globalDailyLimit: settings.globalDailyLimit,
-  };
-  const oneDayAgo = getWindowStart(now);
+  const estimatedTokens = estimatedInputTokens + estimatedOutputTokens;
+  const estimatedUsd = estimateAiCostUsd({
+    inputTokens: estimatedInputTokens,
+    outputTokens: estimatedOutputTokens,
+  });
 
-  return prisma.$transaction(
-    async (tx) => {
-      const [userUsedToday, globalUsedToday] = await Promise.all([
-        tx.assistantRun.count({
-          where: {
-            userId,
-            status: getCountedStatusFilter(),
-            createdAt: { gte: oneDayAgo },
-          },
-        }),
-        tx.assistantRun.count({
-          where: {
-            status: getCountedStatusFilter(),
-            createdAt: { gte: oneDayAgo },
-          },
-        }),
-      ]);
+  const usage = await getBudgetUsage({ now, userId });
+  if (usage.daily.usd + estimatedUsd > settings.userDailySpendLimitUsd) {
+    return {
+      allowed: false as const,
+      reason: "USER_DAILY_SPEND_LIMIT" as const,
+      message: "Daily personal AI spend limit reached. Try again tomorrow.",
+    };
+  }
 
-      if (userUsedToday + units > limits.userDailyLimit) {
-        return {
-          allowed: false as const,
-          reason: "USER_DAILY_LIMIT" as const,
-          message: `Daily AI budget reached (${limits.userDailyLimit} units per user per day). Try again tomorrow.`,
-        };
-      }
+  const featureLimitFailure = getFeatureLimitFailure({
+    feature,
+    settings,
+    usage,
+    estimatedTokens,
+    countedCalls,
+    countedFiles,
+  });
+  if (featureLimitFailure) {
+    return featureLimitFailure;
+  }
 
-      if (globalUsedToday + units > limits.globalDailyLimit) {
-        return {
-          allowed: false as const,
-          reason: "GLOBAL_DAILY_LIMIT" as const,
-          message: "The app-wide AI budget for today is used up. Try again tomorrow.",
-        };
-      }
-
-      const groupId = crypto.randomUUID();
-      const ids: string[] = [];
-      for (let unit = 1; unit <= units; unit += 1) {
-        const run = await tx.assistantRun.create({
-          data: {
-            userId,
-            inputSummary: {
-              kind: "ai_budget",
-              feature,
-              groupId,
-              input: inputSummary ?? null,
-              reservedUnits: units,
-              unit,
-            } as Prisma.InputJsonValue,
-            outputSummary: {
-              kind: "ai_budget",
-              feature,
-              groupId,
-              state: "reserved",
-            } as Prisma.InputJsonValue,
-            model: model ?? null,
-            status: "AI_BUDGET_RESERVED",
-          },
-          select: {
-            id: true,
-          },
-        });
-        ids.push(run.id);
-      }
-
-      return {
-        allowed: true as const,
-        reservation: {
-          ids,
-          feature,
-          groupId,
-          model: model ?? null,
-          units,
-          userId,
+  const groupId = crypto.randomUUID();
+  const run = await prisma.assistantRun.create({
+    data: {
+      userId,
+      inputSummary: {
+        kind: "ai_budget",
+        feature,
+        groupId,
+        input: inputSummary ?? null,
+        countedCalls,
+        countedFiles,
+        estimatedUsage: {
+          inputTokens: estimatedInputTokens,
+          outputTokens: estimatedOutputTokens,
+          totalTokens: estimatedTokens,
+          usd: estimatedUsd,
         },
-      };
+      } as Prisma.InputJsonValue,
+      outputSummary: {
+        kind: "ai_budget",
+        feature,
+        groupId,
+        state: "reserved",
+      } as Prisma.InputJsonValue,
+      model: model ?? null,
+      status: "AI_BUDGET_RESERVED",
     },
-    {
-      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    select: {
+      id: true,
     },
-  );
+  });
+
+  return {
+    allowed: true as const,
+    reservation: {
+      countedCalls,
+      countedFiles,
+      estimatedInputTokens,
+      estimatedOutputTokens,
+      estimatedTokens,
+      estimatedUsd,
+      feature,
+      groupId,
+      id: run.id,
+      model: model ?? null,
+      userId,
+    },
+  };
 }
 
 export async function reserveAiBudget({
+  countedCalls = 1,
+  countedFiles = 0,
+  estimatedInputTokens,
+  estimatedOutputTokens,
   feature,
   inputSummary,
   model,
   now = new Date(),
-  units = 1,
   userId,
 }: {
+  countedCalls?: number;
+  countedFiles?: number;
+  estimatedInputTokens?: number;
+  estimatedOutputTokens?: number;
   feature: AiBudgetFeature;
   inputSummary?: Prisma.InputJsonValue;
   model?: string | null;
   now?: Date;
-  units?: number;
   userId: string;
 }) {
-  const normalizedUnits = Math.max(1, Math.floor(units));
+  const config = getAiEstimateConfig();
+  const normalizedInputTokens = Math.max(
+    0,
+    Math.ceil(estimatedInputTokens ?? config.inputTokensPerCall),
+  );
+  const normalizedOutputTokens = Math.max(
+    0,
+    Math.ceil(estimatedOutputTokens ?? 0),
+  );
+  const normalizedCalls = Math.max(0, Math.ceil(countedCalls));
+  const normalizedFiles = Math.max(0, Math.ceil(countedFiles));
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       return await reserveAiBudgetOnce({
+        countedCalls: normalizedCalls,
+        countedFiles: normalizedFiles,
+        estimatedInputTokens: normalizedInputTokens,
+        estimatedOutputTokens: normalizedOutputTokens,
         feature,
         inputSummary,
         model,
         now,
-        units: normalizedUnits,
         userId,
       });
     } catch (error) {
@@ -256,11 +589,14 @@ export async function reserveAiBudget({
   }
 
   return reserveAiBudgetOnce({
+    countedCalls: normalizedCalls,
+    countedFiles: normalizedFiles,
+    estimatedInputTokens: normalizedInputTokens,
+    estimatedOutputTokens: normalizedOutputTokens,
     feature,
     inputSummary,
     model,
     now,
-    units: normalizedUnits,
     userId,
   });
 }
@@ -271,7 +607,7 @@ export async function markAiBudgetUsed(
 ) {
   await prisma.assistantRun.updateMany({
     where: {
-      id: { in: reservation.ids },
+      id: reservation.id,
       status: "AI_BUDGET_RESERVED",
     },
     data: {
@@ -281,6 +617,12 @@ export async function markAiBudgetUsed(
         feature: reservation.feature,
         groupId: reservation.groupId,
         state: "used",
+        estimatedUsage: {
+          inputTokens: reservation.estimatedInputTokens,
+          outputTokens: reservation.estimatedOutputTokens,
+          totalTokens: reservation.estimatedTokens,
+          usd: reservation.estimatedUsd,
+        },
         output: outputSummary ?? null,
       } as Prisma.InputJsonValue,
     },
@@ -293,7 +635,7 @@ export async function markAiBudgetFailed(
 ) {
   await prisma.assistantRun.updateMany({
     where: {
-      id: { in: reservation.ids },
+      id: reservation.id,
       status: "AI_BUDGET_RESERVED",
     },
     data: {
@@ -303,6 +645,12 @@ export async function markAiBudgetFailed(
         feature: reservation.feature,
         groupId: reservation.groupId,
         state: "failed",
+        estimatedUsage: {
+          inputTokens: reservation.estimatedInputTokens,
+          outputTokens: reservation.estimatedOutputTokens,
+          totalTokens: reservation.estimatedTokens,
+          usd: reservation.estimatedUsd,
+        },
         error: error instanceof Error ? error.message : "AI request failed.",
       } as Prisma.InputJsonValue,
     },
@@ -310,25 +658,34 @@ export async function markAiBudgetFailed(
 }
 
 export async function runWithAiBudget<T>({
+  countedCalls,
+  countedFiles,
+  estimatedInputTokens,
+  estimatedOutputTokens,
   execute,
   feature,
   inputSummary,
   model,
-  units,
   userId,
 }: {
+  countedCalls?: number;
+  countedFiles?: number;
+  estimatedInputTokens?: number;
+  estimatedOutputTokens?: number;
   execute: () => Promise<T>;
   feature: AiBudgetFeature;
   inputSummary?: Prisma.InputJsonValue;
   model?: string | null;
-  units?: number;
   userId: string;
 }) {
   const budget = await reserveAiBudget({
+    countedCalls,
+    countedFiles,
+    estimatedInputTokens,
+    estimatedOutputTokens,
     feature,
     inputSummary,
     model,
-    units,
     userId,
   });
   if (!budget.allowed) {

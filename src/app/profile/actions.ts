@@ -121,7 +121,6 @@ const journalEntrySchema = z.object({
   body: z.string().trim().max(4000).optional(),
   mediaCaption: z.string().trim().max(240).optional(),
   occurredAt: z.string().trim().optional(),
-  targetLanguage: z.string().trim().max(80).optional(),
   slug: z.string().trim().optional(),
   returnTo: z.string().trim().optional(),
 });
@@ -1105,7 +1104,6 @@ export async function createJournalEntryAction(formData: FormData) {
     body: formData.get("body") || undefined,
     mediaCaption: formData.get("mediaCaption") || undefined,
     occurredAt: formData.get("occurredAt") || undefined,
-    targetLanguage: formData.get("targetLanguage") || undefined,
     slug: formData.get("slug") || undefined,
     returnTo: formData.get("returnTo") || undefined,
   });
@@ -1128,7 +1126,7 @@ export async function createJournalEntryAction(formData: FormData) {
       body: parsed.data.body ?? null,
       mediaCaption: parsed.data.mediaCaption ?? null,
       occurredAt,
-      targetLanguage: parsed.data.targetLanguage || (locale === "pt-BR" ? "Portuguese (Brazil)" : "English"),
+      targetLanguage: locale === "pt-BR" ? "Portuguese (Brazil)" : "English",
       imageFile: getFormFile(formData.get("image")),
       audioFile: getFormFile(formData.get("audio")),
     });

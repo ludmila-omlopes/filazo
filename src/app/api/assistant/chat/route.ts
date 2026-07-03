@@ -25,6 +25,7 @@ import {
   reserveAiBudget,
 } from "@/lib/ai-budget";
 import { getAiSettings } from "@/lib/ai-settings";
+import { estimateTokensFromValue } from "@/lib/ai-estimates";
 import { getSessionUserId } from "@/lib/session";
 import { getOpenAiConfig } from "@/lib/openai";
 
@@ -84,12 +85,13 @@ export async function POST(request: Request) {
 
   const budget = await reserveAiBudget({
     feature: "assistant_chat",
+    estimatedInputTokens: estimateTokensFromValue(messages),
+    estimatedOutputTokens: aiSettings.chatMaxOutputTokens,
     inputSummary: {
       maxSteps: aiSettings.chatMaxSteps,
       messageCount: messages.length,
     },
     model: config.model,
-    units: aiSettings.chatBudgetUnits,
     userId,
   });
   if (!budget.allowed) {

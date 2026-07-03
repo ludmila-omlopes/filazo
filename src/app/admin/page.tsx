@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import {
+  AI_SETTINGS_FLOAT_LIMITS,
   AI_SETTINGS_LIMITS,
   getAiSettings,
   type AiSettingsValues,
@@ -55,10 +56,11 @@ type BooleanAiSettingName =
   | "playerProfileEnabled"
   | "photoImportEnabled"
   | "voiceTranscriptionEnabled"
-  | "voiceTranslationEnabled"
   | "storyCompletionEnabled";
 
 type NumericAiSettingName = keyof typeof AI_SETTINGS_LIMITS;
+type FloatAiSettingName = keyof typeof AI_SETTINGS_FLOAT_LIMITS;
+type AiNumberFieldName = NumericAiSettingName | FloatAiSettingName;
 
 function localText(
   locale: Locale,
@@ -68,6 +70,235 @@ function localText(
   },
 ) {
   return locale === "pt-BR" ? text.pt : text.en;
+}
+
+const OUTPUT_TOKEN_SETTING_NAMES = [
+  "assistantPlayNextMaxOutputTokens",
+  "assistantSummaryMaxOutputTokens",
+  "chatMaxOutputTokens",
+  "photoImportMaxOutputTokens",
+  "playerProfileMaxOutputTokens",
+  "storyCompletionMaxOutputTokens",
+] as const satisfies ReadonlyArray<NumericAiSettingName>;
+
+function readPositiveNumberEnv(name: string, fallback: number) {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function getAiEstimateConfig() {
+  return {
+    charsPerToken: readPositiveNumberEnv("AI_ESTIMATED_CHARS_PER_TOKEN", 4),
+    inputTokensPerCall: readPositiveNumberEnv(
+      "AI_ESTIMATED_INPUT_TOKENS_PER_CALL",
+      readPositiveNumberEnv("AI_ESTIMATED_INPUT_TOKENS_PER_UNIT", 1500),
+    ),
+    inputUsdPerMillionTokens: readPositiveNumberEnv(
+      "AI_ESTIMATED_INPUT_USD_PER_1M_TOKENS",
+      0.15,
+    ),
+    outputUsdPerMillionTokens: readPositiveNumberEnv(
+      "AI_ESTIMATED_OUTPUT_USD_PER_1M_TOKENS",
+      0.6,
+    ),
+  };
+}
+
+type AiEstimateConfig = ReturnType<typeof getAiEstimateConfig>;
+
+function estimateUsd({
+  config,
+  inputTokens = 0,
+  outputTokens = 0,
+}: {
+  config: AiEstimateConfig;
+  inputTokens?: number;
+  outputTokens?: number;
+}) {
+  return (
+    (inputTokens / 1_000_000) * config.inputUsdPerMillionTokens +
+    (outputTokens / 1_000_000) * config.outputUsdPerMillionTokens
+  );
+}
+
+function estimateTokenLimitUsd(tokenLimit: number, config: AiEstimateConfig) {
+  const halfTokenLimit = tokenLimit / 2;
+  return estimateUsd({
+    config,
+    inputTokens: halfTokenLimit,
+    outputTokens: halfTokenLimit,
+  });
+}
+
+function estimateCallUsd(outputTokens: number, config: AiEstimateConfig) {
+  return estimateUsd({
+    config,
+    inputTokens: config.inputTokensPerCall,
+    outputTokens,
+  });
+}
+
+function formatUsd(locale: Locale, value: number) {
+  return new Intl.NumberFormat(locale, {
+    currency: "USD",
+    maximumFractionDigits: value < 0.01 ? 4 : 2,
+    minimumFractionDigits: value < 0.01 ? 4 : 2,
+    style: "currency",
+  }).format(value);
+}
+
+function formatNumber(locale: Locale, value: number) {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatBytes(locale: Locale, value: number) {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 1,
+    style: "unit",
+    unit: "megabyte",
+    unitDisplay: "short",
+  }).format(value / (1024 * 1024));
+}
+
+function formatMinutes(locale: Locale, value: number) {
+  return new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 1,
+    style: "unit",
+    unit: "minute",
+    unitDisplay: "short",
+  }).format(value / 60);
+}
+
+function getNumericFieldHint({
+  config,
+  locale,
+  name,
+  settings,
+}: {
+  config: AiEstimateConfig;
+  locale: Locale;
+  name: AiNumberFieldName;
+  settings: AiSettingsValues;
+}) {
+  if (name === "userDailySpendLimitUsd") {
+    return localText(locale, {
+      en: "Applies across all AI features for each user, including features with no specific limit.",
+      pt: "Vale para todos os recursos de IA de cada pessoa, inclusive os recursos sem limite especifico.",
+    });
+  }
+
+  if (
+    name === "chatDailyTokenLimit" ||
+    name === "assistantPlayNextDailyTokenLimit"
+  ) {
+    return localText(locale, {
+      en: `Estimated daily ceiling: ${formatUsd(
+        locale,
+        estimateTokenLimitUsd(settings[name], config),
+      )}, about ${formatNumber(
+        locale,
+        settings[name] * config.charsPerToken,
+      )} text characters.`,
+      pt: `Teto diario estimado: ${formatUsd(
+        locale,
+        estimateTokenLimitUsd(settings[name], config),
+      )}, cerca de ${formatNumber(
+        locale,
+        settings[name] * config.charsPerToken,
+      )} caracteres de texto.`,
+    });
+  }
+
+  if (
+    (OUTPUT_TOKEN_SETTING_NAMES as ReadonlyArray<NumericAiSettingName>).includes(
+      name,
+    )
+  ) {
+    return localText(locale, {
+      en: `About ${formatNumber(
+        locale,
+        settings[name] * config.charsPerToken,
+      )} output characters; output cost up to ${formatUsd(
+        locale,
+        estimateUsd({ config, outputTokens: settings[name] }),
+      )}.`,
+      pt: `Cerca de ${formatNumber(
+        locale,
+        settings[name] * config.charsPerToken,
+      )} caracteres de resposta; saida ate ${formatUsd(
+        locale,
+        estimateUsd({ config, outputTokens: settings[name] }),
+      )}.`,
+    });
+  }
+
+  if (name === "playerProfileWeeklyCallLimit") {
+    return localText(locale, {
+      en: "Default is 2 profile generations per user per week.",
+      pt: "O padrao e 2 geracoes de perfil por pessoa por semana.",
+    });
+  }
+
+  if (name === "photoImportDailyCallLimit") {
+    return localText(locale, {
+      en: `Each analyzed image counts as one AI call. Estimated cost per call: ${formatUsd(
+        locale,
+        estimateCallUsd(settings.photoImportMaxOutputTokens, config),
+      )}.`,
+      pt: `Cada imagem analisada conta como uma chamada de IA. Custo estimado por chamada: ${formatUsd(
+        locale,
+        estimateCallUsd(settings.photoImportMaxOutputTokens, config),
+      )}.`,
+    });
+  }
+
+  if (name === "photoImportDailyFileLimit") {
+    return localText(locale, {
+      en: "Daily image count limit per user.",
+      pt: "Limite diario de imagens por pessoa.",
+    });
+  }
+
+  if (name === "voiceTranscriptionDailyCallLimit") {
+    return localText(locale, {
+      en: `Estimated transcription request cost: ${formatUsd(
+        locale,
+        estimateCallUsd(0, config),
+      )}. Audio billing may differ by model.`,
+      pt: `Custo estimado da requisicao de transcricao: ${formatUsd(
+        locale,
+        estimateCallUsd(0, config),
+      )}. A cobranca de audio pode variar por modelo.`,
+    });
+  }
+
+  if (name === "photoImportMaxFileBytes" || name === "voiceMaxFileBytes") {
+    return localText(locale, {
+      en: `Equivalent to ${formatBytes(locale, settings[name])}.`,
+      pt: `Equivale a ${formatBytes(locale, settings[name])}.`,
+    });
+  }
+
+  if (name === "voiceRecordingMaxSeconds") {
+    return localText(locale, {
+      en: `Equivalent to ${formatMinutes(locale, settings[name])}.`,
+      pt: `Equivale a ${formatMinutes(locale, settings[name])}.`,
+    });
+  }
+
+  return null;
+}
+
+function getAiNumberFieldLimits(name: AiNumberFieldName) {
+  return name === "userDailySpendLimitUsd"
+    ? AI_SETTINGS_FLOAT_LIMITS[name]
+    : AI_SETTINGS_LIMITS[name];
+}
+
+function getAiNumberFieldStep(name: AiNumberFieldName) {
+  return name === "userDailySpendLimitUsd" ? 0.01 : 1;
 }
 
 function getAiToggleFields(locale: Locale) {
@@ -139,17 +370,6 @@ function getAiToggleFields(locale: Locale) {
       }),
     },
     {
-      name: "voiceTranslationEnabled",
-      label: localText(locale, {
-        en: "Transcript translation",
-        pt: "Traducao de transcricoes",
-      }),
-      description: localText(locale, {
-        en: "Optional translation after a transcript is created.",
-        pt: "Traducao opcional depois da transcricao.",
-      }),
-    },
-    {
       name: "storyCompletionEnabled",
       label: localText(locale, {
         en: "Story achievement AI",
@@ -170,20 +390,16 @@ function getAiToggleFields(locale: Locale) {
 function getAiNumberGroups(locale: Locale) {
   return [
     {
-      title: localText(locale, { en: "Daily budget", pt: "Orcamento diario" }),
+      title: localText(locale, {
+        en: "Personal daily spend",
+        pt: "Gasto diario por pessoa",
+      }),
       fields: [
         {
-          name: "userDailyLimit",
+          name: "userDailySpendLimitUsd",
           label: localText(locale, {
-            en: "Per-user daily units",
-            pt: "Unidades diarias por pessoa",
-          }),
-        },
-        {
-          name: "globalDailyLimit",
-          label: localText(locale, {
-            en: "App-wide daily units",
-            pt: "Unidades diarias globais",
+            en: "Dollar cap per user/day",
+            pt: "Teto em dolar por pessoa/dia",
           }),
         },
       ],
@@ -192,10 +408,10 @@ function getAiNumberGroups(locale: Locale) {
       title: localText(locale, { en: "Library chat", pt: "Chat" }),
       fields: [
         {
-          name: "chatBudgetUnits",
+          name: "chatDailyTokenLimit",
           label: localText(locale, {
-            en: "Budget units per exchange",
-            pt: "Unidades por mensagem",
+            en: "Daily token limit",
+            pt: "Limite diario de tokens",
           }),
         },
         {
@@ -208,8 +424,8 @@ function getAiNumberGroups(locale: Locale) {
         {
           name: "chatMaxOutputTokens",
           label: localText(locale, {
-            en: "Max output tokens",
-            pt: "Maximo de tokens de saida",
+            en: "Chat response length",
+            pt: "Tamanho da resposta do chat",
           }),
         },
       ],
@@ -221,17 +437,24 @@ function getAiNumberGroups(locale: Locale) {
       }),
       fields: [
         {
+          name: "assistantPlayNextDailyTokenLimit",
+          label: localText(locale, {
+            en: "Play-next daily token limit",
+            pt: "Limite diario de tokens das recomendacoes",
+          }),
+        },
+        {
           name: "assistantPlayNextMaxOutputTokens",
           label: localText(locale, {
-            en: "Play-next output tokens",
-            pt: "Tokens das recomendacoes",
+            en: "Recommendation response length",
+            pt: "Tamanho das recomendacoes",
           }),
         },
         {
           name: "assistantSummaryMaxOutputTokens",
           label: localText(locale, {
-            en: "Summary output tokens",
-            pt: "Tokens do resumo",
+            en: "Summary response length",
+            pt: "Tamanho do resumo",
           }),
         },
       ],
@@ -243,17 +466,24 @@ function getAiNumberGroups(locale: Locale) {
       }),
       fields: [
         {
+          name: "playerProfileWeeklyCallLimit",
+          label: localText(locale, {
+            en: "Profile generations per week",
+            pt: "Geracoes de perfil por semana",
+          }),
+        },
+        {
           name: "playerProfileMaxCalls",
           label: localText(locale, {
-            en: "Max model calls",
-            pt: "Maximo de chamadas",
+            en: "Agent steps per generation",
+            pt: "Etapas do agente por geracao",
           }),
         },
         {
           name: "playerProfileMaxOutputTokens",
           label: localText(locale, {
-            en: "Max output tokens",
-            pt: "Maximo de tokens de saida",
+            en: "Profile response length",
+            pt: "Tamanho da resposta do perfil",
           }),
         },
       ],
@@ -265,10 +495,17 @@ function getAiNumberGroups(locale: Locale) {
       }),
       fields: [
         {
-          name: "photoImportMaxFiles",
+          name: "photoImportDailyCallLimit",
           label: localText(locale, {
-            en: "Max images per import",
-            pt: "Maximo de imagens por importacao",
+            en: "AI calls per day",
+            pt: "Chamadas de IA por dia",
+          }),
+        },
+        {
+          name: "photoImportDailyFileLimit",
+          label: localText(locale, {
+            en: "Images per day",
+            pt: "Fotos por dia",
           }),
         },
         {
@@ -281,8 +518,8 @@ function getAiNumberGroups(locale: Locale) {
         {
           name: "photoImportMaxOutputTokens",
           label: localText(locale, {
-            en: "Max output tokens",
-            pt: "Maximo de tokens de saida",
+            en: "Extraction response length",
+            pt: "Tamanho da resposta de extracao",
           }),
         },
         {
@@ -301,6 +538,13 @@ function getAiNumberGroups(locale: Locale) {
       }),
       fields: [
         {
+          name: "voiceTranscriptionDailyCallLimit",
+          label: localText(locale, {
+            en: "Transcriptions per day",
+            pt: "Transcricoes por dia",
+          }),
+        },
+        {
           name: "voiceMaxFileBytes",
           label: localText(locale, {
             en: "Max audio bytes",
@@ -314,13 +558,6 @@ function getAiNumberGroups(locale: Locale) {
             pt: "Segundos de gravacao no navegador",
           }),
         },
-        {
-          name: "voiceTranslationMaxOutputTokens",
-          label: localText(locale, {
-            en: "Translation output tokens",
-            pt: "Tokens de traducao",
-          }),
-        },
       ],
     },
     {
@@ -330,17 +567,10 @@ function getAiNumberGroups(locale: Locale) {
       }),
       fields: [
         {
-          name: "storyCompletionMaxClassificationsPerRun",
-          label: localText(locale, {
-            en: "Max AI classifications per run",
-            pt: "Maximo de classificacoes por execucao",
-          }),
-        },
-        {
           name: "storyCompletionMaxOutputTokens",
           label: localText(locale, {
-            en: "Max output tokens",
-            pt: "Maximo de tokens de saida",
+            en: "Classification response length",
+            pt: "Tamanho da resposta de classificacao",
           }),
         },
       ],
@@ -348,7 +578,7 @@ function getAiNumberGroups(locale: Locale) {
   ] satisfies Array<{
     title: string;
     fields: Array<{
-      name: NumericAiSettingName;
+      name: AiNumberFieldName;
       label: string;
     }>;
   }>;
@@ -363,6 +593,16 @@ function AiSettingsForm({
   settings: AiSettingsValues;
   t: ReturnType<typeof createTranslator>;
 }) {
+  const estimateConfig = getAiEstimateConfig();
+  const chatDailyCost = estimateTokenLimitUsd(
+    settings.chatDailyTokenLimit,
+    estimateConfig,
+  );
+  const playNextDailyCost = estimateTokenLimitUsd(
+    settings.assistantPlayNextDailyTokenLimit,
+    estimateConfig,
+  );
+
   return (
     <Card tactile>
       <CardContent className="grid gap-6 p-6">
@@ -379,6 +619,111 @@ function AiSettingsForm({
         </div>
 
         <form action={updateAiSettingsAction} className="grid gap-6">
+          <input name="userDailyLimit" type="hidden" value={settings.userDailyLimit} />
+          <input name="globalDailyLimit" type="hidden" value={settings.globalDailyLimit} />
+          <input name="chatBudgetUnits" type="hidden" value={settings.chatBudgetUnits} />
+          <input name="photoImportMaxFiles" type="hidden" value={settings.photoImportMaxFiles} />
+          <input
+            name="storyCompletionMaxClassificationsPerRun"
+            type="hidden"
+            value={settings.storyCompletionMaxClassificationsPerRun}
+          />
+          <input
+            name="voiceTranslationMaxOutputTokens"
+            type="hidden"
+            value={settings.voiceTranslationMaxOutputTokens}
+          />
+
+          <div className="grid gap-3 rounded-inner border border-edge bg-surface p-4">
+            <div>
+              <p className="text-sm font-bold text-ink">
+                {localText(locale, {
+                  en: "Dollar estimate",
+                  pt: "Estimativa em dolar",
+                })}
+              </p>
+              <p className="mt-1 max-w-[78ch] text-xs leading-relaxed text-ink-soft">
+                {localText(locale, {
+                  en: "The app enforces feature-specific limits and a daily dollar cap per person. Dollar values are estimates; actual invoices depend on provider pricing, prompt size, tools, audio billing, and cached tokens.",
+                  pt: "O app aplica limites por funcionalidade e um teto diario em dolar por pessoa. Os valores em dolar sao estimativas; a fatura real depende do preco do provedor, tamanho do prompt, ferramentas, cobranca de audio e tokens em cache.",
+                })}
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-sm max-md:grid-cols-1">
+              <div className="rounded-inner border border-edge bg-canvas p-3">
+                <p className="text-xs font-bold uppercase text-ink-soft">
+                  {localText(locale, { en: "Per person/day", pt: "Por pessoa/dia" })}
+                </p>
+                <p className="mt-1 font-display text-2xl">
+                  {formatUsd(locale, settings.userDailySpendLimitUsd)}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+                  {localText(locale, {
+                    en: "General daily spend cap.",
+                    pt: "Teto geral diario de gasto.",
+                  })}
+                </p>
+              </div>
+              <div className="rounded-inner border border-edge bg-canvas p-3">
+                <p className="text-xs font-bold uppercase text-ink-soft">
+                  {localText(locale, { en: "Chat/day", pt: "Chat/dia" })}
+                </p>
+                <p className="mt-1 font-display text-2xl">
+                  {formatNumber(locale, settings.chatDailyTokenLimit)}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+                  {formatUsd(locale, chatDailyCost)}{" "}
+                  {localText(locale, {
+                    en: "estimated.",
+                    pt: "estimados.",
+                  })}
+                </p>
+              </div>
+              <div className="rounded-inner border border-edge bg-canvas p-3">
+                <p className="text-xs font-bold uppercase text-ink-soft">
+                  {localText(locale, { en: "Next picks/day", pt: "Proximos jogos/dia" })}
+                </p>
+                <p className="mt-1 font-display text-2xl">
+                  {formatNumber(
+                    locale,
+                    settings.assistantPlayNextDailyTokenLimit,
+                  )}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-ink-soft">
+                  {formatUsd(locale, playNextDailyCost)}{" "}
+                  {localText(locale, {
+                    en: "estimated.",
+                    pt: "estimados.",
+                  })}
+                </p>
+              </div>
+            </div>
+            <p className="text-[0.7rem] font-semibold text-ink-soft">
+              {localText(locale, {
+                en: `Price basis: ${formatUsd(
+                  locale,
+                  estimateConfig.inputUsdPerMillionTokens,
+                )}/1M input tokens, ${formatUsd(
+                  locale,
+                  estimateConfig.outputUsdPerMillionTokens,
+                )}/1M output tokens, ${formatNumber(
+                  locale,
+                  estimateConfig.charsPerToken,
+                )} chars/token.`,
+                pt: `Base: ${formatUsd(
+                  locale,
+                  estimateConfig.inputUsdPerMillionTokens,
+                )}/1M tokens de entrada, ${formatUsd(
+                  locale,
+                  estimateConfig.outputUsdPerMillionTokens,
+                )}/1M tokens de saida, ${formatNumber(
+                  locale,
+                  estimateConfig.charsPerToken,
+                )} caracteres/token.`,
+              })}
+            </p>
+          </div>
+
           <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
             {getAiToggleFields(locale).map((field) => (
               <label
@@ -414,7 +759,14 @@ function AiSettingsForm({
                 </legend>
                 <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
                   {group.fields.map((field) => {
-                    const limits = AI_SETTINGS_LIMITS[field.name];
+                    const limits = getAiNumberFieldLimits(field.name);
+                    const hint = getNumericFieldHint({
+                      config: estimateConfig,
+                      locale,
+                      name: field.name,
+                      settings,
+                    });
+
                     return (
                       <label className="grid gap-1.5" key={field.name}>
                         <span className="text-sm font-semibold">
@@ -426,12 +778,17 @@ function AiSettingsForm({
                           max={limits.max}
                           min={limits.min}
                           name={field.name}
-                          step={1}
+                          step={getAiNumberFieldStep(field.name)}
                           type="number"
                         />
                         <span className="text-[0.7rem] font-semibold text-ink-soft">
                           {limits.min} - {limits.max}
                         </span>
+                        {hint ? (
+                          <span className="text-xs leading-relaxed text-ink-soft">
+                            {hint}
+                          </span>
+                        ) : null}
                       </label>
                     );
                   })}
