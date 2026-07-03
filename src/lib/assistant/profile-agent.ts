@@ -3,7 +3,12 @@ import { UserGameStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getOpenAiConfig, type OpenAiConfig } from "@/lib/openai";
-import { runWithAiBudget } from "../ai-budget.ts";
+import {
+  markAiBudgetFailed,
+  markAiBudgetUsed,
+  reserveAiBudget,
+} from "../ai-budget.ts";
+import { estimateTokensFromValue } from "../ai-estimates.ts";
 import { getAiSettings, type AiSettingsValues } from "../ai-settings.ts";
 import type { Locale } from "@/lib/i18n";
 import {
@@ -248,38 +253,26 @@ type ResponsesApiResult = {
 async function callResponsesApi(
   config: OpenAiConfig,
   body: Record<string, unknown>,
-  userId: string,
   aiSettings: AiSettingsValues,
 ): Promise<ResponsesApiResult> {
-  return runWithAiBudget({
-    feature: "player_profile",
-    inputSummary: {
-      inputItemCount: Array.isArray(body.input) ? body.input.length : null,
-      toolCount: Array.isArray(body.tools) ? body.tools.length : null,
+  const response = await fetch(`${config.baseUrl}/responses`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
     },
-    model: config.model,
-    userId,
-    execute: async () => {
-      const response = await fetch(`${config.baseUrl}/responses`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${config.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: config.model,
-          max_output_tokens: aiSettings.playerProfileMaxOutputTokens,
-          ...body,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`OpenAI request did not complete with status ${response.status}.`);
-      }
-
-      return (await response.json()) as ResponsesApiResult;
-    },
+    body: JSON.stringify({
+      model: config.model,
+      max_output_tokens: aiSettings.playerProfileMaxOutputTokens,
+      ...body,
+    }),
   });
+
+  if (!response.ok) {
+    throw new Error(`OpenAI request did not complete with status ${response.status}.`);
+  }
+
+  return (await response.json()) as ResponsesApiResult;
 }
 
 function parseToolArgs(rawArguments: string | undefined) {
@@ -392,80 +385,113 @@ export async function generatePlayerProfile(
     },
   ];
 
-  let response = await callResponsesApi(config, {
-    instructions,
-    input: inputItems,
-    tools: AGENT_TOOLS,
-    tool_choice: "required",
-  }, userId, aiSettings);
+  const budget = await reserveAiBudget({
+    countedCalls: 1,
+    estimatedInputTokens: estimateTokensFromValue({
+      entryCount: entries.length,
+      instructions,
+      input: inputItems,
+      tools: AGENT_TOOLS,
+    }),
+    estimatedOutputTokens:
+      aiSettings.playerProfileMaxCalls *
+      aiSettings.playerProfileMaxOutputTokens,
+    feature: "player_profile",
+    inputSummary: {
+      entryCount: entries.length,
+      maxModelCalls: aiSettings.playerProfileMaxCalls,
+    },
+    model: config.model,
+    userId,
+  });
+  if (!budget.allowed) {
+    throw new Error(budget.message);
+  }
 
-  for (
-    let callIndex = 1;
-    callIndex <= aiSettings.playerProfileMaxCalls;
-    callIndex += 1
-  ) {
-    const outputItems = response.output ?? [];
-    const functionCalls = outputItems.filter(
-      (item) => item.type === "function_call" && item.name,
-    );
-
-    if (!functionCalls.length) {
-      throw new Error(
-        "Player profile agent stopped without submitting a profile.",
-      );
-    }
-
-    // Carry the model's output (reasoning + function_call items) forward so the
-    // next stateless request sees the full conversation.
-    inputItems.push(
-      ...(outputItems as unknown as Array<Record<string, unknown>>),
-    );
-
-    for (const call of functionCalls) {
-      const args = parseToolArgs(call.arguments);
-
-      if (call.name === "submit_player_profile") {
-        const payload = validateRecommendations(
-          PlayerProfilePayloadSchema.parse(args),
-          entries,
-        );
-
-        return {
-          status: "COMPLETED",
-          payload,
-          model: config.model,
-          toolTrace,
-        };
-      }
-
-      const result = executeAgentTool(call.name as string, args, entries);
-      toolTrace.push({
-        tool: call.name as string,
-        args,
-        resultSummary: summarizeToolResult(result),
-      });
-      inputItems.push({
-        type: "function_call_output",
-        call_id: call.call_id,
-        output: JSON.stringify(result),
-      });
-    }
-
-    if (callIndex >= aiSettings.playerProfileMaxCalls) {
-      break;
-    }
-
-    response = await callResponsesApi(config, {
+  try {
+    let response = await callResponsesApi(config, {
       instructions,
       input: inputItems,
       tools: AGENT_TOOLS,
       tool_choice: "required",
-    }, userId, aiSettings);
-  }
+    }, aiSettings);
 
-  throw new Error(
-    "Player profile agent exceeded its step budget without finishing.",
-  );
+    for (
+      let callIndex = 1;
+      callIndex <= aiSettings.playerProfileMaxCalls;
+      callIndex += 1
+    ) {
+      const outputItems = response.output ?? [];
+      const functionCalls = outputItems.filter(
+        (item) => item.type === "function_call" && item.name,
+      );
+
+      if (!functionCalls.length) {
+        throw new Error(
+          "Player profile agent stopped without submitting a profile.",
+        );
+      }
+
+      // Carry the model's output (reasoning + function_call items) forward so the
+      // next stateless request sees the full conversation.
+      inputItems.push(
+        ...(outputItems as unknown as Array<Record<string, unknown>>),
+      );
+
+      for (const call of functionCalls) {
+        const args = parseToolArgs(call.arguments);
+
+        if (call.name === "submit_player_profile") {
+          const payload = validateRecommendations(
+            PlayerProfilePayloadSchema.parse(args),
+            entries,
+          );
+
+          await markAiBudgetUsed(budget.reservation, {
+            status: "COMPLETED",
+            toolCallCount: toolTrace.length,
+          });
+
+          return {
+            status: "COMPLETED",
+            payload,
+            model: config.model,
+            toolTrace,
+          };
+        }
+
+        const result = executeAgentTool(call.name as string, args, entries);
+        toolTrace.push({
+          tool: call.name as string,
+          args,
+          resultSummary: summarizeToolResult(result),
+        });
+        inputItems.push({
+          type: "function_call_output",
+          call_id: call.call_id,
+          output: JSON.stringify(result),
+        });
+      }
+
+      if (callIndex >= aiSettings.playerProfileMaxCalls) {
+        break;
+      }
+
+      response = await callResponsesApi(config, {
+        instructions,
+        input: inputItems,
+        tools: AGENT_TOOLS,
+        tool_choice: "required",
+      }, aiSettings);
+    }
+
+    throw new Error(
+      "Player profile agent exceeded its step budget without finishing.",
+    );
+  } catch (error) {
+    await markAiBudgetFailed(budget.reservation, error);
+    throw error;
+  }
 }
 
 export type StoredPlayerProfile = {

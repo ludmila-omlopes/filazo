@@ -10,6 +10,7 @@ import {
   oneYearFromNow,
 } from "@/lib/beta-access";
 import {
+  AI_SETTINGS_FLOAT_LIMITS,
   AI_SETTINGS_LIMITS,
   saveAiSettings,
   type AiSettingsValues,
@@ -30,6 +31,11 @@ function intSettingSchema(key: keyof typeof AI_SETTINGS_LIMITS) {
   return z.coerce.number().int().min(limits.min).max(limits.max);
 }
 
+function floatSettingSchema(key: keyof typeof AI_SETTINGS_FLOAT_LIMITS) {
+  const limits = AI_SETTINGS_FLOAT_LIMITS[key];
+  return z.coerce.number().min(limits.min).max(limits.max);
+}
+
 const aiSettingsSchema = z.object({
   assistantChatEnabled: z.boolean(),
   assistantPlayNextEnabled: z.boolean(),
@@ -39,6 +45,19 @@ const aiSettingsSchema = z.object({
   voiceTranscriptionEnabled: z.boolean(),
   voiceTranslationEnabled: z.boolean(),
   storyCompletionEnabled: z.boolean(),
+  userDailySpendLimitUsd: floatSettingSchema("userDailySpendLimitUsd"),
+  chatDailyTokenLimit: intSettingSchema("chatDailyTokenLimit"),
+  assistantPlayNextDailyTokenLimit: intSettingSchema(
+    "assistantPlayNextDailyTokenLimit",
+  ),
+  playerProfileWeeklyCallLimit: intSettingSchema(
+    "playerProfileWeeklyCallLimit",
+  ),
+  photoImportDailyCallLimit: intSettingSchema("photoImportDailyCallLimit"),
+  photoImportDailyFileLimit: intSettingSchema("photoImportDailyFileLimit"),
+  voiceTranscriptionDailyCallLimit: intSettingSchema(
+    "voiceTranscriptionDailyCallLimit",
+  ),
   userDailyLimit: intSettingSchema("userDailyLimit"),
   globalDailyLimit: intSettingSchema("globalDailyLimit"),
   chatBudgetUnits: intSettingSchema("chatBudgetUnits"),
@@ -180,6 +199,19 @@ export async function updateAiSettingsAction(formData: FormData) {
     storyCompletionEnabled: readCheckbox(
       formData,
       "storyCompletionEnabled",
+    ),
+    userDailySpendLimitUsd: formData.get("userDailySpendLimitUsd"),
+    chatDailyTokenLimit: formData.get("chatDailyTokenLimit"),
+    assistantPlayNextDailyTokenLimit: formData.get(
+      "assistantPlayNextDailyTokenLimit",
+    ),
+    playerProfileWeeklyCallLimit: formData.get(
+      "playerProfileWeeklyCallLimit",
+    ),
+    photoImportDailyCallLimit: formData.get("photoImportDailyCallLimit"),
+    photoImportDailyFileLimit: formData.get("photoImportDailyFileLimit"),
+    voiceTranscriptionDailyCallLimit: formData.get(
+      "voiceTranscriptionDailyCallLimit",
     ),
     userDailyLimit: formData.get("userDailyLimit"),
     globalDailyLimit: formData.get("globalDailyLimit"),

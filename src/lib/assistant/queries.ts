@@ -7,10 +7,7 @@ import {
   type AssistantAiOutput,
   type PlayNextRecommendation,
 } from "@/lib/assistant/ai";
-import {
-  getAiBudgetLimits,
-  getAiBudgetUsageForUser,
-} from "../ai-budget.ts";
+import { getAiBudgetUsageForUser } from "../ai-budget.ts";
 import { getAiSettings } from "../ai-settings.ts";
 import {
   buildLibrarySummary,
@@ -343,20 +340,10 @@ async function getAssistantAiRefreshDecision({
     };
   }
 
-  if (aiBudget.userRemainingToday <= 0) {
+  if (aiBudget.spendRemainingToday <= 0) {
     return {
       allowAi: false,
       skippedReason: "USER_DAILY_LIMIT",
-      cachedSummary: null,
-      cachedRecommendations: null,
-      cachedRecommendationSource: null,
-    };
-  }
-
-  if (aiBudget.globalRemainingToday <= 0) {
-    return {
-      allowAi: false,
-      skippedReason: "GLOBAL_DAILY_LIMIT",
       cachedSummary: null,
       cachedRecommendations: null,
       cachedRecommendationSource: null,
@@ -400,6 +387,10 @@ async function getAssistantAiUsageForUser(userId: string, now = new Date()) {
     globalDailyLimit: aiBudget.globalDailyLimit,
     globalRemainingToday: aiBudget.globalRemainingToday,
     effectiveRemainingToday: aiBudget.effectiveRemainingToday,
+    spendRemainingToday: aiBudget.spendRemainingToday,
+    spendUsedToday: aiBudget.spendUsedToday,
+    userDailySpendLimitUsd: aiBudget.userDailySpendLimitUsd,
+    chatRemainingTokensToday: aiBudget.chatRemainingTokensToday,
     assistantChatEnabled: settings.assistantChatEnabled,
     assistantRefreshEnabled:
       settings.assistantSummaryEnabled || settings.assistantPlayNextEnabled,
@@ -409,7 +400,7 @@ async function getAssistantAiUsageForUser(userId: string, now = new Date()) {
       Boolean(process.env.OPENAI_API_KEY) &&
       (settings.assistantSummaryEnabled ||
         settings.assistantPlayNextEnabled) &&
-      aiBudget.effectiveRemainingToday > 0 &&
+      aiBudget.spendRemainingToday > 0 &&
       cooldownRemainingMs === 0,
   };
 }
@@ -419,8 +410,6 @@ export async function getAssistantChatGate(userId: string, now = new Date()) {
     getAiBudgetUsageForUser(userId, now),
     getAiSettings(),
   ]);
-  const chatBudgetUnits = Math.max(1, settings.chatBudgetUnits);
-
   if (!settings.assistantChatEnabled) {
     return {
       allowed: false as const,
@@ -428,17 +417,17 @@ export async function getAssistantChatGate(userId: string, now = new Date()) {
     };
   }
 
-  if (aiBudget.userRemainingToday < chatBudgetUnits) {
+  if (aiBudget.spendRemainingToday <= 0) {
     return {
       allowed: false as const,
-      message: `Daily AI limit reached (${aiBudget.userDailyLimit} units per day). The chat reopens tomorrow.`,
+      message: "Daily personal AI spend limit reached. The chat reopens tomorrow.",
     };
   }
 
-  if (aiBudget.globalRemainingToday < chatBudgetUnits) {
+  if (aiBudget.chatRemainingTokensToday <= 0) {
     return {
       allowed: false as const,
-      message: "The app-wide AI budget for today is used up. Try again tomorrow.",
+      message: "Daily library chat token limit reached. The chat reopens tomorrow.",
     };
   }
 
@@ -690,7 +679,7 @@ export async function refreshAssistantInsightsForUser(userId: string) {
     userLibrarySummary,
     ruleInsights: ruleInsights.slice(0, 8),
   };
-  const aiBudgetLimits = await getAiBudgetLimits();
+  const aiBudgetSnapshot = await getAiBudgetUsageForUser(userId);
   const playNextInput = {
     userLibrarySummary,
     entries: assistantEntries,
@@ -748,7 +737,7 @@ export async function refreshAssistantInsightsForUser(userId: string) {
           skippedReason: aiDecision.skippedReason,
           limits: {
             userCooldownMinutes: AI_REFRESH_LIMITS.userCooldownMs / 60000,
-            ...aiBudgetLimits,
+            ...aiBudgetSnapshot,
           },
         },
       } as Prisma.InputJsonValue,

@@ -18,6 +18,15 @@ import type {
   ProfileData,
 } from "./profile-types";
 
+function formatUsd(value: number) {
+  return new Intl.NumberFormat(undefined, {
+    currency: "USD",
+    maximumFractionDigits: value < 0.01 ? 4 : 2,
+    minimumFractionDigits: value < 0.01 ? 4 : 2,
+    style: "currency",
+  }).format(value);
+}
+
 function formatAssistantCooldown(
   seconds: number,
   t: ReturnType<typeof createTranslator>,
@@ -86,11 +95,15 @@ export function AssistantTab({
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className="rounded-pill bg-surface px-3 py-1">
                 {t("assistant.tab.availableToday")}{" "}
-                {formatNumber(assistant.aiUsage.effectiveRemainingToday)}
+                {formatUsd(assistant.aiUsage.spendRemainingToday)}
               </span>
               <span className="rounded-pill bg-surface px-3 py-1">
-                {t("assistant.tab.usedToday")} {formatNumber(assistant.aiUsage.userUsedToday)} /{" "}
-                {formatNumber(assistant.aiUsage.userDailyLimit)}
+                {t("assistant.tab.usedToday")}{" "}
+                {formatUsd(assistant.aiUsage.spendUsedToday)} /{" "}
+                {formatUsd(assistant.aiUsage.userDailySpendLimitUsd)}
+              </span>
+              <span className="rounded-pill bg-surface px-3 py-1">
+                Chat {formatNumber(assistant.aiUsage.chatRemainingTokensToday)}
               </span>
               <span className="rounded-pill bg-surface px-3 py-1">
                 {t("assistant.tab.nextRefresh")}{" "}

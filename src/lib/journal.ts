@@ -18,6 +18,7 @@ import {
 import { normalizeTitle } from "@/lib/utils";
 import { getOpenAiConfig } from "@/lib/openai";
 import { runWithAiBudget } from "./ai-budget.ts";
+import { estimateTokensFromText } from "./ai-estimates.ts";
 import { getAiSettings, type AiSettingsValues } from "./ai-settings.ts";
 
 type UploadedMedia = {
@@ -136,6 +137,7 @@ function extractOutputText(response: unknown) {
 
 async function transcribeAudio(
   file: File,
+  targetLanguage: string,
   userId: string,
   aiSettings: AiSettingsValues,
 ) {
@@ -150,10 +152,13 @@ async function transcribeAudio(
   }
 
   const model = process.env.OPENAI_TRANSCRIPTION_MODEL || "gpt-4o-mini-transcribe";
+  const prompt = getTranscriptionPrompt(targetLanguage);
 
   try {
     return await runWithAiBudget({
       feature: "voice_transcription",
+      estimatedInputTokens: estimateTokensFromText(prompt),
+      estimatedOutputTokens: 0,
       inputSummary: {
         fileSize: file.size,
         mimeType: file.type || "application/octet-stream",
@@ -164,6 +169,7 @@ async function transcribeAudio(
         const body = new FormData();
         body.set("file", file, file.name || "voice-note.webm");
         body.set("model", model);
+        body.set("prompt", prompt);
 
         const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
           method: "POST",
@@ -193,82 +199,29 @@ async function transcribeAudio(
   }
 }
 
-function shouldTranslateTranscript(
-  sourceLanguage: string | null | undefined,
-  targetLanguage: string,
-) {
-  const source = sourceLanguage?.toLowerCase() ?? "";
-  const target = targetLanguage.toLowerCase();
-
-  if (!source) {
-    return true;
+function getTranscriptionPrompt(targetLanguage: string) {
+  const normalizedLanguage = targetLanguage.toLowerCase();
+  if (
+    normalizedLanguage.includes("portuguese") ||
+    normalizedLanguage.includes("portugues") ||
+    normalizedLanguage.includes("pt")
+  ) {
+    return [
+      "Transcreva esta anotacao de voz de diario de jogos.",
+      "Responda obrigatoriamente no mesmo idioma deste prompt: portugues do Brasil.",
+      "Se o audio estiver em outro idioma, adapte a transcricao para portugues do Brasil.",
+      "Preserve nomes de jogos, personagens, lugares, plataformas e termos tecnicos como foram ditos quando fizer sentido.",
+      "Retorne apenas o texto final, sem explicacoes.",
+    ].join(" ");
   }
 
-  if (target.includes("english") && /^en(g|$)/.test(source)) {
-    return false;
-  }
-
-  if (target.includes("portuguese") && /^(pt|por|portugu)/.test(source)) {
-    return false;
-  }
-
-  return true;
-}
-
-async function translateTranscript(
-  text: string,
-  targetLanguage: string,
-  userId: string,
-  aiSettings: AiSettingsValues,
-) {
-  const config = getOpenAiConfig();
-  if (!config || !text.trim() || !aiSettings.voiceTranslationEnabled) {
-    return null;
-  }
-
-  try {
-    return await runWithAiBudget({
-      feature: "voice_translation",
-      inputSummary: {
-        targetLanguage,
-        textLength: text.length,
-      },
-      model: config.model,
-      userId,
-      execute: async () => {
-        const response = await fetch(`${config.baseUrl}/responses`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${config.apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: config.model,
-            max_output_tokens: aiSettings.voiceTranslationMaxOutputTokens,
-            input: [
-              {
-                role: "system",
-                content:
-                  "Translate gameplay journal transcripts only when needed. Preserve concrete game details and keep the result concise. Return plain text.",
-              },
-              {
-                role: "user",
-                content: `Target language: ${targetLanguage}\n\nTranscript:\n${text}`,
-              },
-            ],
-          }),
-        });
-
-        if (!response.ok) {
-          return null;
-        }
-
-        return extractOutputText(await response.json())?.trim() ?? null;
-      },
-    });
-  } catch {
-    return null;
-  }
+  return [
+    "Transcribe this gameplay journal voice note.",
+    "You must answer in the same language as this prompt: English.",
+    "If the audio is in another language, adapt the transcript into English.",
+    "Preserve game titles, character names, places, platforms, and technical terms as spoken when appropriate.",
+    "Return only the final text, with no explanations.",
+  ].join(" ");
 }
 
 function truncateText(value: string, maxLength: number) {
@@ -441,7 +394,6 @@ export async function createJournalEntryForUser({
   }
 
   let transcript: Awaited<ReturnType<typeof transcribeAudio>> = null;
-  let translatedTranscript: string | null = null;
   if (isUsableFile(audioFile)) {
     if (!audioFile.type.startsWith("audio/")) {
       throw new Error("Voice uploads must be audio files.");
@@ -455,17 +407,12 @@ export async function createJournalEntryForUser({
       kind: "audio",
       ...(await saveUpload(audioFile, "journal", "audio")),
     });
-    transcript = await transcribeAudio(audioFile, userId, aiSettings);
-    translatedTranscript =
-      transcript?.text &&
-      shouldTranslateTranscript(transcript.language, targetLanguage)
-        ? await translateTranscript(
-            transcript.text,
-            targetLanguage,
-            userId,
-            aiSettings,
-          )
-      : null;
+    transcript = await transcribeAudio(
+      audioFile,
+      targetLanguage,
+      userId,
+      aiSettings,
+    );
   }
 
   const achievement = buildAchievementSummary(entry);
@@ -485,7 +432,6 @@ export async function createJournalEntryForUser({
       latestAchievementUnlockedAt: entry.finishedAt ?? undefined,
       inferenceConfidence: achievement.confidence ?? undefined,
       audioTranscript: transcript?.text ?? undefined,
-      translatedTranscript: translatedTranscript ?? undefined,
       transcriptLanguage: transcript?.language ?? undefined,
       rawData: {
         targetLanguage,
@@ -524,6 +470,9 @@ async function extractPhotoCandidates(
 
   return runWithAiBudget({
     feature: "photo_import",
+    countedFiles: 1,
+    estimatedInputTokens: estimateTokensFromText(file.name || "catalog-photo"),
+    estimatedOutputTokens: aiSettings.photoImportMaxOutputTokens,
     inputSummary: {
       fileSize: file.size,
       mimeType: file.type || "application/octet-stream",
@@ -764,7 +713,7 @@ export async function importPhotoCatalogForUser({
   const aiSettings = await getAiSettings();
   const usableFiles = files
     .filter((file) => file.size > 0)
-    .slice(0, aiSettings.photoImportMaxFiles);
+    .slice(0, aiSettings.photoImportDailyFileLimit);
   if (!usableFiles.length) {
     throw new Error(messages.uploadAtLeastOne);
   }

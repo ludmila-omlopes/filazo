@@ -128,7 +128,7 @@ function JournalPageCard({
         <div className="mt-4 rounded-inner border border-edge bg-canvas/70 p-3">
           <p className="section-label !mb-2">{t("voiceMemory.label")}</p>
           <p className="whitespace-pre-line break-words text-sm leading-relaxed text-ink-soft">
-            {entry.translatedTranscript ?? entry.audioTranscript}
+            {entry.audioTranscript}
           </p>
         </div>
       ) : null}
@@ -294,7 +294,6 @@ export function JournalTab({
                 type="hidden"
                 value={`${buildEntryHref(selectedEntry.id)}&journal=saved`}
               />
-              <input name="targetLanguage" type="hidden" value={locale === "pt-BR" ? "Portuguese (Brazil)" : "English"} />
 
               <div>
                 <div className="mb-3 flex items-center gap-2 text-sm font-bold text-ink-soft">
