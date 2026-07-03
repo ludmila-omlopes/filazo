@@ -9,7 +9,7 @@
     "build": "next build",
     "start": "next start --hostname localhost --port 3001",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "node --experimental-strip-types --test",
     "db:generate": "prisma generate",
     "db:init": "node scripts/init-db.mjs",
