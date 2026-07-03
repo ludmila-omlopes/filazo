@@ -1,13 +1,12 @@
 import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
+import { getAuthSecret } from "@/lib/auth-secret";
 
 const SESSION_COOKIE = "filazo-session";
 const SESSION_DURATION = 60 * 60 * 24 * 30;
 
 function getSessionSecret() {
-  return new TextEncoder().encode(
-    process.env.AUTH_SECRET || "local-dev-secret-change-me",
-  );
+  return new TextEncoder().encode(getAuthSecret());
 }
 
 export async function setUserSession(userId: string) {

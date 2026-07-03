@@ -147,7 +147,7 @@ OPENAI_TRANSCRIPTION_MODEL="gpt-4o-mini-transcribe"
 
 Notes:
 
-- `AUTH_SECRET` should be a long random string in any non-local environment.
+- `AUTH_SECRET` should be a long random string in any non-local environment. The app refuses to start sessions in production without it.
 - `DATABASE_URL` is required for catalog features and must point to a PostgreSQL database.
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable the Google button in the login popup and the beta access login. Add both `${APP_URL}/api/auth/google/callback` and `${APP_URL}/api/auth/youtube/callback` as authorized redirect URIs in Google Cloud. The beta access flow uses Google identity scopes only (`openid email profile`), which avoids the blocked-app behavior triggered by unnecessary YouTube scopes.
 - `RESEND_API_KEY` and `BETA_APPROVAL_FROM_EMAIL` enable automatic approval emails when an admin approves a beta tester. `BETA_APPROVAL_REPLY_TO` is optional. `BETA_DISCORD_INVITE_URL` adds the beta Discord invite to the approval email. If Resend is not configured, approvals still succeed and the app logs that the email was skipped.
@@ -195,6 +195,11 @@ npm run dev
 ```
 
 Open `http://localhost:3001`.
+
+## Verification
+
+Run `npm run lint`, `npm run typecheck`, and `npm test` before shipping changes.
+CI runs the same checks on every push to `master` and on pull requests.
 
 ## Localization
 

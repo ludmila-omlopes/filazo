@@ -11,6 +11,10 @@ import {
 import { z } from "zod";
 import { resolveCatalogGame } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
+import {
+  getAllowedUploadExtension,
+  type UploadKind,
+} from "@/lib/upload-file-type";
 import { normalizeTitle } from "@/lib/utils";
 import { getOpenAiConfig } from "@/lib/openai";
 import { runWithAiBudget } from "./ai-budget.ts";
@@ -64,33 +68,20 @@ function getSafeFileName(file: File) {
   return baseName || fallback;
 }
 
-function getExtensionForMime(mimeType: string) {
-  if (mimeType === "image/png") {
-    return ".png";
-  }
-
-  if (mimeType === "image/webp") {
-    return ".webp";
-  }
-
-  if (mimeType === "audio/webm") {
-    return ".webm";
-  }
-
-  if (mimeType === "audio/mpeg") {
-    return ".mp3";
-  }
-
-  if (mimeType === "audio/wav") {
-    return ".wav";
-  }
-
-  return ".jpg";
-}
-
-async function saveUpload(file: File, folder: "journal" | "imports") {
+async function saveUpload(
+  file: File,
+  folder: "journal" | "imports",
+  kind: UploadKind,
+) {
   const safeFileName = getSafeFileName(file);
-  const extension = path.extname(safeFileName) || getExtensionForMime(file.type);
+  const extension = getAllowedUploadExtension(file.type, kind);
+  if (!extension) {
+    throw new Error(
+      kind === "image"
+        ? "Screenshot uploads must be PNG, JPEG, WebP, or GIF files."
+        : "Voice uploads must be WebM, MP3, M4A, WAV, or OGG files.",
+    );
+  }
   const storageKey = `uploads/${folder}/${randomUUID()}${extension}`;
   const diskPath = path.join(process.cwd(), "public", ...storageKey.split("/"));
 
@@ -443,7 +434,10 @@ export async function createJournalEntryForUser({
     if (!imageFile.type.startsWith("image/")) {
       throw new Error("Screenshot uploads must be image files.");
     }
-    media.push({ kind: "image", ...(await saveUpload(imageFile, "journal")) });
+    media.push({
+      kind: "image",
+      ...(await saveUpload(imageFile, "journal", "image")),
+    });
   }
 
   let transcript: Awaited<ReturnType<typeof transcribeAudio>> = null;
@@ -457,7 +451,10 @@ export async function createJournalEntryForUser({
         `Voice uploads must be ${formatFileSize(aiSettings.voiceMaxFileBytes)} or smaller.`,
       );
     }
-    media.push({ kind: "audio", ...(await saveUpload(audioFile, "journal")) });
+    media.push({
+      kind: "audio",
+      ...(await saveUpload(audioFile, "journal", "audio")),
+    });
     transcript = await transcribeAudio(audioFile, userId, aiSettings);
     translatedTranscript =
       transcript?.text &&
@@ -793,7 +790,10 @@ export async function importPhotoCatalogForUser({
 
   try {
     for (const file of usableFiles) {
-      if (!file.type.startsWith("image/")) {
+      if (
+        !file.type.startsWith("image/") ||
+        !getAllowedUploadExtension(file.type, "image")
+      ) {
         failedCount += 1;
         await prisma.importRow.create({
           data: {
@@ -831,7 +831,7 @@ export async function importPhotoCatalogForUser({
         continue;
       }
 
-      const upload = await saveUpload(file, "imports");
+      const upload = await saveUpload(file, "imports", "image");
       const candidates = await extractPhotoCandidates(file, userId, aiSettings);
       if (!candidates.length) {
         skippedCount += 1;

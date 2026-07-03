@@ -7,6 +7,11 @@ import {
   UserGameStatus,
 } from "@prisma/client";
 import Papa from "papaparse";
+import {
+  shouldSearchHltb,
+  shouldSearchIgdb,
+  shouldSearchMetacritic,
+} from "@/lib/enrichment-policy";
 import { hltbAdapter } from "@/lib/hltb";
 import { igdbAdapter } from "@/lib/igdb";
 import { metacriticAdapter } from "@/lib/metacritic";
@@ -348,12 +353,15 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
     });
   }
 
+  const initiallyMatchedGame = game;
   const metadata =
     input.metadata ??
-    (await igdbAdapter.searchBestMatch({
-      title: searchTitle,
-      platformName: input.platformName,
-    }));
+    (shouldSearchIgdb(initiallyMatchedGame)
+      ? await igdbAdapter.searchBestMatch({
+          title: searchTitle,
+          platformName: input.platformName,
+        })
+      : null);
 
   if (metadata?.igdbId) {
     const gameByIgdb = await prisma.game.findUnique({
@@ -364,17 +372,22 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
     game = gameByIgdb ?? game;
   }
 
-  const completionTimes = await hltbAdapter.searchBestMatch({
-    title: cleanGameTitle(metadata?.name ?? input.title),
-    platformName: input.platformName,
-  });
-  const reviewScore = await metacriticAdapter.searchBestMatch({
-    title: cleanGameTitle(metadata?.name ?? input.title),
-    steamAppId:
-      input.provider === ExternalProvider.STEAM
-        ? input.providerGameId
-        : null,
-  });
+  const enrichmentSearchTitle = cleanGameTitle(metadata?.name ?? input.title);
+  const completionTimes = shouldSearchHltb(initiallyMatchedGame)
+    ? await hltbAdapter.searchBestMatch({
+        title: enrichmentSearchTitle,
+        platformName: input.platformName,
+      })
+    : null;
+  const reviewScore = shouldSearchMetacritic(initiallyMatchedGame)
+    ? await metacriticAdapter.searchBestMatch({
+        title: enrichmentSearchTitle,
+        steamAppId:
+          input.provider === ExternalProvider.STEAM
+            ? input.providerGameId
+            : null,
+      })
+    : null;
 
   if (completionTimes?.hltbId) {
     const gameByHltb = await prisma.gameProviderLink.findUnique({
