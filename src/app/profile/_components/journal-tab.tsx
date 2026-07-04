@@ -1,6 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BookOpen, ChevronRight, Mic, PenLine, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  ChevronRight,
+  ImageIcon,
+  Mic,
+  PenLine,
+  Trash2,
+} from "lucide-react";
 import {
   createJournalEntryAction,
   deleteJournalEntryAction,
@@ -295,77 +302,134 @@ export function JournalTab({
                 value={`${buildEntryHref(selectedEntry.id)}&journal=saved`}
               />
 
-              <div>
-                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-ink-soft">
-                  <Mic className="h-4 w-4" />
-                  {t("journal.startWithVoice")}
-                </div>
-                <VoiceMemoryInput
-                  maxRecordingSeconds={aiSettings.voiceRecordingMaxSeconds}
-                />
-              </div>
-
-              <details className="rounded-inner border border-edge bg-canvas/70 p-4">
-                <summary className="cursor-pointer text-sm font-bold text-ink transition-colors hover:text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
-                  {t("journal.writeOrAddMore")}
-                </summary>
-                <div className="mt-4 grid gap-4">
-                  <div className="grid grid-cols-[minmax(0,1fr)_220px] gap-3 max-md:grid-cols-1">
-                    <label className="grid gap-2">
-                      <span className="text-sm font-semibold">{t("journal.pageTitle")}</span>
-                      <input
-                        autoComplete="off"
-                        className="min-h-11 rounded-inner border border-edge bg-surface px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                        name="title"
-                        placeholder={t("journal.pageTitlePlaceholder")}
-                      />
-                    </label>
-                    <label className="grid gap-2">
-                      <span className="text-sm font-semibold">{t("journal.playedAround")}</span>
-                      <input
-                        autoComplete="off"
-                        className="min-h-11 rounded-inner border border-edge bg-surface px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                        name="occurredAt"
-                        type="datetime-local"
-                      />
-                    </label>
+              <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+                <section className="grid gap-4 rounded-inner border border-edge bg-canvas/70 p-4 max-sm:p-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="grid h-10 w-10 flex-none place-items-center rounded-inner border border-edge bg-sand-soft text-ink">
+                      <PenLine aria-hidden="true" className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="section-label !mb-1">
+                        {t("journal.optionTextLabel")}
+                      </p>
+                      <h4 className="text-pretty font-display text-xl font-medium">
+                        {t("journal.writeWithText")}
+                      </h4>
+                      <p className="mt-1 text-sm font-semibold leading-relaxed text-ink-soft">
+                        {t("journal.writeWithTextHint")}
+                      </p>
+                    </div>
                   </div>
-                  <label className="grid gap-2">
-                    <span className="text-sm font-semibold">{t("journal.dearDiary")}</span>
-                    <textarea
-                      autoComplete="off"
-                      className="min-h-44 rounded-inner border border-edge bg-surface px-3 py-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                      name="body"
-                      placeholder={t("journal.bodyPlaceholder")}
-                    />
-                  </label>
-                  <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-                    <label className="grid gap-2">
-                      <span className="text-sm font-semibold">{t("journal.screenshot")}</span>
-                      <input
-                        accept="image/*"
-                        className="w-full text-sm file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sage-soft file:px-4 file:py-2 file:font-semibold file:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-                        name="image"
-                        type="file"
-                      />
-                    </label>
+
+                  <div className="grid gap-4">
+                    <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
+                      <label className="grid gap-2">
+                        <span className="text-sm font-semibold">
+                          {t("journal.pageTitle")}
+                        </span>
+                        <input
+                          autoComplete="off"
+                          className="min-h-11 rounded-inner border border-edge bg-surface px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                          name="title"
+                          placeholder={t("journal.pageTitlePlaceholder")}
+                        />
+                      </label>
+                      <label className="grid gap-2">
+                        <span className="text-sm font-semibold">
+                          {t("journal.playedAround")}
+                        </span>
+                        <input
+                          autoComplete="off"
+                          className="min-h-11 rounded-inner border border-edge bg-surface px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                          name="occurredAt"
+                          type="datetime-local"
+                        />
+                      </label>
+                    </div>
                     <label className="grid gap-2">
                       <span className="text-sm font-semibold">
-                        {t("journal.keepsakeCaption")}
+                        {t("journal.dearDiary")}
                       </span>
-                      <input
+                      <textarea
                         autoComplete="off"
-                        className="min-h-11 rounded-inner border border-edge bg-surface px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
-                        name="mediaCaption"
-                        placeholder={t("journal.keepsakePlaceholder")}
+                        className="min-h-40 rounded-inner border border-edge bg-surface px-3 py-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                        name="body"
+                        placeholder={t("journal.bodyPlaceholder")}
                       />
                     </label>
                   </div>
+                </section>
+
+                <section className="grid gap-4 rounded-inner border border-edge bg-surface p-4 max-sm:p-3">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <span className="grid h-10 w-10 flex-none place-items-center rounded-inner border border-edge bg-sage-soft text-ink">
+                      <Mic aria-hidden="true" className="h-4 w-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="section-label !mb-1">
+                        {t("journal.optionVoiceLabel")}
+                      </p>
+                      <h4 className="text-pretty font-display text-xl font-medium">
+                        {t("journal.recordWithVoice")}
+                      </h4>
+                      <p className="mt-1 text-sm font-semibold leading-relaxed text-ink-soft">
+                        {t("journal.recordWithVoiceHint")}
+                      </p>
+                    </div>
+                  </div>
+                  <VoiceMemoryInput
+                    framed={false}
+                    maxRecordingSeconds={aiSettings.voiceRecordingMaxSeconds}
+                    showIntro={false}
+                  />
+                </section>
+              </div>
+
+              <section className="grid gap-4 rounded-inner border border-edge bg-canvas/70 p-4 max-sm:p-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="grid h-10 w-10 flex-none place-items-center rounded-inner border border-edge bg-sky-soft text-ink">
+                    <ImageIcon aria-hidden="true" className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="section-label !mb-1">
+                      {t("journal.optionalImageLabel")}
+                    </p>
+                    <h4 className="text-pretty font-display text-xl font-medium">
+                      {t("journal.addImageTitle")}
+                    </h4>
+                    <p className="mt-1 text-sm font-semibold leading-relaxed text-ink-soft">
+                      {t("journal.addImageHint")}
+                    </p>
+                  </div>
                 </div>
-              </details>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-2">
+                    <span className="text-sm font-semibold">
+                      {t("journal.screenshot")}
+                    </span>
+                    <input
+                      accept="image/*"
+                      className="w-full text-sm file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sage-soft file:px-4 file:py-2 file:font-semibold file:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                      name="image"
+                      type="file"
+                    />
+                  </label>
+                  <label className="grid gap-2">
+                    <span className="text-sm font-semibold">
+                      {t("journal.keepsakeCaption")}
+                    </span>
+                    <input
+                      autoComplete="off"
+                      className="min-h-11 rounded-inner border border-edge bg-surface px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                      name="mediaCaption"
+                      placeholder={t("journal.keepsakePlaceholder")}
+                    />
+                  </label>
+                </div>
+              </section>
 
               <Button className="justify-self-start" type="submit">
-                <PenLine />
+                <PenLine aria-hidden="true" />
                 {t("journal.savePage")}
               </Button>
             </form>
