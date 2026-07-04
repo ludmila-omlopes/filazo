@@ -47,6 +47,7 @@ const messages = {
     "theme.nightLabel": "Night - pick something to play",
     "theme.auto": "Auto",
     "theme.autoLabel": "Auto - follow the time of day",
+    "theme.phaseSliderLabel": "Time of day",
     "theme.phase.morning": "morning",
     "theme.phase.afternoon": "afternoon",
     "theme.phase.dusk": "dusk",
@@ -275,6 +276,7 @@ const messages = {
     "profile.rail.setupHint": "Preferences",
     "profile.rail.avatarAlt": "{name} avatar",
     "profile.rail.ownedCurious": "{owned} owned / {wishlist} still curious",
+    "profile.rail.catalogMood": "A softer shelf for what you play and remember",
 
     "profile.addGames.label": "Add games",
     "profile.addGames.title": "Bring another shelf in",
@@ -585,8 +587,10 @@ const messages = {
     "voiceMemory.stop": "Stop Recording",
     "voiceMemory.recording": "Recording",
     "voiceMemory.none": "No voice memory yet",
-    "voiceMemory.uploadInstead": "Upload Audio Instead",
-    "voiceMemory.audioFile": "Audio File",
+    "voiceMemory.inputLevel": "Mic input",
+    "voiceMemory.noSignal":
+      "No sound detected. Check the microphone selected in your browser or system settings, then record again.",
+    "voiceMemory.recordedAudioInput": "Recorded voice memory",
     "voiceMemory.stopBeforeSave":
       "Stop recording before saving this diary page.",
     "voiceMemory.browserUnavailable":
@@ -601,15 +605,27 @@ const messages = {
     "journal.savedCount": "{count} saved",
     "journal.startWithVoice": "Start With Your Voice",
     "journal.writeOrAddMore": "Write Instead Or Add More",
+    "journal.optionTextLabel": "Option 1",
+    "journal.optionVoiceLabel": "Option 2",
+    "journal.writeWithText": "Write With Text",
+    "journal.writeWithTextHint":
+      "Use a title, notes, and an optional screenshot.",
+    "journal.recordWithVoice": "Record Your Voice",
+    "journal.recordWithVoiceHint":
+      "Speak the memory and check the mic input while recording.",
+    "journal.optionalImageLabel": "Optional",
+    "journal.addImageTitle": "Add Image",
+    "journal.addImageHint":
+      "Use the same screenshot with a text note or a voice note.",
     "journal.pageTitle": "Page Title",
-    "journal.pageTitlePlaceholder": "Before the next session",
+    "journal.pageTitlePlaceholder": "Before the next session…",
     "journal.playedAround": "Played Around",
     "journal.dearDiary": "Dear Diary",
     "journal.bodyPlaceholder":
-      "I stopped at... I want to remember... Next time I should try...",
+      "I stopped at… I want to remember… Next time I should try…",
     "journal.screenshot": "Screenshot",
     "journal.keepsakeCaption": "Keepsake Caption",
-    "journal.keepsakePlaceholder": "What this memory shows",
+    "journal.keepsakePlaceholder": "What this memory shows…",
     "journal.savePage": "Save Diary Page",
     "journal.chooseAnotherGame": "Choose Another Game",
     "journal.noPagesTitle": "No pages for this game yet.",
@@ -1020,6 +1036,7 @@ const messages = {
     "theme.nightLabel": "Noite - escolher algo para jogar",
     "theme.auto": "Auto",
     "theme.autoLabel": "Auto - seguir a hora do dia",
+    "theme.phaseSliderLabel": "Hora do dia",
     "theme.phase.morning": "manhã",
     "theme.phase.afternoon": "tarde",
     "theme.phase.dusk": "anoitecer",
@@ -1251,6 +1268,7 @@ const messages = {
     "profile.rail.setupHint": "Preferências",
     "profile.rail.avatarAlt": "avatar de {name}",
     "profile.rail.ownedCurious": "{owned} seus / {wishlist} ainda em observação",
+    "profile.rail.catalogMood": "Uma estante mais leve para jogar e lembrar",
 
     "profile.addGames.label": "Adicionar jogos",
     "profile.addGames.title": "Traga outra estante",
@@ -1561,8 +1579,10 @@ const messages = {
     "voiceMemory.stop": "Parar gravação",
     "voiceMemory.recording": "Gravando",
     "voiceMemory.none": "Ainda sem memória de voz",
-    "voiceMemory.uploadInstead": "Enviar áudio em vez disso",
-    "voiceMemory.audioFile": "Arquivo de áudio",
+    "voiceMemory.inputLevel": "Entrada do microfone",
+    "voiceMemory.noSignal":
+      "Nao detectei som. Confira o microfone selecionado no navegador ou no sistema e grave de novo.",
+    "voiceMemory.recordedAudioInput": "Memória de voz gravada",
     "voiceMemory.stopBeforeSave":
       "Pare a gravação antes de salvar esta página do diário.",
     "voiceMemory.browserUnavailable":
@@ -1577,15 +1597,27 @@ const messages = {
     "journal.savedCount": "{count} salvas",
     "journal.startWithVoice": "Comece com a sua voz",
     "journal.writeOrAddMore": "Escreva em vez disso ou adicione mais",
+    "journal.optionTextLabel": "Opção 1",
+    "journal.optionVoiceLabel": "Opção 2",
+    "journal.writeWithText": "Escrever com texto",
+    "journal.writeWithTextHint":
+      "Use título, notas e um screenshot opcional.",
+    "journal.recordWithVoice": "Gravar com voz",
+    "journal.recordWithVoiceHint":
+      "Fale a lembrança e confira a entrada do microfone enquanto grava.",
+    "journal.optionalImageLabel": "Opcional",
+    "journal.addImageTitle": "Adicionar imagem",
+    "journal.addImageHint":
+      "Use o mesmo screenshot com uma nota em texto ou com uma nota de voz.",
     "journal.pageTitle": "Título da página",
-    "journal.pageTitlePlaceholder": "Antes da próxima sessão",
+    "journal.pageTitlePlaceholder": "Antes da próxima sessão…",
     "journal.playedAround": "Jogado por volta de",
     "journal.dearDiary": "Querido diário",
     "journal.bodyPlaceholder":
-      "Parei em... Quero lembrar... Da próxima vez eu deveria tentar...",
+      "Parei em… Quero lembrar… Da próxima vez eu deveria tentar…",
     "journal.screenshot": "Screenshot",
     "journal.keepsakeCaption": "Legenda da lembrança",
-    "journal.keepsakePlaceholder": "O que esta memória mostra",
+    "journal.keepsakePlaceholder": "O que esta memória mostra…",
     "journal.savePage": "Salvar página do diário",
     "journal.chooseAnotherGame": "Escolher outro jogo",
     "journal.noPagesTitle": "Ainda não há páginas para este jogo.",

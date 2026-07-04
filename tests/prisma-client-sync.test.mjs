@@ -55,6 +55,15 @@ test("generated Prisma client includes synced Steam user game fields", () => {
     model.fields.some((field) => field.name === "playingNextSlot"),
     "Run npm run db:generate after changing prisma/schema.prisma.",
   );
+  assert.ok(
+    model.uniqueFields.some(
+      (fields) =>
+        fields.length === 2 &&
+        fields.includes("userId") &&
+        fields.includes("playingNextSlot"),
+    ),
+    "Run npm run db:generate after adding the playing-next slot uniqueness constraint.",
+  );
   assert.ok(gameModel, "Game model should exist in generated Prisma client");
   assert.ok(
     gameModel.fields.some((field) => field.name === "hltbMainStoryMinutes"),

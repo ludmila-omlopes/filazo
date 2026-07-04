@@ -11,12 +11,12 @@ import {
 import { z } from "zod";
 import {
   importCsvForUser,
-  type CsvColumnMapping,
   resolveCatalogGame,
   syncPlayStationLibraryForUser,
   syncSteamLibraryForUser,
   syncXboxLibraryForUser,
 } from "@/lib/catalog";
+import { parseCsvColumnMappingJson } from "@/lib/csv-import-mapping";
 import { getIgdbGameById } from "@/lib/igdb";
 import { createTranslator } from "@/lib/i18n";
 import {
@@ -1022,9 +1022,9 @@ export async function importCsvAction(formData: FormData) {
     redirect(`/profile?error=${encodeURIComponent(t("profileAction.invalidCsv"))}`);
   }
 
-  const mapping = JSON.parse(parsed.data.mapping) as CsvColumnMapping;
-  if (!mapping.title) {
-    redirect(`/profile?error=${encodeURIComponent(t("profileAction.needTitleMapping"))}`);
+  const mapping = parseCsvColumnMappingJson(parsed.data.mapping);
+  if (!mapping) {
+    redirect(`/profile?error=${encodeURIComponent(t("profileAction.invalidCsv"))}`);
   }
 
   let importedCount: number;

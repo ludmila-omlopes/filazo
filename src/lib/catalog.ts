@@ -19,6 +19,7 @@ import { syncPlayStationLibraryForAccount } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
 import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
 import { syncXboxLibraryForAccount } from "@/lib/xbox";
+import type { CsvColumnMapping } from "@/lib/csv-import-mapping";
 import {
   cleanGameTitle,
   normalizeTitle,
@@ -34,17 +35,6 @@ type ResolveGameInput = {
   providerGameId?: string | null;
   storeUrl?: string | null;
   rawData?: Record<string, unknown>;
-};
-
-export type CsvColumnMapping = {
-  title: string;
-  platform?: string;
-  status?: string;
-  playtimeHours?: string;
-  completionPercent?: string;
-  notes?: string;
-  externalId?: string;
-  provider?: "PLAYSTATION" | "XBOX";
 };
 
 type NormalizedImportRow = {
@@ -1073,19 +1063,50 @@ export async function importCsvForUser({
   }
 }
 
-export async function getProfileData(userId: string) {
+export type ProfileDataScope =
+  | "assistant"
+  | "games"
+  | "integrations"
+  | "journal"
+  | "overview"
+  | "playerProfile"
+  | "setup";
+
+export async function getProfileData(
+  userId: string,
+  options: { scope?: ProfileDataScope } = {},
+) {
+  const scope = options.scope ?? "overview";
+  const shouldLoadFullGameEntries = scope === "games" || scope === "journal";
+  const shouldLoadJournalEntries = scope === "journal";
+  const focusedGameEntriesWhere = {
+    OR: [
+      { currentPlayingSlot: { not: null } },
+      { playingNextSlot: { not: null } },
+      { isFavorite: true },
+      { status: { not: UserGameStatus.WISHLIST } },
+    ],
+  } satisfies Prisma.UserGameEntryWhereInput;
+  const gameEntriesQuery = {
+    include: {
+      game: true,
+    },
+    orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
+    ...(shouldLoadFullGameEntries
+      ? {}
+      : {
+          where: focusedGameEntriesWhere,
+          take: 80,
+        }),
+  } satisfies Prisma.UserGameEntryFindManyArgs;
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
       externalAccounts: {
         orderBy: { createdAt: "asc" },
       },
-      gameEntries: {
-        include: {
-          game: true,
-        },
-        orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
-      },
+      gameEntries: gameEntriesQuery,
       journalEntries: {
         include: {
           game: true,
@@ -1099,6 +1120,7 @@ export async function getProfileData(userId: string) {
         orderBy: {
           occurredAt: "desc",
         },
+        ...(shouldLoadJournalEntries ? {} : { take: 0 }),
       },
       importJobs: {
         include: {

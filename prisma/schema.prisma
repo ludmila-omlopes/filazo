@@ -83,27 +83,27 @@ enum BetaTesterStatus {
 }
 
 model User {
-  id               String            @id @default(cuid())
-  displayName      String?
-  email            String?           @unique
-  passwordHash     String?
-  googleSubject    String?           @unique
-  youtubeSubject   String?           @unique
-  avatarUrl        String?
-  onboardingAnswers Json?
-  onboardingCompletedAt DateTime?
-  onboardingSkippedAt DateTime?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  externalAccounts ExternalAccount[]
-  gameEntries      UserGameEntry[]
-  importJobs       ImportJob[]
-  gameInsights     UserGameInsight[]
-  assistantRuns    AssistantRun[]
-  gameReviews      UserGameReview[]
-  journalEntries   GameJournalEntry[]
-  playerProfile    PlayerProfile?
-  betaApplication  BetaTesterApplication?
+  id                       String                  @id @default(cuid())
+  displayName              String?
+  email                    String?                 @unique
+  passwordHash             String?
+  googleSubject            String?                 @unique
+  youtubeSubject           String?                 @unique
+  avatarUrl                String?
+  onboardingAnswers        Json?
+  onboardingCompletedAt    DateTime?
+  onboardingSkippedAt      DateTime?
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  externalAccounts         ExternalAccount[]
+  gameEntries              UserGameEntry[]
+  importJobs               ImportJob[]
+  gameInsights             UserGameInsight[]
+  assistantRuns            AssistantRun[]
+  gameReviews              UserGameReview[]
+  journalEntries           GameJournalEntry[]
+  playerProfile            PlayerProfile?
+  betaApplication          BetaTesterApplication?
   reviewedBetaApplications BetaTesterApplication[] @relation("BetaReviewer")
 }
 
@@ -128,39 +128,39 @@ model ExternalAccount {
 }
 
 model Game {
-  id                       String             @id @default(cuid())
-  slug                     String             @unique
-  name                     String
-  normalizedName           String
-  summary                  String?
-  coverUrl                 String?
-  heroUrl                  String?
-  releaseDate              DateTime?
-  aggregatedRating         Float?
-  totalRatingCount         Int?
-  genres                   Json?
-  platforms                Json?
-  screenshots              Json?
-  websites                 Json?
-  metadataSource           ExternalProvider?
-  igdbId                   Int?               @unique
-  igdbSlug                 String?
-  hltbMainStoryMinutes     Int?
-  hltbMainExtraMinutes     Int?
-  hltbCompletionistMinutes Int?
-  hltbUpdatedAt            DateTime?
-  metacriticScore          Int?
-  metacriticUrl            String?
-  metacriticUpdatedAt      DateTime?
-  upcomingReleases         Json?
+  id                        String             @id @default(cuid())
+  slug                      String             @unique
+  name                      String
+  normalizedName            String
+  summary                   String?
+  coverUrl                  String?
+  heroUrl                   String?
+  releaseDate               DateTime?
+  aggregatedRating          Float?
+  totalRatingCount          Int?
+  genres                    Json?
+  platforms                 Json?
+  screenshots               Json?
+  websites                  Json?
+  metadataSource            ExternalProvider?
+  igdbId                    Int?               @unique
+  igdbSlug                  String?
+  hltbMainStoryMinutes      Int?
+  hltbMainExtraMinutes      Int?
+  hltbCompletionistMinutes  Int?
+  hltbUpdatedAt             DateTime?
+  metacriticScore           Int?
+  metacriticUrl             String?
+  metacriticUpdatedAt       DateTime?
+  upcomingReleases          Json?
   upcomingReleasesCheckedAt DateTime?
-  createdAt                DateTime           @default(now())
-  updatedAt                DateTime           @updatedAt
-  providerLinks            GameProviderLink[]
-  userEntries              UserGameEntry[]
-  importRows               ImportRow[]
-  userReviews              UserGameReview[]
-  journalEntries           GameJournalEntry[]
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+  providerLinks             GameProviderLink[]
+  userEntries               UserGameEntry[]
+  importRows                ImportRow[]
+  userReviews               UserGameReview[]
+  journalEntries            GameJournalEntry[]
 
   @@index([normalizedName])
 }
@@ -181,52 +181,53 @@ model GameProviderLink {
   storyAchievementCheckedAt DateTime?
   createdAt                 DateTime         @default(now())
   updatedAt                 DateTime         @updatedAt
-  game           Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  game                      Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerGameId])
   @@index([gameId])
 }
 
 model UserGameEntry {
-  id                String            @id @default(cuid())
-  userId            String
-  gameId            String
-  status            UserGameStatus
-  source            EntrySource
-  provider          ExternalProvider?
-  externalAccountId String?
-  platformName      String?
-  playtimeMinutes   Int?
-  lastPlayedAt      DateTime?
+  id                 String             @id @default(cuid())
+  userId             String
+  gameId             String
+  status             UserGameStatus
+  source             EntrySource
+  provider           ExternalProvider?
+  externalAccountId  String?
+  platformName       String?
+  playtimeMinutes    Int?
+  lastPlayedAt       DateTime?
   // Achievement/trophy progress (0-100). This is NOT story completion; a game
   // is "finished" when finishedAt is set or status is COMPLETED.
-  completionPercent Int?
-  finishedAt        DateTime?
+  completionPercent  Int?
+  finishedAt         DateTime?
   // "manual" | "import" | "story_achievement" | "inferred"
-  finishedSource    String?
-  notes             String?
-  isFavorite        Boolean           @default(false)
-  startedAt         DateTime?
-  abandonedAt       DateTime?
-  abandonReason     String?
-  activeBacklog     Boolean           @default(true)
-  userIntent        String?
-  desiredSessionMin Int?
+  finishedSource     String?
+  notes              String?
+  isFavorite         Boolean            @default(false)
+  startedAt          DateTime?
+  abandonedAt        DateTime?
+  abandonReason      String?
+  activeBacklog      Boolean            @default(true)
+  userIntent         String?
+  desiredSessionMin  Int?
   currentPlayingSlot Int?
-  playingNextSlot   Int?
-  lastSyncedAt      DateTime?
-  rawData           Json?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  game              Game              @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  externalAccount   ExternalAccount?  @relation(fields: [externalAccountId], references: [id], onDelete: SetNull)
-  insights          UserGameInsight[]
-  reviews           UserGameReview[]
-  journalEntries    GameJournalEntry[]
+  playingNextSlot    Int?
+  lastSyncedAt       DateTime?
+  rawData            Json?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game               Game               @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  externalAccount    ExternalAccount?   @relation(fields: [externalAccountId], references: [id], onDelete: SetNull)
+  insights           UserGameInsight[]
+  reviews            UserGameReview[]
+  journalEntries     GameJournalEntry[]
 
   @@unique([userId, gameId, status])
   @@unique([userId, currentPlayingSlot])
+  @@unique([userId, playingNextSlot])
   @@index([userId, status])
 }
 
@@ -260,32 +261,32 @@ model UserGameReview {
 }
 
 model GameJournalEntry {
-  id                           String         @id @default(cuid())
-  userId                       String
-  userGameEntryId              String
-  gameId                       String
-  title                        String?
-  body                         String?
-  source                       String         @default("manual")
-  externalSourceId             String?
-  visibility                   String         @default("private")
-  occurredAt                   DateTime       @default(now())
-  mechanicsRecap               String?
-  achievementSummary           String?
-  latestAchievementName        String?
-  latestAchievementUnlockedAt  DateTime?
-  inferenceConfidence          Int?
-  audioTranscript              String?
-  translatedTranscript         String?
-  transcriptLanguage           String?
-  transcriptConfidence         Float?
-  rawData                      Json?
-  createdAt                    DateTime       @default(now())
-  updatedAt                    DateTime       @updatedAt
-  user                         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userGameEntry                UserGameEntry  @relation(fields: [userGameEntryId], references: [id], onDelete: Cascade)
-  game                         Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  media                        JournalMedia[]
+  id                          String         @id @default(cuid())
+  userId                      String
+  userGameEntryId             String
+  gameId                      String
+  title                       String?
+  body                        String?
+  source                      String         @default("manual")
+  externalSourceId            String?
+  visibility                  String         @default("private")
+  occurredAt                  DateTime       @default(now())
+  mechanicsRecap              String?
+  achievementSummary          String?
+  latestAchievementName       String?
+  latestAchievementUnlockedAt DateTime?
+  inferenceConfidence         Int?
+  audioTranscript             String?
+  translatedTranscript        String?
+  transcriptLanguage          String?
+  transcriptConfidence        Float?
+  rawData                     Json?
+  createdAt                   DateTime       @default(now())
+  updatedAt                   DateTime       @updatedAt
+  user                        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userGameEntry               UserGameEntry  @relation(fields: [userGameEntryId], references: [id], onDelete: Cascade)
+  game                        Game           @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  media                       JournalMedia[]
 
   @@unique([userGameEntryId, source, externalSourceId])
   @@index([userId, occurredAt])
@@ -347,42 +348,42 @@ model AssistantRun {
 }
 
 model AiSettings {
-  id                                        String   @id
-  assistantChatEnabled                      Boolean  @default(true)
-  assistantPlayNextEnabled                  Boolean  @default(true)
-  assistantSummaryEnabled                   Boolean  @default(true)
-  playerProfileEnabled                      Boolean  @default(true)
-  photoImportEnabled                        Boolean  @default(true)
-  voiceTranscriptionEnabled                 Boolean  @default(true)
-  voiceTranslationEnabled                   Boolean  @default(false)
-  storyCompletionEnabled                    Boolean  @default(true)
-  userDailySpendLimitUsd                    Float    @default(0.25)
-  chatDailyTokenLimit                       Int      @default(20000)
-  assistantPlayNextDailyTokenLimit          Int      @default(12000)
-  playerProfileWeeklyCallLimit              Int      @default(2)
-  photoImportDailyCallLimit                 Int      @default(5)
-  photoImportDailyFileLimit                 Int      @default(10)
-  voiceTranscriptionDailyCallLimit          Int      @default(10)
-  userDailyLimit                            Int      @default(20)
-  globalDailyLimit                          Int      @default(100)
-  chatBudgetUnits                           Int      @default(3)
-  chatMaxSteps                              Int      @default(3)
-  chatMaxOutputTokens                       Int      @default(700)
-  assistantPlayNextMaxOutputTokens          Int      @default(900)
-  assistantSummaryMaxOutputTokens           Int      @default(650)
-  playerProfileMaxCalls                     Int      @default(3)
-  playerProfileMaxOutputTokens              Int      @default(1400)
-  photoImportMaxFiles                       Int      @default(2)
-  photoImportMaxFileBytes                   Int      @default(4194304)
-  photoImportMaxOutputTokens                Int      @default(1000)
-  photoImportMaxCandidates                  Int      @default(30)
-  voiceMaxFileBytes                         Int      @default(10485760)
-  voiceRecordingMaxSeconds                  Int      @default(180)
-  voiceTranslationMaxOutputTokens           Int      @default(900)
-  storyCompletionMaxClassificationsPerRun   Int      @default(10)
-  storyCompletionMaxOutputTokens            Int      @default(220)
-  createdAt                                 DateTime @default(now())
-  updatedAt                                 DateTime @updatedAt
+  id                                      String   @id
+  assistantChatEnabled                    Boolean  @default(true)
+  assistantPlayNextEnabled                Boolean  @default(true)
+  assistantSummaryEnabled                 Boolean  @default(true)
+  playerProfileEnabled                    Boolean  @default(true)
+  photoImportEnabled                      Boolean  @default(true)
+  voiceTranscriptionEnabled               Boolean  @default(true)
+  voiceTranslationEnabled                 Boolean  @default(false)
+  storyCompletionEnabled                  Boolean  @default(true)
+  userDailySpendLimitUsd                  Float    @default(0.25)
+  chatDailyTokenLimit                     Int      @default(20000)
+  assistantPlayNextDailyTokenLimit        Int      @default(12000)
+  playerProfileWeeklyCallLimit            Int      @default(2)
+  photoImportDailyCallLimit               Int      @default(5)
+  photoImportDailyFileLimit               Int      @default(10)
+  voiceTranscriptionDailyCallLimit        Int      @default(10)
+  userDailyLimit                          Int      @default(20)
+  globalDailyLimit                        Int      @default(100)
+  chatBudgetUnits                         Int      @default(3)
+  chatMaxSteps                            Int      @default(3)
+  chatMaxOutputTokens                     Int      @default(700)
+  assistantPlayNextMaxOutputTokens        Int      @default(900)
+  assistantSummaryMaxOutputTokens         Int      @default(650)
+  playerProfileMaxCalls                   Int      @default(3)
+  playerProfileMaxOutputTokens            Int      @default(1400)
+  photoImportMaxFiles                     Int      @default(2)
+  photoImportMaxFileBytes                 Int      @default(4194304)
+  photoImportMaxOutputTokens              Int      @default(1000)
+  photoImportMaxCandidates                Int      @default(30)
+  voiceMaxFileBytes                       Int      @default(10485760)
+  voiceRecordingMaxSeconds                Int      @default(180)
+  voiceTranslationMaxOutputTokens         Int      @default(900)
+  storyCompletionMaxClassificationsPerRun Int      @default(10)
+  storyCompletionMaxOutputTokens          Int      @default(220)
+  createdAt                               DateTime @default(now())
+  updatedAt                               DateTime @updatedAt
 }
 
 model PlayerProfile {

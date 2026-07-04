@@ -301,6 +301,8 @@ function getAiNumberFieldStep(name: AiNumberFieldName) {
   return name === "userDailySpendLimitUsd" ? 0.01 : 1;
 }
 
+// Kept as reference copy for the older settings layout while issue #97 ships.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getAiToggleFields(locale: Locale) {
   return [
     {
@@ -387,6 +389,8 @@ function getAiToggleFields(locale: Locale) {
   }>;
 }
 
+// Kept as reference copy for the older settings layout while issue #97 ships.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function getAiNumberGroups(locale: Locale) {
   return [
     {
@@ -584,6 +588,271 @@ function getAiNumberGroups(locale: Locale) {
   }>;
 }
 
+type AiFeatureCard = {
+  advancedFields?: Array<{
+    label: string;
+    name: AiNumberFieldName;
+  }>;
+  description: string;
+  enabledName?: BooleanAiSettingName;
+  governedByCap?: boolean;
+  primaryFields?: Array<{
+    label: string;
+    name: AiNumberFieldName;
+  }>;
+  title: string;
+};
+
+function getAiFeatureCards(locale: Locale) {
+  return [
+    {
+      title: localText(locale, {
+        en: "General safety cap",
+        pt: "Teto geral de seguranca",
+      }),
+      description: localText(locale, {
+        en: "Top-level estimated dollar guardrail. Every AI feature stops for a user when this daily cap is reached.",
+        pt: "Limite geral estimado em dolar. Todos os recursos de IA param para a pessoa quando este teto diario e atingido.",
+      }),
+      primaryFields: [
+        {
+          name: "userDailySpendLimitUsd",
+          label: localText(locale, {
+            en: "Dollar cap per user/day",
+            pt: "Teto em dolar por pessoa/dia",
+          }),
+        },
+      ],
+    },
+    {
+      title: localText(locale, { en: "Library chat", pt: "Chat" }),
+      enabledName: "assistantChatEnabled",
+      description: localText(locale, {
+        en: "Streaming chat in the Assistant tab. Raise the daily token limit when chat runs out too early.",
+        pt: "Chat em streaming na aba Assistente. Aumente o limite diario de tokens quando o chat acabar cedo demais.",
+      }),
+      primaryFields: [
+        {
+          name: "chatDailyTokenLimit",
+          label: localText(locale, {
+            en: "Daily token limit",
+            pt: "Limite diario de tokens",
+          }),
+        },
+      ],
+      advancedFields: [
+        {
+          name: "chatMaxSteps",
+          label: localText(locale, {
+            en: "Max model/tool steps",
+            pt: "Maximo de steps",
+          }),
+        },
+        {
+          name: "chatMaxOutputTokens",
+          label: localText(locale, {
+            en: "Chat response length",
+            pt: "Tamanho da resposta do chat",
+          }),
+        },
+      ],
+    },
+    {
+      title: localText(locale, {
+        en: "Play-next recommendations",
+        pt: "Recomendacoes do proximo jogo",
+      }),
+      enabledName: "assistantPlayNextEnabled",
+      description: localText(locale, {
+        en: "AI ranking for three play-next picks. This has its own daily token pool plus the general dollar cap.",
+        pt: "Ranking por IA das tres sugestoes de jogo. Tem um limite diario proprio de tokens alem do teto geral em dolar.",
+      }),
+      primaryFields: [
+        {
+          name: "assistantPlayNextDailyTokenLimit",
+          label: localText(locale, {
+            en: "Daily token limit",
+            pt: "Limite diario de tokens",
+          }),
+        },
+      ],
+      advancedFields: [
+        {
+          name: "assistantPlayNextMaxOutputTokens",
+          label: localText(locale, {
+            en: "Recommendation response length",
+            pt: "Tamanho das recomendacoes",
+          }),
+        },
+      ],
+    },
+    {
+      title: localText(locale, {
+        en: "Assistant summaries",
+        pt: "Resumos do assistente",
+      }),
+      enabledName: "assistantSummaryEnabled",
+      governedByCap: true,
+      description: localText(locale, {
+        en: "Short AI explanations for deterministic assistant insights. No feature-specific budget.",
+        pt: "Explicacoes curtas por IA para sinais deterministicos do assistente. Sem limite proprio.",
+      }),
+      advancedFields: [
+        {
+          name: "assistantSummaryMaxOutputTokens",
+          label: localText(locale, {
+            en: "Summary response length",
+            pt: "Tamanho do resumo",
+          }),
+        },
+      ],
+    },
+    {
+      title: localText(locale, {
+        en: "Player profile",
+        pt: "Perfil de jogadora",
+      }),
+      enabledName: "playerProfileEnabled",
+      description: localText(locale, {
+        en: "Profile generation is meant to be occasional. The default is 2 generations per user each week.",
+        pt: "A geracao de perfil deve ser ocasional. O padrao e 2 geracoes por pessoa a cada semana.",
+      }),
+      primaryFields: [
+        {
+          name: "playerProfileWeeklyCallLimit",
+          label: localText(locale, {
+            en: "Profile generations per week",
+            pt: "Geracoes de perfil por semana",
+          }),
+        },
+      ],
+      advancedFields: [
+        {
+          name: "playerProfileMaxCalls",
+          label: localText(locale, {
+            en: "Agent steps per generation",
+            pt: "Etapas do agente por geracao",
+          }),
+        },
+        {
+          name: "playerProfileMaxOutputTokens",
+          label: localText(locale, {
+            en: "Profile response length",
+            pt: "Tamanho da resposta do perfil",
+          }),
+        },
+      ],
+    },
+    {
+      title: localText(locale, {
+        en: "Photo import",
+        pt: "Importacao por foto",
+      }),
+      enabledName: "photoImportEnabled",
+      description: localText(locale, {
+        en: "Vision extraction from catalog photos or screenshots. Calls are AI requests; images are uploaded files.",
+        pt: "Extracao por visao de fotos ou screenshots de catalogo. Chamadas sao requisicoes de IA; imagens sao arquivos enviados.",
+      }),
+      primaryFields: [
+        {
+          name: "photoImportDailyCallLimit",
+          label: localText(locale, {
+            en: "AI calls per day",
+            pt: "Chamadas de IA por dia",
+          }),
+        },
+        {
+          name: "photoImportDailyFileLimit",
+          label: localText(locale, {
+            en: "Images per day",
+            pt: "Fotos por dia",
+          }),
+        },
+      ],
+      advancedFields: [
+        {
+          name: "photoImportMaxFileBytes",
+          label: localText(locale, {
+            en: "Max image bytes",
+            pt: "Maximo de bytes por imagem",
+          }),
+        },
+        {
+          name: "photoImportMaxOutputTokens",
+          label: localText(locale, {
+            en: "Extraction response length",
+            pt: "Tamanho da resposta de extracao",
+          }),
+        },
+        {
+          name: "photoImportMaxCandidates",
+          label: localText(locale, {
+            en: "Max extracted games",
+            pt: "Maximo de jogos extraidos",
+          }),
+        },
+      ],
+    },
+    {
+      title: localText(locale, {
+        en: "Voice transcription",
+        pt: "Transcricao de voz",
+      }),
+      enabledName: "voiceTranscriptionEnabled",
+      description: localText(locale, {
+        en: "Audio transcription for journal voice notes. The daily call limit controls transcriptions; file and recording limits only control upload size.",
+        pt: "Transcricao de audio para notas de diario por voz. O limite diario de chamadas controla transcricoes; limites de arquivo e gravacao controlam apenas o tamanho do envio.",
+      }),
+      primaryFields: [
+        {
+          name: "voiceTranscriptionDailyCallLimit",
+          label: localText(locale, {
+            en: "Transcriptions per day",
+            pt: "Transcricoes por dia",
+          }),
+        },
+      ],
+      advancedFields: [
+        {
+          name: "voiceMaxFileBytes",
+          label: localText(locale, {
+            en: "Max audio bytes",
+            pt: "Maximo de bytes por audio",
+          }),
+        },
+        {
+          name: "voiceRecordingMaxSeconds",
+          label: localText(locale, {
+            en: "Browser recording seconds",
+            pt: "Segundos de gravacao no navegador",
+          }),
+        },
+      ],
+    },
+    {
+      title: localText(locale, {
+        en: "Story achievement AI",
+        pt: "IA de trofeu de historia",
+      }),
+      enabledName: "storyCompletionEnabled",
+      governedByCap: true,
+      description: localText(locale, {
+        en: "Classifies ambiguous credits-roll achievements. No feature-specific budget.",
+        pt: "Classifica conquistas ambiguas de fim da historia. Sem limite proprio.",
+      }),
+      advancedFields: [
+        {
+          name: "storyCompletionMaxOutputTokens",
+          label: localText(locale, {
+            en: "Classification response length",
+            pt: "Tamanho da resposta de classificacao",
+          }),
+        },
+      ],
+    },
+  ] satisfies AiFeatureCard[];
+}
+
 function AiSettingsForm({
   locale,
   settings,
@@ -602,6 +871,41 @@ function AiSettingsForm({
     settings.assistantPlayNextDailyTokenLimit,
     estimateConfig,
   );
+  const renderNumberField = (field: {
+    label: string;
+    name: AiNumberFieldName;
+  }) => {
+    const limits = getAiNumberFieldLimits(field.name);
+    const hint = getNumericFieldHint({
+      config: estimateConfig,
+      locale,
+      name: field.name,
+      settings,
+    });
+
+    return (
+      <label className="grid gap-1.5" key={field.name}>
+        <span className="text-sm font-semibold">{field.label}</span>
+        <input
+          className="min-h-11 rounded-inner border border-edge bg-canvas px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow"
+          defaultValue={settings[field.name]}
+          max={limits.max}
+          min={limits.min}
+          name={field.name}
+          step={getAiNumberFieldStep(field.name)}
+          type="number"
+        />
+        <span className="text-[0.7rem] font-semibold text-ink-soft">
+          {limits.min} - {limits.max}
+        </span>
+        {hint ? (
+          <span className="text-xs leading-relaxed text-ink-soft">
+            {hint}
+          </span>
+        ) : null}
+      </label>
+    );
+  };
 
   return (
     <Card tactile>
@@ -724,76 +1028,62 @@ function AiSettingsForm({
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-            {getAiToggleFields(locale).map((field) => (
-              <label
-                className="flex gap-3 rounded-inner border border-edge bg-canvas/70 p-3"
-                key={field.name}
-              >
-                <input
-                  className="mt-1 h-4 w-4 accent-ink"
-                  defaultChecked={settings[field.name]}
-                  name={field.name}
-                  type="checkbox"
-                />
-                <span>
-                  <span className="block text-sm font-bold text-ink">
-                    {field.label}
-                  </span>
-                  <span className="block text-xs leading-relaxed text-ink-soft">
-                    {field.description}
-                  </span>
-                </span>
-              </label>
-            ))}
-          </div>
-
           <div className="grid gap-4">
-            {getAiNumberGroups(locale).map((group) => (
-              <fieldset
-                className="grid gap-3 rounded-inner border border-edge bg-surface p-4"
-                key={group.title}
+            {getAiFeatureCards(locale).map((feature) => (
+              <section
+                className="grid gap-4 rounded-inner border border-edge bg-surface p-4"
+                key={feature.title}
               >
-                <legend className="px-1 text-sm font-bold text-ink-soft">
-                  {group.title}
-                </legend>
-                <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
-                  {group.fields.map((field) => {
-                    const limits = getAiNumberFieldLimits(field.name);
-                    const hint = getNumericFieldHint({
-                      config: estimateConfig,
-                      locale,
-                      name: field.name,
-                      settings,
-                    });
-
-                    return (
-                      <label className="grid gap-1.5" key={field.name}>
-                        <span className="text-sm font-semibold">
-                          {field.label}
-                        </span>
-                        <input
-                          className="min-h-11 rounded-inner border border-edge bg-canvas px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow"
-                          defaultValue={settings[field.name]}
-                          max={limits.max}
-                          min={limits.min}
-                          name={field.name}
-                          step={getAiNumberFieldStep(field.name)}
-                          type="number"
-                        />
-                        <span className="text-[0.7rem] font-semibold text-ink-soft">
-                          {limits.min} - {limits.max}
-                        </span>
-                        {hint ? (
-                          <span className="text-xs leading-relaxed text-ink-soft">
-                            {hint}
-                          </span>
-                        ) : null}
-                      </label>
-                    );
-                  })}
+                <div className="flex items-start justify-between gap-4 max-sm:grid">
+                  <div>
+                    <h3 className="text-base font-bold text-ink">
+                      {feature.title}
+                    </h3>
+                    <p className="mt-1 max-w-[78ch] text-sm leading-relaxed text-ink-soft">
+                      {feature.description}
+                    </p>
+                    {feature.governedByCap ? (
+                      <p className="mt-2 text-xs font-bold uppercase text-ink-soft">
+                        {localText(locale, {
+                          en: "Governed by the general per-user daily dollar cap",
+                          pt: "Governado pelo teto geral diario em dolar por pessoa",
+                        })}
+                      </p>
+                    ) : null}
+                  </div>
+                  {feature.enabledName ? (
+                    <label className="flex shrink-0 items-center gap-2 rounded-inner border border-edge bg-canvas px-3 py-2 text-sm font-bold">
+                      <input
+                        className="h-4 w-4 accent-ink"
+                        defaultChecked={settings[feature.enabledName]}
+                        name={feature.enabledName}
+                        type="checkbox"
+                      />
+                      {localText(locale, { en: "Enabled", pt: "Ativo" })}
+                    </label>
+                  ) : null}
                 </div>
-              </fieldset>
+
+                {feature.primaryFields?.length ? (
+                  <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+                    {feature.primaryFields.map(renderNumberField)}
+                  </div>
+                ) : null}
+
+                {feature.advancedFields?.length ? (
+                  <div className="grid gap-3 border-t border-edge pt-3">
+                    <p className="text-xs font-bold uppercase text-ink-soft">
+                      {localText(locale, {
+                        en: "Advanced technical controls",
+                        pt: "Controles tecnicos avancados",
+                      })}
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 max-md:grid-cols-1">
+                      {feature.advancedFields.map(renderNumberField)}
+                    </div>
+                  </div>
+                ) : null}
+              </section>
             ))}
           </div>
 
