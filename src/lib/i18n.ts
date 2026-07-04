@@ -587,6 +587,8 @@ const messages = {
     "voiceMemory.stop": "Stop Recording",
     "voiceMemory.recording": "Recording",
     "voiceMemory.none": "No voice memory yet",
+    "voiceMemory.uploadInstead": "Upload an audio file instead",
+    "voiceMemory.audioFile": "Audio file",
     "voiceMemory.inputLevel": "Mic input",
     "voiceMemory.noSignal":
       "No sound detected. Check the microphone selected in your browser or system settings, then record again.",
@@ -1579,6 +1581,8 @@ const messages = {
     "voiceMemory.stop": "Parar gravação",
     "voiceMemory.recording": "Gravando",
     "voiceMemory.none": "Ainda sem memória de voz",
+    "voiceMemory.uploadInstead": "Enviar um arquivo de áudio",
+    "voiceMemory.audioFile": "Arquivo de áudio",
     "voiceMemory.inputLevel": "Entrada do microfone",
     "voiceMemory.noSignal":
       "Nao detectei som. Confira o microfone selecionado no navegador ou no sistema e grave de novo.",
