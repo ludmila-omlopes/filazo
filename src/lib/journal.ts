@@ -15,6 +15,7 @@ import {
   getAllowedUploadExtension,
   type UploadKind,
 } from "@/lib/upload-file-type";
+import { getUploadDiskPath } from "@/lib/upload-storage";
 import { normalizeTitle } from "@/lib/utils";
 import { getOpenAiConfig } from "@/lib/openai";
 import { runWithAiBudget } from "./ai-budget.ts";
@@ -83,7 +84,10 @@ async function saveUpload(
     );
   }
   const storageKey = `uploads/${folder}/${randomUUID()}${extension}`;
-  const diskPath = path.join(process.cwd(), "public", ...storageKey.split("/"));
+  const diskPath = getUploadDiskPath(storageKey);
+  if (!diskPath) {
+    throw new Error("Upload storage path is not available.");
+  }
 
   await mkdir(path.dirname(diskPath), { recursive: true });
   await writeFile(diskPath, Buffer.from(await file.arrayBuffer()));
@@ -344,13 +348,11 @@ function buildAchievementSummary(entry: {
 }
 
 async function removeUploadedFile(storageKey: string) {
-  // storageKey is a repo-relative path like "uploads/<folder>/<uuid>.<ext>".
-  // Uploads live under public/, so map it back the same way the writer does.
-  if (!storageKey || storageKey.includes("..")) {
+  const diskPath = getUploadDiskPath(storageKey);
+  if (!diskPath) {
     return;
   }
 
-  const diskPath = path.join(process.cwd(), "public", ...storageKey.split("/"));
   try {
     await unlink(diskPath);
   } catch {
