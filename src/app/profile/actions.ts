@@ -119,7 +119,6 @@ const journalEntrySchema = z.object({
   userGameEntryId: z.string().trim().min(1),
   title: z.string().trim().max(160).optional(),
   body: z.string().trim().max(4000).optional(),
-  mediaCaption: z.string().trim().max(240).optional(),
   occurredAt: z.string().trim().optional(),
   slug: z.string().trim().optional(),
   returnTo: z.string().trim().optional(),
@@ -1102,7 +1101,6 @@ export async function createJournalEntryAction(formData: FormData) {
     userGameEntryId: formData.get("userGameEntryId"),
     title: formData.get("title") || undefined,
     body: formData.get("body") || undefined,
-    mediaCaption: formData.get("mediaCaption") || undefined,
     occurredAt: formData.get("occurredAt") || undefined,
     slug: formData.get("slug") || undefined,
     returnTo: formData.get("returnTo") || undefined,
@@ -1110,6 +1108,19 @@ export async function createJournalEntryAction(formData: FormData) {
 
   if (!parsed.success) {
     redirect(`/profile?tab=journal&error=${encodeURIComponent(t("profileAction.journalSaveFailed"))}`);
+  }
+
+  const imageFile = getFormFile(formData.get("image"));
+  const audioFile = getFormFile(formData.get("audio"));
+  if (
+    !parsed.data.title?.trim() &&
+    !parsed.data.body?.trim() &&
+    !imageFile &&
+    !audioFile
+  ) {
+    redirect(
+      `/profile?tab=journal&entryId=${encodeURIComponent(parsed.data.userGameEntryId)}&error=${encodeURIComponent(t("profileAction.journalEmptyPage"))}`,
+    );
   }
 
   let occurredAt: Date | null = null;
@@ -1124,11 +1135,10 @@ export async function createJournalEntryAction(formData: FormData) {
       userGameEntryId: parsed.data.userGameEntryId,
       title: parsed.data.title ?? null,
       body: parsed.data.body ?? null,
-      mediaCaption: parsed.data.mediaCaption ?? null,
       occurredAt,
       targetLanguage: locale === "pt-BR" ? "Portuguese (Brazil)" : "English",
-      imageFile: getFormFile(formData.get("image")),
-      audioFile: getFormFile(formData.get("audio")),
+      imageFile,
+      audioFile,
     });
   } catch (error) {
     const message =
