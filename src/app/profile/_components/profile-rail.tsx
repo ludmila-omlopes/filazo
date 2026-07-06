@@ -9,8 +9,8 @@ import {
   UserRound,
 } from "lucide-react";
 import { createTranslator, type Locale } from "@/lib/i18n";
-import { cn, formatNumber } from "@/lib/utils";
-import type { AssistantData, ProfileData, ProfileTab } from "./profile-types";
+import { cn } from "@/lib/utils";
+import type { ProfileData, ProfileTab } from "./profile-types";
 
 const railItems = [
   {
@@ -66,17 +66,13 @@ const railItems = [
 
 export function ProfileRail({
   activeTab,
-  assistant,
   locale,
   profile,
 }: {
   activeTab: ProfileTab;
-  assistant: AssistantData | null;
   locale: Locale;
   profile: ProfileData;
 }) {
-  const gamesCount =
-    profile.ownedEntries.length + profile.wishlistEntries.length;
   const t = createTranslator(locale);
 
   return (
@@ -105,10 +101,7 @@ export function ProfileRail({
             {profile.user.displayName ?? t("common.player")}
           </h1>
             <p className="mt-1 text-xs leading-relaxed text-cream/55">
-              {t("profile.rail.ownedCurious", {
-                owned: formatNumber(profile.ownedEntries.length, locale),
-                wishlist: formatNumber(profile.wishlistEntries.length, locale),
-              })}
+              {t("profile.rail.catalogMood")}
             </p>
         </div>
       </div>
@@ -118,15 +111,6 @@ export function ProfileRail({
         aria-label={t("nav.profileSections")}
       >
         {railItems.map(({ tab, href, labelKey, hintKey, icon: Icon }) => {
-          const count =
-            tab === "games"
-              ? gamesCount
-              : tab === "journal"
-                ? profile.user.journalEntries.length
-              : tab === "assistant"
-                ? assistant?.insights.length ?? null
-                : null;
-
           return (
             <Link
               href={href}
@@ -153,18 +137,6 @@ export function ProfileRail({
                   {t(hintKey)}
                 </span>
               </span>
-              {count !== null ? (
-                <span
-                  className={cn(
-                    "rounded-pill px-2 py-0.5 text-[0.68rem] font-bold",
-                    activeTab === tab
-                      ? "bg-surface/20 text-surface"
-                      : "bg-canvas text-ink-soft",
-                  )}
-                >
-                  {formatNumber(count, locale)}
-                </span>
-              ) : null}
             </Link>
           );
         })}

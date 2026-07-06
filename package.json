@@ -13,6 +13,7 @@
     "test": "node --experimental-strip-types --test",
     "db:generate": "prisma generate",
     "db:init": "node scripts/init-db.mjs",
+    "db:migrate": "node scripts/init-db.mjs",
     "db:push": "node scripts/init-db.mjs"
   },
   "dependencies": {

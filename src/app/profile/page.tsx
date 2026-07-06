@@ -66,9 +66,13 @@ export default async function ProfilePage({
     redirect(accessRedirect);
   }
 
+  const query = await searchParams;
+  const activeTab = parseActiveTab(query.tab);
+  const setupStep = parseSetupStep(query.step);
+
   let profile: Awaited<ReturnType<typeof getProfileData>>;
   try {
-    profile = await getProfileData(userId);
+    profile = await getProfileData(userId, { scope: activeTab });
   } catch (error) {
     console.error("Could not load profile data.", error);
     return <ProfileErrorPanel error={error} locale={locale} />;
@@ -78,9 +82,6 @@ export default async function ProfilePage({
     redirect("/");
   }
 
-  const query = await searchParams;
-  const activeTab = parseActiveTab(query.tab);
-  const setupStep = parseSetupStep(query.step);
   const needsFirstSetup =
     !profile.user.onboardingCompletedAt && !profile.user.onboardingSkippedAt;
 
@@ -128,7 +129,6 @@ export default async function ProfilePage({
     >
       <ProfileRail
         activeTab={activeTab}
-        assistant={assistant}
         locale={locale}
         profile={profile}
       />

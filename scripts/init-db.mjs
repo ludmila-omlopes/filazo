@@ -19,7 +19,7 @@ if (databaseUrl.startsWith("file:")) {
   process.exit(1);
 }
 
-const result = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
+const result = spawnSync("npx", ["prisma", "migrate", "deploy"], {
   cwd: process.cwd(),
   env: process.env,
   shell: process.platform === "win32",

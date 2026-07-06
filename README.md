@@ -176,7 +176,7 @@ Notes:
 - Uploaded journal media and photo-import source images are stored under `public/uploads/` in local development. On Vercel/serverless deployments, uploads are written to `/tmp/filazo-uploads` so diary saves can complete, but those files are ephemeral across cold starts and redeploys; journal text, transcripts, and file metadata remain in PostgreSQL. For self-hosted production, set `FILAZO_UPLOAD_DIR` to a writable durable volume before relying on uploaded media playback.
 - The Overview tab includes an agentic player profile. When `OPENAI_API_KEY` is set and player profile AI is enabled in `/admin`, an agent loop gives the model read-only tools over the user's own catalog (`get_library_overview`, `list_games`, `get_player_feedback`, `get_genre_stats`); it defaults to 3 budgeted model calls per generation and then submits a structured profile (`submit_player_profile`) with preferred genres, play styles, behavior patterns, and recommendations drawn only from games already in the library. Tool payloads are minimized projections of `UserGameEntry` and `Game` metadata; no secrets, tokens, or provider account IDs are sent. Without the API key or when disabled, profile generation fails with a clear message while the rest of the app keeps working.
 - The Assistant tab also includes a streaming library chat built on the Vercel AI SDK (`/api/assistant/chat`). It reuses the same read-only tool layer (`src/lib/assistant/library-tools.ts`) as the profile agent, so answers come from live lookups into the user's own catalog. It requires `OPENAI_API_KEY` and the admin chat toggle, and returns a clear 503 message without either. By default, chat is capped by a daily token budget, a per-user daily dollar ceiling, 3 tool/model steps, and 700 output tokens. Those caps are editable in `/admin`.
-- AI calls are app-gated before contacting the provider. Runtime gates are configured in `/admin` and stored in `AiSettings`; the environment variables above are only initial defaults before an admin save exists. Chat and play-next recommendations have daily token limits, player profiles default to 2 generations per week, photo import has daily call and image limits, voice transcription has a daily call limit, and assistant summaries/story-achievement classification only use the general per-user daily dollar cap. Dollar values are estimated with `AI_ESTIMATED_INPUT_USD_PER_1M_TOKENS`, `AI_ESTIMATED_OUTPUT_USD_PER_1M_TOKENS`, `AI_ESTIMATED_INPUT_TOKENS_PER_CALL`, and `AI_ESTIMATED_CHARS_PER_TOKEN`; this is an estimate only, not measured billing. The Assistant refresh still reuses unchanged OpenAI recommendations and applies a 10-minute per-user refresh cooldown. When a gate blocks AI, deterministic fallbacks or clear unavailable states are used.
+- AI calls are app-gated before contacting the provider. Runtime gates are configured in `/admin` and stored in `AiSettings`; the environment variables above are only initial defaults before an admin save exists. The admin panel is organized around a general per-user daily dollar cap plus feature cards: chat and play-next recommendations have daily token pools with estimated dollar/text volume, player profiles have a weekly generation limit, photo import separates AI calls from uploaded image count, and voice transcription separates transcription calls from file/recording size limits. Assistant summaries and story-achievement classification have no feature-specific budget and are governed by the general per-user daily dollar cap. Advanced controls such as max response tokens, model/tool steps, and extraction candidate counts tune behavior but are not the primary budget levers. Dollar values are estimated with `AI_ESTIMATED_INPUT_USD_PER_1M_TOKENS`, `AI_ESTIMATED_OUTPUT_USD_PER_1M_TOKENS`, `AI_ESTIMATED_INPUT_TOKENS_PER_CALL`, and `AI_ESTIMATED_CHARS_PER_TOKEN`; this is an estimate only, not measured billing. The Assistant refresh still reuses unchanged OpenAI recommendations and applies a 10-minute per-user refresh cooldown. When a gate blocks AI, deterministic fallbacks or clear unavailable states are used.
 
 ## Getting Started
 
@@ -210,7 +210,7 @@ Open `http://localhost:3001`.
 
 ## Verification
 
-Run `npm run lint`, `npm run typecheck`, and `npm test` before shipping changes.
+Run `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build` before shipping changes.
 CI runs the same checks on every push to `master` and on pull requests.
 
 ## Localization
@@ -225,12 +225,14 @@ CI runs the same checks on every push to `master` and on pull requests.
 This project uses PostgreSQL through Prisma and includes two database-related pieces:
 
 - [prisma/schema.prisma](./prisma/schema.prisma) as the source Prisma schema
-- [scripts/init-db.mjs](./scripts/init-db.mjs) as a guard around `prisma db push`
+- [prisma/migrations](./prisma/migrations) as the migration history applied by Prisma
+- [scripts/init-db.mjs](./scripts/init-db.mjs) as a guard around `prisma migrate deploy`
 
 Current scripts:
 
-- `npm run db:init`: validates `DATABASE_URL` and applies the Prisma schema with `prisma db push`
-- `npm run db:push`: same as `db:init`
+- `npm run db:init`: validates `DATABASE_URL` and applies pending Prisma migrations
+- `npm run db:migrate`: same as `db:init`
+- `npm run db:push`: compatibility alias for `db:init`
 - `npm run db:generate`: generates Prisma Client
 
 ## Vercel Deployment
@@ -259,8 +261,9 @@ sync after Steam sign-in.
 - `npm run build`: build for production
 - `npm run start`: start the production server
 - `npm run lint`: run ESLint
-- `npm run db:init`: initialize the PostgreSQL schema
-- `npm run db:push`: currently same as `db:init`
+- `npm run db:init`: apply pending Prisma migrations to PostgreSQL
+- `npm run db:migrate`: same as `db:init`
+- `npm run db:push`: compatibility alias for `db:init`
 - `npm run db:generate`: generate Prisma Client
 
 ## How the App Works

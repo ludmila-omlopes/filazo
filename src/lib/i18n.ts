@@ -47,6 +47,7 @@ const messages = {
     "theme.nightLabel": "Night - pick something to play",
     "theme.auto": "Auto",
     "theme.autoLabel": "Auto - follow the time of day",
+    "theme.phaseSliderLabel": "Time of day",
     "theme.phase.morning": "morning",
     "theme.phase.afternoon": "afternoon",
     "theme.phase.dusk": "dusk",
@@ -275,6 +276,7 @@ const messages = {
     "profile.rail.setupHint": "Preferences",
     "profile.rail.avatarAlt": "{name} avatar",
     "profile.rail.ownedCurious": "{owned} owned / {wishlist} still curious",
+    "profile.rail.catalogMood": "A softer shelf for what you play and remember",
 
     "profile.addGames.label": "Add games",
     "profile.addGames.title": "Bring another shelf in",
@@ -585,6 +587,8 @@ const messages = {
     "voiceMemory.stop": "Stop Recording",
     "voiceMemory.recording": "Recording",
     "voiceMemory.none": "No voice memory yet",
+    "voiceMemory.uploadInstead": "Upload an audio file instead",
+    "voiceMemory.audioFile": "Audio file",
     "voiceMemory.inputLevel": "Mic input",
     "voiceMemory.noSignal":
       "No sound detected. Check the microphone selected in your browser or system settings, then record again.",
@@ -1034,6 +1038,7 @@ const messages = {
     "theme.nightLabel": "Noite - escolher algo para jogar",
     "theme.auto": "Auto",
     "theme.autoLabel": "Auto - seguir a hora do dia",
+    "theme.phaseSliderLabel": "Hora do dia",
     "theme.phase.morning": "manhã",
     "theme.phase.afternoon": "tarde",
     "theme.phase.dusk": "anoitecer",
@@ -1265,6 +1270,7 @@ const messages = {
     "profile.rail.setupHint": "Preferências",
     "profile.rail.avatarAlt": "avatar de {name}",
     "profile.rail.ownedCurious": "{owned} seus / {wishlist} ainda em observação",
+    "profile.rail.catalogMood": "Uma estante mais leve para jogar e lembrar",
 
     "profile.addGames.label": "Adicionar jogos",
     "profile.addGames.title": "Traga outra estante",
@@ -1575,6 +1581,8 @@ const messages = {
     "voiceMemory.stop": "Parar gravação",
     "voiceMemory.recording": "Gravando",
     "voiceMemory.none": "Ainda sem memória de voz",
+    "voiceMemory.uploadInstead": "Enviar um arquivo de áudio",
+    "voiceMemory.audioFile": "Arquivo de áudio",
     "voiceMemory.inputLevel": "Entrada do microfone",
     "voiceMemory.noSignal":
       "Nao detectei som. Confira o microfone selecionado no navegador ou no sistema e grave de novo.",

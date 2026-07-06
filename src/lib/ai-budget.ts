@@ -4,7 +4,13 @@ import {
   estimateAiCostUsd,
   getAiEstimateConfig,
 } from "./ai-estimates.ts";
-import { getAiSettings, isAiFeatureEnabled } from "./ai-settings.ts";
+import {
+  AI_SETTINGS_ID,
+  getAiSettings,
+  isAiFeatureEnabled,
+  normalizeAiSettings,
+  type AiSettingsValues,
+} from "./ai-settings.ts";
 
 export type AiBudgetFeature =
   | "assistant_chat"
@@ -53,6 +59,26 @@ type BudgetUsage = {
   usd: number;
 };
 
+type BudgetUsageSummary = {
+  daily: BudgetUsage;
+  dailyByFeature: Map<AiBudgetFeature, BudgetUsage>;
+  weekly: BudgetUsage;
+  weeklyByFeature: Map<AiBudgetFeature, BudgetUsage>;
+};
+
+type AiBudgetPrismaClient = Pick<typeof prisma, "aiSettings" | "assistantRun">;
+
+type AiBudgetLimitSettings = Pick<
+  AiSettingsValues,
+  | "assistantPlayNextDailyTokenLimit"
+  | "chatDailyTokenLimit"
+  | "photoImportDailyCallLimit"
+  | "photoImportDailyFileLimit"
+  | "playerProfileWeeklyCallLimit"
+  | "userDailySpendLimitUsd"
+  | "voiceTranscriptionDailyCallLimit"
+>;
+
 const AI_BUDGET_DAY_MS = 24 * 60 * 60 * 1000;
 const AI_BUDGET_WEEK_MS = 7 * AI_BUDGET_DAY_MS;
 const AI_BUDGET_COUNTED_STATUSES = [
@@ -70,6 +96,10 @@ export class AiBudgetExceededError extends Error {
 
 function getWindowStart(now: Date, windowMs: number) {
   return new Date(now.getTime() - windowMs);
+}
+
+export function getAiBudgetCountedStatuses() {
+  return [...AI_BUDGET_COUNTED_STATUSES];
 }
 
 function getCountedStatusFilter() {
@@ -138,7 +168,7 @@ function readUsageFromOutput(outputSummary: unknown) {
   return null;
 }
 
-function getBudgetUsageFromRun(run: {
+export function getBudgetUsageFromRun(run: {
   inputSummary: Prisma.JsonValue;
   outputSummary: Prisma.JsonValue;
 }) {
@@ -203,15 +233,17 @@ function emptyUsage(): BudgetUsage {
 }
 
 async function getBudgetUsage({
+  client = prisma,
   now,
   userId,
 }: {
+  client?: AiBudgetPrismaClient;
   now: Date;
   userId: string;
-}) {
+}): Promise<BudgetUsageSummary> {
   const weekStart = getWindowStart(now, AI_BUDGET_WEEK_MS);
   const dayStart = getWindowStart(now, AI_BUDGET_DAY_MS);
-  const runs = await prisma.assistantRun.findMany({
+  const runs = await client.assistantRun.findMany({
     where: {
       userId,
       status: getCountedStatusFilter(),
@@ -261,6 +293,14 @@ async function getBudgetUsage({
     weekly,
     weeklyByFeature,
   };
+}
+
+async function getAiSettingsWithClient(client: AiBudgetPrismaClient) {
+  const settings = await client.aiSettings.findUnique({
+    where: { id: AI_SETTINGS_ID },
+  });
+
+  return normalizeAiSettings(settings);
 }
 
 export async function getAiBudgetUsageForUser(userId: string, now = new Date()) {
@@ -345,8 +385,8 @@ function getFeatureLimitFailure({
   countedFiles,
 }: {
   feature: AiBudgetFeature;
-  settings: Awaited<ReturnType<typeof getAiSettings>>;
-  usage: Awaited<ReturnType<typeof getBudgetUsage>>;
+  settings: AiBudgetLimitSettings;
+  usage: BudgetUsageSummary;
   estimatedTokens: number;
   countedCalls: number;
   countedFiles: number;
@@ -427,6 +467,41 @@ function getFeatureLimitFailure({
   return null;
 }
 
+export function getAiBudgetLimitFailure({
+  countedCalls,
+  countedFiles,
+  estimatedTokens,
+  estimatedUsd,
+  feature,
+  settings,
+  usage,
+}: {
+  countedCalls: number;
+  countedFiles: number;
+  estimatedTokens: number;
+  estimatedUsd: number;
+  feature: AiBudgetFeature;
+  settings: AiBudgetLimitSettings;
+  usage: BudgetUsageSummary;
+}): AiBudgetReserveResult | null {
+  if (usage.daily.usd + estimatedUsd > settings.userDailySpendLimitUsd) {
+    return {
+      allowed: false,
+      reason: "USER_DAILY_SPEND_LIMIT",
+      message: "Daily personal AI spend limit reached. Try again tomorrow.",
+    };
+  }
+
+  return getFeatureLimitFailure({
+    feature,
+    settings,
+    usage,
+    estimatedTokens,
+    countedCalls,
+    countedFiles,
+  });
+}
+
 async function reserveAiBudgetOnce({
   countedCalls,
   countedFiles,
@@ -448,90 +523,91 @@ async function reserveAiBudgetOnce({
   now: Date;
   userId: string;
 }): Promise<AiBudgetReserveResult> {
-  const settings = await getAiSettings();
-  if (!isAiFeatureEnabled(settings, feature)) {
-    return {
-      allowed: false,
-      reason: "FEATURE_DISABLED",
-      message: "This AI feature is disabled in admin settings.",
-    };
-  }
-
   const estimatedTokens = estimatedInputTokens + estimatedOutputTokens;
   const estimatedUsd = estimateAiCostUsd({
     inputTokens: estimatedInputTokens,
     outputTokens: estimatedOutputTokens,
   });
 
-  const usage = await getBudgetUsage({ now, userId });
-  if (usage.daily.usd + estimatedUsd > settings.userDailySpendLimitUsd) {
-    return {
-      allowed: false as const,
-      reason: "USER_DAILY_SPEND_LIMIT" as const,
-      message: "Daily personal AI spend limit reached. Try again tomorrow.",
-    };
-  }
+  return prisma.$transaction(
+    async (tx) => {
+      const client = tx as AiBudgetPrismaClient;
+      const settings = await getAiSettingsWithClient(client);
+      if (!isAiFeatureEnabled(settings, feature)) {
+        return {
+          allowed: false,
+          reason: "FEATURE_DISABLED",
+          message: "This AI feature is disabled in admin settings.",
+        };
+      }
 
-  const featureLimitFailure = getFeatureLimitFailure({
-    feature,
-    settings,
-    usage,
-    estimatedTokens,
-    countedCalls,
-    countedFiles,
-  });
-  if (featureLimitFailure) {
-    return featureLimitFailure;
-  }
-
-  const groupId = crypto.randomUUID();
-  const run = await prisma.assistantRun.create({
-    data: {
-      userId,
-      inputSummary: {
-        kind: "ai_budget",
+      const usage = await getBudgetUsage({ client, now, userId });
+      const limitFailure = getAiBudgetLimitFailure({
         feature,
-        groupId,
-        input: inputSummary ?? null,
+        settings,
+        usage,
+        estimatedTokens,
+        estimatedUsd,
         countedCalls,
         countedFiles,
-        estimatedUsage: {
-          inputTokens: estimatedInputTokens,
-          outputTokens: estimatedOutputTokens,
-          totalTokens: estimatedTokens,
-          usd: estimatedUsd,
-        },
-      } as Prisma.InputJsonValue,
-      outputSummary: {
-        kind: "ai_budget",
-        feature,
-        groupId,
-        state: "reserved",
-      } as Prisma.InputJsonValue,
-      model: model ?? null,
-      status: "AI_BUDGET_RESERVED",
-    },
-    select: {
-      id: true,
-    },
-  });
+      });
+      if (limitFailure) {
+        return limitFailure;
+      }
 
-  return {
-    allowed: true as const,
-    reservation: {
-      countedCalls,
-      countedFiles,
-      estimatedInputTokens,
-      estimatedOutputTokens,
-      estimatedTokens,
-      estimatedUsd,
-      feature,
-      groupId,
-      id: run.id,
-      model: model ?? null,
-      userId,
+      const groupId = crypto.randomUUID();
+      const run = await client.assistantRun.create({
+        data: {
+          userId,
+          inputSummary: {
+            kind: "ai_budget",
+            feature,
+            groupId,
+            input: inputSummary ?? null,
+            countedCalls,
+            countedFiles,
+            estimatedUsage: {
+              inputTokens: estimatedInputTokens,
+              outputTokens: estimatedOutputTokens,
+              totalTokens: estimatedTokens,
+              usd: estimatedUsd,
+            },
+          } as Prisma.InputJsonValue,
+          outputSummary: {
+            kind: "ai_budget",
+            feature,
+            groupId,
+            state: "reserved",
+          } as Prisma.InputJsonValue,
+          model: model ?? null,
+          status: "AI_BUDGET_RESERVED",
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return {
+        allowed: true as const,
+        reservation: {
+          countedCalls,
+          countedFiles,
+          estimatedInputTokens,
+          estimatedOutputTokens,
+          estimatedTokens,
+          estimatedUsd,
+          feature,
+          groupId,
+          id: run.id,
+          model: model ?? null,
+          userId,
+        },
+      };
     },
-  };
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    },
+  );
 }
 
 export async function reserveAiBudget({
@@ -588,17 +664,7 @@ export async function reserveAiBudget({
     }
   }
 
-  return reserveAiBudgetOnce({
-    countedCalls: normalizedCalls,
-    countedFiles: normalizedFiles,
-    estimatedInputTokens: normalizedInputTokens,
-    estimatedOutputTokens: normalizedOutputTokens,
-    feature,
-    inputSummary,
-    model,
-    now,
-    userId,
-  });
+  throw new Error("Could not reserve AI budget after retrying transaction conflicts.");
 }
 
 export async function markAiBudgetUsed(
