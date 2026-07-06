@@ -391,12 +391,13 @@ const messages = {
     "profile.currentPlaying.save": "Save current playing",
     "profile.currentPlaying.saving": "Saving...",
     "profile.currentPlaying.clearTop": "Clear all",
-    "profile.currentPlaying.remove": "Remove {name}",
     "profile.currentPlaying.dragOut": "Drag out to remove",
     "profile.currentPlaying.fillOpenSpots": "Fill open spots",
     "profile.currentPlaying.finish": "Finished",
     "profile.currentPlaying.drop": "Drop game",
     "profile.currentPlaying.removeFromView": "Unpin",
+    "profile.currentPlaying.diaryPage": "Add Diary Page",
+    "profile.currentPlaying.moreActions": "More actions for {name}",
     "profile.currentPlaying.actionFailed":
       "That update did not save. Try again in a moment.",
     "profile.currentPlaying.finishedDialogLabel": "Finished",
@@ -604,21 +605,19 @@ const messages = {
     "journal.description":
       "Record the moment first. Writing, screenshots, and uploads stay tucked away as backup options.",
     "journal.openGame": "Open Game",
-    "journal.savedCount": "{count} saved",
-    "journal.startWithVoice": "Start With Your Voice",
-    "journal.writeOrAddMore": "Write Instead Or Add More",
-    "journal.optionTextLabel": "Option 1",
-    "journal.optionVoiceLabel": "Option 2",
+    "journal.modePrompt": "How do you want to capture this memory?",
+    "journal.backToList": "Back to Your Diary",
+    "journal.lastPageOn": "Last page on {date}",
+    "journal.startForAnotherGame": "Start a Diary for Another Game",
+    "journal.emptyIndexTitle": "No diary pages yet.",
+    "journal.emptyIndexBody":
+      "Pick a game below to write or record the first one.",
     "journal.writeWithText": "Write With Text",
     "journal.writeWithTextHint":
-      "Use a title, notes, and an optional screenshot.",
+      "Add a title and write what you want to remember.",
     "journal.recordWithVoice": "Record Your Voice",
     "journal.recordWithVoiceHint":
-      "Speak the memory and check the mic input while recording.",
-    "journal.optionalImageLabel": "Optional",
-    "journal.addImageTitle": "Add Image",
-    "journal.addImageHint":
-      "Use the same screenshot with a text note or a voice note.",
+      "Speak the memory — the transcription also suggests the page title.",
     "journal.pageTitle": "Page Title",
     "journal.pageTitlePlaceholder": "Before the next session…",
     "journal.playedAround": "Played Around",
@@ -626,17 +625,17 @@ const messages = {
     "journal.bodyPlaceholder":
       "I stopped at… I want to remember… Next time I should try…",
     "journal.screenshot": "Screenshot",
-    "journal.keepsakeCaption": "Keepsake Caption",
-    "journal.keepsakePlaceholder": "What this memory shows…",
+    "journal.extrasTitle": "Add a Screenshot or Date",
+    "journal.extrasHint":
+      "These join the page whether you write it or record it.",
     "journal.savePage": "Save Diary Page",
-    "journal.chooseAnotherGame": "Choose Another Game",
+    "journal.savingPage": "Saving Your Page…",
     "journal.noPagesTitle": "No pages for this game yet.",
     "journal.noPagesBody":
       "A short voice note is enough to remember where you left off.",
     "journal.noGamesTitle": "No games available for journaling yet.",
     "journal.noGamesBody":
       "Add a game to your catalog first, then come back here to keep diary pages.",
-    "journal.recentPages": "Recent Diary Pages",
     "journal.writingFor": "Writing For",
     "journal.pagesFor": "Pages For {name}",
     "journal.untitledPage": "Untitled Page",
@@ -981,6 +980,8 @@ const messages = {
       "Sign in before saving journal entries.",
     "profileAction.journalSaveFailed":
       "Journal entry could not be saved.",
+    "profileAction.journalEmptyPage":
+      "Record a voice note, write something, or add an image before saving.",
     "profileAction.journalDeleteFailed":
       "Journal entry could not be deleted.",
     "profileAction.needManualAddLogin":
@@ -1385,12 +1386,13 @@ const messages = {
     "profile.currentPlaying.save": "Salvar jogando agora",
     "profile.currentPlaying.saving": "Salvando...",
     "profile.currentPlaying.clearTop": "Limpar tudo",
-    "profile.currentPlaying.remove": "Remover {name}",
     "profile.currentPlaying.dragOut": 'Arraste para fora para remover',
     "profile.currentPlaying.fillOpenSpots": "Preencher espaços",
     "profile.currentPlaying.finish": "Concluído",
     "profile.currentPlaying.drop": "Largar jogo",
     "profile.currentPlaying.removeFromView": "Tirar da lista",
+    "profile.currentPlaying.diaryPage": "Registrar no diário",
+    "profile.currentPlaying.moreActions": "Mais ações para {name}",
     "profile.currentPlaying.actionFailed":
       "Essa atualização não foi salva. Tente de novo em instantes.",
     "profile.currentPlaying.finishedDialogLabel": "Concluído",
@@ -1598,21 +1600,19 @@ const messages = {
     "journal.description":
       "Registre o momento primeiro. Escrita, screenshots e uploads ficam guardados como opções de apoio.",
     "journal.openGame": "Abrir jogo",
-    "journal.savedCount": "{count} salvas",
-    "journal.startWithVoice": "Comece com a sua voz",
-    "journal.writeOrAddMore": "Escreva em vez disso ou adicione mais",
-    "journal.optionTextLabel": "Opção 1",
-    "journal.optionVoiceLabel": "Opção 2",
+    "journal.modePrompt": "Como você quer registrar esta lembrança?",
+    "journal.backToList": "Voltar ao diário",
+    "journal.lastPageOn": "Última página em {date}",
+    "journal.startForAnotherGame": "Começar diário para outro jogo",
+    "journal.emptyIndexTitle": "Ainda não há páginas de diário.",
+    "journal.emptyIndexBody":
+      "Escolha um jogo abaixo para escrever ou gravar a primeira.",
     "journal.writeWithText": "Escrever com texto",
     "journal.writeWithTextHint":
-      "Use título, notas e um screenshot opcional.",
+      "Adicione um título e escreva o que quer lembrar.",
     "journal.recordWithVoice": "Gravar com voz",
     "journal.recordWithVoiceHint":
-      "Fale a lembrança e confira a entrada do microfone enquanto grava.",
-    "journal.optionalImageLabel": "Opcional",
-    "journal.addImageTitle": "Adicionar imagem",
-    "journal.addImageHint":
-      "Use o mesmo screenshot com uma nota em texto ou com uma nota de voz.",
+      "Fale a lembrança — a transcrição também sugere o título da página.",
     "journal.pageTitle": "Título da página",
     "journal.pageTitlePlaceholder": "Antes da próxima sessão…",
     "journal.playedAround": "Jogado por volta de",
@@ -1620,17 +1620,17 @@ const messages = {
     "journal.bodyPlaceholder":
       "Parei em… Quero lembrar… Da próxima vez eu deveria tentar…",
     "journal.screenshot": "Screenshot",
-    "journal.keepsakeCaption": "Legenda da lembrança",
-    "journal.keepsakePlaceholder": "O que esta memória mostra…",
+    "journal.extrasTitle": "Adicionar screenshot ou data",
+    "journal.extrasHint":
+      "Valem para a página escrita ou gravada.",
     "journal.savePage": "Salvar página do diário",
-    "journal.chooseAnotherGame": "Escolher outro jogo",
+    "journal.savingPage": "Salvando sua página…",
     "journal.noPagesTitle": "Ainda não há páginas para este jogo.",
     "journal.noPagesBody":
       "Uma nota de voz curta já basta para lembrar onde você parou.",
     "journal.noGamesTitle": "Ainda não há jogos disponíveis para o diário.",
     "journal.noGamesBody":
       "Adicione um jogo ao seu catálogo primeiro, depois volte aqui para guardar páginas de diário.",
-    "journal.recentPages": "Páginas recentes do diário",
     "journal.writingFor": "Escrevendo para",
     "journal.pagesFor": "Páginas para {name}",
     "journal.untitledPage": "Página sem título",
@@ -1985,6 +1985,8 @@ const messages = {
       "Entre antes de salvar entradas de diário.",
     "profileAction.journalSaveFailed":
       "A entrada de diário não pôde ser salva.",
+    "profileAction.journalEmptyPage":
+      "Grave uma nota de voz, escreva algo ou adicione uma imagem antes de salvar.",
     "profileAction.journalDeleteFailed":
       "A entrada de diário não pôde ser excluída.",
     "profileAction.needManualAddLogin":
