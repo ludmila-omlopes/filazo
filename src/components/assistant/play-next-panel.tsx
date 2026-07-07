@@ -27,12 +27,7 @@ function RecommendationCard({
       game={recommendation.entry.game}
       platformName={recommendation.entry.platformName}
       playtimeMinutes={recommendation.entry.playtimeMinutes}
-      status={
-        recommendation.entry.finishedAt &&
-        recommendation.entry.status !== "COMPLETED"
-          ? "FINISHED"
-          : recommendation.entry.status
-      }
+      status={recommendation.entry.status}
       variant="slot"
     />
   );
@@ -44,8 +39,15 @@ export function PlayNextPanel({
   assistant: NonNullable<AssistantProfileData>;
 }) {
   const playNext = assistant.playNextRecommendations;
+  const playNextEntryIds = new Set(
+    playNext.map((recommendation) => recommendation.entryId),
+  );
   const releaseCandidates = assistant.insights
-    .filter((insight) => insight.signalType === "RELEASE_CANDIDATE")
+    .filter(
+      (insight) =>
+        insight.signalType === "RELEASE_CANDIDATE" &&
+        !playNextEntryIds.has(insight.userGameEntryId),
+    )
     .slice(0, 3);
 
   return (

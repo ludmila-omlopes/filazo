@@ -64,12 +64,7 @@ export function GameFrictionCard({ insight }: { insight: Insight }) {
       game={insight.userGameEntry.game}
       platformName={insight.userGameEntry.platformName}
       playtimeMinutes={insight.userGameEntry.playtimeMinutes}
-      status={
-        insight.userGameEntry.finishedAt &&
-        insight.userGameEntry.status !== "COMPLETED"
-          ? "FINISHED"
-          : insight.userGameEntry.status
-      }
+      status={insight.userGameEntry.status}
       variant="slot"
     />
   );

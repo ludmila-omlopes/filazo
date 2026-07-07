@@ -18,6 +18,7 @@ import {
 } from "@/lib/catalog";
 import { parseCsvColumnMappingJson } from "@/lib/csv-import-mapping";
 import { getIgdbGameById } from "@/lib/igdb";
+import { recomputeRuleInsightsForUser } from "@/lib/assistant/insight-maintenance";
 import { createTranslator } from "@/lib/i18n";
 import {
   createJournalEntryForUser,
@@ -1669,6 +1670,10 @@ export async function detectFinishedGamesAction() {
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 
+  if (finishedCount > 0) {
+    await recomputeRuleInsightsForUser(userId);
+  }
+
   revalidatePath("/profile");
   revalidatePath("/");
   redirect(`/profile?finishedDetected=${finishedCount}&finishedScanned=${scannedCount}`);
@@ -1703,6 +1708,8 @@ export async function markFinishedAction(formData: FormData) {
           playingNextSlot: null,
         },
   });
+
+  await recomputeRuleInsightsForUser(userId);
 
   revalidatePath("/profile");
   revalidatePath("/");
@@ -1845,6 +1852,7 @@ export async function currentPlayingDropAction(
   }
 
   await markEntryDroppedForUser({ entryId, userId });
+  await recomputeRuleInsightsForUser(userId);
 
   revalidatePath("/profile");
   revalidatePath("/");
@@ -1918,6 +1926,8 @@ export async function currentPlayingFinishAction(
     userId,
   });
 
+  await recomputeRuleInsightsForUser(userId);
+
   revalidatePath("/profile");
   revalidatePath("/");
   revalidatePath(`/games/${entry.game.slug}`);
@@ -1940,7 +1950,10 @@ export async function markDroppedAction(formData: FormData) {
     return;
   }
 
-  await markEntryDroppedForUser({ entryId, userId });
+  const result = await markEntryDroppedForUser({ entryId, userId });
+  if (result) {
+    await recomputeRuleInsightsForUser(userId);
+  }
 
   revalidatePath("/profile");
   revalidatePath("/");

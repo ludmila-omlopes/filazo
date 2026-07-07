@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { estimateRemainingTime, isEntryFinished } from "../time-estimates.ts";
 import { normalizeTitle } from "../utils.ts";
+import { isEntryRecommendable } from "./eligibility.ts";
 
 export type AssistantReason = {
   code: string;
@@ -802,7 +803,7 @@ export function scoreBacklogEntries(entries: AssistantEntry[], now = new Date())
   const upcomingReleaseContexts = buildUpcomingReleaseContexts(entries, now);
 
   for (const entry of entries) {
-    if (entry.activeBacklog === false || isEntryFinished(entry)) {
+    if (!isEntryRecommendable(entry)) {
       continue;
     }
 
