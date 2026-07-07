@@ -7,8 +7,11 @@ import {
   getAssistantProfileData,
   type PlayNextProfileRecommendation,
 } from "@/lib/assistant/queries";
+import { isEntryRecommendable } from "@/lib/assistant/eligibility";
 import { getRequestLocale } from "@/lib/request-locale";
-import { readStringList } from "@/lib/assistant/scoring";
+import { estimateRemainingTime } from "@/lib/time-estimates";
+import { orderPicksForMood } from "@/lib/tonight-moods";
+import { selectTonightBasePicks } from "@/lib/tonight-picks";
 import { FILAZO_THEME_COOKIE, parseFilazoThemeMode } from "@/lib/theme";
 import { getSessionUserId } from "@/lib/session";
 import { TonightRoom, type TonightMood, type TonightPick } from "./_components/tonight-room";
@@ -43,6 +46,8 @@ function toTonightPick(
       finishedAt: recommendation.entry.finishedAt,
       platformName: recommendation.entry.platformName,
       playtimeMinutes: recommendation.entry.playtimeMinutes,
+      remainingMinutes:
+        estimateRemainingTime(recommendation.entry)?.remainingMinutes ?? null,
       status: recommendation.entry.status,
       game: recommendation.entry.game,
     },
@@ -62,55 +67,11 @@ function toRuleTonightPick(
       finishedAt: entry.finishedAt,
       platformName: entry.platformName,
       playtimeMinutes: entry.playtimeMinutes,
+      remainingMinutes: estimateRemainingTime(entry)?.remainingMinutes ?? null,
       status: entry.status,
       game: entry.game,
     },
   };
-}
-
-function scoreMood(pick: TonightPick, mood: string) {
-  const genres = readStringList(pick.entry.game.genres).map((genre) =>
-    genre.toLowerCase(),
-  );
-  const playtime = pick.entry.playtimeMinutes ?? 0;
-  const reason = pick.reason.toLowerCase();
-
-  if (mood === "short") {
-    return reason.includes("short") || playtime <= 120 ? 2 : 0;
-  }
-
-  if (mood === "cozy") {
-    return genres.some((genre) =>
-      ["adventure", "casual", "simulation", "puzzle", "rpg"].includes(genre),
-    )
-      ? 2
-      : 0;
-  }
-
-  if (mood === "gripping") {
-    return genres.some((genre) =>
-      ["action", "shooter", "horror", "strategy"].includes(genre),
-    )
-      ? 2
-      : 0;
-  }
-
-  if (mood === "old-save") {
-    return pick.entry.status === "PLAYING" || playtime > 0 ? 3 : 0;
-  }
-
-  return 1;
-}
-
-function orderPicksForMood(picks: TonightPick[], mood: string) {
-  return [...picks].sort((left, right) => {
-    const moodDelta = scoreMood(right, mood) - scoreMood(left, mood);
-    if (moodDelta !== 0) {
-      return moodDelta;
-    }
-
-    return (right.entry.playtimeMinutes ?? 0) - (left.entry.playtimeMinutes ?? 0);
-  });
 }
 
 export default async function TonightPage({
@@ -169,6 +130,7 @@ export default async function TonightPage({
   }
 
   const assistant = await getAssistantProfileData(userId);
+  const shuffleSeed = `${userId}:${new Date().toISOString().slice(0, 10)}`;
   const entryById = new Map(assistant.entries.map((entry) => [entry.id, entry]));
   const fallbackFromGenerated = assistant.generatedInsights
     .map((insight) => {
@@ -185,37 +147,40 @@ export default async function TonightPage({
     })
     .filter((pick): pick is TonightPick => Boolean(pick));
   const fallbackFromShelf = assistant.entries
-    .filter((entry) => !entry.finishedAt && entry.status !== "COMPLETED")
-    .slice(0, 5)
+    .filter(
+      (entry) => isEntryRecommendable(entry) && entry.status !== "WISHLIST",
+    )
     .map((entry) =>
       toRuleTonightPick(
         entry,
         t("tonight.fallbackReason"),
       ),
     );
-  const basePicks = assistant.playNextRecommendations.length
-    ? assistant.playNextRecommendations.map(toTonightPick)
-    : fallbackFromGenerated.length
-      ? fallbackFromGenerated
-      : fallbackFromShelf;
-  const orderedPicks = orderPicksForMood(basePicks, mood);
+  const basePicks = selectTonightBasePicks({
+    storedRecommendations: assistant.playNextRecommendations.map(toTonightPick),
+    generatedPicks: fallbackFromGenerated,
+    shelfPicks: fallbackFromShelf,
+  });
+  const orderedPicks = orderPicksForMood(
+    basePicks,
+    mood,
+    `${shuffleSeed}:${mood}`,
+  );
   const playingPick =
     orderedPicks.find((pick) => pick.entry.status === "PLAYING") ?? null;
   const pick =
     orderedPicks.length > 0
       ? orderedPicks[offset % orderedPicks.length]
       : null;
-  const alternatives = orderedPicks
-    .filter((candidate) => candidate.entryId !== pick?.entryId)
-    .slice(0, 2);
 
   return (
     <main id="main-content" className="mx-auto w-full max-w-[1100px] pb-12">
       <TonightRoom
-        alternatives={alternatives}
+        alternatives={[]}
         currentMood={mood}
-        deck={orderedPicks.slice(0, 8)}
+        deck={orderedPicks}
         isNight={mode === "night"}
+        key={`${mood}:${offset}:${pick?.entryId ?? "empty"}`}
         locale={locale}
         message={query.message}
         moods={moods}
