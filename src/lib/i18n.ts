@@ -34,6 +34,10 @@ const messages = {
     "nav.footer": "Footer",
     "nav.profileSections": "Profile sections",
 
+    "banner.beta.message": "filazo is in beta.",
+    "banner.beta.cta": "Join our Discord",
+    "banner.beta.dismiss": "Dismiss beta notice",
+
     "locale.label": "Language",
     "locale.en": "EN",
     "locale.pt-BR": "PT-BR",
@@ -1025,6 +1029,10 @@ const messages = {
     "nav.main": "Principal",
     "nav.footer": "Rodapé",
     "nav.profileSections": "Seções do perfil",
+
+    "banner.beta.message": "filazo está em beta.",
+    "banner.beta.cta": "Entre no nosso Discord",
+    "banner.beta.dismiss": "Dispensar aviso de beta",
 
     "locale.label": "Idioma",
     "locale.en": "EN",

@@ -11,6 +11,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { AuthDialog } from "@/components/auth-dialog";
+import { BetaBanner } from "@/components/beta-banner";
 import { LocaleProvider } from "@/components/locale-provider";
 import { LocaleToggle } from "@/components/locale-toggle";
 import { SignOutForm } from "@/components/sign-out-form";
@@ -74,11 +75,17 @@ export default async function RootLayout({
   const navigationUser = await getNavigationUser(userId);
 
   return (
-    <html lang={locale} data-theme={initialTheme} suppressHydrationWarning>
+    <html
+      lang={locale}
+      className="has-beta-banner"
+      data-theme={initialTheme}
+      suppressHydrationWarning
+    >
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
         <ThemeRuntime mode={mode} />
         <LocaleProvider locale={locale}>
+          <BetaBanner />
           <Button
             asChild
             className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
@@ -86,7 +93,7 @@ export default async function RootLayout({
             <a href="#main-content">{t("common.skipToContent")}</a>
           </Button>
 
-          <div className="min-h-screen px-6 pb-6 max-md:px-4 max-md:pb-4">
+          <div className="app-shell min-h-screen px-6 pb-6 max-md:px-4 max-md:pb-4">
             <SiteHeaderFrame>
               <Link href="/" className="group inline-flex items-baseline gap-2">
                 <span className="font-display text-[1.45rem] font-medium">
