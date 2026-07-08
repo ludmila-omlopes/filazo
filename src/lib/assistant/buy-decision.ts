@@ -1,4 +1,5 @@
 import { UserGameStatus } from "@prisma/client";
+import { translate, type Locale } from "../i18n.ts";
 
 export type BuyDecisionEntry = {
   status: UserGameStatus;
@@ -14,6 +15,7 @@ export type BuyDecisionInput = {
   platformName?: string;
   priceText?: string;
   reasonUserWantsIt?: string;
+  locale?: Locale;
   genres?: string[];
 };
 
@@ -79,6 +81,11 @@ export function decideBuy(
   input: BuyDecisionInput,
   libraryEntries: BuyDecisionEntry[],
 ): BuyDecision {
+  const locale = input.locale ?? "en";
+  const t = (
+    key: Parameters<typeof translate>[1],
+    values?: Record<string, string | number>,
+  ) => translate(locale, key, values);
   const title = normalize(input.title);
   const price = parsePrice(input.priceText);
   const candidateGenres = input.genres ?? [];
@@ -92,9 +99,13 @@ export function decideBuy(
     return {
       verdict: "SKIP_FOR_NOW",
       confidence: 96,
-      reasons: [`${ownedMatch.game.name} is already in your library.`],
-      risks: ["You already have a copy waiting for you."],
-      suggestedTrigger: "Open or release the copy you already own first.",
+      reasons: [
+        t("assistant.buyDecision.reason.alreadyOwned", {
+          game: ownedMatch.game.name,
+        }),
+      ],
+      risks: [t("assistant.buyDecision.risk.alreadyOwned")],
+      suggestedTrigger: t("assistant.buyDecision.trigger.alreadyOwned"),
     };
   }
 
@@ -126,14 +137,18 @@ export function decideBuy(
       verdict: "BUY_NOW",
       confidence: 72,
       reasons: [
-        "It matches genres you actually play.",
+        t("assistant.buyDecision.reason.genreMatch"),
         price === null
-          ? "No price was provided."
-          : `The entered price is ${input.priceText}.`,
+          ? t("assistant.buyDecision.reason.noPrice")
+          : t("assistant.buyDecision.reason.enteredPrice", {
+              price: input.priceText ?? "",
+            }),
       ],
       risks:
-        untouchedCount > 20 ? ["Your shelf already has plenty of choices."] : [],
-      suggestedTrigger: "Buy when you know the first session you want with it.",
+        untouchedCount > 20
+          ? [t("assistant.buyDecision.risk.fullShelf")]
+          : [],
+      suggestedTrigger: t("assistant.buyDecision.trigger.buyNow"),
     };
   }
 
@@ -142,12 +157,14 @@ export function decideBuy(
       verdict: "WAIT_FOR_SALE",
       confidence: 78,
       reasons: [
-        "It fits your played genres, and similar owned games are already waiting.",
+        t("assistant.buyDecision.reason.genreMatchWithBacklog"),
       ],
       risks: [
-        `${untouchedSimilar.length} similar owned games have no recorded playtime.`,
+        t("assistant.buyDecision.risk.similarUntouched", {
+          count: untouchedSimilar.length,
+        }),
       ],
-      suggestedTrigger: "Buy after you try one similar game for 45 minutes.",
+      suggestedTrigger: t("assistant.buyDecision.trigger.waitForSale"),
     };
   }
 
@@ -157,13 +174,17 @@ export function decideBuy(
       confidence: 70,
       reasons: [
         hasCuriosityOnlyReason
-          ? "Your stated reason sounds curiosity or sale driven."
-          : "Your current shelf may already cover this mood.",
+          ? t("assistant.buyDecision.reason.curiosity")
+          : t("assistant.buyDecision.reason.shelfCoversMood"),
       ],
       risks: backlogConflict
-        ? [`${untouchedSimilar.length} similar owned games are already waiting.`]
-        : ["This may be more curiosity than a game for now."],
-      suggestedTrigger: "Keep it as a curiosity and revisit when the mood returns.",
+        ? [
+            t("assistant.buyDecision.risk.similarWaiting", {
+              count: untouchedSimilar.length,
+            }),
+          ]
+        : [t("assistant.buyDecision.risk.curiosity")],
+      suggestedTrigger: t("assistant.buyDecision.trigger.wishlistOnly"),
     };
   }
 
@@ -171,9 +192,9 @@ export function decideBuy(
     verdict: "SKIP_FOR_NOW",
     confidence: 64,
     reasons: [
-      "There is not enough evidence that this fits what you currently play.",
+      t("assistant.buyDecision.reason.notEnoughEvidence"),
     ],
-    risks: ["There is not much evidence that this matches your current taste."],
-    suggestedTrigger: "Skip unless you can name the exact first session you want to play.",
+    risks: [t("assistant.buyDecision.risk.notEnoughEvidence")],
+    suggestedTrigger: t("assistant.buyDecision.trigger.skip"),
   };
 }

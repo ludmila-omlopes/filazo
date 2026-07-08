@@ -246,11 +246,8 @@ export function PlayingNextPanel({
   const [isSearching, setIsSearching] = useState(false);
   const [savingIgdbId, setSavingIgdbId] = useState<number | null>(null);
   const queuedEntriesBySlot = new Map(
-    PLAYING_NEXT_SLOTS.flatMap((slot) => {
-      const entry =
-        profile.playingNextEntries.find(
-          (candidate) => candidate.playingNextSlot === slot,
-        ) ?? null;
+    PLAYING_NEXT_SLOTS.flatMap((slot, index) => {
+      const entry = profile.playingNextEntries[index] ?? null;
       return entry ? [[slot, entry] as const] : [];
     }),
   );
@@ -407,6 +404,7 @@ export function PlayingNextPanel({
     const formData = new FormData();
     formData.set("igdbId", String(result.igdbId));
     formData.set("platformName", result.platforms[0] ?? "");
+    formData.set("replaceEntryId", queuedEntriesBySlot.get(activeSlot)?.id ?? "");
     formData.set("slot", String(activeSlot));
     formData.set("title", result.name);
     setSavingIgdbId(result.igdbId);

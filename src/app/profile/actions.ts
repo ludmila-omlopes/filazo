@@ -112,6 +112,7 @@ const playingNextGameSchema = z.object({
     },
     z.string().trim().min(1).max(120).nullable(),
   ),
+  replaceEntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
   slot: z.coerce.number().int().min(1).max(3),
   title: z.string().trim().min(1).max(200),
 });
@@ -451,9 +452,10 @@ async function savePlayingNextSelectionsForUser({
     const previousQueuedEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
-        playingNextSlot: {
-          not: null,
-        },
+        OR: [
+          { playingNextSlot: { not: null } },
+          { status: UserGameStatus.PLAYING_NEXT },
+        ],
       },
       select: {
         id: true,
@@ -586,9 +588,10 @@ async function clearPlayingNextForUser(userId: string) {
     const playingNextEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
-        playingNextSlot: {
-          not: null,
-        },
+        OR: [
+          { playingNextSlot: { not: null } },
+          { status: UserGameStatus.PLAYING_NEXT },
+        ],
       },
       select: {
         id: true,
@@ -601,9 +604,10 @@ async function clearPlayingNextForUser(userId: string) {
     await tx.userGameEntry.updateMany({
       where: {
         userId,
-        playingNextSlot: {
-          not: null,
-        },
+        OR: [
+          { playingNextSlot: { not: null } },
+          { status: UserGameStatus.PLAYING_NEXT },
+        ],
       },
       data: {
         playingNextSlot: null,
@@ -619,12 +623,14 @@ async function clearPlayingNextForUser(userId: string) {
 async function addPlayingNextGameForUser({
   igdbId,
   platformName,
+  replaceEntryId,
   slot,
   title,
   userId,
 }: {
   igdbId: number;
   platformName: string | null;
+  replaceEntryId: string | null;
   slot: 1 | 2 | 3;
   title: string;
   userId: string;
@@ -700,11 +706,12 @@ async function addPlayingNextGameForUser({
   const needsPurchase = !hasOwnedIntent;
 
   await prisma.$transaction(async (tx) => {
-    const previousSlotEntries = await tx.userGameEntry.findMany({
+    const currentQueueEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
-        playingNextSlot: slot,
+        status: UserGameStatus.PLAYING_NEXT,
       },
+      orderBy: [{ playingNextSlot: "asc" }, { updatedAt: "desc" }],
       select: {
         gameId: true,
         id: true,
@@ -712,17 +719,32 @@ async function addPlayingNextGameForUser({
         userIntent: true,
       },
     });
+    const fallbackReplacement =
+      currentQueueEntries.length >= 3
+        ? currentQueueEntries[slot - 1] ?? currentQueueEntries[2] ?? null
+        : null;
+    const entryToReplace =
+      (replaceEntryId
+        ? currentQueueEntries.find((entry) => entry.id === replaceEntryId)
+        : null) ??
+      fallbackReplacement;
 
-    for (const entry of previousSlotEntries) {
+    await tx.userGameEntry.updateMany({
+      where: {
+        userId,
+        playingNextSlot: slot,
+      },
+      data: { playingNextSlot: null },
+    });
+
+    for (const entry of currentQueueEntries) {
       if (targetEntry && entry.id === targetEntry.id) {
         continue;
       }
 
-      await tx.userGameEntry.update({
-        where: { id: entry.id },
-        data: { playingNextSlot: null },
-      });
-      await demotePlayingNextEntryToOwned({ entry, tx, userId });
+      if (entryToReplace && entry.id === entryToReplace.id) {
+        await demotePlayingNextEntryToOwned({ entry, tx, userId });
+      }
     }
 
     const playingNextData = {
@@ -1606,6 +1628,7 @@ export async function addPlayingNextGameAction(
     await addPlayingNextGameForUser({
       igdbId: parsed.data.igdbId,
       platformName: parsed.data.platformName,
+      replaceEntryId: parsed.data.replaceEntryId,
       slot: parsed.data.slot as 1 | 2 | 3,
       title: parsed.data.title,
       userId,
