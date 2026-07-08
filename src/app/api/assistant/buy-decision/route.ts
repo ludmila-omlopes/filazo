@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { decideBuy } from "@/lib/assistant/buy-decision";
 import type { AssistantEntry } from "@/lib/assistant/scoring";
+import { parseLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 
@@ -10,6 +11,7 @@ const buyDecisionSchema = z.object({
   platformName: z.string().max(80).optional(),
   priceText: z.string().max(40).optional(),
   reasonUserWantsIt: z.string().max(300).optional(),
+  locale: z.string().optional(),
   genres: z.array(z.string()).optional(),
 });
 
@@ -57,6 +59,12 @@ export async function POST(request: Request) {
   }));
 
   return NextResponse.json({
-    decision: decideBuy(parsed.data, assistantEntries),
+    decision: decideBuy(
+      {
+        ...parsed.data,
+        locale: parseLocale(parsed.data.locale),
+      },
+      assistantEntries,
+    ),
   });
 }

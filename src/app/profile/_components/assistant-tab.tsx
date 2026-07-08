@@ -103,7 +103,12 @@ export function AssistantTab({
                 {formatUsd(assistant.aiUsage.userDailySpendLimitUsd)}
               </span>
               <span className="rounded-pill bg-surface px-3 py-1">
-                Chat {formatNumber(assistant.aiUsage.chatRemainingTokensToday)}
+                {t("assistant.tab.chatRemaining", {
+                  count: formatNumber(
+                    assistant.aiUsage.chatRemainingTokensToday,
+                    locale,
+                  ),
+                })}
               </span>
               <span className="rounded-pill bg-surface px-3 py-1">
                 {t("assistant.tab.nextRefresh")}{" "}
@@ -131,8 +136,8 @@ export function AssistantTab({
           assistant.aiUsage.assistantChatEnabled
         }
       />
-      <BacklogDiagnosis assistant={assistant} />
-      <PlayNextPanel assistant={assistant} />
+      <BacklogDiagnosis assistant={assistant} locale={locale} />
+      <PlayNextPanel assistant={assistant} locale={locale} />
 
       <section className="panel">
         <SectionHeader
