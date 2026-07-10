@@ -21,6 +21,7 @@ import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
 import { syncXboxLibraryForAccount } from "@/lib/xbox";
 import type { CsvColumnMapping } from "@/lib/csv-import-mapping";
 import {
+  canonicalizeGameTitle,
   cleanGameTitle,
   normalizeTitle,
   slugify,
@@ -310,8 +311,9 @@ async function applyReviewScoreToGame(
 }
 
 export async function resolveCatalogGame(input: ResolveGameInput) {
-  const normalizedTitle = normalizeTitle(input.title);
-  const searchTitle = cleanGameTitle(input.title);
+  const canonicalTitle = canonicalizeGameTitle(input.title);
+  const normalizedTitle = normalizeTitle(canonicalTitle);
+  const searchTitle = cleanGameTitle(canonicalTitle);
   let game:
     | Awaited<ReturnType<typeof prisma.game.findFirst>>
     | Awaited<ReturnType<typeof prisma.game.findUnique>>
@@ -396,7 +398,7 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
 
   if (!game) {
     game = await prisma.game.create({
-      data: metadataToGameCreateInput(input.title, metadata),
+      data: metadataToGameCreateInput(canonicalTitle, metadata),
     });
   }
 

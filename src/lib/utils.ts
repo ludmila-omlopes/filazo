@@ -25,6 +25,36 @@ export function normalizeTitle(value: string) {
     .toLowerCase();
 }
 
+const minecraftCanonicalTitles = new Set([
+  "minecraft",
+  "minecraft bedrock",
+  "minecraft bedrock edition",
+  "minecraft for windows",
+  "minecraft java",
+  "minecraft java edition",
+  "minecraft java bedrock edition for pc",
+  "minecraft launcher",
+  "minecraft nintendo switch edition",
+  "minecraft vanilla",
+  "minecraft windows 10 edition",
+  "minecraft xbox 360 edition",
+  "minecraft xbox one edition",
+]);
+
+export function canonicalizeGameTitle(value: string) {
+  const normalizedTitle = normalizeTitle(value);
+
+  if (
+    minecraftCanonicalTitles.has(normalizedTitle) ||
+    /^minecraft for playstation\d*$/.test(normalizedTitle) ||
+    /^minecraft playstation\d* edition$/.test(normalizedTitle)
+  ) {
+    return "Minecraft";
+  }
+
+  return cleanGameTitle(value);
+}
+
 export function slugify(value: string) {
   return normalizeTitle(value)
     .replace(/\s+/g, "-")
