@@ -11,6 +11,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import type { AiSettingsValues } from "@/lib/ai-settings";
 import { hasIgdbConfig } from "@/lib/igdb";
 import { createTranslator, type Locale } from "@/lib/i18n";
+import { isAiProviderConfigured } from "@/lib/openai";
 import { isSteamConfigured } from "@/lib/steam";
 import { isXboxConfigured } from "@/lib/xbox";
 import { cn, formatDate, formatNumber } from "@/lib/utils";
@@ -383,7 +384,7 @@ function PhotoImportRow({
   profile: ProfileData;
 }) {
   const t = createTranslator(locale);
-  const aiConfigured = Boolean(process.env.OPENAI_API_KEY);
+  const aiConfigured = isAiProviderConfigured();
   const aiAvailable = aiConfigured && aiSettings.photoImportEnabled;
   const unavailableLabel = aiSettings.photoImportEnabled
     ? t("profile.photoImport.needsKey")

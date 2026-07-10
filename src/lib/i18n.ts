@@ -832,7 +832,7 @@ const messages = {
     "profile.photoImport.disabled": "Disabled by admin",
     "profile.photoImport.images": "Catalog images",
     "profile.photoImport.needsKeyBody":
-      "Photo extraction needs OPENAI_API_KEY. Upload attempts are kept in the import audit with a clear skipped state.",
+      "Photo extraction needs OPENAI_API_KEY or OPENROUTER_KEY. Upload attempts are kept in the import audit with a clear skipped state.",
     "profile.photoImport.disabledBody":
       "Photo extraction is disabled in admin settings.",
     "profile.photoImport.submit": "Import from photos",
@@ -1066,8 +1066,9 @@ const messages = {
       "Only image files can be used for photo import.",
     "profileAction.photoNoVisibleGames": "No visible games detected.",
     "profileAction.photoVisionUnavailable":
-      "OPENAI_API_KEY is not configured for vision extraction.",
-    "profileAction.photoNeedsAiKey": "Photo import needs OPENAI_API_KEY.",
+      "Neither OPENAI_API_KEY nor OPENROUTER_KEY is configured for vision extraction.",
+    "profileAction.photoNeedsAiKey":
+      "Photo import needs OPENAI_API_KEY or OPENROUTER_KEY.",
     "profileAction.photoAiDisabled":
       "Photo import is disabled in admin settings.",
     "profileAction.photoFileTooLarge":
@@ -1930,7 +1931,7 @@ const messages = {
     "profile.photoImport.disabled": "Desativado pelo admin",
     "profile.photoImport.images": "Imagens do catálogo",
     "profile.photoImport.needsKeyBody":
-      "A extração por foto precisa de OPENAI_API_KEY. As tentativas de upload ficam registradas na auditoria de importação com um estado claro de ignorado.",
+      "A extração por foto precisa de OPENAI_API_KEY ou OPENROUTER_KEY. As tentativas de upload ficam registradas na auditoria de importação com um estado claro de ignorado.",
     "profile.photoImport.disabledBody":
       "A extracao por foto esta desativada nas configuracoes de admin.",
     "profile.photoImport.submit": "Importar das fotos",
@@ -2172,9 +2173,9 @@ const messages = {
     "profileAction.photoNoVisibleGames":
       "Nenhum jogo visível foi detectado.",
     "profileAction.photoVisionUnavailable":
-      "OPENAI_API_KEY não está configurada para extração por visão.",
+      "Nem OPENAI_API_KEY nem OPENROUTER_KEY está configurada para extração por visão.",
     "profileAction.photoNeedsAiKey":
-      "A importação por foto precisa de OPENAI_API_KEY.",
+      "A importação por foto precisa de OPENAI_API_KEY ou OPENROUTER_KEY.",
     "profileAction.photoAiDisabled":
       "A importacao por foto esta desativada nas configuracoes de admin.",
     "profileAction.photoFileTooLarge":

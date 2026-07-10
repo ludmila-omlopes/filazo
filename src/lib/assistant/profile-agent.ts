@@ -35,7 +35,7 @@ export const PLAYER_PROFILE_EMPTY_MESSAGE =
   "Your shelf is quiet right now. Sync a platform or import a CSV before asking for a player profile.";
 
 export const PLAYER_PROFILE_AI_UNAVAILABLE_MESSAGE =
-  "The AI module is unavailable. Set OPENAI_API_KEY to generate a player profile.";
+  "The AI module is unavailable. Set OPENAI_API_KEY or OPENROUTER_KEY to generate a player profile.";
 
 const PlayerProfilePayloadSchema = z.object({
   language: z.enum(["en", "pt-BR"]).optional(),

@@ -7,6 +7,7 @@ import { SyncActionForm } from "@/components/sync-action-form";
 import { SectionHeader } from "@/components/ui/section-header";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import type { AiSettingsValues } from "@/lib/ai-settings";
+import { isAiProviderConfigured } from "@/lib/openai";
 import { formatNumber } from "@/lib/utils";
 import {
   generatePlayerProfileAction,
@@ -57,7 +58,7 @@ export function PlayerProfileTab({
       <PlayerProfilePanel
         action={generatePlayerProfileAction}
         aiConfigured={
-          Boolean(process.env.OPENAI_API_KEY) &&
+          isAiProviderConfigured() &&
           aiSettings.playerProfileEnabled
         }
         hasGames={
