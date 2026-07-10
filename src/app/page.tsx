@@ -235,6 +235,7 @@ export default async function Home() {
       {databaseNotice ? <Notice tone="error">{databaseNotice}</Notice> : null}
 
       <section className="relative min-h-[540px] overflow-visible">
+        <HeroAtmosphere />
         <div className="absolute right-0 top-1 z-20 max-md:hidden">
           <PhaseBadge locale={locale} mode={mode} />
         </div>
@@ -409,6 +410,52 @@ export default async function Home() {
         </div>
       </section>
     </main>
+  );
+}
+
+/** Ambient hero backdrop: a few slow-drifting pastel blobs on the palette,
+ *  finished with a faint printed-paper grain. Purely decorative and
+ *  theme-aware — the accent tokens flip with day/night on their own. */
+function HeroAtmosphere() {
+  const blobs: Array<{
+    className: string;
+    style: CSSProperties;
+  }> = [
+    {
+      className: "left-[-6%] top-[-8%] h-[360px] w-[360px] bg-sage/45",
+      style: { "--blob-dx": "26px", "--blob-dy": "-22px", animationDelay: "-3s" } as CSSProperties,
+    },
+    {
+      className: "right-[-4%] top-[6%] h-[300px] w-[300px] bg-clay/40",
+      style: { "--blob-dx": "-30px", "--blob-dy": "18px", animationDelay: "-11s" } as CSSProperties,
+    },
+    {
+      className: "bottom-[-12%] left-[24%] h-[340px] w-[340px] bg-sky/35",
+      style: { "--blob-dx": "20px", "--blob-dy": "24px", animationDelay: "-7s" } as CSSProperties,
+    },
+    {
+      className: "bottom-[8%] right-[26%] h-[220px] w-[220px] bg-dusk-lavender/40",
+      style: { "--blob-dx": "-18px", "--blob-dy": "-16px", animationDelay: "-15s" } as CSSProperties,
+    },
+  ];
+
+  return (
+    <div
+      aria-hidden
+      className="hero-wave-mask pointer-events-none absolute -bottom-[72px] left-1/2 z-0 w-screen -translate-x-1/2 overflow-hidden -top-40 max-sm:-top-56"
+    >
+      {blobs.map((blob, index) => (
+        <div
+          className={cn(
+            "animate-drift-blob absolute rounded-full blur-3xl",
+            blob.className,
+          )}
+          key={index}
+          style={blob.style}
+        />
+      ))}
+      <div className="hero-grain absolute inset-0" />
+    </div>
   );
 }
 

@@ -4,6 +4,7 @@ import { Clock } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { Locale } from "@/lib/i18n";
 import {
+  phaseForMode,
   phaseFromHour,
   themeForPhase,
   type FilazoThemeMode,
@@ -12,14 +13,9 @@ import { useTranslations } from "./locale-provider";
 
 function applyMode(mode: FilazoThemeMode) {
   const root = document.documentElement;
-  if (mode === "auto") {
-    const phase = phaseFromHour(new Date().getHours());
-    root.dataset.theme = themeForPhase(phase);
-    root.dataset.phase = phase;
-  } else {
-    root.dataset.theme = mode === "night" ? "night" : "day";
-    delete root.dataset.phase;
-  }
+  const phase = phaseForMode(mode, new Date().getHours());
+  root.dataset.theme = themeForPhase(phase);
+  root.dataset.phase = phase;
 }
 
 /**

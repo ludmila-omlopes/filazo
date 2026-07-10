@@ -25,7 +25,11 @@ import { isAdminEmail } from "@/lib/beta-access";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
-import { FILAZO_THEME_COOKIE, parseFilazoThemeMode } from "@/lib/theme";
+import {
+  FILAZO_THEME_COOKIE,
+  parseFilazoThemeMode,
+  themeForPhase,
+} from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "filazo",
@@ -38,7 +42,7 @@ export const metadata: Metadata = {
  * visitor's local time of day) onto <html data-theme/data-phase> so there is no
  * flash of the wrong theme. ThemeRuntime then keeps it in sync after hydration.
  */
-const themeBootstrapScript = `(function(){try{var m=document.cookie.match(/(?:^|; )filazo-theme=([^;]+)/);var mode=m?decodeURIComponent(m[1]):'day';var r=document.documentElement;if(mode==='auto'){var h=new Date().getHours();var p=h<6?'night':h<11?'morning':h<17?'afternoon':h<19?'dusk':h<21?'evening':'night';r.dataset.theme=(p==='morning'||p==='afternoon')?'day':'night';r.dataset.phase=p;}else{r.dataset.theme=mode==='night'?'night':'day';}}catch(e){}})();`;
+const themeBootstrapScript = `(function(){try{var m=document.cookie.match(/(?:^|; )filazo-theme=([^;]+)/);var mode=m?decodeURIComponent(m[1]):'afternoon';var valid={morning:1,afternoon:1,dusk:1,evening:1,night:1};if(mode==='day')mode='afternoon';if(mode!=='auto'&&!valid[mode])mode='afternoon';var r=document.documentElement;var p;if(mode==='auto'){var h=new Date().getHours();p=h<6?'night':h<11?'morning':h<17?'afternoon':h<19?'dusk':h<21?'evening':'night';}else{p=mode;}r.dataset.theme=(p==='morning'||p==='afternoon')?'day':'night';r.dataset.phase=p;}catch(e){}})();`;
 
 async function getNavigationUser(userId: string | null) {
   if (!userId) {
@@ -70,7 +74,10 @@ export default async function RootLayout({
   const mode = parseFilazoThemeMode(
     cookieStore.get(FILAZO_THEME_COOKIE)?.value,
   );
-  const initialTheme = mode === "night" ? "night" : "day";
+  // Fixed modes resolve their theme/phase now; "auto" is time-dependent, so the
+  // pre-paint script fills those in before first paint.
+  const initialTheme = mode === "auto" ? "day" : themeForPhase(mode);
+  const initialPhase = mode === "auto" ? undefined : mode;
   const userId = await getSessionUserId();
   const navigationUser = await getNavigationUser(userId);
 
@@ -79,6 +86,7 @@ export default async function RootLayout({
       lang={locale}
       className="has-beta-banner"
       data-theme={initialTheme}
+      data-phase={initialPhase}
       suppressHydrationWarning
     >
       <body>
