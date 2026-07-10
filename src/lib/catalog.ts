@@ -1082,7 +1082,7 @@ export async function getProfileData(
   const focusedGameEntriesWhere = {
     OR: [
       { currentPlayingSlot: { not: null } },
-      { playingNextSlot: { not: null } },
+      { status: UserGameStatus.PLAYING_NEXT },
       { isFavorite: true },
       { status: { not: UserGameStatus.WISHLIST } },
     ],

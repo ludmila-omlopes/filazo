@@ -34,6 +34,10 @@ const messages = {
     "nav.footer": "Footer",
     "nav.profileSections": "Profile sections",
 
+    "banner.beta.message": "filazo is in beta.",
+    "banner.beta.cta": "Join our Discord",
+    "banner.beta.dismiss": "Dismiss beta notice",
+
     "locale.label": "Language",
     "locale.en": "EN",
     "locale.pt-BR": "PT-BR",
@@ -407,12 +411,13 @@ const messages = {
     "profile.currentPlaying.save": "Save current playing",
     "profile.currentPlaying.saving": "Saving...",
     "profile.currentPlaying.clearTop": "Clear all",
-    "profile.currentPlaying.remove": "Remove {name}",
     "profile.currentPlaying.dragOut": "Drag out to remove",
     "profile.currentPlaying.fillOpenSpots": "Fill open spots",
     "profile.currentPlaying.finish": "Finished",
     "profile.currentPlaying.drop": "Drop game",
     "profile.currentPlaying.removeFromView": "Unpin",
+    "profile.currentPlaying.diaryPage": "Add Diary Page",
+    "profile.currentPlaying.moreActions": "More actions for {name}",
     "profile.currentPlaying.actionFailed":
       "That update did not save. Try again in a moment.",
     "profile.currentPlaying.finishedDialogLabel": "Finished",
@@ -520,6 +525,7 @@ const messages = {
     "assistant.tab.usage": "Usage details",
     "assistant.tab.availableToday": "Notes available today:",
     "assistant.tab.usedToday": "Used today:",
+    "assistant.tab.chatRemaining": "Chat {count}",
     "assistant.tab.nextRefresh": "Next refresh:",
     "assistant.tab.unavailable": "unavailable",
     "assistant.tab.refresh": "Refresh guide",
@@ -528,6 +534,83 @@ const messages = {
     "assistant.tab.inMinutes": "in {count} minutes",
     "assistant.buy.eyebrow": "Thinking of buying?",
     "assistant.buy.title": "Buy, wait, stay curious, or pass",
+    "assistant.diagnosis.eyebrow": "Catalog check",
+    "assistant.diagnosis.title": "Where your games are resting",
+    "assistant.diagnosis.lastRun": "Last run: {date}",
+    "assistant.diagnosis.notRefreshed": "Not refreshed yet",
+    "assistant.diagnosis.summary":
+      "Based on {ownedCount} owned games, {untouchedCount} games ready when you are, and {sampledDroppedCount} short samples. Every one of them can wait - that's what libraries are for.",
+    "assistant.playNext.eyebrow": "Play next",
+    "assistant.playNext.title": "Three easy picks for tonight",
+    "assistant.playNext.suggested": "Suggested for you",
+    "assistant.playNext.emptyTitle": "No picks yet.",
+    "assistant.playNext.emptyBody":
+      "Refresh the assistant to generate play-next suggestions.",
+    "assistant.release.eyebrow": "Ready to let go",
+    "assistant.release.title": "Games you can release, guilt-free",
+    "assistant.release.emptyTitle": "Nothing to release right now.",
+    "assistant.release.emptyBody":
+      "When a game has clearly run its course, it will show up here.",
+    "assistant.buyDecision.titleLabel": "Title",
+    "assistant.buyDecision.priceLabel": "Price",
+    "assistant.buyDecision.platformLabel": "Platform",
+    "assistant.buyDecision.genresLabel": "Genres",
+    "assistant.buyDecision.reasonLabel": "Why do you want it?",
+    "assistant.buyDecision.reasonPlaceholder":
+      "A friend recommended it, it is on sale, or it fits the mood.",
+    "assistant.buyDecision.searching": "Searching",
+    "assistant.buyDecision.searchUnavailable": "Game search is unavailable.",
+    "assistant.buyDecision.noSuggestions": "No catalog suggestions yet.",
+    "assistant.buyDecision.searchResult": "Game search result",
+    "assistant.buyDecision.useResult": "Use",
+    "assistant.buyDecision.selected": "Selected: {game}",
+    "assistant.buyDecision.pending": "Thinking it over...",
+    "assistant.buyDecision.submit": "Help me decide",
+    "assistant.buyDecision.genericError": "This purchase needs another look.",
+    "assistant.buyDecision.verdict.BUY_NOW": "Bring it home",
+    "assistant.buyDecision.verdict.WAIT_FOR_SALE": "Wait for sale",
+    "assistant.buyDecision.verdict.WISHLIST_ONLY": "Stay curious",
+    "assistant.buyDecision.verdict.SKIP_FOR_NOW": "Maybe later",
+    "assistant.buyDecision.fit": "{confidence}% fit",
+    "assistant.buyDecision.worthKnowing": "Worth knowing: {risks}",
+    "assistant.buyDecision.revisit": "When to revisit: {trigger}",
+    "assistant.buyDecision.reason.alreadyOwned":
+      "{game} is already in your library.",
+    "assistant.buyDecision.reason.genreMatch":
+      "It matches genres you actually play.",
+    "assistant.buyDecision.reason.noPrice": "No price was provided.",
+    "assistant.buyDecision.reason.enteredPrice":
+      "The entered price is {price}.",
+    "assistant.buyDecision.reason.genreMatchWithBacklog":
+      "It fits your played genres, and similar owned games are already waiting.",
+    "assistant.buyDecision.reason.curiosity":
+      "Your stated reason sounds curiosity or sale driven.",
+    "assistant.buyDecision.reason.shelfCoversMood":
+      "Your current shelf may already cover this mood.",
+    "assistant.buyDecision.reason.notEnoughEvidence":
+      "There is not enough evidence that this fits what you currently play.",
+    "assistant.buyDecision.risk.alreadyOwned":
+      "You already have a copy waiting for you.",
+    "assistant.buyDecision.risk.fullShelf":
+      "Your shelf already has plenty of choices.",
+    "assistant.buyDecision.risk.similarUntouched":
+      "{count} similar owned games have no recorded playtime.",
+    "assistant.buyDecision.risk.similarWaiting":
+      "{count} similar owned games are already waiting.",
+    "assistant.buyDecision.risk.curiosity":
+      "This may be more curiosity than a game for now.",
+    "assistant.buyDecision.risk.notEnoughEvidence":
+      "There is not much evidence that this matches your current taste.",
+    "assistant.buyDecision.trigger.alreadyOwned":
+      "Open or release the copy you already own first.",
+    "assistant.buyDecision.trigger.buyNow":
+      "Buy when you know the first session you want with it.",
+    "assistant.buyDecision.trigger.waitForSale":
+      "Buy after you try one similar game for 45 minutes.",
+    "assistant.buyDecision.trigger.wishlistOnly":
+      "Keep it as a curiosity and revisit when the mood returns.",
+    "assistant.buyDecision.trigger.skip":
+      "Skip unless you can name the exact first session you want to play.",
     "libraryChat.label": "Library chat",
     "libraryChat.title": "Ask your collection anything",
     "libraryChat.body": "Answers come from your own games, playtime, and notes.",
@@ -623,21 +706,19 @@ const messages = {
     "journal.description":
       "Record the moment first. Writing, screenshots, and uploads stay tucked away as backup options.",
     "journal.openGame": "Open Game",
-    "journal.savedCount": "{count} saved",
-    "journal.startWithVoice": "Start With Your Voice",
-    "journal.writeOrAddMore": "Write Instead Or Add More",
-    "journal.optionTextLabel": "Option 1",
-    "journal.optionVoiceLabel": "Option 2",
+    "journal.modePrompt": "How do you want to capture this memory?",
+    "journal.backToList": "Back to Your Diary",
+    "journal.lastPageOn": "Last page on {date}",
+    "journal.startForAnotherGame": "Start a Diary for Another Game",
+    "journal.emptyIndexTitle": "No diary pages yet.",
+    "journal.emptyIndexBody":
+      "Pick a game below to write or record the first one.",
     "journal.writeWithText": "Write With Text",
     "journal.writeWithTextHint":
-      "Use a title, notes, and an optional screenshot.",
+      "Add a title and write what you want to remember.",
     "journal.recordWithVoice": "Record Your Voice",
     "journal.recordWithVoiceHint":
-      "Speak the memory and check the mic input while recording.",
-    "journal.optionalImageLabel": "Optional",
-    "journal.addImageTitle": "Add Image",
-    "journal.addImageHint":
-      "Use the same screenshot with a text note or a voice note.",
+      "Speak the memory — the transcription also suggests the page title.",
     "journal.pageTitle": "Page Title",
     "journal.pageTitlePlaceholder": "Before the next session…",
     "journal.playedAround": "Played Around",
@@ -645,17 +726,17 @@ const messages = {
     "journal.bodyPlaceholder":
       "I stopped at… I want to remember… Next time I should try…",
     "journal.screenshot": "Screenshot",
-    "journal.keepsakeCaption": "Keepsake Caption",
-    "journal.keepsakePlaceholder": "What this memory shows…",
+    "journal.extrasTitle": "Add a Screenshot or Date",
+    "journal.extrasHint":
+      "These join the page whether you write it or record it.",
     "journal.savePage": "Save Diary Page",
-    "journal.chooseAnotherGame": "Choose Another Game",
+    "journal.savingPage": "Saving Your Page…",
     "journal.noPagesTitle": "No pages for this game yet.",
     "journal.noPagesBody":
       "A short voice note is enough to remember where you left off.",
     "journal.noGamesTitle": "No games available for journaling yet.",
     "journal.noGamesBody":
       "Add a game to your catalog first, then come back here to keep diary pages.",
-    "journal.recentPages": "Recent Diary Pages",
     "journal.writingFor": "Writing For",
     "journal.pagesFor": "Pages For {name}",
     "journal.untitledPage": "Untitled Page",
@@ -1000,6 +1081,8 @@ const messages = {
       "Sign in before saving journal entries.",
     "profileAction.journalSaveFailed":
       "Journal entry could not be saved.",
+    "profileAction.journalEmptyPage":
+      "Record a voice note, write something, or add an image before saving.",
     "profileAction.journalDeleteFailed":
       "Journal entry could not be deleted.",
     "profileAction.needManualAddLogin":
@@ -1043,6 +1126,10 @@ const messages = {
     "nav.main": "Principal",
     "nav.footer": "Rodapé",
     "nav.profileSections": "Seções do perfil",
+
+    "banner.beta.message": "filazo está em beta.",
+    "banner.beta.cta": "Entre no nosso Discord",
+    "banner.beta.dismiss": "Dispensar aviso de beta",
 
     "locale.label": "Idioma",
     "locale.en": "EN",
@@ -1420,12 +1507,13 @@ const messages = {
     "profile.currentPlaying.save": "Salvar jogando agora",
     "profile.currentPlaying.saving": "Salvando...",
     "profile.currentPlaying.clearTop": "Limpar tudo",
-    "profile.currentPlaying.remove": "Remover {name}",
     "profile.currentPlaying.dragOut": 'Arraste para fora para remover',
     "profile.currentPlaying.fillOpenSpots": "Preencher espaços",
     "profile.currentPlaying.finish": "Concluído",
     "profile.currentPlaying.drop": "Largar jogo",
     "profile.currentPlaying.removeFromView": "Tirar da lista",
+    "profile.currentPlaying.diaryPage": "Registrar no diário",
+    "profile.currentPlaying.moreActions": "Mais ações para {name}",
     "profile.currentPlaying.actionFailed":
       "Essa atualização não foi salva. Tente de novo em instantes.",
     "profile.currentPlaying.finishedDialogLabel": "Concluído",
@@ -1533,6 +1621,7 @@ const messages = {
     "assistant.tab.usage": "Detalhes de uso",
     "assistant.tab.availableToday": "Notas disponíveis hoje:",
     "assistant.tab.usedToday": "Usado hoje:",
+    "assistant.tab.chatRemaining": "Chat {count}",
     "assistant.tab.nextRefresh": "Próxima atualização:",
     "assistant.tab.unavailable": "indisponível",
     "assistant.tab.refresh": "Atualizar guia",
@@ -1541,6 +1630,85 @@ const messages = {
     "assistant.tab.inMinutes": "em {count} minutos",
     "assistant.buy.eyebrow": "Pensando em comprar?",
     "assistant.buy.title": "Comprar, esperar, seguir curiosa ou passar",
+    "assistant.diagnosis.eyebrow": "Checagem do catálogo",
+    "assistant.diagnosis.title": "Onde seus jogos estão parados",
+    "assistant.diagnosis.lastRun": "Última atualização: {date}",
+    "assistant.diagnosis.notRefreshed": "Ainda não atualizado",
+    "assistant.diagnosis.summary":
+      "Com base em {ownedCount} jogos na estante, {untouchedCount} prontos quando você quiser e {sampledDroppedCount} experiências curtas. Todos podem esperar - bibliotecas servem para isso.",
+    "assistant.playNext.eyebrow": "Jogar agora",
+    "assistant.playNext.title": "Três escolhas fáceis para hoje",
+    "assistant.playNext.suggested": "Sugerido para você",
+    "assistant.playNext.emptyTitle": "Ainda não há sugestões.",
+    "assistant.playNext.emptyBody":
+      "Atualize o guia para gerar sugestões do que jogar agora.",
+    "assistant.release.eyebrow": "Pronto para liberar",
+    "assistant.release.title": "Jogos que você pode soltar sem culpa",
+    "assistant.release.emptyTitle": "Nada para liberar agora.",
+    "assistant.release.emptyBody":
+      "Quando um jogo claramente tiver cumprido seu papel, ele aparece aqui.",
+    "assistant.buyDecision.titleLabel": "Título",
+    "assistant.buyDecision.priceLabel": "Preço",
+    "assistant.buyDecision.platformLabel": "Plataforma",
+    "assistant.buyDecision.genresLabel": "Gêneros",
+    "assistant.buyDecision.reasonLabel": "Por que você quer esse jogo?",
+    "assistant.buyDecision.reasonPlaceholder":
+      "Uma amiga recomendou, está em promoção ou combina com o momento.",
+    "assistant.buyDecision.searching": "Buscando",
+    "assistant.buyDecision.searchUnavailable":
+      "A busca de jogos está indisponível.",
+    "assistant.buyDecision.noSuggestions":
+      "Ainda não há sugestões no catálogo.",
+    "assistant.buyDecision.searchResult": "Resultado da busca de jogos",
+    "assistant.buyDecision.useResult": "Usar",
+    "assistant.buyDecision.selected": "Selecionado: {game}",
+    "assistant.buyDecision.pending": "Pensando melhor...",
+    "assistant.buyDecision.submit": "Me ajude a decidir",
+    "assistant.buyDecision.genericError": "Essa compra precisa de outro olhar.",
+    "assistant.buyDecision.verdict.BUY_NOW": "Pode trazer",
+    "assistant.buyDecision.verdict.WAIT_FOR_SALE": "Espere uma promoção",
+    "assistant.buyDecision.verdict.WISHLIST_ONLY": "Só deixe na lista",
+    "assistant.buyDecision.verdict.SKIP_FOR_NOW": "Talvez depois",
+    "assistant.buyDecision.fit": "{confidence}% de encaixe",
+    "assistant.buyDecision.worthKnowing": "Vale saber: {risks}",
+    "assistant.buyDecision.revisit": "Quando revisitar: {trigger}",
+    "assistant.buyDecision.reason.alreadyOwned":
+      "{game} já está na sua biblioteca.",
+    "assistant.buyDecision.reason.genreMatch":
+      "Combina com gêneros que você realmente joga.",
+    "assistant.buyDecision.reason.noPrice": "Nenhum preço foi informado.",
+    "assistant.buyDecision.reason.enteredPrice":
+      "O preço informado é {price}.",
+    "assistant.buyDecision.reason.genreMatchWithBacklog":
+      "Combina com gêneros que você joga, mas jogos parecidos já estão esperando.",
+    "assistant.buyDecision.reason.curiosity":
+      "O motivo informado parece mais curiosidade ou impulso de promoção.",
+    "assistant.buyDecision.reason.shelfCoversMood":
+      "Sua estante atual talvez já cubra esse clima.",
+    "assistant.buyDecision.reason.notEnoughEvidence":
+      "Não há evidência suficiente de que isso combina com o que você joga agora.",
+    "assistant.buyDecision.risk.alreadyOwned":
+      "Você já tem uma cópia esperando por você.",
+    "assistant.buyDecision.risk.fullShelf":
+      "Sua estante já tem bastante opção.",
+    "assistant.buyDecision.risk.similarUntouched":
+      "{count} jogos parecidos que você já tem não registram tempo de jogo.",
+    "assistant.buyDecision.risk.similarWaiting":
+      "{count} jogos parecidos que você já tem estão esperando.",
+    "assistant.buyDecision.risk.curiosity":
+      "Por enquanto, pode ser mais curiosidade do que vontade de jogar.",
+    "assistant.buyDecision.risk.notEnoughEvidence":
+      "Não há muita evidência de que isso combine com seu gosto atual.",
+    "assistant.buyDecision.trigger.alreadyOwned":
+      "Abra ou libere primeiro a cópia que você já tem.",
+    "assistant.buyDecision.trigger.buyNow":
+      "Compre quando souber qual primeira sessão quer ter com ele.",
+    "assistant.buyDecision.trigger.waitForSale":
+      "Compre depois de testar um jogo parecido por 45 minutos.",
+    "assistant.buyDecision.trigger.wishlistOnly":
+      "Mantenha como curiosidade e volte quando esse clima reaparecer.",
+    "assistant.buyDecision.trigger.skip":
+      "Passe, a menos que você consiga nomear exatamente a primeira sessão que quer jogar.",
     "libraryChat.label": "Chat da biblioteca",
     "libraryChat.title": "Pergunte qualquer coisa para sua coleção",
     "libraryChat.body": "As respostas vêm dos seus próprios jogos, tempo de jogo e notas.",
@@ -1636,21 +1804,19 @@ const messages = {
     "journal.description":
       "Registre o momento primeiro. Escrita, screenshots e uploads ficam guardados como opções de apoio.",
     "journal.openGame": "Abrir jogo",
-    "journal.savedCount": "{count} salvas",
-    "journal.startWithVoice": "Comece com a sua voz",
-    "journal.writeOrAddMore": "Escreva em vez disso ou adicione mais",
-    "journal.optionTextLabel": "Opção 1",
-    "journal.optionVoiceLabel": "Opção 2",
+    "journal.modePrompt": "Como você quer registrar esta lembrança?",
+    "journal.backToList": "Voltar ao diário",
+    "journal.lastPageOn": "Última página em {date}",
+    "journal.startForAnotherGame": "Começar diário para outro jogo",
+    "journal.emptyIndexTitle": "Ainda não há páginas de diário.",
+    "journal.emptyIndexBody":
+      "Escolha um jogo abaixo para escrever ou gravar a primeira.",
     "journal.writeWithText": "Escrever com texto",
     "journal.writeWithTextHint":
-      "Use título, notas e um screenshot opcional.",
+      "Adicione um título e escreva o que quer lembrar.",
     "journal.recordWithVoice": "Gravar com voz",
     "journal.recordWithVoiceHint":
-      "Fale a lembrança e confira a entrada do microfone enquanto grava.",
-    "journal.optionalImageLabel": "Opcional",
-    "journal.addImageTitle": "Adicionar imagem",
-    "journal.addImageHint":
-      "Use o mesmo screenshot com uma nota em texto ou com uma nota de voz.",
+      "Fale a lembrança — a transcrição também sugere o título da página.",
     "journal.pageTitle": "Título da página",
     "journal.pageTitlePlaceholder": "Antes da próxima sessão…",
     "journal.playedAround": "Jogado por volta de",
@@ -1658,17 +1824,17 @@ const messages = {
     "journal.bodyPlaceholder":
       "Parei em… Quero lembrar… Da próxima vez eu deveria tentar…",
     "journal.screenshot": "Screenshot",
-    "journal.keepsakeCaption": "Legenda da lembrança",
-    "journal.keepsakePlaceholder": "O que esta memória mostra…",
+    "journal.extrasTitle": "Adicionar screenshot ou data",
+    "journal.extrasHint":
+      "Valem para a página escrita ou gravada.",
     "journal.savePage": "Salvar página do diário",
-    "journal.chooseAnotherGame": "Escolher outro jogo",
+    "journal.savingPage": "Salvando sua página…",
     "journal.noPagesTitle": "Ainda não há páginas para este jogo.",
     "journal.noPagesBody":
       "Uma nota de voz curta já basta para lembrar onde você parou.",
     "journal.noGamesTitle": "Ainda não há jogos disponíveis para o diário.",
     "journal.noGamesBody":
       "Adicione um jogo ao seu catálogo primeiro, depois volte aqui para guardar páginas de diário.",
-    "journal.recentPages": "Páginas recentes do diário",
     "journal.writingFor": "Escrevendo para",
     "journal.pagesFor": "Páginas para {name}",
     "journal.untitledPage": "Página sem título",
@@ -2023,6 +2189,8 @@ const messages = {
       "Entre antes de salvar entradas de diário.",
     "profileAction.journalSaveFailed":
       "A entrada de diário não pôde ser salva.",
+    "profileAction.journalEmptyPage":
+      "Grave uma nota de voz, escreva algo ou adicione uma imagem antes de salvar.",
     "profileAction.journalDeleteFailed":
       "A entrada de diário não pôde ser excluída.",
     "profileAction.needManualAddLogin":

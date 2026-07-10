@@ -1,6 +1,15 @@
 "use client";
 
-import { Ban, CheckCircle2, ListPlus, Search, Sparkles, X } from "lucide-react";
+import {
+  Ban,
+  BookOpen,
+  CheckCircle2,
+  ListPlus,
+  MoreHorizontal,
+  Search,
+  Sparkles,
+  X,
+} from "lucide-react";
 import {
   startTransition,
   useCallback,
@@ -10,9 +19,17 @@ import {
   type DragEvent,
   type MouseEvent,
 } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GameCard } from "@/components/game-card";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import { createTranslator, type Locale } from "@/lib/i18n";
@@ -304,45 +321,48 @@ function CurrentPlayingSlot({
         status={null}
         variant="slot"
       />
-      <div className="grid gap-2 rounded-inner border border-edge bg-surface/80 p-2 shadow-rest">
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            className="min-w-0 px-2 text-xs sm:text-sm"
-            disabled={isSaving}
-            onClick={onFinish}
-            size="sm"
-            type="button"
-            variant="secondary"
-          >
-            <CheckCircle2 className="h-4 w-4" />
-            {t("profile.currentPlaying.finish")}
-          </Button>
-          <Button
-            className="min-w-0 px-2 text-xs sm:text-sm"
-            disabled={isSaving}
-            onClick={onDrop}
-            size="sm"
-            type="button"
-            variant="ghost"
-          >
-            <Ban className="h-4 w-4" />
-            {t("profile.currentPlaying.drop")}
-          </Button>
-        </div>
+      <div className="flex items-center gap-2 rounded-inner border border-edge bg-surface/80 p-2 shadow-rest">
         <Button
-          aria-label={t("profile.currentPlaying.remove", {
-            name: entry.game.name,
-          })}
-          disabled={isSaving}
-          onClick={onRemove}
+          asChild
+          className="min-w-0 flex-1 px-2 text-xs sm:text-sm"
           size="sm"
-          type="button"
-          variant="link"
-          className="min-w-0 text-xs sm:text-sm"
+          variant="secondary"
         >
-          <X className="h-4 w-4" />
-          {t("profile.currentPlaying.removeFromView")}
+          <Link href={`/profile?tab=journal&entryId=${entry.id}`}>
+            <BookOpen className="h-4 w-4" />
+            {t("profile.currentPlaying.diaryPage")}
+          </Link>
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              aria-label={t("profile.currentPlaying.moreActions", {
+                name: entry.game.name,
+              })}
+              disabled={isSaving}
+              size="icon-sm"
+              type="button"
+              variant="ghost"
+            >
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem disabled={isSaving} onSelect={onFinish}>
+              <CheckCircle2 />
+              {t("profile.currentPlaying.finish")}
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={isSaving} onSelect={onDrop}>
+              <Ban />
+              {t("profile.currentPlaying.drop")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem disabled={isSaving} onSelect={onRemove}>
+              <X />
+              {t("profile.currentPlaying.removeFromView")}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

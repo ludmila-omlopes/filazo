@@ -18,6 +18,7 @@ import {
 } from "@/lib/catalog";
 import { parseCsvColumnMappingJson } from "@/lib/csv-import-mapping";
 import { getIgdbGameById } from "@/lib/igdb";
+import { recomputeRuleInsightsForUser } from "@/lib/assistant/insight-maintenance";
 import { createTranslator } from "@/lib/i18n";
 import {
   createJournalEntryForUser,
@@ -111,6 +112,7 @@ const playingNextGameSchema = z.object({
     },
     z.string().trim().min(1).max(120).nullable(),
   ),
+  replaceEntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
   slot: z.coerce.number().int().min(1).max(3),
   title: z.string().trim().min(1).max(200),
 });
@@ -119,7 +121,6 @@ const journalEntrySchema = z.object({
   userGameEntryId: z.string().trim().min(1),
   title: z.string().trim().max(160).optional(),
   body: z.string().trim().max(4000).optional(),
-  mediaCaption: z.string().trim().max(240).optional(),
   occurredAt: z.string().trim().optional(),
   slug: z.string().trim().optional(),
   returnTo: z.string().trim().optional(),
@@ -451,9 +452,10 @@ async function savePlayingNextSelectionsForUser({
     const previousQueuedEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
-        playingNextSlot: {
-          not: null,
-        },
+        OR: [
+          { playingNextSlot: { not: null } },
+          { status: UserGameStatus.PLAYING_NEXT },
+        ],
       },
       select: {
         id: true,
@@ -586,9 +588,10 @@ async function clearPlayingNextForUser(userId: string) {
     const playingNextEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
-        playingNextSlot: {
-          not: null,
-        },
+        OR: [
+          { playingNextSlot: { not: null } },
+          { status: UserGameStatus.PLAYING_NEXT },
+        ],
       },
       select: {
         id: true,
@@ -601,9 +604,10 @@ async function clearPlayingNextForUser(userId: string) {
     await tx.userGameEntry.updateMany({
       where: {
         userId,
-        playingNextSlot: {
-          not: null,
-        },
+        OR: [
+          { playingNextSlot: { not: null } },
+          { status: UserGameStatus.PLAYING_NEXT },
+        ],
       },
       data: {
         playingNextSlot: null,
@@ -619,12 +623,14 @@ async function clearPlayingNextForUser(userId: string) {
 async function addPlayingNextGameForUser({
   igdbId,
   platformName,
+  replaceEntryId,
   slot,
   title,
   userId,
 }: {
   igdbId: number;
   platformName: string | null;
+  replaceEntryId: string | null;
   slot: 1 | 2 | 3;
   title: string;
   userId: string;
@@ -700,11 +706,12 @@ async function addPlayingNextGameForUser({
   const needsPurchase = !hasOwnedIntent;
 
   await prisma.$transaction(async (tx) => {
-    const previousSlotEntries = await tx.userGameEntry.findMany({
+    const currentQueueEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
-        playingNextSlot: slot,
+        status: UserGameStatus.PLAYING_NEXT,
       },
+      orderBy: [{ playingNextSlot: "asc" }, { updatedAt: "desc" }],
       select: {
         gameId: true,
         id: true,
@@ -712,17 +719,32 @@ async function addPlayingNextGameForUser({
         userIntent: true,
       },
     });
+    const fallbackReplacement =
+      currentQueueEntries.length >= 3
+        ? currentQueueEntries[slot - 1] ?? currentQueueEntries[2] ?? null
+        : null;
+    const entryToReplace =
+      (replaceEntryId
+        ? currentQueueEntries.find((entry) => entry.id === replaceEntryId)
+        : null) ??
+      fallbackReplacement;
 
-    for (const entry of previousSlotEntries) {
+    await tx.userGameEntry.updateMany({
+      where: {
+        userId,
+        playingNextSlot: slot,
+      },
+      data: { playingNextSlot: null },
+    });
+
+    for (const entry of currentQueueEntries) {
       if (targetEntry && entry.id === targetEntry.id) {
         continue;
       }
 
-      await tx.userGameEntry.update({
-        where: { id: entry.id },
-        data: { playingNextSlot: null },
-      });
-      await demotePlayingNextEntryToOwned({ entry, tx, userId });
+      if (entryToReplace && entry.id === entryToReplace.id) {
+        await demotePlayingNextEntryToOwned({ entry, tx, userId });
+      }
     }
 
     const playingNextData = {
@@ -1102,7 +1124,6 @@ export async function createJournalEntryAction(formData: FormData) {
     userGameEntryId: formData.get("userGameEntryId"),
     title: formData.get("title") || undefined,
     body: formData.get("body") || undefined,
-    mediaCaption: formData.get("mediaCaption") || undefined,
     occurredAt: formData.get("occurredAt") || undefined,
     slug: formData.get("slug") || undefined,
     returnTo: formData.get("returnTo") || undefined,
@@ -1110,6 +1131,19 @@ export async function createJournalEntryAction(formData: FormData) {
 
   if (!parsed.success) {
     redirect(`/profile?tab=journal&error=${encodeURIComponent(t("profileAction.journalSaveFailed"))}`);
+  }
+
+  const imageFile = getFormFile(formData.get("image"));
+  const audioFile = getFormFile(formData.get("audio"));
+  if (
+    !parsed.data.title?.trim() &&
+    !parsed.data.body?.trim() &&
+    !imageFile &&
+    !audioFile
+  ) {
+    redirect(
+      `/profile?tab=journal&entryId=${encodeURIComponent(parsed.data.userGameEntryId)}&error=${encodeURIComponent(t("profileAction.journalEmptyPage"))}`,
+    );
   }
 
   let occurredAt: Date | null = null;
@@ -1124,11 +1158,10 @@ export async function createJournalEntryAction(formData: FormData) {
       userGameEntryId: parsed.data.userGameEntryId,
       title: parsed.data.title ?? null,
       body: parsed.data.body ?? null,
-      mediaCaption: parsed.data.mediaCaption ?? null,
       occurredAt,
       targetLanguage: locale === "pt-BR" ? "Portuguese (Brazil)" : "English",
-      imageFile: getFormFile(formData.get("image")),
-      audioFile: getFormFile(formData.get("audio")),
+      imageFile,
+      audioFile,
     });
   } catch (error) {
     const message =
@@ -1595,6 +1628,7 @@ export async function addPlayingNextGameAction(
     await addPlayingNextGameForUser({
       igdbId: parsed.data.igdbId,
       platformName: parsed.data.platformName,
+      replaceEntryId: parsed.data.replaceEntryId,
       slot: parsed.data.slot as 1 | 2 | 3,
       title: parsed.data.title,
       userId,
@@ -1669,6 +1703,10 @@ export async function detectFinishedGamesAction() {
     redirect(`/profile?error=${encodeURIComponent(message)}`);
   }
 
+  if (finishedCount > 0) {
+    await recomputeRuleInsightsForUser(userId);
+  }
+
   revalidatePath("/profile");
   revalidatePath("/");
   redirect(`/profile?finishedDetected=${finishedCount}&finishedScanned=${scannedCount}`);
@@ -1703,6 +1741,8 @@ export async function markFinishedAction(formData: FormData) {
           playingNextSlot: null,
         },
   });
+
+  await recomputeRuleInsightsForUser(userId);
 
   revalidatePath("/profile");
   revalidatePath("/");
@@ -1845,6 +1885,7 @@ export async function currentPlayingDropAction(
   }
 
   await markEntryDroppedForUser({ entryId, userId });
+  await recomputeRuleInsightsForUser(userId);
 
   revalidatePath("/profile");
   revalidatePath("/");
@@ -1918,6 +1959,8 @@ export async function currentPlayingFinishAction(
     userId,
   });
 
+  await recomputeRuleInsightsForUser(userId);
+
   revalidatePath("/profile");
   revalidatePath("/");
   revalidatePath(`/games/${entry.game.slug}`);
@@ -1940,7 +1983,10 @@ export async function markDroppedAction(formData: FormData) {
     return;
   }
 
-  await markEntryDroppedForUser({ entryId, userId });
+  const result = await markEntryDroppedForUser({ entryId, userId });
+  if (result) {
+    await recomputeRuleInsightsForUser(userId);
+  }
 
   revalidatePath("/profile");
   revalidatePath("/");

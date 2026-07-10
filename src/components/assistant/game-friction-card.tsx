@@ -1,6 +1,7 @@
 import type { AssistantProfileData } from "@/lib/assistant/queries";
 import { GameCard } from "@/components/game-card";
 import { getAssistantSignalDisplayLabel } from "@/lib/copy";
+import type { Locale } from "@/lib/i18n";
 
 type Insight = AssistantProfileData["insights"][number];
 
@@ -47,7 +48,13 @@ function readGenres(genres: Insight["userGameEntry"]["game"]["genres"]) {
     .slice(0, 4);
 }
 
-export function GameFrictionCard({ insight }: { insight: Insight }) {
+export function GameFrictionCard({
+  insight,
+  locale,
+}: {
+  insight: Insight;
+  locale: Locale;
+}) {
   const reasons = readReasons(insight.reasons);
   const genres = readGenres(insight.userGameEntry.game.genres);
   const description = [
@@ -60,16 +67,12 @@ export function GameFrictionCard({ insight }: { insight: Insight }) {
       chips={genres}
       completionPercent={insight.userGameEntry.completionPercent}
       description={description}
-      eyebrow={getAssistantSignalDisplayLabel(insight.signalType)}
+      eyebrow={getAssistantSignalDisplayLabel(insight.signalType, locale)}
       game={insight.userGameEntry.game}
+      locale={locale}
       platformName={insight.userGameEntry.platformName}
       playtimeMinutes={insight.userGameEntry.playtimeMinutes}
-      status={
-        insight.userGameEntry.finishedAt &&
-        insight.userGameEntry.status !== "COMPLETED"
-          ? "FINISHED"
-          : insight.userGameEntry.status
-      }
+      status={insight.userGameEntry.status}
       variant="slot"
     />
   );

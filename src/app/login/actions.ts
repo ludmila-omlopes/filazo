@@ -35,11 +35,11 @@ export async function emailAuthAction(formData: FormData) {
 
   const parsed = emailAuthSchema.safeParse({
     mode: formData.get("mode"),
-    displayName: formData.get("displayName"),
+    displayName: formData.get("displayName") || undefined,
     email: formData.get("email"),
     password: formData.get("password"),
-    confirmPassword: formData.get("confirmPassword"),
-    terms: formData.get("terms"),
+    confirmPassword: formData.get("confirmPassword") || undefined,
+    terms: formData.get("terms") || undefined,
   });
 
   if (!parsed.success) {

@@ -15,6 +15,7 @@ import {
   getAllowedUploadExtension,
   type UploadKind,
 } from "@/lib/upload-file-type";
+import { getUploadDiskPath } from "@/lib/upload-storage";
 import { normalizeTitle } from "@/lib/utils";
 import { getOpenAiConfig } from "@/lib/openai";
 import { runWithAiBudget } from "./ai-budget.ts";
@@ -84,7 +85,10 @@ async function saveUpload(
     );
   }
   const storageKey = `uploads/${folder}/${randomUUID()}${extension}`;
-  const diskPath = path.join(process.cwd(), "public", ...storageKey.split("/"));
+  const diskPath = getUploadDiskPath(storageKey);
+  if (!diskPath) {
+    throw new Error("Upload storage path is not available.");
+  }
 
   await mkdir(path.dirname(diskPath), { recursive: true });
   await writeFile(diskPath, Buffer.from(await file.arrayBuffer()));
@@ -158,7 +162,7 @@ async function transcribeAudio(
     return await runWithAiBudget({
       feature: "voice_transcription",
       estimatedInputTokens: estimateTokensFromText(prompt),
-      estimatedOutputTokens: 0,
+      estimatedOutputTokens: 160,
       inputSummary: {
         fileSize: file.size,
         mimeType: file.type || "application/octet-stream",
@@ -187,13 +191,79 @@ async function transcribeAudio(
           text?: string;
           language?: string;
         };
+        const text = json.text?.trim() || null;
 
         return {
-          text: json.text?.trim() || null,
+          text,
           language: json.language ?? null,
+          title: text ? await inferTitleFromTranscript(text, targetLanguage) : null,
         };
       },
     });
+  } catch {
+    return null;
+  }
+}
+
+function getTitleInferencePrompt(targetLanguage: string) {
+  const normalizedLanguage = targetLanguage.toLowerCase();
+  if (
+    normalizedLanguage.includes("portuguese") ||
+    normalizedLanguage.includes("portugues") ||
+    normalizedLanguage.includes("pt")
+  ) {
+    return [
+      "Crie um titulo curto, com no maximo 8 palavras, para uma pagina de diario de jogos a partir da transcricao enviada.",
+      "Responda em portugues do Brasil, apenas com o titulo, sem aspas nem explicacoes.",
+    ].join(" ");
+  }
+
+  return [
+    "Create a short title, 8 words at most, for a gameplay diary page based on the provided transcript.",
+    "Answer in English with the title only, no quotes or explanations.",
+  ].join(" ");
+}
+
+async function inferTitleFromTranscript(
+  transcript: string,
+  targetLanguage: string,
+) {
+  const config = getOpenAiConfig();
+  if (!config) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`${config.baseUrl}/responses`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: config.model,
+        max_output_tokens: 300,
+        input: [
+          {
+            role: "system",
+            content: getTitleInferencePrompt(targetLanguage),
+          },
+          {
+            role: "user",
+            content: truncateText(transcript, 2000),
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const title = extractOutputText(await response.json())
+      ?.trim()
+      .replace(/^["'“”]+|["'“”]+$/g, "");
+    return title ? truncateText(title, 160) : null;
   } catch {
     return null;
   }
@@ -297,13 +367,11 @@ function buildAchievementSummary(entry: {
 }
 
 async function removeUploadedFile(storageKey: string) {
-  // storageKey is a repo-relative path like "uploads/<folder>/<uuid>.<ext>".
-  // Uploads live under public/, so map it back the same way the writer does.
-  if (!storageKey || storageKey.includes("..")) {
+  const diskPath = getUploadDiskPath(storageKey);
+  if (!diskPath) {
     return;
   }
 
-  const diskPath = path.join(process.cwd(), "public", ...storageKey.split("/"));
   try {
     await unlink(diskPath);
   } catch {
@@ -346,7 +414,6 @@ export async function createJournalEntryForUser({
   audioFile,
   body,
   imageFile,
-  mediaCaption,
   occurredAt,
   targetLanguage,
   title,
@@ -356,7 +423,6 @@ export async function createJournalEntryForUser({
   audioFile: FormDataEntryValue | null;
   body: string | null;
   imageFile: FormDataEntryValue | null;
-  mediaCaption: string | null;
   occurredAt: Date | null;
   targetLanguage: string;
   title: string | null;
@@ -422,7 +488,7 @@ export async function createJournalEntryForUser({
       userId,
       userGameEntryId: entry.id,
       gameId: entry.gameId,
-      title: title || undefined,
+      title: title || transcript?.title || undefined,
       body: body || undefined,
       source: "manual",
       occurredAt: occurredAt ?? new Date(),
@@ -445,7 +511,6 @@ export async function createJournalEntryForUser({
           mimeType: item.mimeType,
           fileName: item.fileName,
           sizeBytes: item.sizeBytes,
-          caption: mediaCaption || undefined,
           source: "manual-upload",
         })),
       },

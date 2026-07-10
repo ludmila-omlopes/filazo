@@ -2,7 +2,9 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useLocale, useTranslations } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
+import type { TranslationKey } from "@/lib/i18n";
 
 type BuyDecision = {
   verdict: "BUY_NOW" | "WAIT_FOR_SALE" | "WISHLIST_ONLY" | "SKIP_FOR_NOW";
@@ -21,21 +23,23 @@ type SearchResult = {
   genres: string[];
 };
 
-const verdictLabels: Record<BuyDecision["verdict"], string> = {
-  BUY_NOW: "Bring it home",
-  WAIT_FOR_SALE: "Wait for sale",
-  WISHLIST_ONLY: "Stay curious",
-  SKIP_FOR_NOW: "Maybe later",
-};
-
 const inputClassName =
   "rounded-inner border border-edge bg-surface px-3 py-2 font-normal focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2";
+
+const verdictLabelKeys = {
+  BUY_NOW: "assistant.buyDecision.verdict.BUY_NOW",
+  WAIT_FOR_SALE: "assistant.buyDecision.verdict.WAIT_FOR_SALE",
+  WISHLIST_ONLY: "assistant.buyDecision.verdict.WISHLIST_ONLY",
+  SKIP_FOR_NOW: "assistant.buyDecision.verdict.SKIP_FOR_NOW",
+} satisfies Record<BuyDecision["verdict"], TranslationKey>;
 
 function getYear(value: string | null) {
   return value ? new Date(value).getFullYear() : null;
 }
 
 export function BuyDecisionForm() {
+  const locale = useLocale();
+  const t = useTranslations();
   const [title, setTitle] = useState("");
   const [platformName, setPlatformName] = useState("");
   const [priceText, setPriceText] = useState("");
@@ -71,14 +75,16 @@ export function BuyDecisionForm() {
       })
         .then((response) => {
           if (!response.ok) {
-            throw new Error("Game search is unavailable.");
+            throw new Error(t("assistant.buyDecision.searchUnavailable"));
           }
           return response.json() as Promise<{ results: SearchResult[] }>;
         })
         .then((payload) => {
           setResults(payload.results);
           setSearchMessage(
-            payload.results.length ? null : "No catalog suggestions yet.",
+            payload.results.length
+              ? null
+              : t("assistant.buyDecision.noSuggestions"),
           );
         })
         .catch((searchError) => {
@@ -88,7 +94,7 @@ export function BuyDecisionForm() {
           setSearchMessage(
             searchError instanceof Error
               ? searchError.message
-              : "Game search is unavailable.",
+              : t("assistant.buyDecision.searchUnavailable"),
           );
         })
         .finally(() => {
@@ -102,7 +108,7 @@ export function BuyDecisionForm() {
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [selectedGame, title]);
+  }, [selectedGame, t, title]);
 
   function selectGame(result: SearchResult) {
     setSelectedGame(result);
@@ -130,6 +136,7 @@ export function BuyDecisionForm() {
               platformName: platformName || undefined,
               priceText: priceText || undefined,
               reasonUserWantsIt: reasonUserWantsIt || undefined,
+              locale,
               genres: genres
                 .split(",")
                 .map((genre) => genre.trim())
@@ -138,7 +145,9 @@ export function BuyDecisionForm() {
           });
           const payload = await response.json();
           if (!response.ok) {
-            setError(payload.error ?? "This purchase needs another look.");
+            setError(
+              payload.error ?? t("assistant.buyDecision.genericError"),
+            );
             return;
           }
           setDecision(payload.decision);
@@ -147,7 +156,7 @@ export function BuyDecisionForm() {
     >
       <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
         <label className="relative grid gap-1.5 text-sm font-semibold">
-          Title
+          {t("assistant.buyDecision.titleLabel")}
           <input
             autoComplete="off"
             className={inputClassName}
@@ -167,12 +176,12 @@ export function BuyDecisionForm() {
           />
           {isSearching ? (
             <span className="absolute bottom-2 right-3 text-xs text-ink-soft">
-              Searching
+              {t("assistant.buyDecision.searching")}
             </span>
           ) : null}
         </label>
         <label className="grid gap-1.5 text-sm font-semibold">
-          Price
+          {t("assistant.buyDecision.priceLabel")}
           <input
             className={inputClassName}
             name="priceText"
@@ -209,11 +218,11 @@ export function BuyDecisionForm() {
                 <span className="block truncate text-xs text-ink-soft">
                   {[getYear(result.releaseDate), result.platforms[0]]
                     .filter(Boolean)
-                    .join(" / ") || "Game search result"}
+                    .join(" / ") || t("assistant.buyDecision.searchResult")}
                 </span>
               </span>
               <span className="rounded-pill border border-edge px-2 py-1 text-xs font-bold max-sm:hidden">
-                Use
+                {t("assistant.buyDecision.useResult")}
               </span>
             </button>
           ))}
@@ -225,12 +234,12 @@ export function BuyDecisionForm() {
       ) : null}
       {selectedGame ? (
         <p className="rounded-inner border border-edge bg-sage-soft p-3 text-sm font-semibold">
-          Selected: {selectedGame.name}
+          {t("assistant.buyDecision.selected", { game: selectedGame.name })}
         </p>
       ) : null}
       <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
         <label className="grid gap-1.5 text-sm font-semibold">
-          Platform
+          {t("assistant.buyDecision.platformLabel")}
           <input
             className={inputClassName}
             list="buy-decision-platforms"
@@ -246,7 +255,7 @@ export function BuyDecisionForm() {
           </datalist>
         </label>
         <label className="grid gap-1.5 text-sm font-semibold">
-          Genres
+          {t("assistant.buyDecision.genresLabel")}
           <input
             className={inputClassName}
             name="genres"
@@ -257,17 +266,19 @@ export function BuyDecisionForm() {
         </label>
       </div>
       <label className="grid gap-1.5 text-sm font-semibold">
-        Why do you want it?
+        {t("assistant.buyDecision.reasonLabel")}
         <textarea
           className={`min-h-20 ${inputClassName}`}
           name="reasonUserWantsIt"
           onChange={(event) => setReasonUserWantsIt(event.target.value)}
-          placeholder="A friend recommended it, it is on sale, or it fits the mood."
+          placeholder={t("assistant.buyDecision.reasonPlaceholder")}
           value={reasonUserWantsIt}
         />
       </label>
       <Button className="justify-self-start" disabled={isPending} loading={isPending}>
-        {isPending ? "Thinking it over..." : "Help me decide"}
+        {isPending
+          ? t("assistant.buyDecision.pending")
+          : t("assistant.buyDecision.submit")}
       </Button>
 
       {error ? (
@@ -280,9 +291,13 @@ export function BuyDecisionForm() {
         <div className="rounded-card border border-edge bg-sand-soft p-5 shadow-rest">
           <div className="flex items-center justify-between gap-3">
             <strong className="font-display text-xl">
-              {verdictLabels[decision.verdict]}
+              {t(verdictLabelKeys[decision.verdict])}
             </strong>
-            <span className="pill">{decision.confidence}% fit</span>
+            <span className="pill">
+              {t("assistant.buyDecision.fit", {
+                confidence: decision.confidence,
+              })}
+            </span>
           </div>
           <ul className="mt-3 grid gap-1.5 text-sm leading-relaxed">
             {decision.reasons.map((reason) => (
@@ -291,12 +306,16 @@ export function BuyDecisionForm() {
           </ul>
           {decision.risks.length ? (
             <p className="mt-3 text-sm text-ink-soft">
-              Worth knowing: {decision.risks.join(" ")}
+              {t("assistant.buyDecision.worthKnowing", {
+                risks: decision.risks.join(" "),
+              })}
             </p>
           ) : null}
           {decision.suggestedTrigger ? (
             <p className="mt-3 text-sm font-semibold">
-              When to revisit: {decision.suggestedTrigger}
+              {t("assistant.buyDecision.revisit", {
+                trigger: decision.suggestedTrigger,
+              })}
             </p>
           ) : null}
         </div>

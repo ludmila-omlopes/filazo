@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AssistantTab, PlayerProfileTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
-import { FavoriteGames } from "./_components/favorite-games";
 import { GreetingStrip } from "./_components/greeting-strip";
 import { IntegrationsPanel } from "./_components/integrations-panel";
 import { JournalTab } from "./_components/journal-tab";
@@ -193,10 +192,7 @@ export default async function ProfilePage({
           ) : null}
 
           {activeTab === "assistant" && assistant ? (
-            <>
-              <FavoriteGames locale={locale} profile={profile} />
             <AssistantTab assistant={assistant} locale={locale} />
-            </>
           ) : null}
 
           {activeTab === "integrations" ? (

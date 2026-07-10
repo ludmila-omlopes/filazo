@@ -22,6 +22,7 @@ export type TonightPick = {
     finishedAt: Date | null;
     platformName: string | null;
     playtimeMinutes: number | null;
+    remainingMinutes: number | null;
     status: string;
     game: {
       coverUrl?: string | null;
@@ -190,12 +191,7 @@ export function TonightRoom({
             locale={locale}
             platformName={activePick.entry.platformName}
             playtimeMinutes={activePick.entry.playtimeMinutes}
-            status={
-              activePick.entry.finishedAt &&
-              activePick.entry.status !== "COMPLETED"
-                ? "FINISHED"
-                : activePick.entry.status
-            }
+            status={activePick.entry.status}
             variant="slot"
           />
 

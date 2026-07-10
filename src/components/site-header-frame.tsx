@@ -18,7 +18,7 @@ export function SiteHeaderFrame({ children }: { children: React.ReactNode }) {
   return (
     <header
       className={cn(
-        "sticky top-3 z-40 mx-auto mb-8 flex w-full max-w-[1100px] items-center justify-between gap-4 rounded-card border border-transparent px-4 py-3 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 max-sm:flex-col max-sm:items-stretch max-sm:gap-3",
+        "site-header sticky top-3 z-40 mx-auto mb-8 flex w-full max-w-[1100px] items-center justify-between gap-4 rounded-card border border-transparent px-4 py-3 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 max-sm:flex-col max-sm:items-stretch max-sm:gap-3",
         isScrolled &&
           "border-edge bg-surface/85 shadow-rest backdrop-blur-md",
       )}

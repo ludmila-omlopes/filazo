@@ -524,3 +524,23 @@
     border-radius: 4px;
   }
 }
+
+/* Beta announcement strip. The strip is fixed to the top; the `has-beta-banner`
+   class on <html> (set on the server, removed when the visitor dismisses it)
+   reserves its height so the shell content and the sticky header sit below it
+   without a layout jump on first paint. */
+:root {
+  --beta-banner-h: 2.5rem;
+}
+
+.beta-banner {
+  height: var(--beta-banner-h);
+}
+
+html.has-beta-banner .app-shell {
+  padding-top: var(--beta-banner-h);
+}
+
+html.has-beta-banner .site-header {
+  top: calc(0.75rem + var(--beta-banner-h));
+}

@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { AssistantSignalType } from "@prisma/client";
+import { AssistantSignalType, UserGameStatus } from "@prisma/client";
 import {
   buildFallbackAssistantSummary,
   recommendPlayNextGames,
@@ -7,6 +7,10 @@ import {
   type AssistantAiOutput,
   type PlayNextRecommendation,
 } from "@/lib/assistant/ai";
+import {
+  isEntryRecommendable,
+  selectPlayNextInsights,
+} from "@/lib/assistant/eligibility";
 import { getAiBudgetUsageForUser } from "../ai-budget.ts";
 import { getAiSettings } from "../ai-settings.ts";
 import {
@@ -57,6 +61,16 @@ const AI_BUDGET_STATUSES = [
   "AI_BUDGET_FAILED",
 ];
 
+// Prisma-where mirror of isEntryRecommendable in ./eligibility.ts; keep the
+// two in sync.
+const RECOMMENDABLE_ENTRY_WHERE = {
+  activeBacklog: true,
+  finishedAt: null,
+  status: {
+    notIn: [UserGameStatus.COMPLETED, UserGameStatus.DROPPED],
+  },
+} satisfies Prisma.UserGameEntryWhereInput;
+
 type AssistantAiSkipReason =
   | "CACHE_HIT"
   | "FEATURE_DISABLED"
@@ -77,7 +91,7 @@ export type PlayNextProfileRecommendation = PlayNextRecommendation & {
   entry: AssistantEntryPayload;
 };
 
-function toAssistantEntry(
+export function toAssistantEntry(
   entry: AssistantEntryPayload,
 ): AssistantEntry {
   return {
@@ -265,6 +279,7 @@ function getReusablePlayNextRecommendations({
 
     return (
       entry &&
+      isEntryRecommendable(entry) &&
       entry.gameId === recommendation.gameId &&
       entry.game.slug === recommendation.slug
     );
@@ -507,6 +522,7 @@ function buildStoredPlayNextRecommendations({
     const entry = entryById.get(recommendation.entryId);
     if (
       !entry ||
+      !isEntryRecommendable(entry) ||
       entry.gameId !== recommendation.gameId ||
       entry.game.slug !== recommendation.slug
     ) {
@@ -533,7 +549,7 @@ function buildStoredPlayNextRecommendations({
 function buildRulePlayNextRecommendations(
   insights: AssistantInsightPayload[],
 ): PlayNextProfileRecommendation[] {
-  return selectPlayNext(insights).map((insight) => {
+  return selectPlayNextInsights(insights).map((insight) => {
     const reasons = readInsightReasons(insight.reasons);
     const primaryGenre = readStringList(insight.userGameEntry.game.genres)[0] ?? null;
 
@@ -570,7 +586,7 @@ export async function getAssistantProfileData(userId: string) {
       orderBy: { updatedAt: "desc" },
     }),
     prisma.userGameInsight.findMany({
-      where: { userId },
+      where: { userId, userGameEntry: RECOMMENDABLE_ENTRY_WHERE },
       include: {
         userGameEntry: {
           include: {
@@ -622,6 +638,7 @@ export async function getAssistantSignalEntryIds(
     where: {
       userId,
       signalType,
+      userGameEntry: RECOMMENDABLE_ENTRY_WHERE,
     },
     select: {
       userGameEntryId: true,
@@ -720,9 +737,7 @@ export async function refreshAssistantInsightsForUser(userId: string) {
         ? "COMPLETED_CACHE"
         : "COMPLETED_RULES";
 
-  for (const insight of ruleInsights) {
-    await upsertInsight(userId, insight);
-  }
+  await writeRuleInsights(userId, ruleInsights);
 
   await prisma.assistantRun.create({
     data: {
@@ -758,52 +773,24 @@ export async function refreshAssistantInsightsForUser(userId: string) {
   };
 }
 
-async function upsertInsight(userId: string, insight: AssistantInsight) {
-  await prisma.userGameInsight.upsert({
-    where: {
-      userGameEntryId_signalType: {
+export async function writeRuleInsights(
+  userId: string,
+  ruleInsights: AssistantInsight[],
+) {
+  await prisma.$transaction([
+    prisma.userGameInsight.deleteMany({ where: { userId } }),
+    prisma.userGameInsight.createMany({
+      data: ruleInsights.map((insight) => ({
+        userId,
         userGameEntryId: insight.entryId,
         signalType: insight.signalType,
-      },
-    },
-    update: {
-      friction: insight.friction,
-      score: insight.score,
-      confidence: insight.confidence,
-      reasons: insight.reasons as Prisma.InputJsonValue,
-      suggestedAction: insight.suggestedAction,
-      generatedBy: "rules",
-    },
-    create: {
-      userId,
-      userGameEntryId: insight.entryId,
-      signalType: insight.signalType,
-      friction: insight.friction,
-      score: insight.score,
-      confidence: insight.confidence,
-      reasons: insight.reasons as Prisma.InputJsonValue,
-      suggestedAction: insight.suggestedAction,
-      generatedBy: "rules",
-    },
-  });
-}
-
-export function selectPlayNext(insights: AssistantInsightPayload[]) {
-  const bySignal = new Map<AssistantSignalType, AssistantInsightPayload>();
-
-  for (const insight of insights) {
-    if (!bySignal.has(insight.signalType)) {
-      bySignal.set(insight.signalType, insight);
-    }
-  }
-
-  return [
-    bySignal.get(AssistantSignalType.FINISH_BEFORE_RELEASE),
-    bySignal.get(AssistantSignalType.FINISHABLE_SOON),
-    bySignal.get(AssistantSignalType.STALE_PLAYING),
-    bySignal.get(AssistantSignalType.SAMPLED_DROPPED),
-    bySignal.get(AssistantSignalType.UNTOUCHED),
-  ].filter(
-    (insight): insight is AssistantInsightPayload => insight !== undefined,
-  ).slice(0, 3);
+        friction: insight.friction,
+        score: insight.score,
+        confidence: insight.confidence,
+        reasons: insight.reasons as Prisma.InputJsonValue,
+        suggestedAction: insight.suggestedAction,
+        generatedBy: "rules",
+      })),
+    }),
+  ]);
 }
