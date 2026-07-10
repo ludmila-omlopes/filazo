@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  canonicalizeGameTitle,
   cleanGameTitle,
   normalizeTitle,
   slugify,
@@ -49,4 +50,26 @@ test("uniqueSlug appends a lowercased suffix", () => {
 
 test("normalizeTitle currently strips non-Latin titles that do not decompose", () => {
   assert.equal(normalizeTitle("ゼルダの伝説"), "");
+});
+
+test("canonicalizeGameTitle consolidates base Minecraft editions", () => {
+  const variants = [
+    "Minecraft Launcher",
+    "Minecraft for Windows",
+    "Minecraft: Java Edition",
+    "Minecraft: Bedrock Edition",
+    "Minecraft: Java & Bedrock Edition for PC",
+    "Minecraft for PlayStation®",
+    "Minecraft: PlayStation®5 Edition",
+  ];
+
+  for (const variant of variants) {
+    assert.equal(canonicalizeGameTitle(variant), "Minecraft");
+  }
+});
+
+test("canonicalizeGameTitle keeps Minecraft spin-offs separate", () => {
+  assert.equal(canonicalizeGameTitle("Minecraft Dungeons"), "Minecraft Dungeons");
+  assert.equal(canonicalizeGameTitle("Minecraft Legends"), "Minecraft Legends");
+  assert.equal(canonicalizeGameTitle("Minecraft: Story Mode"), "Minecraft: Story Mode");
 });
