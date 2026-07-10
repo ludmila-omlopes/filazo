@@ -33,7 +33,7 @@ export function PlayerProfilePanel({
         <div className="flex flex-col items-end gap-2 max-lg:items-start">
           <p className="text-xs font-semibold text-ink-soft">
             {profile
-              ? t("playerProfile.generated", { date: formatDate(profile.updatedAt) })
+              ? t("playerProfile.generated", { date: formatDate(profile.updatedAt, locale) })
               : t("playerProfile.notGenerated")}
           </p>
           {hasGames && aiConfigured ? (
@@ -54,6 +54,10 @@ export function PlayerProfilePanel({
       {!hasGames ? (
         <EmptyState title={t("playerProfile.emptyCatalogTitle")}>
           {t("playerProfile.emptyCatalogBody")}
+        </EmptyState>
+      ) : profile && !profile.isLocalized ? (
+        <EmptyState title={t("playerProfile.localeMismatchTitle")}>
+          {t("playerProfile.localeMismatchBody")}
         </EmptyState>
       ) : !profile && !aiConfigured ? (
         <div className="rounded-card border border-edge bg-clay-soft p-5">

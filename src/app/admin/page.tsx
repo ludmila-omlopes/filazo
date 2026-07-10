@@ -3,6 +3,7 @@ import {
   reviewBetaApplicationAction,
   updateAiSettingsAction,
 } from "./actions";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
@@ -25,6 +26,7 @@ type AdminSearchParams = Promise<{
   emailSkipped?: string;
   error?: string;
   reviewed?: string;
+  user?: string;
 }>;
 
 function asStringArray(value: Prisma.JsonValue | null | undefined) {
@@ -342,7 +344,7 @@ function getAiToggleFields(locale: Locale) {
       name: "playerProfileEnabled",
       label: localText(locale, {
         en: "Player profile",
-        pt: "Perfil de jogadora",
+        pt: "Perfil de jogador",
       }),
       description: localText(locale, {
         en: "Agentic profile generation on the overview tab.",
@@ -466,7 +468,7 @@ function getAiNumberGroups(locale: Locale) {
     {
       title: localText(locale, {
         en: "Player profile",
-        pt: "Perfil de jogadora",
+        pt: "Perfil de jogador",
       }),
       fields: [
         {
@@ -710,7 +712,7 @@ function getAiFeatureCards(locale: Locale) {
     {
       title: localText(locale, {
         en: "Player profile",
-        pt: "Perfil de jogadora",
+        pt: "Perfil de jogador",
       }),
       enabledName: "playerProfileEnabled",
       description: localText(locale, {
@@ -1115,7 +1117,8 @@ export default async function AdminPage({
     );
   }
 
-  const [applications, aiSettings] = await Promise.all([
+  const userSearch = query.user?.trim() ?? "";
+  const [applications, aiSettings, previewUsers] = await Promise.all([
     prisma.betaTesterApplication.findMany({
       where: {
         status: { not: BetaTesterStatus.DRAFT },
@@ -1130,6 +1133,35 @@ export default async function AdminPage({
       ],
     }),
     getAiSettings(),
+    userSearch.length >= 2
+      ? prisma.user.findMany({
+          where: {
+            id: { not: admin.id },
+            OR: [
+              {
+                email: {
+                  contains: userSearch,
+                  mode: "insensitive",
+                },
+              },
+              {
+                displayName: {
+                  contains: userSearch,
+                  mode: "insensitive",
+                },
+              },
+            ],
+          },
+          select: {
+            id: true,
+            displayName: true,
+            email: true,
+            updatedAt: true,
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 12,
+        })
+      : Promise.resolve([]),
   ]);
 
   const pendingCount = applications.filter(
@@ -1192,6 +1224,70 @@ export default async function AdminPage({
           </CardContent>
         </Card>
       </div>
+
+      <Card tactile>
+        <CardContent className="grid gap-4 p-6">
+          <div>
+            <p className="text-kicker font-bold uppercase text-ink-soft">
+              {t("admin.preview.kicker")}
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-medium">
+              {t("admin.preview.title")}
+            </h2>
+            <p className="mt-2 max-w-[62ch] text-sm leading-relaxed text-ink-soft">
+              {t("admin.preview.body")}
+            </p>
+          </div>
+
+          <form className="flex flex-wrap items-end gap-3" method="get">
+            <label className="grid min-w-[min(100%,360px)] flex-1 gap-2">
+              <span className="text-sm font-bold text-ink">
+                {t("admin.preview.searchLabel")}
+              </span>
+              <input
+                className="min-h-11 rounded-inner border border-edge bg-surface px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                defaultValue={userSearch}
+                minLength={2}
+                name="user"
+                placeholder={t("admin.preview.searchPlaceholder")}
+                type="search"
+              />
+            </label>
+            <Button type="submit">{t("admin.preview.search")}</Button>
+          </form>
+
+          {userSearch.length >= 2 ? (
+            previewUsers.length ? (
+              <div className="grid gap-2">
+                {previewUsers.map((user) => (
+                  <div
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-inner border border-edge bg-surface px-4 py-3"
+                    key={user.id}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">
+                        {user.displayName ?? t("admin.noName")}
+                      </p>
+                      <p className="truncate text-sm text-ink-soft">
+                        {user.email ?? t("admin.noEmail")}
+                      </p>
+                    </div>
+                    <Button asChild size="sm" variant="secondary">
+                      <Link href={`/profile?viewAs=${user.id}`}>
+                        {t("admin.preview.open")}
+                      </Link>
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm font-semibold text-ink-soft">
+                {t("admin.preview.empty")}
+              </p>
+            )
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card tactile>
         <CardContent className="grid gap-4 p-6">

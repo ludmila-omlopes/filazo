@@ -68,12 +68,25 @@ export function ProfileRail({
   activeTab,
   locale,
   profile,
+  viewAsUserId,
 }: {
   activeTab: ProfileTab;
   locale: Locale;
   profile: ProfileData;
+  viewAsUserId?: string | null;
 }) {
   const t = createTranslator(locale);
+
+  function getTabHref(href: string) {
+    if (!viewAsUserId) {
+      return href;
+    }
+
+    const [pathname, search = ""] = href.split("?");
+    const params = new URLSearchParams(search);
+    params.set("viewAs", viewAsUserId);
+    return `${pathname}?${params.toString()}`;
+  }
 
   return (
     <aside className="sticky top-28 grid gap-4 self-start max-lg:static">
@@ -113,7 +126,7 @@ export function ProfileRail({
         {railItems.map(({ tab, href, labelKey, hintKey, icon: Icon }) => {
           return (
             <Link
-              href={href}
+              href={getTabHref(href)}
               key={tab}
               aria-current={activeTab === tab ? "page" : undefined}
               className={cn(

@@ -1143,7 +1143,44 @@ export async function getProfileData(
     return null;
   }
 
-  const ownedEntries = user.gameEntries
+  const [currentPlayingEntries, playingNextEntries] = await Promise.all([
+    prisma.userGameEntry.findMany({
+      where: {
+        userId,
+        currentPlayingSlot: { not: null },
+      },
+      include: {
+        game: true,
+      },
+      orderBy: [{ currentPlayingSlot: "asc" }, { updatedAt: "desc" }],
+    }),
+    prisma.userGameEntry.findMany({
+      where: {
+        userId,
+        status: UserGameStatus.PLAYING_NEXT,
+        currentPlayingSlot: null,
+        finishedAt: null,
+      },
+      include: {
+        game: true,
+      },
+      orderBy: [{ playingNextSlot: "asc" }, { updatedAt: "desc" }],
+      take: 3,
+    }),
+  ]);
+  const gameEntries = [...user.gameEntries];
+  const loadedEntryIds = new Set(gameEntries.map((entry) => entry.id));
+  for (const entry of [...currentPlayingEntries, ...playingNextEntries]) {
+    if (!loadedEntryIds.has(entry.id)) {
+      gameEntries.push(entry);
+    }
+  }
+  const profileUser = {
+    ...user,
+    gameEntries,
+  };
+
+  const ownedEntries = gameEntries
     .filter((entry) => entry.status === UserGameStatus.OWNED)
     .sort((left, right) => {
       const playtimeDelta =
@@ -1154,36 +1191,20 @@ export async function getProfileData(
       return right.updatedAt.getTime() - left.updatedAt.getTime();
     });
 
-  const shelfEntries = user.gameEntries.filter(
+  const shelfEntries = gameEntries.filter(
     (entry) => entry.status !== UserGameStatus.WISHLIST,
   );
 
-  const wishlistEntries = user.gameEntries.filter(
+  const wishlistEntries = gameEntries.filter(
     (entry) => entry.status === UserGameStatus.WISHLIST,
   );
 
-  const favoriteEntries = user.gameEntries.filter(
+  const favoriteEntries = gameEntries.filter(
     (entry) => entry.isFavorite,
   );
 
-  const currentPlayingEntries = shelfEntries
-    .filter((entry) => entry.currentPlayingSlot !== null)
-    .sort(
-      (left, right) =>
-        (left.currentPlayingSlot ?? Number.MAX_SAFE_INTEGER) -
-        (right.currentPlayingSlot ?? Number.MAX_SAFE_INTEGER),
-    );
-
-  const playingNextEntries = shelfEntries
-    .filter((entry) => entry.playingNextSlot !== null)
-    .sort(
-      (left, right) =>
-        (left.playingNextSlot ?? Number.MAX_SAFE_INTEGER) -
-        (right.playingNextSlot ?? Number.MAX_SAFE_INTEGER),
-    );
-
   return {
-    user,
+    user: profileUser,
     ownedEntries,
     shelfEntries,
     wishlistEntries,

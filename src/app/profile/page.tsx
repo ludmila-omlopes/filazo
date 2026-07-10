@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { AssistantTab, PlayerProfileTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
 import { FavoriteGames } from "./_components/favorite-games";
@@ -23,7 +24,11 @@ import {
 } from "./_components/profile-query";
 import { ShelfGrid } from "./_components/shelf-grid";
 import { Notice } from "@/components/ui/notice";
-import { getBetaAccessRedirect, getSessionUserWithBeta } from "@/lib/beta-access";
+import {
+  getBetaAccessRedirect,
+  getSessionUserWithBeta,
+  isAdminEmail,
+} from "@/lib/beta-access";
 import { getRequestLocale } from "@/lib/request-locale";
 import {
   getAssistantProfileData,
@@ -32,6 +37,7 @@ import {
 import { getPlayerProfileForUser } from "@/lib/assistant/profile-agent";
 import { getAiSettings } from "@/lib/ai-settings";
 import { getProfileData } from "@/lib/catalog";
+import { createTranslator } from "@/lib/i18n";
 import {
   parseProfileGameSort,
   sortProfileGameEntries,
@@ -42,6 +48,7 @@ export default async function ProfilePage({
   searchParams,
 }: PageProps<"/profile"> & { searchParams: ProfileSearchParams }) {
   const locale = await getRequestLocale();
+  const t = createTranslator(locale);
   const userId = await getSessionUserId();
 
   if (!userId) {
@@ -67,25 +74,34 @@ export default async function ProfilePage({
   }
 
   const query = await searchParams;
+  const requestedViewAsUserId = query.viewAs?.trim();
+  const viewAsUserId =
+    isAdminEmail(sessionUser.email) &&
+    requestedViewAsUserId &&
+    requestedViewAsUserId !== userId
+      ? requestedViewAsUserId
+      : null;
+  const isReadOnlyPreview = Boolean(viewAsUserId);
+  const profileUserId = viewAsUserId ?? userId;
   const activeTab = parseActiveTab(query.tab);
   const setupStep = parseSetupStep(query.step);
 
   let profile: Awaited<ReturnType<typeof getProfileData>>;
   try {
-    profile = await getProfileData(userId, { scope: activeTab });
+    profile = await getProfileData(profileUserId, { scope: activeTab });
   } catch (error) {
     console.error("Could not load profile data.", error);
     return <ProfileErrorPanel error={error} locale={locale} />;
   }
 
   if (!profile) {
-    redirect("/");
+    redirect(isReadOnlyPreview ? "/admin?error=User%20not%20found" : "/");
   }
 
   const needsFirstSetup =
     !profile.user.onboardingCompletedAt && !profile.user.onboardingSkippedAt;
 
-  if (needsFirstSetup && activeTab === "overview") {
+  if (!isReadOnlyPreview && needsFirstSetup && activeTab === "overview") {
     redirect("/profile?tab=setup");
   }
 
@@ -98,15 +114,17 @@ export default async function ProfilePage({
   const gamesView = query.view === "grid" ? "grid" : "list";
   const gamesSort = parseProfileGameSort(query.sort);
   const assistant =
-    activeTab === "assistant" ? await getAssistantProfileData(userId) : null;
+    activeTab === "assistant"
+      ? await getAssistantProfileData(profileUserId)
+      : null;
   const playerProfile =
     activeTab === "overview" || activeTab === "playerProfile"
-      ? await getPlayerProfileForUser(userId)
+      ? await getPlayerProfileForUser(profileUserId, locale)
       : null;
   const aiSettings = await getAiSettings();
   const signalEntryIds =
     activeTab === "games" && activeSignal
-      ? await getAssistantSignalEntryIds(userId, activeSignal)
+      ? await getAssistantSignalEntryIds(profileUserId, activeSignal)
       : null;
   const allEntries = profile.user.gameEntries;
   const visibleEntries = sortProfileGameEntries(
@@ -120,7 +138,7 @@ export default async function ProfilePage({
     }),
     gamesSort,
   );
-  const statusMessage = getStatusMessage(locale, query);
+  const statusMessage = isReadOnlyPreview ? null : getStatusMessage(locale, query);
 
   return (
     <main
@@ -131,78 +149,94 @@ export default async function ProfilePage({
         activeTab={activeTab}
         locale={locale}
         profile={profile}
+        viewAsUserId={viewAsUserId}
       />
 
       <div className="grid min-w-0 gap-7">
+        {isReadOnlyPreview ? (
+          <Notice tone="info">
+            {t("admin.preview.viewing", {
+              name: profile.user.displayName ?? profile.user.email ?? t("common.player"),
+            })}{" "}
+            <Link
+              className="underline decoration-ink/30 underline-offset-4"
+              href="/admin"
+            >
+              {t("admin.preview.return")}
+            </Link>
+          </Notice>
+        ) : null}
         {statusMessage ? (
           <Notice tone={statusMessage.tone}>{statusMessage.message}</Notice>
         ) : null}
 
-        {activeTab === "overview" ? (
-          <>
-            <GreetingStrip locale={locale} profile={profile} />
-            <CurrentPlayingPanel
+        <div inert={isReadOnlyPreview}>
+          {activeTab === "overview" ? (
+            <>
+              <GreetingStrip locale={locale} profile={profile} />
+              <CurrentPlayingPanel
+                locale={locale}
+                playerProfile={playerProfile}
+                profile={profile}
+              />
+              <PlayingNextPanel locale={locale} profile={profile} />
+            </>
+          ) : null}
+
+          {activeTab === "playerProfile" ? (
+            <PlayerProfileTab
+              aiSettings={aiSettings}
               locale={locale}
               playerProfile={playerProfile}
               profile={profile}
             />
-            <PlayingNextPanel locale={locale} profile={profile} />
-          </>
-        ) : null}
+          ) : null}
 
-        {activeTab === "playerProfile" ? (
-          <PlayerProfileTab
-            aiSettings={aiSettings}
-            locale={locale}
-            playerProfile={playerProfile}
-            profile={profile}
-          />
-        ) : null}
-
-        {activeTab === "assistant" && assistant ? (
-          <>
-            <FavoriteGames locale={locale} profile={profile} />
+          {activeTab === "assistant" && assistant ? (
+            <>
+              <FavoriteGames locale={locale} profile={profile} />
             <AssistantTab assistant={assistant} locale={locale} />
-          </>
-        ) : null}
+            </>
+          ) : null}
 
-        {activeTab === "integrations" ? (
-          <IntegrationsPanel
-            aiSettings={aiSettings}
-            locale={locale}
-            profile={profile}
-          />
-        ) : null}
+          {activeTab === "integrations" ? (
+            <IntegrationsPanel
+              aiSettings={aiSettings}
+              locale={locale}
+              profile={profile}
+            />
+          ) : null}
 
-        {activeTab === "setup" ? (
-          <OnboardingPanel locale={locale} profile={profile} step={setupStep} />
-        ) : null}
+          {activeTab === "setup" ? (
+            <OnboardingPanel locale={locale} profile={profile} step={setupStep} />
+          ) : null}
 
-        {activeTab === "journal" ? (
-          <JournalTab
-            activeEntryId={activeJournalEntryId}
-            aiSettings={aiSettings}
-            locale={locale}
-            profile={profile}
-          />
-        ) : null}
+          {activeTab === "journal" ? (
+            <JournalTab
+              activeEntryId={activeJournalEntryId}
+              aiSettings={aiSettings}
+              locale={locale}
+              profile={profile}
+            />
+          ) : null}
 
-        {activeTab === "games" ? (
-          <ShelfGrid
-            allEntries={allEntries}
-            filters={{
-              activePlatform,
-              activeSignal,
-              activeStatus,
-              includeDormant,
-              queryText,
-            }}
-            gamesSort={gamesSort}
-            gamesView={gamesView}
-            locale={locale}
-            visibleEntries={visibleEntries}
-          />
-        ) : null}
+          {activeTab === "games" ? (
+            <ShelfGrid
+              allEntries={allEntries}
+              filters={{
+                activePlatform,
+                activeSignal,
+                activeStatus,
+                includeDormant,
+                queryText,
+              }}
+              gamesSort={gamesSort}
+              gamesView={gamesView}
+              locale={locale}
+              visibleEntries={visibleEntries}
+            />
+          ) : null}
+        </div>
       </div>
     </main>
   );

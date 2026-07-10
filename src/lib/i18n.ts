@@ -233,6 +233,17 @@ const messages = {
     "admin.ai.saved": "AI settings updated.",
     "admin.ai.invalidSettings":
       "AI settings were outside the accepted ranges.",
+    "admin.preview.kicker": "User preview",
+    "admin.preview.title": "View a user profile",
+    "admin.preview.body":
+      "Open every profile tab with that user's data. This preview is read-only and never changes the selected account.",
+    "admin.preview.searchLabel": "Find a user",
+    "admin.preview.searchPlaceholder": "Search by name or email",
+    "admin.preview.search": "Search",
+    "admin.preview.open": "Open read-only view",
+    "admin.preview.empty": "No users match that search.",
+    "admin.preview.viewing": "Viewing {name}'s profile in read-only mode.",
+    "admin.preview.return": "Return to Admin",
 
     "footer.tagline": "Your catalog, your pace.",
     "footer.madeFor": "made for players with too many games",
@@ -373,6 +384,11 @@ const messages = {
     "profile.currentPlaying.openTitle": "Open for a game",
     "profile.currentPlaying.openBody":
       "Leave this slot empty, or pick something below when you want it in view.",
+    "profile.currentPlaying.chooseFromShelf": "Choose from your shelf",
+    "profile.currentPlaying.chooseFromShelfTitle": "Choose a game from your shelf",
+    "profile.currentPlaying.searchShelf": "Search your shelf",
+    "profile.currentPlaying.searchShelfPlaceholder": "Search by game title",
+    "profile.currentPlaying.noShelfMatches": "No games match that search.",
     "profile.currentPlaying.suggestedLabel": "Suggested picks",
     "profile.currentPlaying.suggestedTitle": "A calm place to start",
     "profile.currentPlaying.useThese": "Use these picks",
@@ -553,6 +569,9 @@ const messages = {
     "playerProfile.notWrittenTitle": "Your profile hasn't been written yet.",
     "playerProfile.notWrittenBody":
       "Use Generate profile and Filazo will read your games, playtime, favorites, and feedback.",
+    "playerProfile.localeMismatchTitle": "This profile needs a language update.",
+    "playerProfile.localeMismatchBody":
+      "Refresh it to write the profile in your current language.",
     "playerProfile.preferredGenres": "Preferred genres",
     "playerProfile.playStyles": "Play styles",
     "playerProfile.behaviorPatterns": "Behavior patterns",
@@ -1003,7 +1022,7 @@ const messages = {
     "common.library": "Biblioteca",
     "common.catalog": "Catálogo",
     "common.tonight": "Hoje",
-    "common.player": "Jogadora",
+    "common.player": "Jogador",
     "common.search": "Buscar",
     "common.all": "Tudo",
     "common.backHome": "Voltar ao início",
@@ -1227,6 +1246,17 @@ const messages = {
     "admin.ai.saved": "Configuracoes de IA atualizadas.",
     "admin.ai.invalidSettings":
       "As configuracoes de IA estavam fora dos intervalos aceitos.",
+    "admin.preview.kicker": "Visualizacao de usuario",
+    "admin.preview.title": "Ver perfil de usuario",
+    "admin.preview.body":
+      "Abra todas as abas do perfil com os dados dessa pessoa. A visualizacao e somente leitura e nunca altera a conta selecionada.",
+    "admin.preview.searchLabel": "Encontrar usuario",
+    "admin.preview.searchPlaceholder": "Pesquisar por nome ou e-mail",
+    "admin.preview.search": "Pesquisar",
+    "admin.preview.open": "Abrir visualizacao",
+    "admin.preview.empty": "Nenhum usuario corresponde a essa busca.",
+    "admin.preview.viewing": "Visualizando o perfil de {name} em modo somente leitura.",
+    "admin.preview.return": "Voltar ao Admin",
 
     "footer.tagline": "Seu catálogo, no seu ritmo.",
     "footer.madeFor": "feito para quem tem jogos demais",
@@ -1265,7 +1295,7 @@ const messages = {
     "profile.rail.journal": "Diário",
     "profile.rail.journalHint": "Páginas do diário",
     "profile.rail.playerProfile": "Perfil",
-    "profile.rail.playerProfileHint": "Leitura da jogadora",
+    "profile.rail.playerProfileHint": "Leitura do jogador",
     "profile.rail.setup": "Ajustes",
     "profile.rail.setupHint": "Preferências",
     "profile.rail.avatarAlt": "avatar de {name}",
@@ -1367,6 +1397,11 @@ const messages = {
     "profile.currentPlaying.openTitle": "Aberto para um jogo",
     "profile.currentPlaying.openBody":
       "Deixe esse espaço vazio ou escolha algo abaixo quando quiser manter em foco.",
+    "profile.currentPlaying.chooseFromShelf": "Escolher da sua estante",
+    "profile.currentPlaying.chooseFromShelfTitle": "Escolha um jogo da sua estante",
+    "profile.currentPlaying.searchShelf": "Pesquisar na sua estante",
+    "profile.currentPlaying.searchShelfPlaceholder": "Pesquisar pelo nome do jogo",
+    "profile.currentPlaying.noShelfMatches": "Nenhum jogo corresponde à busca.",
     "profile.currentPlaying.suggestedLabel": "Sugestões",
     "profile.currentPlaying.suggestedTitle": "Um bom lugar para começar",
     "profile.currentPlaying.useThese": "Usar essas escolhas",
@@ -1525,10 +1560,10 @@ const messages = {
     "libraryChat.send": "Enviar",
     "libraryChat.tool.overview": "visão da biblioteca",
     "libraryChat.tool.games": "lista de jogos",
-    "libraryChat.tool.feedback": "feedback da jogadora",
+    "libraryChat.tool.feedback": "feedback do jogador",
     "libraryChat.tool.genres": "estatísticas de gênero",
-    "playerProfile.label": "Perfil de jogadora",
-    "playerProfile.title": "Quem você é como jogadora",
+    "playerProfile.label": "Perfil de jogador",
+    "playerProfile.title": "Quem você é como jogador",
     "playerProfile.body":
       "Uma leitura curta do seu gosto, baseada na sua biblioteca, tempo de jogo e notas. Atualize depois de adicionar feedback.",
     "playerProfile.generated": "Gerado em {date}",
@@ -1547,6 +1582,9 @@ const messages = {
     "playerProfile.notWrittenTitle": "Seu perfil ainda não foi escrito.",
     "playerProfile.notWrittenBody":
       "Use Gerar perfil e a filazo vai ler seus jogos, tempo de jogo, favoritos e feedback.",
+    "playerProfile.localeMismatchTitle": "Este perfil precisa ser atualizado para o idioma atual.",
+    "playerProfile.localeMismatchBody":
+      "Atualize o perfil para escrevê-lo no idioma que você escolheu.",
     "playerProfile.preferredGenres": "Gêneros preferidos",
     "playerProfile.playStyles": "Estilos de jogo",
     "playerProfile.behaviorPatterns": "Padrões de comportamento",
@@ -1772,7 +1810,7 @@ const messages = {
     "game.noteNotGrade": "Uma nota, não uma nota final",
     "game.criticsSaid": "Crítica: {score} - {label}.",
     "game.timeEstimates": "Estimativas de tempo",
-    "game.playerGuide": "Notas do guia da jogadora",
+    "game.playerGuide": "Notas do guia do jogador",
     "game.creditsRoll": "créditos",
     "game.tookTheirTime": "indo com calma",
     "game.sawEverything": "viu tudo",
@@ -1892,9 +1930,9 @@ const messages = {
     "statusMessage.guideRefreshed":
       "Guia atualizado. {count} sugestões mudaram.",
     "statusMessage.playerProfileUpdated":
-      "Perfil de jogadora atualizado com base nos seus jogos, feedbacks e reviews.",
+      "Perfil de jogador atualizado com base nos seus jogos, feedbacks e reviews.",
     "statusMessage.playerProfileEmpty":
-      "Sua estante está silenciosa agora. Adicione alguns jogos antes de pedir um perfil de jogadora.",
+      "Sua estante está silenciosa agora. Adicione alguns jogos antes de pedir um perfil de jogador.",
     "statusMessage.photoImported":
       "Importação de fotos concluída. {count} jogos foram adicionados ou atualizados.",
     "statusMessage.manualAdded":
@@ -1998,9 +2036,9 @@ const messages = {
     "assistantAction.refreshFailed":
       "A atualização do assistente não terminou.",
     "assistantAction.needProfileLogin":
-      "Entre antes de gerar um perfil de jogadora.",
+      "Entre antes de gerar um perfil de jogador.",
     "assistantAction.profileFailed":
-      "A geração do perfil de jogadora não terminou.",
+      "A geração do perfil de jogador não terminou.",
   },
 } satisfies Record<string, Record<string, string>>;
 
