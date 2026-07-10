@@ -12,7 +12,11 @@ import { getRequestLocale } from "@/lib/request-locale";
 import { estimateRemainingTime } from "@/lib/time-estimates";
 import { orderPicksForMood } from "@/lib/tonight-moods";
 import { selectTonightBasePicks } from "@/lib/tonight-picks";
-import { FILAZO_THEME_COOKIE, parseFilazoThemeMode } from "@/lib/theme";
+import {
+  FILAZO_THEME_COOKIE,
+  parseFilazoThemeMode,
+  themeForPhase,
+} from "@/lib/theme";
 import { getSessionUserId } from "@/lib/session";
 import { TonightRoom, type TonightMood, type TonightPick } from "./_components/tonight-room";
 
@@ -179,7 +183,7 @@ export default async function TonightPage({
         alternatives={[]}
         currentMood={mood}
         deck={orderedPicks}
-        isNight={mode === "night"}
+        isNight={mode !== "auto" && themeForPhase(mode) === "night"}
         key={`${mood}:${offset}:${pick?.entryId ?? "empty"}`}
         locale={locale}
         message={query.message}

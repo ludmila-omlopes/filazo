@@ -332,6 +332,25 @@
   }
 }
 
+/* Slow wandering motion for the hero atmosphere blobs. Each blob offsets the
+   path with --blob-dx / --blob-dy so they never move in lockstep. */
+@keyframes drift-blob {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(var(--blob-dx, 24px), var(--blob-dy, -20px)) scale(1.06);
+  }
+  66% {
+    transform: translate(
+        calc(var(--blob-dx, 24px) * -0.55),
+        calc(var(--blob-dy, -20px) * 0.6)
+      )
+      scale(0.95);
+  }
+}
+
 /* Custom utilities */
 @utility animate-slide-in {
   @media (prefers-reduced-motion: no-preference) {
@@ -355,6 +374,44 @@
   @media (prefers-reduced-motion: no-preference) {
     animation: soft-pulse 1.8s ease-in-out infinite;
   }
+}
+
+@utility animate-drift-blob {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: drift-blob 22s ease-in-out infinite;
+  }
+}
+
+/* Wavy bottom edge for the full-bleed hero atmosphere. Two mask layers keep the
+   effect a solid backdrop behind every hero element, with the wave confined to
+   a fixed-height strip pinned to the bottom edge (so its crests never rise into
+   the content regardless of how tall the hero grows). Layer 1: a solid fill
+   covering everything except the bottom strip. Layer 2: the wave strip itself.
+   The default 'add' compositing unions them. */
+@utility hero-wave-mask {
+  --hero-wave-strip: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%201440%20100'%20preserveAspectRatio='none'%3E%3Cpath%20fill='white'%20d='M0%200%20H1440%20V52%20C1170%2096%20990%2022%20720%2054%20C450%2086%20270%2020%200%2058%20Z'/%3E%3C/svg%3E");
+  -webkit-mask-image: linear-gradient(#000, #000), var(--hero-wave-strip);
+  mask-image: linear-gradient(#000, #000), var(--hero-wave-strip);
+  -webkit-mask-position: top, bottom;
+  mask-position: top, bottom;
+  -webkit-mask-size: 100% calc(100% - 90px), 100% 90px;
+  mask-size: 100% calc(100% - 90px), 100% 90px;
+  -webkit-mask-repeat: no-repeat, no-repeat;
+  mask-repeat: no-repeat, no-repeat;
+}
+
+/* Printed-paper grain that sits over the hero atmosphere. Fractal noise kept
+   faint and soft-light-blended so it reads as texture, not static. */
+@utility hero-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 170px 170px;
+  opacity: 0.4;
+  mix-blend-mode: soft-light;
+}
+
+[data-theme="night"] .hero-grain {
+  opacity: 0.22;
+  mix-blend-mode: overlay;
 }
 
 /* Editorial display accent for quiet emphasis */
@@ -413,6 +470,57 @@
 
 @utility printed-cover {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+/* Theme selector slider. The track is a fixed day-arc gradient (morning honey →
+   afternoon sky → dusk peach → evening lilac → night) so the control reads as a
+   time-of-day dial regardless of the active theme. */
+.phase-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-edge);
+  background: linear-gradient(
+    90deg,
+    #ffe3b3 0%,
+    #86bada 28%,
+    #f6beb0 52%,
+    #9f99d1 74%,
+    #25243f 100%
+  );
+  cursor: pointer;
+  outline: none;
+}
+
+.phase-slider:disabled {
+  cursor: wait;
+}
+
+.phase-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-ink);
+  box-shadow: var(--shadow-rest);
+  cursor: pointer;
+}
+
+.phase-slider::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 999px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-ink);
+  box-shadow: var(--shadow-rest);
+  cursor: pointer;
+}
+
+.phase-slider:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-canvas), 0 0 0 4px var(--color-sage);
 }
 
 @keyframes current-playing-place {
