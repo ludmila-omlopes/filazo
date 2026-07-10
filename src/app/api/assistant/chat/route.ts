@@ -28,6 +28,8 @@ import { getAiSettings } from "@/lib/ai-settings";
 import { estimateTokensFromValue } from "@/lib/ai-estimates";
 import { getSessionUserId } from "@/lib/session";
 import { getOpenAiConfig } from "@/lib/openai";
+import { getRequestLocale } from "@/lib/request-locale";
+import { getAiOutputLanguageInstruction } from "@/lib/ai-locale";
 
 export const maxDuration = 60;
 
@@ -45,6 +47,7 @@ const CHAT_SYSTEM_PROMPT = [
 ].join(" ");
 
 export async function POST(request: Request) {
+  const locale = await getRequestLocale();
   const userId = await getSessionUserId();
   if (!userId) {
     return NextResponse.json(
@@ -110,7 +113,7 @@ export async function POST(request: Request) {
     // endpoint every OpenAI-compatible gateway, including OpenRouter, supports
     // across all models.
     model: openai.chat(modelName),
-    system: CHAT_SYSTEM_PROMPT,
+    system: `${CHAT_SYSTEM_PROMPT} ${getAiOutputLanguageInstruction(locale)}`,
     messages: await convertToModelMessages(messages),
     maxOutputTokens: aiSettings.chatMaxOutputTokens,
     stopWhen: stepCountIs(aiSettings.chatMaxSteps),

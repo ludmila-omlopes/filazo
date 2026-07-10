@@ -12,6 +12,7 @@ export type ProfileSearchParams = Promise<{
   sort?: string;
   signal?: string;
   status?: string;
+  viewAs?: string;
   platform?: string;
   includeDormant?: string;
   q?: string;

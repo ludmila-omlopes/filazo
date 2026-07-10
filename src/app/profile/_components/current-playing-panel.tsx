@@ -4,7 +4,9 @@ import {
   Ban,
   BookOpen,
   CheckCircle2,
+  ListPlus,
   MoreHorizontal,
+  Search,
   Sparkles,
   X,
 } from "lucide-react";
@@ -15,6 +17,7 @@ import {
   useRef,
   useState,
   type DragEvent,
+  type MouseEvent,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -195,7 +198,9 @@ function getSuggestedCurrentPlayingEntries({
   );
   const t = createTranslator(locale);
 
-  for (const recommendation of playerProfile?.payload.recommendations ?? []) {
+  for (const recommendation of playerProfile?.isLocalized
+    ? playerProfile.payload.recommendations
+    : []) {
     const matchingEntry = unfinishedEntries.find(
       (entry) =>
         !seenEntryIds.has(entry.id) && entry.game.slug === recommendation.slug,
@@ -249,6 +254,7 @@ function CurrentPlayingSlot({
   entry,
   isSaving,
   locale,
+  onOpenPicker,
   onRemove,
   onDragEnd,
   onDrop,
@@ -259,6 +265,7 @@ function CurrentPlayingSlot({
   entry: ShelfEntry | null;
   isSaving: boolean;
   locale: Locale;
+  onOpenPicker: () => void;
   onRemove: () => void;
   onDragEnd: (event: DragEvent<HTMLDivElement>) => void;
   onDrop: () => void;
@@ -269,10 +276,16 @@ function CurrentPlayingSlot({
 
   if (!entry) {
     return (
-      <div
+      <button
         className="grid min-h-[280px] gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-5 text-left shadow-rest outline-none transition-colors duration-200 hover:bg-canvas/75 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        disabled={isSaving}
+        onClick={onOpenPicker}
+        type="button"
       >
         <div>
+          <div className="mb-3 grid h-10 w-10 place-items-center rounded-inner border border-edge bg-surface text-ink-soft">
+            <ListPlus aria-hidden className="h-5 w-5" />
+          </div>
           <p className="section-label !mb-1">
             {t("profile.currentPlaying.spot", { slot })}
           </p>
@@ -283,7 +296,10 @@ function CurrentPlayingSlot({
         <p className="max-w-[28ch] text-sm leading-relaxed text-ink-soft">
           {t("profile.currentPlaying.openBody")}
         </p>
-      </div>
+        <span className="text-sm font-bold text-ink">
+          {t("profile.currentPlaying.chooseFromShelf")}
+        </span>
+      </button>
     );
   }
 
@@ -347,6 +363,127 @@ function CurrentPlayingSlot({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+      </div>
+    </div>
+  );
+}
+
+function CurrentPlayingPicker({
+  entries,
+  isSaving,
+  locale,
+  onClose,
+  onPick,
+  selectedEntryIds,
+  slot,
+}: {
+  entries: ShelfEntry[];
+  isSaving: boolean;
+  locale: Locale;
+  onClose: () => void;
+  onPick: (entryId: string) => void;
+  selectedEntryIds: Set<string>;
+  slot: CurrentPlayingSlotNumber;
+}) {
+  const t = createTranslator(locale);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    searchInputRef.current?.focus();
+  }, []);
+
+  const normalizedQuery = query.trim().toLocaleLowerCase(locale);
+  const results = entries
+    .filter((entry) =>
+      normalizedQuery
+        ? entry.game.name.toLocaleLowerCase(locale).includes(normalizedQuery)
+        : true,
+    )
+    .slice(0, 50);
+
+  function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-4"
+      onMouseDown={handleBackdropClick}
+    >
+      <div
+        aria-labelledby="current-playing-picker-title"
+        aria-modal="true"
+        className="max-h-[min(760px,92vh)] w-full max-w-2xl overflow-y-auto rounded-card border border-edge bg-surface p-5 shadow-lift"
+        role="dialog"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="section-label !mb-1">
+              {t("profile.currentPlaying.spot", { slot })}
+            </p>
+            <h3
+              className="font-display text-2xl leading-tight"
+              id="current-playing-picker-title"
+            >
+              {t("profile.currentPlaying.chooseFromShelfTitle")}
+            </h3>
+          </div>
+          <Button
+            aria-label={t("common.close")}
+            onClick={onClose}
+            size="icon-sm"
+            type="button"
+            variant="ghost"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <label className="relative mt-5 block">
+          <span className="sr-only">
+            {t("profile.currentPlaying.searchShelf")}
+          </span>
+          <Search
+            aria-hidden
+            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-soft"
+          />
+          <input
+            className="min-h-11 w-full rounded-pill border border-edge bg-canvas px-10 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={t("profile.currentPlaying.searchShelfPlaceholder")}
+            ref={searchInputRef}
+            type="search"
+            value={query}
+          />
+        </label>
+
+        <div className="mt-4 grid gap-3">
+          {results.map((entry) => (
+            <GameCard
+              completionPercent={entry.completionPercent}
+              disabled={isSaving || selectedEntryIds.has(entry.id)}
+              eyebrow={entry.status === "PLAYING" ? t("profile.currentPlaying.fromShelf") : undefined}
+              game={entry.game}
+              key={entry.id}
+              locale={locale}
+              onClick={() => onPick(entry.id)}
+              platformName={entry.platformName}
+              playtimeMinutes={entry.playtimeMinutes}
+              status={entry.status}
+              statusVariant="label"
+              variant="row"
+            />
+          ))}
+        </div>
+
+        {!results.length ? (
+          <p className="mt-4 text-sm text-ink-soft">
+            {t("profile.currentPlaying.noShelfMatches")}
+          </p>
+        ) : null}
       </div>
     </div>
   );
@@ -552,6 +689,8 @@ export function CurrentPlayingPanel({
   const [autosaveCount, setAutosaveCount] = useState(0);
   const [autosaveError, setAutosaveError] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
+  const [activePickerSlot, setActivePickerSlot] =
+    useState<CurrentPlayingSlotNumber | null>(null);
   const [entryActionError, setEntryActionError] = useState<string | null>(null);
   const [pendingEntryAction, setPendingEntryAction] = useState<{
     entryId: string;
@@ -594,6 +733,9 @@ export function CurrentPlayingPanel({
         profile,
       })
     : [];
+  const pickerEntries = selectableEntries.filter(
+    (entry) => !isFinishedEntry(entry),
+  );
 
   useEffect(() => {
     if (!pendingScrollToCardsRef.current) {
@@ -816,6 +958,27 @@ export function CurrentPlayingPanel({
     setSlotEntry(slot, entryId, true);
   }
 
+  function openPicker(slot: CurrentPlayingSlotNumber) {
+    if (isBusy) {
+      return;
+    }
+
+    setActivePickerSlot(slot);
+  }
+
+  function closePicker() {
+    setActivePickerSlot(null);
+  }
+
+  function addShelfEntry(entryId: string) {
+    if (!activePickerSlot || !openSlots.includes(activePickerSlot)) {
+      return;
+    }
+
+    setSlotEntry(activePickerSlot, entryId, true);
+    closePicker();
+  }
+
   function fillOpenSpots() {
     const nextPicks = suggestedEntries.slice(0, openSlots.length);
     if (!nextPicks.length) {
@@ -876,6 +1039,7 @@ export function CurrentPlayingPanel({
                 isSaving={isBusy}
                 key={slot}
                 locale={locale}
+                onOpenPicker={() => openPicker(slot)}
                 onDragEnd={(event) => handleSlotDragEnd(slot, event)}
                 onDrop={() => {
                   const entry = selectedEntriesBySlot.get(slot);
@@ -912,6 +1076,18 @@ export function CurrentPlayingPanel({
             onPick={addSuggestedEntry}
             selectedEntryIds={selectedEntryIds}
           />
+          {openSlots.length ? (
+            <Button
+              className="justify-self-start"
+              disabled={isBusy}
+              onClick={() => openPicker(openSlots[0])}
+              type="button"
+              variant="secondary"
+            >
+              <Search className="h-4 w-4" />
+              {t("profile.currentPlaying.chooseFromShelf")}
+            </Button>
+          ) : null}
         </div>
       ) : (
         <div className="grid gap-5">
@@ -926,6 +1102,18 @@ export function CurrentPlayingPanel({
             onPick={addSuggestedEntry}
             selectedEntryIds={selectedEntryIds}
           />
+          {openSlots.length ? (
+            <Button
+              className="justify-self-start"
+              disabled={isBusy}
+              onClick={() => openPicker(openSlots[0])}
+              type="button"
+              variant="secondary"
+            >
+              <Search className="h-4 w-4" />
+              {t("profile.currentPlaying.chooseFromShelf")}
+            </Button>
+          ) : null}
           {autosaveError ? (
             <p className="text-sm font-semibold text-red-200">
               {autosaveError}
@@ -940,6 +1128,18 @@ export function CurrentPlayingPanel({
           locale={locale}
           onClose={closeCelebration}
           providerRefreshStatus={celebration.providerRefreshStatus}
+        />
+      ) : null}
+
+      {activePickerSlot ? (
+        <CurrentPlayingPicker
+          entries={pickerEntries}
+          isSaving={isBusy}
+          locale={locale}
+          onClose={closePicker}
+          onPick={addShelfEntry}
+          selectedEntryIds={selectedEntryIds}
+          slot={activePickerSlot}
         />
       ) : null}
 

@@ -1143,23 +1143,34 @@ export async function getProfileData(
     return null;
   }
 
-  const supplementalPlayingNextEntries = shouldLoadFullGameEntries
-    ? []
-    : await prisma.userGameEntry.findMany({
-        where: {
-          userId,
-          status: UserGameStatus.PLAYING_NEXT,
-          currentPlayingSlot: null,
-          finishedAt: null,
-        },
-        include: {
-          game: true,
-        },
-        orderBy: [{ playingNextSlot: "asc" }, { updatedAt: "desc" }],
-      });
+  const [currentPlayingEntries, playingNextEntries] = await Promise.all([
+    prisma.userGameEntry.findMany({
+      where: {
+        userId,
+        currentPlayingSlot: { not: null },
+      },
+      include: {
+        game: true,
+      },
+      orderBy: [{ currentPlayingSlot: "asc" }, { updatedAt: "desc" }],
+    }),
+    prisma.userGameEntry.findMany({
+      where: {
+        userId,
+        status: UserGameStatus.PLAYING_NEXT,
+        currentPlayingSlot: null,
+        finishedAt: null,
+      },
+      include: {
+        game: true,
+      },
+      orderBy: [{ playingNextSlot: "asc" }, { updatedAt: "desc" }],
+      take: 3,
+    }),
+  ]);
   const gameEntries = [...user.gameEntries];
   const loadedEntryIds = new Set(gameEntries.map((entry) => entry.id));
-  for (const entry of supplementalPlayingNextEntries) {
+  for (const entry of [...currentPlayingEntries, ...playingNextEntries]) {
     if (!loadedEntryIds.has(entry.id)) {
       gameEntries.push(entry);
     }
@@ -1191,33 +1202,6 @@ export async function getProfileData(
   const favoriteEntries = gameEntries.filter(
     (entry) => entry.isFavorite,
   );
-
-  const currentPlayingEntries = shelfEntries
-    .filter((entry) => entry.currentPlayingSlot !== null)
-    .sort(
-      (left, right) =>
-        (left.currentPlayingSlot ?? Number.MAX_SAFE_INTEGER) -
-        (right.currentPlayingSlot ?? Number.MAX_SAFE_INTEGER),
-    );
-
-  const playingNextEntries = shelfEntries
-    .filter(
-      (entry) =>
-        entry.status === UserGameStatus.PLAYING_NEXT &&
-        entry.currentPlayingSlot === null &&
-        !entry.finishedAt,
-    )
-    .sort((left, right) => {
-      const slotDelta =
-        (left.playingNextSlot ?? Number.MAX_SAFE_INTEGER) -
-        (right.playingNextSlot ?? Number.MAX_SAFE_INTEGER);
-      if (slotDelta !== 0) {
-        return slotDelta;
-      }
-
-      return right.updatedAt.getTime() - left.updatedAt.getTime();
-    })
-    .slice(0, 3);
 
   return {
     user: profileUser,

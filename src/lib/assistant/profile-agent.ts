@@ -3,6 +3,7 @@ import { UserGameStatus } from "@prisma/client";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getOpenAiConfig, type OpenAiConfig } from "@/lib/openai";
+import { getAiOutputLanguageInstruction } from "@/lib/ai-locale";
 import {
   markAiBudgetFailed,
   markAiBudgetUsed,
@@ -37,6 +38,7 @@ export const PLAYER_PROFILE_AI_UNAVAILABLE_MESSAGE =
   "The AI module is unavailable. Set OPENAI_API_KEY to generate a player profile.";
 
 const PlayerProfilePayloadSchema = z.object({
+  language: z.enum(["en", "pt-BR"]).optional(),
   summary: z.string().min(1),
   preferredGenres: z
     .array(
@@ -154,6 +156,11 @@ const AGENT_TOOLS = [
       type: "object",
       additionalProperties: false,
       properties: {
+        language: {
+          type: "string",
+          enum: ["en", "pt-BR"],
+          description: "Language used for every user-facing natural-language field.",
+        },
         summary: {
           type: "string",
           description:
@@ -214,6 +221,7 @@ const AGENT_TOOLS = [
         },
       },
       required: [
+        "language",
         "summary",
         "preferredGenres",
         "playStyles",
@@ -365,10 +373,7 @@ export async function generatePlayerProfile(
     throw new Error("Player profile generation is disabled in admin settings.");
   }
 
-  const languageInstruction =
-    locale === "pt-BR"
-      ? "Write every natural-language field — summary, genre evidence, play styles, behavior patterns, recommendation reasons, and data notes — in natural Brazilian Portuguese (pt-BR). Keep game titles and slugs exactly as the tools return them."
-      : "Write every natural-language field in clear, natural English.";
+  const languageInstruction = getAiOutputLanguageInstruction(locale);
 
   const instructions = `${AGENT_INSTRUCTIONS} ${languageInstruction}`;
   const toolTrace: PlayerProfileToolTraceStep[] = [];
@@ -381,7 +386,9 @@ export async function generatePlayerProfile(
     {
       role: "user",
       content:
-        "Generate my player profile from my filazo library. Investigate with the tools first, then submit the profile.",
+        locale === "pt-BR"
+          ? "Gere meu perfil de jogador a partir da minha biblioteca do filazo. Investigue primeiro com as ferramentas e depois envie o perfil. Todo texto para a pessoa usuária deve estar exclusivamente em português brasileiro."
+          : "Generate my player profile from my filazo library. Investigate with the tools first, then submit the profile.",
     },
   ];
 
@@ -447,6 +454,10 @@ export async function generatePlayerProfile(
             entries,
           );
 
+          if (payload.language !== locale) {
+            throw new Error("Player profile agent returned the wrong output language.");
+          }
+
           await markAiBudgetUsed(budget.reservation, {
             status: "COMPLETED",
             toolCallCount: toolTrace.length,
@@ -495,6 +506,8 @@ export async function generatePlayerProfile(
 }
 
 export type StoredPlayerProfile = {
+  isLocalized: boolean;
+  locale: Locale | null;
   summary: string;
   payload: PlayerProfilePayload;
   toolTrace: PlayerProfileToolTraceStep[];
@@ -505,6 +518,7 @@ export type StoredPlayerProfile = {
 
 export async function getPlayerProfileForUser(
   userId: string,
+  locale: Locale = "en",
 ): Promise<StoredPlayerProfile | null> {
   const record = await prisma.playerProfile.findUnique({ where: { userId } });
   if (!record) {
@@ -521,6 +535,8 @@ export async function getPlayerProfileForUser(
     : [];
 
   return {
+    isLocalized: parsedPayload.data.language === locale,
+    locale: parsedPayload.data.language ?? null,
     summary: record.summary,
     payload: parsedPayload.data,
     toolTrace: trace,
