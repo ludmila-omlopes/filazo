@@ -15,6 +15,10 @@ import {
 import { hltbAdapter } from "@/lib/hltb";
 import { igdbAdapter } from "@/lib/igdb";
 import { metacriticAdapter } from "@/lib/metacritic";
+import {
+  canonicalizePlayStationGameTitle,
+  getPlayStationArtworkFallback,
+} from "@/lib/playstation-catalog";
 import { syncPlayStationLibraryForAccount } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
 import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
@@ -136,6 +140,10 @@ function getProviderArtworkFallback(input: ResolveGameInput) {
     input.providerGameId
   ) {
     return getSteamStoreArtwork(input.providerGameId);
+  }
+
+  if (input.provider === ExternalProvider.PLAYSTATION) {
+    return getPlayStationArtworkFallback(input.rawData);
   }
 
   return null;
@@ -591,7 +599,7 @@ export async function syncPlayStationLibraryForUser(userId: string) {
       new Set([syncedGame.providerGameId, ...(syncedGame.providerGameIds ?? [])]),
     );
     const game = await resolveCatalogGame({
-      title: syncedGame.title,
+      title: canonicalizePlayStationGameTitle(syncedGame.title),
       platformName: syncedGame.platformName,
       provider: ExternalProvider.PLAYSTATION,
       providerGameId: syncedGame.providerGameId,
