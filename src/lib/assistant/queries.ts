@@ -21,6 +21,7 @@ import {
   type AssistantInsight,
 } from "@/lib/assistant/scoring";
 import { prisma } from "@/lib/prisma";
+import { isAiProviderConfigured } from "@/lib/openai";
 import { refreshUpcomingReleaseCachesForEntries } from "@/lib/upcoming-releases";
 
 export type AssistantProfileData = Awaited<ReturnType<typeof getAssistantProfileData>>;
@@ -395,7 +396,7 @@ async function getAssistantAiUsageForUser(userId: string, now = new Date()) {
     : 0;
 
   return {
-    openAiConfigured: Boolean(process.env.OPENAI_API_KEY),
+    openAiConfigured: isAiProviderConfigured(),
     userDailyLimit: aiBudget.userDailyLimit,
     userUsedToday: aiBudget.userUsedToday,
     userRemainingToday: aiBudget.userRemainingToday,
@@ -412,7 +413,7 @@ async function getAssistantAiUsageForUser(userId: string, now = new Date()) {
     cooldownMinutes: AI_REFRESH_LIMITS.userCooldownMs / 60000,
     cooldownRemainingSeconds: Math.ceil(cooldownRemainingMs / 1000),
     canUseAiNow:
-      Boolean(process.env.OPENAI_API_KEY) &&
+      isAiProviderConfigured() &&
       (settings.assistantSummaryEnabled ||
         settings.assistantPlayNextEnabled) &&
       aiBudget.spendRemainingToday > 0 &&

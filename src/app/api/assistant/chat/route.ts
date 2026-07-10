@@ -67,7 +67,10 @@ export async function POST(request: Request) {
   const config = getOpenAiConfig();
   if (!config) {
     return NextResponse.json(
-      { error: "The AI module is unavailable. Set OPENAI_API_KEY to chat." },
+      {
+        error:
+          "The AI module is unavailable. Set OPENAI_API_KEY or OPENROUTER_KEY to chat.",
+      },
       { status: 503 },
     );
   }

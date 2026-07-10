@@ -128,13 +128,14 @@ BETA_APPROVAL_REPLY_TO=""
 BETA_DISCORD_INVITE_URL=""
 
 # Optional AI assistant
-# OPENAI_BASE_URL points OpenAI-compatible chat/responses calls at any gateway.
-# Leave unset for OpenAI, or use a gateway like OpenRouter for more model
-# options: set OPENAI_BASE_URL="https://openrouter.ai/api/v1", an OpenRouter key
-# in OPENAI_API_KEY, and a routed model such as OPENAI_MODEL="anthropic/claude-opus-4.8".
+# OPENROUTER_KEY selects OpenRouter. AI_PROVIDER_BASE_URL overrides the default
+# provider URL; use https://openrouter.ai/api/v1 for OpenRouter.
+# OPENAI_BASE_URL is retained for backwards-compatible direct OpenAI/gateway use.
 OPENAI_API_KEY=""
-OPENAI_BASE_URL=""
+OPENROUTER_KEY=""
 OPENAI_MODEL="gpt-5.4-mini"
+OPENAI_BASE_URL=""
+AI_PROVIDER_BASE_URL=""
 # Initial AI budget defaults. After `/admin` saves AI settings, the database
 # values become the runtime source of truth.
 AI_USER_DAILY_SPEND_LIMIT_USD="0.25"
@@ -150,9 +151,8 @@ AI_ESTIMATED_INPUT_USD_PER_1M_TOKENS="0.15"
 AI_ESTIMATED_OUTPUT_USD_PER_1M_TOKENS="0.60"
 AI_ESTIMATED_INPUT_TOKENS_PER_CALL="1500"
 AI_ESTIMATED_CHARS_PER_TOKEN="4"
-# Voice-journal transcription always uses OpenAI directly (no gateway exposes
-# this endpoint). When OPENAI_API_KEY holds a non-OpenAI gateway key, set a real
-# OpenAI key here to keep transcription working.
+# Voice-journal transcription always uses OpenAI directly. Keep a real OpenAI
+# key in OPENAI_API_KEY or set a dedicated key here to enable transcription.
 OPENAI_TRANSCRIPTION_API_KEY=""
 OPENAI_TRANSCRIPTION_MODEL="gpt-4o-mini-transcribe"
 ```
@@ -170,12 +170,12 @@ Notes:
 - IGDB enrichment is optional. If IGDB credentials are missing, the app still works, but imported/synced games stay with local metadata only and assistant refreshes skip upcoming-release cache checks.
 - HowLongToBeat enrichment is optional and best-effort. If the website-backed search is unavailable, imports and Steam sync continue without completion-time estimates.
 - Metacritic enrichment is optional and best-effort. If Steam Store app metadata does not expose a Metacritic score, the canonical game keeps an empty metascore.
-- The Assistant tab works without AI. If `OPENAI_API_KEY` is set, the app can use OpenAI's Responses API to recommend three low-friction play-next picks and turn rule-based insights into short explanations. Only library summaries, selected game metadata, progress/playtime signals, source/provider labels, and rule outputs are sent.
+- The Assistant tab works without AI. If `OPENAI_API_KEY` or `OPENROUTER_KEY` is set, the app can use the configured provider's Responses API to recommend three low-friction play-next picks and turn rule-based insights into short explanations. Only library summaries, selected game metadata, progress/playtime signals, source/provider labels, and rule outputs are sent.
 - Photo catalog import and voice transcription also use AI when configured and enabled in the admin settings. By default, photo import accepts up to 2 images of 4 MB each and uses vision-capable Responses API calls to extract visible titles. Voice journal uploads default to 10 MB; browser recordings default to 3 minutes. These limits are editable in `/admin`. Transcription uses `OPENAI_TRANSCRIPTION_MODEL` with a localized prompt that requires the output in the platform language. Without the API key, manual journaling and normal imports still work; photo extraction is recorded as skipped in the import audit.
-- The model provider is configurable. By default these calls go to OpenAI, but `OPENAI_BASE_URL` points the chat and Responses API calls at any OpenAI-compatible gateway — for example OpenRouter (`https://openrouter.ai/api/v1`) for access to Anthropic, Google, and other models through one key. Set `OPENAI_API_KEY` to the gateway key and `OPENAI_MODEL` to a routed id such as `anthropic/claude-opus-4.8`. The library chat uses the Chat Completions endpoint for the broadest gateway compatibility; the play-next, insight, photo, story-completion, and player-profile features use the Responses API, so prefer models and gateways that support Responses-style tool calling and `json_schema` structured output. Voice-journal transcription is the one exception: it always calls OpenAI directly (no gateway exposes a transcription endpoint), so set `OPENAI_TRANSCRIPTION_API_KEY` to a real OpenAI key when `OPENAI_API_KEY` holds a gateway key.
+- The model provider is configurable. `OPENROUTER_KEY` selects OpenRouter and defaults text/vision calls to `https://openrouter.ai/api/v1`; `AI_PROVIDER_BASE_URL` can override that provider URL, while `OPENAI_BASE_URL` remains a legacy-compatible override. OpenRouter model IDs require a provider namespace, so an unqualified OpenAI model such as `gpt-5.4-mini` is automatically routed as `openai/gpt-5.4-mini`; already-qualified IDs such as `anthropic/claude-sonnet-4.6` are preserved. The library chat uses Chat Completions; play-next, insight, photo, story-completion, and player-profile features use the Responses API. Voice-journal transcription always calls OpenAI directly, using `OPENAI_TRANSCRIPTION_API_KEY` first and `OPENAI_API_KEY` as fallback.
 - Uploaded journal media and photo-import source images are stored under `public/uploads/` in local development. On Vercel/serverless deployments, uploads are written to `/tmp/filazo-uploads` so diary saves can complete, but those files are ephemeral across cold starts and redeploys; journal text, transcripts, and file metadata remain in PostgreSQL. For self-hosted production, set `FILAZO_UPLOAD_DIR` to a writable durable volume before relying on uploaded media playback.
-- The Overview tab includes an agentic player profile. When `OPENAI_API_KEY` is set and player profile AI is enabled in `/admin`, an agent loop gives the model read-only tools over the user's own catalog (`get_library_overview`, `list_games`, `get_player_feedback`, `get_genre_stats`); it defaults to 3 budgeted model calls per generation and then submits a structured profile (`submit_player_profile`) with preferred genres, play styles, behavior patterns, and recommendations drawn only from games already in the library. Tool payloads are minimized projections of `UserGameEntry` and `Game` metadata; no secrets, tokens, or provider account IDs are sent. Without the API key or when disabled, profile generation fails with a clear message while the rest of the app keeps working.
-- The Assistant tab also includes a streaming library chat built on the Vercel AI SDK (`/api/assistant/chat`). It reuses the same read-only tool layer (`src/lib/assistant/library-tools.ts`) as the profile agent, so answers come from live lookups into the user's own catalog. It requires `OPENAI_API_KEY` and the admin chat toggle, and returns a clear 503 message without either. By default, chat is capped by a daily token budget, a per-user daily dollar ceiling, 3 tool/model steps, and 700 output tokens. Those caps are editable in `/admin`.
+- The Overview tab includes an agentic player profile. When an AI provider key is set and player profile AI is enabled in `/admin`, an agent loop gives the model read-only tools over the user's own catalog (`get_library_overview`, `list_games`, `get_player_feedback`, `get_genre_stats`); it defaults to 3 budgeted model calls per generation and then submits a structured profile (`submit_player_profile`) with preferred genres, play styles, behavior patterns, and recommendations drawn only from games already in the library. Tool payloads are minimized projections of `UserGameEntry` and `Game` metadata; no secrets, tokens, or provider account IDs are sent. Without a provider key or when disabled, profile generation fails with a clear message while the rest of the app keeps working.
+- The Assistant tab also includes a streaming library chat built on the Vercel AI SDK (`/api/assistant/chat`). It reuses the same read-only tool layer (`src/lib/assistant/library-tools.ts`) as the profile agent, so answers come from live lookups into the user's own catalog. It requires `OPENAI_API_KEY` or `OPENROUTER_KEY` and the admin chat toggle, and returns a clear 503 message without either. By default, chat is capped by a daily token budget, a per-user daily dollar ceiling, 3 tool/model steps, and 700 output tokens. Those caps are editable in `/admin`.
 - AI calls are app-gated before contacting the provider. Runtime gates are configured in `/admin` and stored in `AiSettings`; the environment variables above are only initial defaults before an admin save exists. The admin panel is organized around a general per-user daily dollar cap plus feature cards: chat and play-next recommendations have daily token pools with estimated dollar/text volume, player profiles have a weekly generation limit, photo import separates AI calls from uploaded image count, and voice transcription separates transcription calls from file/recording size limits. Assistant summaries and story-achievement classification have no feature-specific budget and are governed by the general per-user daily dollar cap. Advanced controls such as max response tokens, model/tool steps, and extraction candidate counts tune behavior but are not the primary budget levers. Dollar values are estimated with `AI_ESTIMATED_INPUT_USD_PER_1M_TOKENS`, `AI_ESTIMATED_OUTPUT_USD_PER_1M_TOKENS`, `AI_ESTIMATED_INPUT_TOKENS_PER_CALL`, and `AI_ESTIMATED_CHARS_PER_TOKEN`; this is an estimate only, not measured billing. The Assistant refresh still reuses unchanged OpenAI recommendations and applies a 10-minute per-user refresh cooldown. When a gate blocks AI, deterministic fallbacks or clear unavailable states are used.
 
 ## Getting Started

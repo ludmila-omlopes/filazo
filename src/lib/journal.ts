@@ -17,7 +17,7 @@ import {
 } from "@/lib/upload-file-type";
 import { getUploadDiskPath } from "@/lib/upload-storage";
 import { normalizeTitle } from "@/lib/utils";
-import { getOpenAiConfig } from "@/lib/openai";
+import { getOpenAiConfig, isAiProviderConfigured } from "@/lib/openai";
 import { runWithAiBudget } from "./ai-budget.ts";
 import { estimateTokensFromText } from "./ai-estimates.ts";
 import { getAiSettings, type AiSettingsValues } from "./ai-settings.ts";
@@ -856,12 +856,12 @@ export async function importPhotoCatalogForUser({
             rawData: {
               fileName: upload.fileName,
               sourceImageUrl: upload.url,
-              reason: process.env.OPENAI_API_KEY
+              reason: isAiProviderConfigured()
                 ? messages.noVisibleGames
                 : messages.visionUnavailable,
             } as Prisma.InputJsonValue,
             outcome: ImportRowStatus.SKIPPED,
-            error: process.env.OPENAI_API_KEY
+            error: isAiProviderConfigured()
               ? messages.noVisibleGames
               : messages.needsAiKey,
           },
