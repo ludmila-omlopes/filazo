@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { getAllowedUploadExtension } from "./upload-file-type.ts";
+import {
+  buildUploadPath,
+  getAllowedUploadExtension,
+  getAllowedUploadMimeType,
+} from "./upload-file-type.ts";
 
 test("allows PNG image uploads", () => {
   assert.equal(getAllowedUploadExtension("image/png", "image"), ".png");
@@ -28,4 +32,23 @@ test("normalizes parameterized and uppercase MIME types", () => {
     ".jpg",
   );
   assert.equal(getAllowedUploadExtension("IMAGE/PNG", "image"), ".png");
+});
+
+test("builds a safe journal path from an allowed normalized MIME type", () => {
+  assert.deepEqual(
+    buildUploadPath({
+      fileId: "a1b2c3d4",
+      kind: "audio",
+      mimeType: "audio/webm;codecs=opus",
+      prefix: "journal/user/",
+    }),
+    {
+      mimeType: "audio/webm",
+      pathname: "journal/user/a1b2c3d4.webm",
+    },
+  );
+  assert.equal(
+    getAllowedUploadMimeType("image/svg+xml", "image"),
+    null,
+  );
 });

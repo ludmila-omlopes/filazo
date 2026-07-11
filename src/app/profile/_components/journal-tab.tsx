@@ -11,6 +11,7 @@ import {
   deleteJournalEntryAction,
 } from "../actions";
 import { JournalComposer } from "./journal-composer";
+import { JournalForm } from "./journal-form";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -154,6 +155,7 @@ function JournalPageCard({
                     height={360}
                     loading="lazy"
                     src={media.url}
+                    unoptimized
                     width={640}
                   />
                   {media.caption ? (
@@ -293,7 +295,7 @@ export function JournalTab({
                 </Link>
               </div>
 
-            <form action={createJournalEntryAction} className="grid gap-4">
+            <JournalForm action={createJournalEntryAction} userId={profile.user.id}>
               <input
                 name="userGameEntryId"
                 type="hidden"
@@ -308,7 +310,7 @@ export function JournalTab({
               <JournalComposer
                 maxRecordingSeconds={aiSettings.voiceRecordingMaxSeconds}
               />
-              </form>
+              </JournalForm>
             </div>
           </div>
 
