@@ -3,15 +3,17 @@ import { LegalPage } from "@/components/legal-page";
 import { createTranslator } from "@/lib/i18n";
 import { getLegalDocument } from "@/lib/legal-copy";
 import { getRequestLocale } from "@/lib/request-locale";
+import { createPageMetadata } from "@/lib/site-metadata";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getRequestLocale();
   const document = getLegalDocument(locale, "privacy");
 
-  return {
-    title: `${document.title} | filazo`,
+  return createPageMetadata({
+    title: document.title,
     description: document.intro[0],
-  };
+    path: "/privacy",
+  });
 }
 
 export default async function PrivacyPage() {

@@ -4,6 +4,7 @@ import { getGameBySlug } from "@/lib/catalog";
 import { createTranslator } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
+import { createPageMetadata } from "@/lib/site-metadata";
 
 export async function generateMetadata({
   params,
@@ -15,15 +16,19 @@ export async function generateMetadata({
   if (!game) {
     return {
       title: t("game.notFound"),
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
 
-  return {
-    title: `${game.name} | filazo`,
+  return createPageMetadata({
+    title: game.name,
     description:
-      game.summary ??
-      t("game.metadataFallback", { name: game.name }),
-  };
+      game.summary ?? t("game.metadataFallback", { name: game.name }),
+    path: `/games/${game.slug}`,
+  });
 }
 
 export default async function GamePage({
