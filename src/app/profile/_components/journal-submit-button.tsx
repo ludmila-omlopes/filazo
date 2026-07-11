@@ -3,6 +3,7 @@
 import { useFormStatus } from "react-dom";
 import { PenLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useJournalUploadPending } from "./journal-upload-context";
 
 export function JournalSubmitButton({
   label,
@@ -12,16 +13,18 @@ export function JournalSubmitButton({
   pendingLabel: string;
 }) {
   const { pending } = useFormStatus();
+  const uploading = useJournalUploadPending();
+  const isPending = pending || uploading;
 
   return (
     <Button
-      aria-disabled={pending}
+      aria-disabled={isPending}
       className="justify-self-start"
-      loading={pending}
+      loading={isPending}
       type="submit"
     >
       <PenLine aria-hidden="true" />
-      {pending ? pendingLabel : label}
+      {isPending ? pendingLabel : label}
     </Button>
   );
 }

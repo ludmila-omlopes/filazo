@@ -300,6 +300,7 @@ model JournalMedia {
   kind           String
   url            String
   storageKey     String
+  storageProvider String          @default("filesystem")
   mimeType       String
   fileName       String?
   sizeBytes      Int?

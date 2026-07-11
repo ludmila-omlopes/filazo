@@ -18,6 +18,7 @@ import {
 } from "@/lib/catalog";
 import { parseCsvColumnMappingJson } from "@/lib/csv-import-mapping";
 import { getIgdbGameById } from "@/lib/igdb";
+import { journalUploadPayloadSchema } from "@/lib/journal-media";
 import { recomputeRuleInsightsForUser } from "@/lib/assistant/insight-maintenance";
 import { createTranslator } from "@/lib/i18n";
 import {
@@ -125,6 +126,23 @@ const journalEntrySchema = z.object({
   slug: z.string().trim().optional(),
   returnTo: z.string().trim().optional(),
 });
+
+function parseJournalUpload(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || !value.trim()) {
+    return null;
+  }
+
+  try {
+    const parsed = journalUploadPayloadSchema.safeParse(JSON.parse(value));
+    if (parsed.success) {
+      return parsed.data;
+    }
+  } catch {
+    // The server action returns the normal save error below for malformed input.
+  }
+
+  throw new Error("Journal media upload details are invalid.");
+}
 
 const deleteJournalEntrySchema = z.object({
   journalEntryId: z.string().trim().min(1),
@@ -1133,13 +1151,21 @@ export async function createJournalEntryAction(formData: FormData) {
     redirect(`/profile?tab=journal&error=${encodeURIComponent(t("profileAction.journalSaveFailed"))}`);
   }
 
-  const imageFile = getFormFile(formData.get("image"));
-  const audioFile = getFormFile(formData.get("audio"));
+  let imageUpload;
+  let audioUpload;
+  try {
+    imageUpload = parseJournalUpload(formData.get("imageUpload"));
+    audioUpload = parseJournalUpload(formData.get("audioUpload"));
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : t("profileAction.journalSaveFailed");
+    redirect(`/profile?tab=journal&error=${encodeURIComponent(message)}`);
+  }
   if (
     !parsed.data.title?.trim() &&
     !parsed.data.body?.trim() &&
-    !imageFile &&
-    !audioFile
+    !imageUpload &&
+    !audioUpload
   ) {
     redirect(
       `/profile?tab=journal&entryId=${encodeURIComponent(parsed.data.userGameEntryId)}&error=${encodeURIComponent(t("profileAction.journalEmptyPage"))}`,
@@ -1160,8 +1186,8 @@ export async function createJournalEntryAction(formData: FormData) {
       body: parsed.data.body ?? null,
       occurredAt,
       targetLanguage: locale === "pt-BR" ? "Portuguese (Brazil)" : "English",
-      imageFile,
-      audioFile,
+      imageUpload,
+      audioUpload,
     });
   } catch (error) {
     const message =

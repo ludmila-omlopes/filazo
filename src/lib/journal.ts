@@ -16,20 +16,18 @@ import {
   type UploadKind,
 } from "@/lib/upload-file-type";
 import { getUploadDiskPath } from "@/lib/upload-storage";
+import {
+  deleteJournalMediaObject,
+  getJournalAudioFile,
+  resolveJournalUpload,
+  type JournalUploadPayload,
+  type StoredJournalMedia,
+} from "@/lib/journal-media";
 import { normalizeTitle } from "@/lib/utils";
 import { getOpenAiConfig, isAiProviderConfigured } from "@/lib/openai";
 import { runWithAiBudget } from "./ai-budget.ts";
 import { estimateTokensFromText } from "./ai-estimates.ts";
 import { getAiSettings, type AiSettingsValues } from "./ai-settings.ts";
-
-type UploadedMedia = {
-  kind: "image" | "audio";
-  url: string;
-  storageKey: string;
-  mimeType: string;
-  fileName: string;
-  sizeBytes: number;
-};
 
 type PhotoImportCandidate = {
   title: string;
@@ -55,11 +53,6 @@ function isUsableFile(value: FormDataEntryValue | null): value is File {
   return value instanceof File && value.size > 0;
 }
 
-function formatFileSize(bytes: number) {
-  const megabytes = bytes / (1024 * 1024);
-  return `${Number.isInteger(megabytes) ? megabytes : megabytes.toFixed(1)} MB`;
-}
-
 function getSafeFileName(file: File) {
   const fallback = `${randomUUID()}.bin`;
   const baseName = (file.name || fallback)
@@ -72,7 +65,7 @@ function getSafeFileName(file: File) {
 
 async function saveUpload(
   file: File,
-  folder: "journal" | "imports",
+  folder: "imports",
   kind: UploadKind,
 ) {
   const safeFileName = getSafeFileName(file);
@@ -366,7 +359,22 @@ function buildAchievementSummary(entry: {
   };
 }
 
-async function removeUploadedFile(storageKey: string) {
+async function removeUploadedFile({
+  storageKey,
+  storageProvider,
+}: {
+  storageKey: string;
+  storageProvider: string;
+}) {
+  if (
+    await deleteJournalMediaObject({
+      storageKey,
+      storageProvider,
+    }).catch(() => false)
+  ) {
+    return;
+  }
+
   const diskPath = getUploadDiskPath(storageKey);
   if (!diskPath) {
     return;
@@ -391,7 +399,7 @@ export async function deleteJournalEntryForUser({
     select: {
       id: true,
       game: { select: { slug: true } },
-      media: { select: { storageKey: true } },
+      media: { select: { storageKey: true, storageProvider: true } },
     },
   });
 
@@ -404,25 +412,25 @@ export async function deleteJournalEntryForUser({
   await prisma.gameJournalEntry.delete({ where: { id: entry.id } });
 
   await Promise.all(
-    entry.media.map((media) => removeUploadedFile(media.storageKey)),
+    entry.media.map((media) => removeUploadedFile(media)),
   );
 
   return { slug: entry.game.slug };
 }
 
 export async function createJournalEntryForUser({
-  audioFile,
+  audioUpload,
   body,
-  imageFile,
+  imageUpload,
   occurredAt,
   targetLanguage,
   title,
   userGameEntryId,
   userId,
 }: {
-  audioFile: FormDataEntryValue | null;
+  audioUpload: JournalUploadPayload | null;
   body: string | null;
-  imageFile: FormDataEntryValue | null;
+  imageUpload: JournalUploadPayload | null;
   occurredAt: Date | null;
   targetLanguage: string;
   title: string | null;
@@ -448,74 +456,75 @@ export async function createJournalEntryForUser({
   }
 
   const aiSettings = await getAiSettings();
-  const media: UploadedMedia[] = [];
-  if (isUsableFile(imageFile)) {
-    if (!imageFile.type.startsWith("image/")) {
-      throw new Error("Screenshot uploads must be image files.");
-    }
-    media.push({
-      kind: "image",
-      ...(await saveUpload(imageFile, "journal", "image")),
-    });
-  }
+  const uploads = [imageUpload, audioUpload].filter(
+    (upload): upload is JournalUploadPayload => Boolean(upload),
+  );
+  const media: StoredJournalMedia[] = [];
 
-  let transcript: Awaited<ReturnType<typeof transcribeAudio>> = null;
-  if (isUsableFile(audioFile)) {
-    if (!audioFile.type.startsWith("audio/")) {
-      throw new Error("Voice uploads must be audio files.");
-    }
-    if (audioFile.size > aiSettings.voiceMaxFileBytes) {
-      throw new Error(
-        `Voice uploads must be ${formatFileSize(aiSettings.voiceMaxFileBytes)} or smaller.`,
+  try {
+    for (const upload of uploads) {
+      media.push(
+        await resolveJournalUpload({
+          payload: upload,
+          userId,
+          maxAudioBytes: aiSettings.voiceMaxFileBytes,
+        }),
       );
     }
-    media.push({
-      kind: "audio",
-      ...(await saveUpload(audioFile, "journal", "audio")),
-    });
-    transcript = await transcribeAudio(
-      audioFile,
-      targetLanguage,
-      userId,
-      aiSettings,
-    );
-  }
 
-  const achievement = buildAchievementSummary(entry);
+    const audioMedia = media.find((item) => item.kind === "audio");
+    const transcript = audioMedia
+      ? await transcribeAudio(
+          await getJournalAudioFile(audioMedia),
+          targetLanguage,
+          userId,
+          aiSettings,
+        )
+      : null;
+    const achievement = buildAchievementSummary(entry);
 
-  return prisma.gameJournalEntry.create({
-    data: {
-      userId,
-      userGameEntryId: entry.id,
-      gameId: entry.gameId,
-      title: title || transcript?.title || undefined,
-      body: body || undefined,
-      source: "manual",
-      occurredAt: occurredAt ?? new Date(),
-      mechanicsRecap: buildMechanicsRecap(entry),
-      achievementSummary: achievement.summary,
-      latestAchievementName: achievement.latestAchievementName,
-      latestAchievementUnlockedAt: entry.finishedAt ?? undefined,
-      inferenceConfidence: achievement.confidence ?? undefined,
-      audioTranscript: transcript?.text ?? undefined,
-      transcriptLanguage: transcript?.language ?? undefined,
-      rawData: {
-        targetLanguage,
-        mediaCount: media.length,
-      } as Prisma.InputJsonValue,
-      media: {
-        create: media.map((item) => ({
-          kind: item.kind,
-          url: item.url,
-          storageKey: item.storageKey,
-          mimeType: item.mimeType,
-          fileName: item.fileName,
-          sizeBytes: item.sizeBytes,
-          source: "manual-upload",
-        })),
+    return await prisma.gameJournalEntry.create({
+      data: {
+        userId,
+        userGameEntryId: entry.id,
+        gameId: entry.gameId,
+        title: title || transcript?.title || undefined,
+        body: body || undefined,
+        source: "manual",
+        occurredAt: occurredAt ?? new Date(),
+        mechanicsRecap: buildMechanicsRecap(entry),
+        achievementSummary: achievement.summary,
+        latestAchievementName: achievement.latestAchievementName,
+        latestAchievementUnlockedAt: entry.finishedAt ?? undefined,
+        inferenceConfidence: achievement.confidence ?? undefined,
+        audioTranscript: transcript?.text ?? undefined,
+        transcriptLanguage: transcript?.language ?? undefined,
+        rawData: {
+          targetLanguage,
+          mediaCount: media.length,
+        } as Prisma.InputJsonValue,
+        media: {
+          create: media.map((item) => ({
+            kind: item.kind,
+            url: item.url,
+            storageKey: item.storageKey,
+            storageProvider: item.storageProvider,
+            mimeType: item.mimeType,
+            fileName: item.fileName,
+            sizeBytes: item.sizeBytes,
+            source: "manual-upload",
+          })),
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    await Promise.all(
+      media.map((item) =>
+        deleteJournalMediaObject(item).catch(() => false),
+      ),
+    );
+    throw error;
+  }
 }
 
 async function imageFileToDataUrl(file: File) {
