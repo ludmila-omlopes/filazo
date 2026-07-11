@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { BetaTesterStatus, type Prisma } from "@prisma/client";
 import { submitBetaApplicationAction } from "./actions";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { getSessionUserWithBeta, isAdminEmail } from "@/lib/beta-access";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
+import { createPageMetadata } from "@/lib/site-metadata";
 
 type BetaSearchParams = Promise<{
   error?: string;
@@ -22,6 +24,17 @@ const PLATFORM_OPTIONS = [
   "Nintendo Switch",
   "Mobile",
 ];
+
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
+
+  return createPageMetadata({
+    title: t("beta.title"),
+    description: t("beta.body"),
+    path: "/beta",
+  });
+}
 
 function asStringArray(value: Prisma.JsonValue | null | undefined) {
   return Array.isArray(value)

@@ -26,15 +26,60 @@ import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
 import {
+  getSiteUrl,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+} from "@/lib/site-metadata";
+import {
   FILAZO_THEME_COOKIE,
   parseFilazoThemeMode,
   themeForPhase,
 } from "@/lib/theme";
 
 export const metadata: Metadata = {
-  title: "filazo",
-  description:
-    "A calm catalog for your game library. Sync Steam, import CSVs, and keep every title easy to find.",
+  metadataBase: getSiteUrl(),
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [
+    "game library",
+    "video game catalog",
+    "gaming backlog",
+    "game collection",
+    "what to play next",
+  ],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    siteName: SITE_NAME,
+    type: "website",
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 /**
