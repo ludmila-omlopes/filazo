@@ -8,6 +8,7 @@ import {
   resolveSyncedPlaytimeAction,
   saveManualStartedAtAction,
   saveManualPlaytimeAction,
+  savePlayingNextDateAction,
 } from "@/app/profile/actions";
 import { PhysicalMediaButton } from "@/app/profile/_components/physical-media-button";
 import { ScreenshotLightbox } from "@/components/screenshot-lightbox";
@@ -230,6 +231,7 @@ function SaveSlot({
     currentEntry.playtimeMinutes ?? 0,
     weeklyHours * 60 / 7,
   );
+  const isPlayingNext = currentEntry.status === "PLAYING_NEXT";
 
   return (
     <section className="panel bg-dusk-lavender-soft/70">
@@ -323,23 +325,34 @@ function SaveSlot({
         </div>
       </form>
 
-      <form action={saveManualStartedAtAction} className="mt-3 rounded-inner border border-edge bg-surface p-4">
+      <form action={isPlayingNext ? savePlayingNextDateAction : saveManualStartedAtAction} className="mt-3 rounded-inner border border-edge bg-surface p-4">
         <input name="entryId" type="hidden" value={currentEntry.id} />
         <input name="slug" type="hidden" value={game.slug} />
         <div className="flex flex-wrap items-end gap-3">
           <div className="mr-auto max-w-[48ch]">
-            <h3 className="font-semibold">{t("game.manualStartedAt.title")}</h3>
+            <h3 className="font-semibold">{t(isPlayingNext ? "game.plannedStartDate.title" : "game.manualStartedAt.title")}</h3>
             <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-              {currentEntry.manualStartedAt
+              {isPlayingNext
+                ? t("game.plannedStartDate.body")
+                : currentEntry.manualStartedAt
                 ? t("game.manualStartedAt.manualBody")
                 : t("game.manualStartedAt.estimatedBody", { date: formatDate(inferredStartedAt, locale) })}
             </p>
           </div>
           <label className="grid gap-1 text-xs font-bold text-ink-soft">
-            {t("game.manualStartedAt.label")}
-            <input className="h-10 rounded-inner border border-edge bg-canvas px-3 text-ink" defaultValue={(currentEntry.manualStartedAt ?? inferredStartedAt).toISOString().slice(0, 10)} max={new Date().toISOString().slice(0, 10)} name="manualStartedAt" required type="date" />
+            {t(isPlayingNext ? "game.plannedStartDate.label" : "game.manualStartedAt.label")}
+            <input
+              className="h-10 rounded-inner border border-edge bg-canvas px-3 text-ink"
+              defaultValue={isPlayingNext
+                ? currentEntry.plannedStartDate?.toISOString().slice(0, 10) ?? ""
+                : (currentEntry.manualStartedAt ?? inferredStartedAt).toISOString().slice(0, 10)}
+              max={isPlayingNext ? undefined : new Date().toISOString().slice(0, 10)}
+              name={isPlayingNext ? "plannedStartDate" : "manualStartedAt"}
+              required
+              type="date"
+            />
           </label>
-          <Button size="sm" type="submit">{t("game.manualStartedAt.save")}</Button>
+          <Button size="sm" type="submit">{t(isPlayingNext ? "game.plannedStartDate.save" : "game.manualStartedAt.save")}</Button>
         </div>
       </form>
 

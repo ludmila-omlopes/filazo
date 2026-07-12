@@ -44,6 +44,16 @@ test("playing next honors a later date chosen by the user", () => {
     { id: "next", status: "PLAYING_NEXT", playingNextSlot: 1, plannedStartDate: new Date("2026-02-10T00:00:00Z"), game: game(420) },
   ], { now: new Date("2026-01-01T00:00:00Z"), weeklyHours: 7 });
   assert.equal(projections[0]?.startDate.toISOString().slice(0, 10), "2026-02-10");
+  assert.equal(projections[0]?.approximate, false);
+});
+
+test("playing next uses the user's planned date instead of replacing it with slot availability", () => {
+  const projections = buildPlayProjections([
+    { id: "current", status: "PLAYING", currentPlayingSlot: 1, game: game(420) },
+    { id: "next", status: "PLAYING_NEXT", playingNextSlot: 1, plannedStartDate: new Date("2026-01-03T00:00:00Z"), game: game(420) },
+  ], { now: new Date("2026-01-01T00:00:00Z"), weeklyHours: 7 });
+  assert.equal(projections[1]?.startDate.toISOString().slice(0, 10), "2026-01-03");
+  assert.equal(projections[1]?.approximate, false);
 });
 
 test("current game start is inferred backwards from time already played", () => {
