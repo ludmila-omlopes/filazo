@@ -112,11 +112,11 @@ export function buildPlayProjections(
       [...slotAvailability.values()].sort((a, b) => a.getTime() - b.getTime())[0] ?? now;
     const release = entry.game.releaseDate ? startOfDay(entry.game.releaseDate) : null;
     const planned = entry.plannedStartDate ? startOfDay(entry.plannedStartDate) : null;
-    const startDate = [earliestAvailability, release, planned]
+    const startDate = planned ?? [earliestAvailability, release]
       .filter((date): date is Date => Boolean(date))
       .sort((a, b) => b.getTime() - a.getTime())[0]!;
     const finishDate = addDays(startDate, Math.max(1, Math.ceil(duration / minutesPerDay)));
-    projections.push({ entryId: entry.id, kind: "next", startDate, finishDate, approximate: true });
+    projections.push({ entryId: entry.id, kind: "next", startDate, finishDate, approximate: !planned });
     slotAvailability.set(preferredSlot, finishDate);
   }
   return projections;

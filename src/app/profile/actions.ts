@@ -47,6 +47,7 @@ const importSchema = z.object({
 const plannedStartDateSchema = z.object({
   entryId: z.string().cuid(),
   plannedStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  slug: z.string().trim().min(1).max(180).optional(),
 });
 
 const manualPlaytimeSchema = z.object({
@@ -157,6 +158,7 @@ export async function savePlayingNextDateAction(formData: FormData) {
   const parsed = plannedStartDateSchema.safeParse({
     entryId: formData.get("entryId"),
     plannedStartDate: formData.get("plannedStartDate"),
+    slug: formData.get("slug") || undefined,
   });
   if (!parsed.success) return;
 
@@ -166,11 +168,13 @@ export async function savePlayingNextDateAction(formData: FormData) {
       id: parsed.data.entryId,
       userId,
       status: UserGameStatus.PLAYING_NEXT,
-      playingNextSlot: { not: null },
     },
     data: { plannedStartDate },
   });
-  if (result.count) revalidatePath("/profile");
+  if (result.count) {
+    revalidatePath("/profile");
+    if (parsed.data.slug) revalidatePath(`/games/${parsed.data.slug}`);
+  }
 }
 
 function extractNpssoToken(value: unknown) {
