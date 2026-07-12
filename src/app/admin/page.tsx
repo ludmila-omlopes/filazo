@@ -4,6 +4,7 @@ import {
   updateAiSettingsAction,
 } from "./actions";
 import Link from "next/link";
+import { Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
@@ -1198,6 +1199,9 @@ export default async function AdminPage({
         <p className="max-w-[62ch] text-ink-soft">
           {t("admin.body")}
         </p>
+        <Link className="mt-4 inline-flex items-center gap-2 text-sm font-bold underline decoration-ink/30 underline-offset-4" href="/admin/activity">
+          <Activity className="size-4" />{t("admin.activity.open")}
+        </Link>
       </section>
 
       <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">

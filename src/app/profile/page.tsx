@@ -2,11 +2,13 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AssistantTab, PlayerProfileTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
+import { BacklogEstimate } from "./_components/backlog-estimate";
 import { GreetingStrip } from "./_components/greeting-strip";
 import { IntegrationsPanel } from "./_components/integrations-panel";
 import { JournalTab } from "./_components/journal-tab";
 import { OnboardingPanel } from "./_components/onboarding-panel";
 import { PlayingNextPanel } from "./_components/playing-next-panel";
+import { PlayCalendar } from "./_components/play-calendar";
 import {
   ProfileErrorPanel,
   SignedOutPanel,
@@ -35,7 +37,7 @@ import {
 } from "@/lib/assistant/queries";
 import { getPlayerProfileForUser } from "@/lib/assistant/profile-agent";
 import { getAiSettings } from "@/lib/ai-settings";
-import { getProfileData } from "@/lib/catalog";
+import { getPlayTimeBenchmark, getProfileData } from "@/lib/catalog";
 import { createTranslator } from "@/lib/i18n";
 import {
   parseProfileGameSort,
@@ -138,6 +140,9 @@ export default async function ProfilePage({
     gamesSort,
   );
   const statusMessage = isReadOnlyPreview ? null : getStatusMessage(locale, query);
+  const playTimeBenchmark = activeTab === "games"
+    ? await getPlayTimeBenchmark(profileUserId)
+    : null;
 
   return (
     <main
@@ -216,8 +221,19 @@ export default async function ProfilePage({
             />
           ) : null}
 
+          {activeTab === "calendar" ? (
+            <PlayCalendar
+              calendarMonth={query.month}
+              locale={locale}
+              profile={profile}
+              viewAsUserId={viewAsUserId}
+            />
+          ) : null}
+
           {activeTab === "games" ? (
-            <ShelfGrid
+            <div className="grid gap-5">
+              <BacklogEstimate benchmark={playTimeBenchmark} entries={allEntries} locale={locale} />
+              <ShelfGrid
               allEntries={allEntries}
               filters={{
                 activePlatform,
@@ -230,7 +246,8 @@ export default async function ProfilePage({
               gamesView={gamesView}
               locale={locale}
               visibleEntries={visibleEntries}
-            />
+              />
+            </div>
           ) : null}
         </div>
       </div>

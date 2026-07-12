@@ -5,6 +5,9 @@ import { BookOpen, ChevronRight } from "lucide-react";
 import {
   markDroppedAction,
   markFinishedAction,
+  resolveSyncedPlaytimeAction,
+  saveManualStartedAtAction,
+  saveManualPlaytimeAction,
 } from "@/app/profile/actions";
 import { PhysicalMediaButton } from "@/app/profile/_components/physical-media-button";
 import { ScreenshotLightbox } from "@/components/screenshot-lightbox";
@@ -14,6 +17,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { getGameBySlug } from "@/lib/catalog";
 import { createTranslator, type Locale } from "@/lib/i18n";
+import { estimatePlayStartDate, weeklyHoursFromOnboarding } from "@/lib/play-planning";
 import {
   formatDate,
   formatNumber,
@@ -22,6 +26,13 @@ import {
 
 type GameDetail = NonNullable<Awaited<ReturnType<typeof getGameBySlug>>>;
 type GameEntry = GameDetail["userEntries"][number];
+
+function chooseDisplayedEntry(entries: GameEntry[]) {
+  return entries.find((entry) => entry.currentPlayingSlot !== null) ??
+    entries.find((entry) => entry.playtimeSource === "manual") ??
+    [...entries].sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())[0] ??
+    null;
+}
 
 function readStringList(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -214,6 +225,11 @@ function SaveSlot({
 
   const hasStoryTime = Boolean(game.hltbMainStoryMinutes);
   const t = createTranslator(locale);
+  const weeklyHours = weeklyHoursFromOnboarding(currentEntry.user.onboardingAnswers);
+  const inferredStartedAt = estimatePlayStartDate(
+    currentEntry.playtimeMinutes ?? 0,
+    weeklyHours * 60 / 7,
+  );
 
   return (
     <section className="panel bg-dusk-lavender-soft/70">
@@ -241,6 +257,31 @@ function SaveSlot({
           <strong className="mt-2 block font-display text-2xl font-medium">
             {getPlaytimeSoFar(locale, currentEntry)}
           </strong>
+          {currentEntry.pendingPlaytimeMinutes !== null ? (
+            <div className="mt-4 rounded-inner border border-sand-deep/40 bg-sand-soft p-3">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">{t("game.playtimeSync.kicker")}</p>
+              <p className="mt-1 text-sm leading-relaxed">
+                {t("game.playtimeSync.body", {
+                  current: formatTimeEstimate(currentEntry.playtimeMinutes ?? 0, locale),
+                  synced: formatTimeEstimate(currentEntry.pendingPlaytimeMinutes, locale),
+                })}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <form action={resolveSyncedPlaytimeAction}>
+                  <input name="decision" type="hidden" value="accept" />
+                  <input name="entryId" type="hidden" value={currentEntry.id} />
+                  <input name="slug" type="hidden" value={game.slug} />
+                  <Button size="sm" type="submit">{t("game.playtimeSync.accept")}</Button>
+                </form>
+                <form action={resolveSyncedPlaytimeAction}>
+                  <input name="decision" type="hidden" value="keep" />
+                  <input name="entryId" type="hidden" value={currentEntry.id} />
+                  <input name="slug" type="hidden" value={game.slug} />
+                  <Button size="sm" type="submit" variant="ghost">{t("game.playtimeSync.keep")}</Button>
+                </form>
+              </div>
+            </div>
+          ) : null}
         </div>
         <div className="rounded-inner border border-edge bg-surface p-4">
           <span className="stat-label">{t("game.ownershipFormat")}</span>
@@ -261,6 +302,46 @@ function SaveSlot({
           </div>
         ) : null}
       </div>
+
+      <form action={saveManualPlaytimeAction} className="mt-5 rounded-inner border border-edge bg-surface p-4">
+        <input name="entryId" type="hidden" value={currentEntry.id} />
+        <input name="slug" type="hidden" value={game.slug} />
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="mr-auto max-w-[42ch]">
+            <h3 className="font-semibold">{t("game.manualPlaytime.title")}</h3>
+            <p className="mt-1 text-sm leading-relaxed text-ink-soft">{t("game.manualPlaytime.body")}</p>
+          </div>
+          <label className="grid gap-1 text-xs font-bold text-ink-soft">
+            {t("game.manualPlaytime.hours")}
+            <input className="h-10 w-24 rounded-inner border border-edge bg-canvas px-3 text-ink" defaultValue={Math.floor((currentEntry.playtimeMinutes ?? 0) / 60)} inputMode="numeric" min="0" name="hours" required type="number" />
+          </label>
+          <label className="grid gap-1 text-xs font-bold text-ink-soft">
+            {t("game.manualPlaytime.minutes")}
+            <input className="h-10 w-20 rounded-inner border border-edge bg-canvas px-3 text-ink" defaultValue={(currentEntry.playtimeMinutes ?? 0) % 60} inputMode="numeric" max="59" min="0" name="minutes" required type="number" />
+          </label>
+          <Button size="sm" type="submit">{t("game.manualPlaytime.save")}</Button>
+        </div>
+      </form>
+
+      <form action={saveManualStartedAtAction} className="mt-3 rounded-inner border border-edge bg-surface p-4">
+        <input name="entryId" type="hidden" value={currentEntry.id} />
+        <input name="slug" type="hidden" value={game.slug} />
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="mr-auto max-w-[48ch]">
+            <h3 className="font-semibold">{t("game.manualStartedAt.title")}</h3>
+            <p className="mt-1 text-sm leading-relaxed text-ink-soft">
+              {currentEntry.manualStartedAt
+                ? t("game.manualStartedAt.manualBody")
+                : t("game.manualStartedAt.estimatedBody", { date: formatDate(inferredStartedAt, locale) })}
+            </p>
+          </div>
+          <label className="grid gap-1 text-xs font-bold text-ink-soft">
+            {t("game.manualStartedAt.label")}
+            <input className="h-10 rounded-inner border border-edge bg-canvas px-3 text-ink" defaultValue={(currentEntry.manualStartedAt ?? inferredStartedAt).toISOString().slice(0, 10)} max={new Date().toISOString().slice(0, 10)} name="manualStartedAt" required type="date" />
+          </label>
+          <Button size="sm" type="submit">{t("game.manualStartedAt.save")}</Button>
+        </div>
+      </form>
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-inner border border-edge bg-surface p-4">
         <p className="max-w-[58ch] text-sm leading-relaxed text-ink-soft">
@@ -618,7 +699,17 @@ function ShelfActivity({
   locale: Locale;
 }) {
   const t = createTranslator(locale);
-  if (!game.userEntries.length) {
+  const entriesByUser = new Map<string, GameEntry[]>();
+  for (const entry of game.userEntries) {
+    const userEntries = entriesByUser.get(entry.userId) ?? [];
+    userEntries.push(entry);
+    entriesByUser.set(entry.userId, userEntries);
+  }
+  const displayedEntries = [...entriesByUser.values()]
+    .map(chooseDisplayedEntry)
+    .filter((entry): entry is GameEntry => entry !== null);
+
+  if (!displayedEntries.length) {
     return null;
   }
 
@@ -629,16 +720,16 @@ function ShelfActivity({
         title={t("game.nearbyShelves")}
         aside={
           <span className="pill">
-            {game.userEntries.length === 1
+            {displayedEntries.length === 1
               ? t("game.entryCountOne")
               : t("game.entryCountMany", {
-                  count: formatNumber(game.userEntries.length, locale),
+                  count: formatNumber(displayedEntries.length, locale),
                 })}
           </span>
         }
       />
       <div className="grid gap-3">
-        {game.userEntries.slice(0, 6).map((entry) => (
+        {displayedEntries.slice(0, 6).map((entry) => (
           <div
             className="flex items-center gap-3 rounded-inner border border-edge bg-surface p-3"
             key={entry.id}
@@ -679,7 +770,9 @@ export function GameMemoryCard({
   sessionUserId: string | null;
 }) {
   const currentEntry =
-    game.userEntries.find((entry) => entry.userId === sessionUserId) ?? null;
+    chooseDisplayedEntry(
+      game.userEntries.filter((entry) => entry.userId === sessionUserId),
+    );
 
   return (
     <main

@@ -24,6 +24,8 @@ import { prisma } from "@/lib/prisma";
 import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
 import { syncXboxLibraryForAccount } from "@/lib/xbox";
 import type { CsvColumnMapping } from "@/lib/csv-import-mapping";
+import { getBacklogEstimate } from "@/lib/play-planning";
+import { getSyncedPlaytimeData } from "@/lib/playtime-conflict";
 import {
   canonicalizeGameTitle,
   cleanGameTitle,
@@ -485,6 +487,39 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
   return game;
 }
 
+async function applySyncedPlaytimeToActiveEntries({
+  gameId,
+  ownedEntryId,
+  syncedMinutes,
+  userId,
+}: {
+  gameId: string;
+  ownedEntryId?: string;
+  syncedMinutes: number | null | undefined;
+  userId: string;
+}) {
+  if (syncedMinutes === null || syncedMinutes === undefined) return;
+  const activeEntries = await prisma.userGameEntry.findMany({
+    where: {
+      userId,
+      gameId,
+      id: ownedEntryId ? { not: ownedEntryId } : undefined,
+      OR: [
+        { currentPlayingSlot: { not: null } },
+        { status: UserGameStatus.PLAYING },
+        { playtimeSource: "manual" },
+      ],
+    },
+    select: { id: true, playtimeMinutes: true, playtimeSource: true },
+  });
+  for (const entry of activeEntries) {
+    await prisma.userGameEntry.update({
+      where: { id: entry.id },
+      data: getSyncedPlaytimeData(entry, syncedMinutes),
+    });
+  }
+}
+
 export async function syncSteamLibraryForUser(userId: string) {
   const steamAccount = await prisma.externalAccount.findFirst({
     where: {
@@ -534,6 +569,12 @@ export async function syncSteamLibraryForUser(userId: string) {
       rawData: syncedGame.rawData,
     });
 
+    const existingEntry = await prisma.userGameEntry.findUnique({
+      where: { userId_gameId_status: { userId, gameId: game.id, status: UserGameStatus.OWNED } },
+      select: { id: true, playtimeMinutes: true, playtimeSource: true },
+    });
+    await applySyncedPlaytimeToActiveEntries({ userId, gameId: game.id, ownedEntryId: existingEntry?.id, syncedMinutes: syncedGame.playtimeMinutes });
+    const playtimeData = getSyncedPlaytimeData(existingEntry, syncedGame.playtimeMinutes);
     await prisma.userGameEntry.upsert({
       where: {
         userId_gameId_status: {
@@ -547,7 +588,7 @@ export async function syncSteamLibraryForUser(userId: string) {
         provider: ExternalProvider.STEAM,
         externalAccountId: steamAccount.id,
         platformName: syncedGame.platformName ?? undefined,
-        playtimeMinutes: syncedGame.playtimeMinutes ?? undefined,
+        ...playtimeData,
         lastPlayedAt: syncedGame.lastPlayedAt ?? null,
         completionPercent: syncedGame.completionPercent ?? null,
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
@@ -562,6 +603,7 @@ export async function syncSteamLibraryForUser(userId: string) {
         externalAccountId: steamAccount.id,
         platformName: syncedGame.platformName ?? undefined,
         playtimeMinutes: syncedGame.playtimeMinutes ?? undefined,
+        playtimeSource: syncedGame.playtimeMinutes !== null && syncedGame.playtimeMinutes !== undefined ? "sync" : undefined,
         lastPlayedAt: syncedGame.lastPlayedAt ?? null,
         completionPercent: syncedGame.completionPercent ?? null,
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
@@ -632,6 +674,12 @@ export async function syncPlayStationLibraryForUser(userId: string) {
       });
     }
 
+    const existingEntry = await prisma.userGameEntry.findUnique({
+      where: { userId_gameId_status: { userId, gameId: game.id, status: UserGameStatus.OWNED } },
+      select: { id: true, playtimeMinutes: true, playtimeSource: true },
+    });
+    await applySyncedPlaytimeToActiveEntries({ userId, gameId: game.id, ownedEntryId: existingEntry?.id, syncedMinutes: syncedGame.playtimeMinutes });
+    const playtimeData = getSyncedPlaytimeData(existingEntry, syncedGame.playtimeMinutes);
     await prisma.userGameEntry.upsert({
       where: {
         userId_gameId_status: {
@@ -645,7 +693,7 @@ export async function syncPlayStationLibraryForUser(userId: string) {
         provider: ExternalProvider.PLAYSTATION,
         externalAccountId: playStationAccount.id,
         platformName: syncedGame.platformName ?? undefined,
-        playtimeMinutes: syncedGame.playtimeMinutes ?? undefined,
+        ...playtimeData,
         lastPlayedAt: syncedGame.lastPlayedAt ?? null,
         completionPercent: syncedGame.completionPercent ?? null,
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
@@ -660,6 +708,7 @@ export async function syncPlayStationLibraryForUser(userId: string) {
         externalAccountId: playStationAccount.id,
         platformName: syncedGame.platformName ?? undefined,
         playtimeMinutes: syncedGame.playtimeMinutes ?? undefined,
+        playtimeSource: syncedGame.playtimeMinutes !== null && syncedGame.playtimeMinutes !== undefined ? "sync" : undefined,
         lastPlayedAt: syncedGame.lastPlayedAt ?? null,
         completionPercent: syncedGame.completionPercent ?? null,
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
@@ -1076,19 +1125,50 @@ export async function importCsvForUser({
 export type ProfileDataScope =
   | "assistant"
   | "games"
+  | "calendar"
   | "integrations"
   | "journal"
   | "overview"
   | "playerProfile"
   | "setup";
 
+export async function getPlayTimeBenchmark(userId: string) {
+  const entries = await prisma.userGameEntry.findMany({
+    where: {
+      userId: { not: userId },
+      activeBacklog: true,
+      abandonedAt: null,
+      finishedAt: null,
+      status: { notIn: [UserGameStatus.COMPLETED, UserGameStatus.DROPPED, UserGameStatus.WISHLIST] },
+    },
+    include: { game: true },
+  });
+  const byUser = new Map<string, typeof entries>();
+  for (const entry of entries) {
+    const userEntries = byUser.get(entry.userId) ?? [];
+    userEntries.push(entry);
+    byUser.set(entry.userId, userEntries);
+  }
+  const totals = [...byUser.values()]
+    .map((userEntries) => getBacklogEstimate(userEntries))
+    .filter((estimate) => estimate.gamesWithEstimate > 0)
+    .map((estimate) => estimate.minutes);
+
+  return {
+    averageMinutes: totals.length
+      ? Math.round(totals.reduce((sum, minutes) => sum + minutes, 0) / totals.length)
+      : null,
+    comparedUsers: totals.length,
+  };
+}
+
 export async function getProfileData(
   userId: string,
   options: { scope?: ProfileDataScope } = {},
 ) {
   const scope = options.scope ?? "overview";
-  const shouldLoadFullGameEntries = scope === "games" || scope === "journal";
-  const shouldLoadJournalEntries = scope === "journal";
+  const shouldLoadFullGameEntries = scope === "games" || scope === "journal" || scope === "calendar";
+  const shouldLoadJournalEntries = scope === "journal" || scope === "calendar";
   const focusedGameEntriesWhere = {
     OR: [
       { currentPlayingSlot: { not: null } },

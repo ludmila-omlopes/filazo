@@ -197,6 +197,9 @@ model UserGameEntry {
   externalAccountId  String?
   platformName       String?
   playtimeMinutes    Int?
+  playtimeSource     String?
+  pendingPlaytimeMinutes Int?
+  pendingPlaytimeSyncedAt DateTime?
   lastPlayedAt       DateTime?
   // Achievement/trophy progress (0-100). This is NOT story completion; a game
   // is "finished" when finishedAt is set or status is COMPLETED.
@@ -208,6 +211,7 @@ model UserGameEntry {
   isFavorite         Boolean            @default(false)
   isPhysicalCopy     Boolean            @default(false)
   startedAt          DateTime?
+  manualStartedAt    DateTime?
   abandonedAt        DateTime?
   abandonReason      String?
   activeBacklog      Boolean            @default(true)
@@ -215,6 +219,7 @@ model UserGameEntry {
   desiredSessionMin  Int?
   currentPlayingSlot Int?
   playingNextSlot    Int?
+  plannedStartDate   DateTime?
   lastSyncedAt       DateTime?
   rawData            Json?
   createdAt          DateTime           @default(now())
