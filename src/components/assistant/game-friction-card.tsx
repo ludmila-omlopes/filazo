@@ -69,6 +69,7 @@ export function GameFrictionCard({
       description={description}
       eyebrow={getAssistantSignalDisplayLabel(insight.signalType, locale)}
       game={insight.userGameEntry.game}
+      isPhysicalCopy={insight.userGameEntry.isPhysicalCopy}
       locale={locale}
       platformName={insight.userGameEntry.platformName}
       playtimeMinutes={insight.userGameEntry.playtimeMinutes}

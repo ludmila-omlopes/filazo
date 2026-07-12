@@ -10,7 +10,8 @@ Selection note: plans 001-005 came from the first non-interactive improve run.
 Plans 006-012 were selected explicitly on 2026-07-03 with issue publishing
 requested. Plans 013-016 came from a focused audit of the recommendation
 features (Tonight page + Guide tab) on 2026-07-07; all four were selected
-explicitly, no issue publishing requested.
+explicitly, no issue publishing requested. Plan 017 was requested explicitly
+on 2026-07-11 as a mobile-product direction plan; no issue was requested.
 
 ## Execution order & status
 
@@ -32,6 +33,7 @@ explicitly, no issue publishing requested.
 | 014 | Make persisted assistant insights follow the entry's current state | P1 | M | 013 | [#111](https://github.com/ludmila-omlopes/filazo/issues/111) | DONE |
 | 015 | Make Tonight's mood matching locale-independent and time-estimate based | P2 | M | 013 | [#112](https://github.com/ludmila-omlopes/filazo/issues/112) | DONE |
 | 016 | Recompute insights on status change + unify Tonight's pick sources | P2 | M | 013, 014 (015 soft) | [#113](https://github.com/ludmila-omlopes/filazo/issues/113) | DONE |
+| 017 | Deliver a mobile-first installable PWA before funding a native app | P1* | L | - | [#125](https://github.com/ludmila-omlopes/filazo/issues/125), [#126](https://github.com/ludmila-omlopes/filazo/issues/126), [#127](https://github.com/ludmila-omlopes/filazo/issues/127), [#128](https://github.com/ludmila-omlopes/filazo/issues/128) | TODO |
 
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) |
 REJECTED (with one-line rationale)
@@ -60,6 +62,10 @@ REJECTED (with one-line rationale)
   transaction) and should land after 015 to avoid conflicts in
   `src/app/tonight/page.tsx`.
 - Recommended order for the 2026-07-07 batch: 013 → 014 → 015 → 016.
+
+- 017 is independent. `P1*` means P1 only if mobile is the next product
+  milestone; otherwise schedule it as P2. Execute it in three slices: mobile
+  shell/navigation, installability, then hardening and real-device QA.
 
 ## Vetted but not planned (confirmed findings, available for future plans)
 
@@ -95,6 +101,12 @@ REJECTED (with one-line rationale)
   profiles slow down. Effort M, confidence MED.
 
 ## Direction findings (maintainer options, evidence-based - not ranked against bugs)
+
+- **Mobile-first PWA before native**: the App Router product already has
+  responsive layouts, browser camera/audio inputs, OAuth callbacks, and Server
+  Actions, but mobile navigation stacks the full header and profile rail above
+  content. Plan 017 makes the existing product installable/mobile-first, then
+  uses beta evidence as the gate for native/API investment. Coarse effort L.
 
 - **Vestigial YouTube OAuth identity path**: `User.youtubeSubject` and
   `googleSubject` both store the same Google OIDC subject, and

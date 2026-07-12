@@ -56,6 +56,7 @@ export async function GET(request: Request) {
         },
         select: {
           gameId: true,
+          isPhysicalCopy: true,
           status: true,
           userIntent: true,
         },
@@ -77,9 +78,10 @@ export async function GET(request: Request) {
       const entries = game ? userEntriesByGameId.get(game.id) ?? [] : [];
       const isOwned = entries.some(
         (entry) =>
-          entry.userIntent !== "needs_purchase" &&
-          (ownedStatuses.has(entry.status) ||
-            entry.status === UserGameStatus.PLAYING_NEXT),
+          entry.isPhysicalCopy ||
+          (entry.userIntent !== "needs_purchase" &&
+            (ownedStatuses.has(entry.status) ||
+              entry.status === UserGameStatus.PLAYING_NEXT)),
       );
 
       return {

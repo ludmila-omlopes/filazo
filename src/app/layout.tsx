@@ -125,6 +125,7 @@ export default async function RootLayout({
   const initialPhase = mode === "auto" ? undefined : mode;
   const userId = await getSessionUserId();
   const navigationUser = await getNavigationUser(userId);
+  const homeHref = userId ? "/profile" : "/";
 
   return (
     <html
@@ -148,7 +149,7 @@ export default async function RootLayout({
 
           <div className="app-shell min-h-screen px-6 pb-6 max-md:px-4 max-md:pb-4">
             <SiteHeaderFrame>
-              <Link href="/" className="group inline-flex items-baseline gap-2">
+              <Link href={homeHref} className="group inline-flex items-baseline gap-2">
                 <span className="font-display text-[1.45rem] font-medium">
                   filazo
                 </span>
@@ -162,7 +163,7 @@ export default async function RootLayout({
                 className="flex flex-wrap items-center justify-end gap-6 max-sm:justify-start"
                 aria-label={t("nav.main")}
               >
-                <Link href="/" className="nav-link text-sm">
+                <Link href={homeHref} className="nav-link text-sm">
                   {t("common.home")}
                 </Link>
                 <Link href="/profile" className="nav-link text-sm">

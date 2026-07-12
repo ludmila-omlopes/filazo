@@ -37,6 +37,7 @@ export type GameCardGame = {
 type GameCardProps = VariantProps<typeof gameCardVariants> & {
   game: GameCardGame;
   platformName?: string | null;
+  isPhysicalCopy?: boolean;
   playtimeMinutes?: number | null;
   completionPercent?: number | null;
   status?: string | null;
@@ -147,13 +148,20 @@ function Cover({
 }
 
 function Metadata({
+  isPhysicalCopy,
+  locale,
   platformName,
   playtimeLabel,
 }: {
+  isPhysicalCopy?: boolean;
+  locale: Locale;
   platformName?: string | null;
   playtimeLabel: string | null;
 }) {
-  const parts = [platformName, playtimeLabel].filter(Boolean);
+  const physicalMediaLabel = isPhysicalCopy
+    ? translate(locale, "physicalMedia.label")
+    : null;
+  const parts = [platformName, physicalMediaLabel, playtimeLabel].filter(Boolean);
 
   if (!parts.length) {
     return null;
@@ -164,8 +172,12 @@ function Metadata({
       {parts.map((part, index) => (
         <span className="inline-flex items-center gap-1.5" key={part}>
           {index > 0 ? <span aria-hidden>&middot;</span> : null}
-          {index === 0 && platformName ? (
+          {part === platformName ? (
             <Chip className="px-2 py-px text-[0.62rem]" tone="neutral">
+              {part}
+            </Chip>
+          ) : part === physicalMediaLabel ? (
+            <Chip className="px-2 py-px text-[0.62rem]" tone="sage">
               {part}
             </Chip>
           ) : (
@@ -180,6 +192,7 @@ function Metadata({
 export function GameCard({
   game,
   platformName,
+  isPhysicalCopy,
   playtimeMinutes,
   status,
   statusVariant = "badge",
@@ -210,9 +223,14 @@ export function GameCard({
           <h3 className="line-clamp-2 font-display text-base leading-tight">
             {game.name}
           </h3>
-          {platformName || playtimeLabel ? (
+          {platformName || isPhysicalCopy || playtimeLabel ? (
             <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
+              <Metadata
+                isPhysicalCopy={isPhysicalCopy}
+                locale={locale}
+                platformName={platformName}
+                playtimeLabel={playtimeLabel}
+              />
             </div>
           ) : null}
           {description ? (
@@ -250,7 +268,12 @@ export function GameCard({
               {/* Fixed-height metadata line so slot cards stay uniform whether or
                   not platform/playtime is present. */}
               <div className="flex h-6 items-center">
-                <Metadata platformName={platformName} playtimeLabel={playtimeLabel} />
+                <Metadata
+                  isPhysicalCopy={isPhysicalCopy}
+                  locale={locale}
+                  platformName={platformName}
+                  playtimeLabel={playtimeLabel}
+                />
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <StatusDisplay
@@ -271,6 +294,11 @@ export function GameCard({
             <div className="flex h-5 items-center">
               {displayStatus ? (
                 <StatusLabel locale={locale} status={displayStatus} />
+              ) : null}
+              {isPhysicalCopy ? (
+                <Chip className="px-2 py-px text-[0.62rem]" tone="sage">
+                  {translate(locale, "physicalMedia.label")}
+                </Chip>
               ) : null}
             </div>
           ) : null}

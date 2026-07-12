@@ -1,0 +1,1 @@
+ALTER TABLE "UserGameEntry" ADD COLUMN "isPhysicalCopy" BOOLEAN NOT NULL DEFAULT false;

@@ -34,7 +34,7 @@ The app is centered on a canonical `Game` record.
 
 - `Game` stores the normalized catalog entry plus shared IGDB, HLTB, Metacritic, and upcoming-release cache metadata
 - `GameProviderLink` links a canonical game to an external provider ID like a Steam app ID
-- `UserGameEntry` stores user ownership, wishlist state, playtime, dropped state, last played date, achievement progress (`completionPercent`), up to one optional current-playing slot (`currentPlayingSlot`), up to one optional playing-next queue slot (`playingNextSlot`), and a separate finished state (`finishedAt`/`finishedSource`) for a game; finished means the credits rolled, which is independent of 100% achievement completion
+- `UserGameEntry` stores user ownership, wishlist state, whether the user owns a physical copy (`isPhysicalCopy`), playtime, dropped state, last played date, achievement progress (`completionPercent`), up to one optional current-playing slot (`currentPlayingSlot`), up to one optional playing-next queue slot (`playingNextSlot`), and a separate finished state (`finishedAt`/`finishedSource`) for a game; finished means the credits rolled, which is independent of 100% achievement completion
 - `GameProviderLink` also caches the detected story-completion ("credits roll") achievement per provider (`storyAchievementId`, `storyAchievementName`, `storyAchievementSource`, `storyAchievementCheckedAt`)
 - `UserGameInsight` stores per-game assistant signals such as untouched, sampled-dropped, wishlist risk, and release candidates
 - `AssistantRun` stores each assistant refresh summary and optional AI output metadata
@@ -234,7 +234,7 @@ This project uses PostgreSQL through Prisma and includes two database-related pi
 
 Current scripts:
 
-- `npm run db:init`: validates `DATABASE_URL` and applies pending Prisma migrations
+- `npm run db:init`: validates `DATABASE_URL` and syncs the declared Prisma schema without generating the client
 - `npm run db:migrate`: same as `db:init`
 - `npm run db:push`: compatibility alias for `db:init`
 - `npm run db:generate`: generates Prisma Client
@@ -265,7 +265,7 @@ sync after Steam sign-in.
 - `npm run build`: build for production
 - `npm run start`: start the production server
 - `npm run lint`: run ESLint
-- `npm run db:init`: apply pending Prisma migrations to PostgreSQL
+- `npm run db:init`: sync the declared Prisma schema to PostgreSQL
 - `npm run db:migrate`: same as `db:init`
 - `npm run db:push`: compatibility alias for `db:init`
 - `npm run db:generate`: generate Prisma Client

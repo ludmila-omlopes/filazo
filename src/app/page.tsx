@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
 import type { Prisma } from "@prisma/client";
 import { AuthDialog } from "@/components/auth-dialog";
@@ -209,14 +210,17 @@ async function getHomeData() {
 export default async function Home() {
   const locale = await getRequestLocale();
   const t = createTranslator(locale);
+  const sessionUserId = await getSessionUserId();
+
+  if (sessionUserId) {
+    redirect("/profile");
+  }
+
   const cookieStore = await cookies();
   const mode = parseFilazoThemeMode(
     cookieStore.get(FILAZO_THEME_COOKIE)?.value,
   );
-  const [homeData, sessionUserId] = await Promise.all([
-    getHomeData(),
-    getSessionUserId(),
-  ]);
+  const homeData = await getHomeData();
   const { catalogCount, enrichedCount, showcaseGames, databaseError } =
     homeData;
   const isSignedIn = Boolean(sessionUserId);

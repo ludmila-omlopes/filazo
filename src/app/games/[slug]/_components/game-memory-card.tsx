@@ -6,6 +6,7 @@ import {
   markDroppedAction,
   markFinishedAction,
 } from "@/app/profile/actions";
+import { PhysicalMediaButton } from "@/app/profile/_components/physical-media-button";
 import { ScreenshotLightbox } from "@/components/screenshot-lightbox";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -177,6 +178,9 @@ function CaseHeader({
                   }
                 />
               ) : null}
+              {currentEntry?.isPhysicalCopy ? (
+                <Chip tone="sage">{t("physicalMedia.label")}</Chip>
+              ) : null}
             </div>
           </div>
 
@@ -238,6 +242,14 @@ function SaveSlot({
             {getPlaytimeSoFar(locale, currentEntry)}
           </strong>
         </div>
+        <div className="rounded-inner border border-edge bg-surface p-4">
+          <span className="stat-label">{t("game.ownershipFormat")}</span>
+          <strong className="mt-2 block font-display text-2xl font-medium">
+            {currentEntry.isPhysicalCopy
+              ? t("physicalMedia.label")
+              : t("game.digitalOrUnspecified")}
+          </strong>
+        </div>
         {hasStoryTime ? (
           <div className="rounded-inner border border-edge bg-surface p-4">
             <span className="stat-label">{t("game.usualCredits")}</span>
@@ -292,6 +304,13 @@ function SaveSlot({
                 : t("game.markDropped")}
             </Button>
           </form>
+          <PhysicalMediaButton
+            entryId={currentEntry.id}
+            gameName={game.name}
+            isPhysicalCopy={currentEntry.isPhysicalCopy}
+            locale={locale}
+            fullWidth
+          />
         </div>
       </div>
     </section>

@@ -48,6 +48,7 @@ function toTonightPick(
     entry: {
       completionPercent: recommendation.entry.completionPercent,
       finishedAt: recommendation.entry.finishedAt,
+      isPhysicalCopy: recommendation.entry.isPhysicalCopy,
       platformName: recommendation.entry.platformName,
       playtimeMinutes: recommendation.entry.playtimeMinutes,
       remainingMinutes:
@@ -69,6 +70,7 @@ function toRuleTonightPick(
     entry: {
       completionPercent: entry.completionPercent,
       finishedAt: entry.finishedAt,
+      isPhysicalCopy: entry.isPhysicalCopy,
       platformName: entry.platformName,
       playtimeMinutes: entry.playtimeMinutes,
       remainingMinutes: estimateRemainingTime(entry)?.remainingMinutes ?? null,
