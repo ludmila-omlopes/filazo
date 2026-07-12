@@ -29,6 +29,7 @@ function RecommendationCard({
       description={recommendation.reason}
       eyebrow={t("assistant.playNext.suggested")}
       game={recommendation.entry.game}
+      isPhysicalCopy={recommendation.entry.isPhysicalCopy}
       locale={locale}
       platformName={recommendation.entry.platformName}
       playtimeMinutes={recommendation.entry.playtimeMinutes}

@@ -315,6 +315,7 @@ function CurrentPlayingSlot({
         completionPercent={entry.completionPercent}
         finished={false}
         game={entry.game}
+        isPhysicalCopy={entry.isPhysicalCopy}
         locale={locale}
         platformName={entry.platformName}
         playtimeMinutes={entry.playtimeMinutes}
@@ -467,6 +468,7 @@ function CurrentPlayingPicker({
               disabled={isSaving || selectedEntryIds.has(entry.id)}
               eyebrow={entry.status === "PLAYING" ? t("profile.currentPlaying.fromShelf") : undefined}
               game={entry.game}
+              isPhysicalCopy={entry.isPhysicalCopy}
               key={entry.id}
               locale={locale}
               onClick={() => onPick(entry.id)}
@@ -622,6 +624,7 @@ function SuggestedPicks({
               disabled={isSaving || selectedEntryIds.has(suggestion.entry.id)}
               finished={Boolean(suggestion.entry.finishedAt)}
               game={suggestion.entry.game}
+              isPhysicalCopy={suggestion.entry.isPhysicalCopy}
               eyebrow={
                 suggestion.source === "profile"
                   ? t("profile.currentPlaying.fromProfile")

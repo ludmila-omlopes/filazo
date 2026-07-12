@@ -20,6 +20,7 @@ export type TonightPick = {
   entry: {
     completionPercent: number | null;
     finishedAt: Date | null;
+    isPhysicalCopy: boolean;
     platformName: string | null;
     playtimeMinutes: number | null;
     remainingMinutes: number | null;
@@ -187,6 +188,7 @@ export function TonightRoom({
             description={activePick.reason}
             eyebrow={t("tonight.suggested")}
             game={activePick.entry.game}
+            isPhysicalCopy={activePick.entry.isPhysicalCopy}
             key={activePick.entryId}
             locale={locale}
             platformName={activePick.entry.platformName}
@@ -226,6 +228,7 @@ export function TonightRoom({
                   className="bg-cream/95 text-dusk-deep"
                   description={alternative.reason}
                   game={alternative.entry.game}
+                  isPhysicalCopy={alternative.entry.isPhysicalCopy}
                   key={alternative.entryId}
                   locale={locale}
                   platformName={alternative.entry.platformName}

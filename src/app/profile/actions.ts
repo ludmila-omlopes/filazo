@@ -265,6 +265,7 @@ async function demotePlayingNextEntryToOwned({
   entry: {
     id: string;
     gameId: string;
+    isPhysicalCopy?: boolean;
     status: UserGameStatus;
     userIntent?: string | null;
   };
@@ -275,7 +276,7 @@ async function demotePlayingNextEntryToOwned({
     return;
   }
 
-  if (entry.userIntent === "needs_purchase") {
+  if (entry.userIntent === "needs_purchase" && !entry.isPhysicalCopy) {
     await tx.userGameEntry.delete({ where: { id: entry.id } });
     return;
   }
@@ -347,6 +348,7 @@ async function saveCurrentPlayingSelectionsForUser({
       select: {
         id: true,
         gameId: true,
+        isPhysicalCopy: true,
         status: true,
       },
     });
@@ -478,6 +480,7 @@ async function savePlayingNextSelectionsForUser({
       select: {
         id: true,
         gameId: true,
+        isPhysicalCopy: true,
         status: true,
         userIntent: true,
       },
@@ -681,6 +684,7 @@ async function addPlayingNextGameForUser({
       finishedAt: true,
       gameId: true,
       id: true,
+      isPhysicalCopy: true,
       status: true,
       userIntent: true,
     },
@@ -705,14 +709,16 @@ async function addPlayingNextGameForUser({
   ]);
   const hasOwnedIntent = existingEntries.some(
     (entry) =>
-      entry.userIntent !== "needs_purchase" &&
-      (ownedPlayingNextStatuses.has(entry.status) ||
-        entry.status === UserGameStatus.PLAYING_NEXT),
+      entry.isPhysicalCopy ||
+      (entry.userIntent !== "needs_purchase" &&
+        (ownedPlayingNextStatuses.has(entry.status) ||
+          entry.status === UserGameStatus.PLAYING_NEXT)),
   );
   const ownedEntry = existingEntries.find(
     (entry) =>
-      entry.userIntent !== "needs_purchase" &&
-      ownedPlayingNextStatuses.has(entry.status),
+      entry.isPhysicalCopy ||
+      (entry.userIntent !== "needs_purchase" &&
+        ownedPlayingNextStatuses.has(entry.status)),
   );
   const playingNextEntry = existingEntries.find(
     (entry) => entry.status === UserGameStatus.PLAYING_NEXT,
@@ -733,6 +739,7 @@ async function addPlayingNextGameForUser({
       select: {
         gameId: true,
         id: true,
+        isPhysicalCopy: true,
         status: true,
         userIntent: true,
       },
@@ -2048,4 +2055,39 @@ export async function toggleFavoriteAction(formData: FormData) {
   });
 
   revalidatePath("/profile");
+}
+
+export async function togglePhysicalCopyAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) {
+    return;
+  }
+
+  const entryId = formData.get("entryId");
+  if (typeof entryId !== "string" || !entryId) {
+    return;
+  }
+
+  const entry = await prisma.userGameEntry.findFirst({
+    where: { id: entryId, userId },
+    include: { game: { select: { slug: true } } },
+  });
+
+  if (!entry) {
+    return;
+  }
+
+  await prisma.userGameEntry.update({
+    where: { id: entry.id },
+    data: {
+      isPhysicalCopy: !entry.isPhysicalCopy,
+      userIntent:
+        !entry.isPhysicalCopy && entry.userIntent === "needs_purchase"
+          ? null
+          : undefined,
+    },
+  });
+
+  revalidatePath("/profile");
+  revalidatePath(`/games/${entry.game.slug}`);
 }

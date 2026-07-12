@@ -35,6 +35,7 @@ export function FavoriteGames({
             <div className="grid gap-2" key={`fav-${entry.id}`}>
               <GameCard
                 game={entry.game}
+                isPhysicalCopy={entry.isPhysicalCopy}
                 platformName={entry.platformName}
                 playtimeMinutes={entry.playtimeMinutes}
                 completionPercent={entry.completionPercent}

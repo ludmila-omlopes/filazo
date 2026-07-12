@@ -214,8 +214,8 @@ function PlayingNextSlot({
           ) : null
         }
         game={entry.game}
+        isPhysicalCopy={entry.isPhysicalCopy}
         locale={locale}
-        onClick={onOpenPicker}
         platformName={entry.platformName}
         playtimeMinutes={entry.playtimeMinutes}
         status={entry.status}
@@ -471,7 +471,9 @@ export function PlayingNextPanel({
                 isBusy={isBusy}
                 key={slot}
                 locale={locale}
-                needsPurchase={entry?.userIntent === "needs_purchase"}
+                needsPurchase={
+                  entry?.userIntent === "needs_purchase" && !entry.isPhysicalCopy
+                }
                 onOpenPicker={() => openPicker(slot)}
                 onRemove={() => {
                   void removeSlotEntry(slot);

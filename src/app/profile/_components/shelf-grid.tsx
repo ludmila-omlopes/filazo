@@ -11,6 +11,7 @@ import { createTranslator, type Locale } from "@/lib/i18n";
 import type { ProfileGameSort } from "@/lib/profile-games";
 import { cn, formatNumber } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
+import { PhysicalMediaButton } from "./physical-media-button";
 import { markDroppedAction, markFinishedAction } from "../actions";
 import {
   getUserPlatformLabel,
@@ -145,6 +146,7 @@ function ShelfCard({
       >
         <GameCard
           game={entry.game}
+          isPhysicalCopy={entry.isPhysicalCopy}
           platformName={entry.platformName}
           playtimeMinutes={entry.playtimeMinutes}
           completionPercent={entry.completionPercent}
@@ -164,6 +166,12 @@ function ShelfCard({
             isFavorite={entry.isFavorite}
             locale={locale}
           />
+          <PhysicalMediaButton
+            entryId={entry.id}
+            gameName={entry.game.name}
+            isPhysicalCopy={entry.isPhysicalCopy}
+            locale={locale}
+          />
         </div>
       </div>
     );
@@ -176,6 +184,7 @@ function ShelfCard({
     >
       <GameCard
         game={entry.game}
+        isPhysicalCopy={entry.isPhysicalCopy}
         platformName={entry.platformName}
         playtimeMinutes={entry.playtimeMinutes}
         completionPercent={entry.completionPercent}
@@ -192,6 +201,13 @@ function ShelfCard({
         entryId={entry.id}
         gameName={entry.game.name}
         isFavorite={entry.isFavorite}
+        locale={locale}
+        fullWidth
+      />
+      <PhysicalMediaButton
+        entryId={entry.id}
+        gameName={entry.game.name}
+        isPhysicalCopy={entry.isPhysicalCopy}
         locale={locale}
         fullWidth
       />

@@ -48,6 +48,10 @@ test("generated Prisma client includes synced Steam user game fields", () => {
     "Run npm run db:generate after changing prisma/schema.prisma.",
   );
   assert.ok(
+    model.fields.some((field) => field.name === "isPhysicalCopy"),
+    "Run npm run db:generate after changing prisma/schema.prisma.",
+  );
+  assert.ok(
     model.fields.some((field) => field.name === "currentPlayingSlot"),
     "Run npm run db:generate after changing prisma/schema.prisma.",
   );
