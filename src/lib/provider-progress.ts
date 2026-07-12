@@ -99,24 +99,44 @@ async function updateEntryProgress({
 }) {
   const entry = await prisma.userGameEntry.findUnique({
     where: { id: entryId },
-    select: { rawData: true },
+    select: { gameId: true, rawData: true, userId: true },
   });
 
-  await prisma.userGameEntry.update({
-    where: { id: entryId },
-    data: {
-      completionPercent,
-      lastPlayedAt: lastPlayedAt ?? undefined,
-      rawData: {
-        ...getExistingRawData(entry?.rawData),
-        providerProgressRefresh: {
-          provider,
-          refreshedAt: new Date().toISOString(),
-          rawData,
-        },
-      } as Prisma.InputJsonValue,
-    },
-  });
+  if (!entry) {
+    return;
+  }
+
+  const refreshedAt = new Date();
+  const progressData = {
+    completionPercent,
+    lastPlayedAt: lastPlayedAt ?? undefined,
+    lastSyncedAt: refreshedAt,
+  };
+
+  await prisma.$transaction([
+    prisma.userGameEntry.update({
+      where: { id: entryId },
+      data: {
+        ...progressData,
+        rawData: {
+          ...getExistingRawData(entry.rawData),
+          providerProgressRefresh: {
+            provider,
+            refreshedAt: refreshedAt.toISOString(),
+            rawData,
+          },
+        } as Prisma.InputJsonValue,
+      },
+    }),
+    prisma.userGameEntry.updateMany({
+      where: {
+        userId: entry.userId,
+        gameId: entry.gameId,
+        id: { not: entryId },
+      },
+      data: progressData,
+    }),
+  ]);
 }
 
 async function refreshSteamProgress({

@@ -8,7 +8,11 @@ import { CalendarRhythmForm } from "./onboarding-panel";
 import type { ProfileData } from "./profile-types";
 
 function dateKey(date: Date) { return date.toISOString().slice(0, 10); }
-function formatHours(minutes: number, locale: Locale) { return new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(minutes / 60); }
+function formatHours(minutes: number, locale: Locale) {
+  const hours = minutes / 60;
+  const displayHours = hours < 10 ? hours : Math.round(hours);
+  return new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(displayHours);
+}
 
 export function PlayCalendar({ calendarMonth, locale, profile, viewAsUserId }: {
   calendarMonth?: string;

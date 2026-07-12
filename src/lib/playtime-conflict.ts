@@ -13,3 +13,21 @@ export function getSyncedPlaytimeData(
     pendingPlaytimeSyncedAt: null,
   };
 }
+
+export function getSyncedEntryProgressData(
+  existing: { playtimeMinutes: number | null; playtimeSource: string | null } | null,
+  synced: {
+    completionPercent?: number | null;
+    lastPlayedAt?: Date | null;
+    playtimeMinutes?: number | null;
+  },
+) {
+  return {
+    ...getSyncedPlaytimeData(existing, synced.playtimeMinutes),
+    ...(synced.completionPercent !== null &&
+    synced.completionPercent !== undefined
+      ? { completionPercent: synced.completionPercent }
+      : {}),
+    ...(synced.lastPlayedAt ? { lastPlayedAt: synced.lastPlayedAt } : {}),
+  };
+}

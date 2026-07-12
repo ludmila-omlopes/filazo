@@ -25,7 +25,10 @@ import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
 import { syncXboxLibraryForAccount } from "@/lib/xbox";
 import type { CsvColumnMapping } from "@/lib/csv-import-mapping";
 import { getBacklogEstimate } from "@/lib/play-planning";
-import { getSyncedPlaytimeData } from "@/lib/playtime-conflict";
+import {
+  getSyncedEntryProgressData,
+  getSyncedPlaytimeData,
+} from "@/lib/playtime-conflict";
 import {
   canonicalizeGameTitle,
   cleanGameTitle,
@@ -487,35 +490,52 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
   return game;
 }
 
-async function applySyncedPlaytimeToActiveEntries({
+async function applySyncedProgressToRelatedEntries({
+  completionPercent,
   gameId,
+  lastPlayedAt,
   ownedEntryId,
+  rawData,
   syncedMinutes,
   userId,
 }: {
+  completionPercent: number | null | undefined;
   gameId: string;
+  lastPlayedAt: Date | null | undefined;
   ownedEntryId?: string;
+  rawData: Record<string, unknown> | undefined;
   syncedMinutes: number | null | undefined;
   userId: string;
 }) {
-  if (syncedMinutes === null || syncedMinutes === undefined) return;
-  const activeEntries = await prisma.userGameEntry.findMany({
+  const hasSyncedProgress =
+    (syncedMinutes !== null && syncedMinutes !== undefined) ||
+    (completionPercent !== null && completionPercent !== undefined) ||
+    Boolean(lastPlayedAt);
+  if (!hasSyncedProgress) return;
+
+  const relatedEntries = await prisma.userGameEntry.findMany({
     where: {
       userId,
       gameId,
       id: ownedEntryId ? { not: ownedEntryId } : undefined,
-      OR: [
-        { currentPlayingSlot: { not: null } },
-        { status: UserGameStatus.PLAYING },
-        { playtimeSource: "manual" },
-      ],
     },
     select: { id: true, playtimeMinutes: true, playtimeSource: true },
   });
-  for (const entry of activeEntries) {
+  const syncedAt = new Date();
+  for (const entry of relatedEntries) {
     await prisma.userGameEntry.update({
       where: { id: entry.id },
-      data: getSyncedPlaytimeData(entry, syncedMinutes),
+      data: {
+        ...getSyncedEntryProgressData(entry, {
+          completionPercent,
+          lastPlayedAt,
+          playtimeMinutes: syncedMinutes,
+        }),
+        lastSyncedAt: syncedAt,
+        ...(rawData
+          ? { rawData: rawData as Prisma.InputJsonValue }
+          : {}),
+      },
     });
   }
 }
@@ -573,7 +593,15 @@ export async function syncSteamLibraryForUser(userId: string) {
       where: { userId_gameId_status: { userId, gameId: game.id, status: UserGameStatus.OWNED } },
       select: { id: true, playtimeMinutes: true, playtimeSource: true },
     });
-    await applySyncedPlaytimeToActiveEntries({ userId, gameId: game.id, ownedEntryId: existingEntry?.id, syncedMinutes: syncedGame.playtimeMinutes });
+    await applySyncedProgressToRelatedEntries({
+      userId,
+      gameId: game.id,
+      ownedEntryId: existingEntry?.id,
+      syncedMinutes: syncedGame.playtimeMinutes,
+      completionPercent: syncedGame.completionPercent,
+      lastPlayedAt: syncedGame.lastPlayedAt,
+      rawData: syncedGame.rawData,
+    });
     const playtimeData = getSyncedPlaytimeData(existingEntry, syncedGame.playtimeMinutes);
     await prisma.userGameEntry.upsert({
       where: {
@@ -589,8 +617,8 @@ export async function syncSteamLibraryForUser(userId: string) {
         externalAccountId: steamAccount.id,
         platformName: syncedGame.platformName ?? undefined,
         ...playtimeData,
-        lastPlayedAt: syncedGame.lastPlayedAt ?? null,
-        completionPercent: syncedGame.completionPercent ?? null,
+        lastPlayedAt: syncedGame.lastPlayedAt ?? undefined,
+        completionPercent: syncedGame.completionPercent ?? undefined,
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
         lastSyncedAt: new Date(),
       },
@@ -678,7 +706,15 @@ export async function syncPlayStationLibraryForUser(userId: string) {
       where: { userId_gameId_status: { userId, gameId: game.id, status: UserGameStatus.OWNED } },
       select: { id: true, playtimeMinutes: true, playtimeSource: true },
     });
-    await applySyncedPlaytimeToActiveEntries({ userId, gameId: game.id, ownedEntryId: existingEntry?.id, syncedMinutes: syncedGame.playtimeMinutes });
+    await applySyncedProgressToRelatedEntries({
+      userId,
+      gameId: game.id,
+      ownedEntryId: existingEntry?.id,
+      syncedMinutes: syncedGame.playtimeMinutes,
+      completionPercent: syncedGame.completionPercent,
+      lastPlayedAt: syncedGame.lastPlayedAt,
+      rawData: syncedGame.rawData,
+    });
     const playtimeData = getSyncedPlaytimeData(existingEntry, syncedGame.playtimeMinutes);
     await prisma.userGameEntry.upsert({
       where: {
@@ -694,8 +730,8 @@ export async function syncPlayStationLibraryForUser(userId: string) {
         externalAccountId: playStationAccount.id,
         platformName: syncedGame.platformName ?? undefined,
         ...playtimeData,
-        lastPlayedAt: syncedGame.lastPlayedAt ?? null,
-        completionPercent: syncedGame.completionPercent ?? null,
+        lastPlayedAt: syncedGame.lastPlayedAt ?? undefined,
+        completionPercent: syncedGame.completionPercent ?? undefined,
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
         lastSyncedAt: new Date(),
       },
@@ -779,6 +815,26 @@ export async function syncXboxLibraryForUser(userId: string) {
       });
     }
 
+    const existingEntry = await prisma.userGameEntry.findUnique({
+      where: {
+        userId_gameId_status: {
+          userId,
+          gameId: game.id,
+          status: UserGameStatus.OWNED,
+        },
+      },
+      select: { id: true },
+    });
+    await applySyncedProgressToRelatedEntries({
+      userId,
+      gameId: game.id,
+      ownedEntryId: existingEntry?.id,
+      syncedMinutes: syncedGame.playtimeMinutes,
+      completionPercent: syncedGame.completionPercent,
+      lastPlayedAt: syncedGame.lastPlayedAt,
+      rawData: syncedGame.rawData,
+    });
+
     await prisma.userGameEntry.upsert({
       where: {
         userId_gameId_status: {
@@ -792,8 +848,8 @@ export async function syncXboxLibraryForUser(userId: string) {
         provider: ExternalProvider.XBOX,
         externalAccountId: xboxAccount.id,
         platformName: syncedGame.platformName ?? undefined,
-        completionPercent: syncedGame.completionPercent ?? null,
-        lastPlayedAt: syncedGame.lastPlayedAt ?? null,
+        completionPercent: syncedGame.completionPercent ?? undefined,
+        lastPlayedAt: syncedGame.lastPlayedAt ?? undefined,
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
         lastSyncedAt: new Date(),
       },

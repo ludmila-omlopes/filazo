@@ -129,13 +129,14 @@ export function estimatePlayStartDate(playtimeMinutes: number, minutesPerDay: nu
 }
 
 export function getPlayTimeBreakdown(entry: PlanningEntry) {
-  const totalMinutes = getTargetMinutes(entry.game);
-  if (totalMinutes === null) return null;
-  const remainingMinutes = getRemainingMinutes(entry) ?? totalMinutes;
+  const targetMinutes = getTargetMinutes(entry.game);
+  if (targetMinutes === null) return null;
+  const playedMinutes = Math.max(0, entry.playtimeMinutes ?? 0);
+  const remainingMinutes = getRemainingMinutes(entry) ?? targetMinutes;
   return {
-    totalMinutes,
+    totalMinutes: Math.max(targetMinutes, playedMinutes + remainingMinutes),
     remainingMinutes,
-    playedMinutes: Math.max(0, totalMinutes - remainingMinutes),
+    playedMinutes,
   };
 }
 
@@ -149,9 +150,7 @@ function getTargetMinutes(game: PlanningGame) {
 function getRemainingMinutes(entry: PlanningEntry) {
   const total = getTargetMinutes(entry.game);
   if (total === null) return null;
-  if (entry.completionPercent !== null && entry.completionPercent !== undefined) {
-    return Math.max(0, Math.round(total * (100 - entry.completionPercent) / 100));
-  }
+  if (entry.status === "COMPLETED" || entry.finishedAt) return 0;
   return Math.max(0, total - (entry.playtimeMinutes ?? 0));
 }
 
