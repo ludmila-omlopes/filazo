@@ -10,7 +10,7 @@ export type RemainingTimeEstimate = {
   remainingMinutes: number;
   totalMinutes: number;
   targetLabel: string;
-  basis: "completed" | "completion-percent" | "playtime" | "full-estimate";
+  basis: "completed" | "playtime" | "full-estimate";
 };
 
 type EstimateInput = {
@@ -80,19 +80,6 @@ export function estimateRemainingTime(
       totalMinutes: target.minutes,
       targetLabel: target.label,
       basis: "completed",
-    };
-  }
-
-  const completionPercent = entry.completionPercent;
-  if (completionPercent !== null && completionPercent !== undefined) {
-    return {
-      remainingMinutes: Math.max(
-        0,
-        Math.round(target.minutes * ((100 - completionPercent) / 100)),
-      ),
-      totalMinutes: target.minutes,
-      targetLabel: target.label,
-      basis: "completion-percent",
     };
   }
 

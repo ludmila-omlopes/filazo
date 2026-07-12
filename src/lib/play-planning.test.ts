@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { buildPlayProjections, estimatePlayStartDate, getBacklogEstimate, weeklyHoursFromOnboarding } from "./play-planning.ts";
+import { buildPlayProjections, estimatePlayStartDate, getBacklogEstimate, getPlayTimeBreakdown, weeklyHoursFromOnboarding } from "./play-planning.ts";
 
 const game = (minutes: number | null, releaseDate: Date | null = null) => ({
   name: "Game",
@@ -66,4 +66,23 @@ test("manual current-game start date overrides inference", () => {
   ], { now: new Date("2026-07-12T00:00:00Z"), weeklyHours: 7 });
   assert.equal(projections[0]?.startDate.toISOString().slice(0, 10), "2026-03-10");
   assert.equal(projections[0]?.approximate, false);
+});
+
+test("calendar playtime uses recorded minutes instead of achievement progress", () => {
+  const breakdown = getPlayTimeBreakdown({
+    id: "clair-obscur",
+    status: "PLAYING",
+    playtimeMinutes: 4407,
+    completionPercent: 32,
+    game: {
+      name: "Clair Obscur: Expedition 33",
+      hltbMainExtraMinutes: 2745,
+    },
+  });
+
+  assert.deepEqual(breakdown, {
+    totalMinutes: 4407,
+    playedMinutes: 4407,
+    remainingMinutes: 0,
+  });
 });

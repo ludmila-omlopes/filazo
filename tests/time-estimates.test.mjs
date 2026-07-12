@@ -6,16 +6,17 @@ import {
   isEntryFinished,
 } from "../src/lib/time-estimates.ts";
 
-test("remaining time uses completion percent when available", () => {
+test("remaining time ignores achievement progress when playtime is available", () => {
   const estimate = estimateRemainingTime(
     createEntry({
       completionPercent: 25,
+      playtimeMinutes: 180,
       hltbMainExtraMinutes: 1200,
     }),
   );
 
-  assert.equal(estimate?.remainingMinutes, 900);
-  assert.equal(estimate?.basis, "completion-percent");
+  assert.equal(estimate?.remainingMinutes, 1020);
+  assert.equal(estimate?.basis, "playtime");
   assert.equal(estimate?.targetLabel, "main + extras");
 });
 
@@ -71,8 +72,8 @@ test("100% achievements alone does not mean finished", () => {
   assert.equal(isEntryFinished(entry), false);
 
   const estimate = estimateRemainingTime(entry);
-  assert.equal(estimate?.basis, "completion-percent");
-  assert.equal(estimate?.remainingMinutes, 0);
+  assert.equal(estimate?.basis, "full-estimate");
+  assert.equal(estimate?.remainingMinutes, 1200);
 });
 
 test("isEntryFinished accepts COMPLETED status or finishedAt", () => {

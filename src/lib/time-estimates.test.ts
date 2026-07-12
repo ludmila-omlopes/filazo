@@ -50,7 +50,7 @@ test("estimateRemainingTime returns zero for finished entries", () => {
   assert.equal(estimate?.basis, "completed");
 });
 
-test("estimateRemainingTime uses completion percent before playtime", () => {
+test("estimateRemainingTime ignores achievement progress and uses playtime", () => {
   const estimate = estimateRemainingTime(
     createEntry({
       completionPercent: 25,
@@ -59,20 +59,20 @@ test("estimateRemainingTime uses completion percent before playtime", () => {
     }),
   );
 
-  assert.equal(estimate?.remainingMinutes, 75);
-  assert.equal(estimate?.basis, "completion-percent");
+  assert.equal(estimate?.remainingMinutes, 50);
+  assert.equal(estimate?.basis, "playtime");
 });
 
-test("estimateRemainingTime treats zero completion percent as tracked progress", () => {
+test("estimateRemainingTime does not treat achievement progress as story progress", () => {
   const estimate = estimateRemainingTime(
     createEntry({
-      completionPercent: 0,
+      completionPercent: 100,
       hltbMainStoryMinutes: 100,
     }),
   );
 
   assert.equal(estimate?.remainingMinutes, 100);
-  assert.equal(estimate?.basis, "completion-percent");
+  assert.equal(estimate?.basis, "full-estimate");
 });
 
 test("estimateRemainingTime falls back to playtime with a zero floor", () => {
