@@ -16,6 +16,7 @@ export type ProfileSearchParams = Promise<{
   platform?: string;
   includeDormant?: string;
   q?: string;
+  month?: string;
   connected?: string;
   synced?: string;
   imported?: string;
@@ -68,6 +69,10 @@ export function parseActiveTab(value: string | undefined): ProfileTab {
 
   if (value === "journal" || value === "diary") {
     return "journal";
+  }
+
+  if (value === "calendar") {
+    return "calendar";
   }
 
   if (

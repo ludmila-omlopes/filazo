@@ -44,6 +44,135 @@ const importSchema = z.object({
   mapping: z.string().min(1),
 });
 
+const plannedStartDateSchema = z.object({
+  entryId: z.string().cuid(),
+  plannedStartDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+const manualPlaytimeSchema = z.object({
+  entryId: z.string().cuid(),
+  hours: z.coerce.number().int().min(0).max(100000),
+  minutes: z.coerce.number().int().min(0).max(59),
+  slug: z.string().trim().min(1).max(180),
+});
+
+export async function saveManualPlaytimeAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
+  const parsed = manualPlaytimeSchema.safeParse({
+    entryId: formData.get("entryId"),
+    hours: formData.get("hours"),
+    minutes: formData.get("minutes"),
+    slug: formData.get("slug"),
+  });
+  if (!parsed.success) return;
+
+  const playtimeMinutes = parsed.data.hours * 60 + parsed.data.minutes;
+  const entry = await prisma.userGameEntry.findFirst({
+    where: { id: parsed.data.entryId, userId },
+    select: { id: true },
+  });
+  if (!entry) return;
+
+  await prisma.userGameEntry.update({
+    where: { id: parsed.data.entryId },
+    data: {
+      playtimeMinutes,
+      playtimeSource: "manual",
+      pendingPlaytimeMinutes: null,
+      pendingPlaytimeSyncedAt: null,
+    },
+  });
+  revalidatePath(`/games/${parsed.data.slug}`);
+  revalidatePath("/profile");
+}
+
+const manualStartedAtSchema = z.object({
+  entryId: z.string().cuid(),
+  manualStartedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  slug: z.string().trim().min(1).max(180),
+});
+
+export async function saveManualStartedAtAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
+  const parsed = manualStartedAtSchema.safeParse({
+    entryId: formData.get("entryId"),
+    manualStartedAt: formData.get("manualStartedAt"),
+    slug: formData.get("slug"),
+  });
+  if (!parsed.success) return;
+  const manualStartedAt = new Date(`${parsed.data.manualStartedAt}T00:00:00.000Z`);
+  if (manualStartedAt.getTime() > Date.now()) return;
+  await prisma.userGameEntry.updateMany({
+    where: { id: parsed.data.entryId, userId },
+    data: { manualStartedAt, startedAt: manualStartedAt },
+  });
+  revalidatePath(`/games/${parsed.data.slug}`);
+  revalidatePath("/profile");
+}
+
+const syncedPlaytimeDecisionSchema = z.object({
+  decision: z.enum(["accept", "keep"]),
+  entryId: z.string().cuid(),
+  slug: z.string().trim().min(1).max(180),
+});
+
+export async function resolveSyncedPlaytimeAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
+  const parsed = syncedPlaytimeDecisionSchema.safeParse({
+    decision: formData.get("decision"),
+    entryId: formData.get("entryId"),
+    slug: formData.get("slug"),
+  });
+  if (!parsed.success) return;
+
+  const entry = await prisma.userGameEntry.findFirst({
+    where: { id: parsed.data.entryId, userId },
+    select: { pendingPlaytimeMinutes: true },
+  });
+  if (!entry || entry.pendingPlaytimeMinutes === null) return;
+  await prisma.userGameEntry.update({
+    where: { id: parsed.data.entryId },
+    data: parsed.data.decision === "accept"
+      ? {
+          playtimeMinutes: entry.pendingPlaytimeMinutes,
+          playtimeSource: "sync",
+          pendingPlaytimeMinutes: null,
+          pendingPlaytimeSyncedAt: null,
+        }
+      : {
+          pendingPlaytimeMinutes: null,
+          pendingPlaytimeSyncedAt: null,
+        },
+  });
+  revalidatePath(`/games/${parsed.data.slug}`);
+  revalidatePath("/profile");
+}
+
+export async function savePlayingNextDateAction(formData: FormData) {
+  const userId = await getSessionUserId();
+  if (!userId) redirect("/login");
+  const parsed = plannedStartDateSchema.safeParse({
+    entryId: formData.get("entryId"),
+    plannedStartDate: formData.get("plannedStartDate"),
+  });
+  if (!parsed.success) return;
+
+  const plannedStartDate = new Date(`${parsed.data.plannedStartDate}T00:00:00.000Z`);
+  const result = await prisma.userGameEntry.updateMany({
+    where: {
+      id: parsed.data.entryId,
+      userId,
+      status: UserGameStatus.PLAYING_NEXT,
+      playingNextSlot: { not: null },
+    },
+    data: { plannedStartDate },
+  });
+  if (result.count) revalidatePath("/profile");
+}
+
 function extractNpssoToken(value: unknown) {
   const rawValue = String(value ?? "").trim();
   if (!rawValue) {
@@ -1398,9 +1527,10 @@ export async function saveOnboardingStepAction(formData: FormData) {
     redirect("/login?error=Sign%20in%20before%20saving%20profile%20preferences.");
   }
 
+  const returnTo = String(formData.get("returnTo") ?? "");
   const parsed = parseOnboardingStepData(formData);
   if (!parsed.ok) {
-    redirect("/profile?tab=setup&error=Those%20setup%20answers%20could%20not%20be%20saved.");
+    redirect(returnTo === "calendar" ? "/profile?tab=calendar&error=Preferences%20could%20not%20be%20saved." : "/profile?tab=setup&error=Those%20setup%20answers%20could%20not%20be%20saved.");
   }
 
   const user = await prisma.user.findUnique({
@@ -1425,6 +1555,10 @@ export async function saveOnboardingStepAction(formData: FormData) {
   });
 
   revalidatePath("/profile");
+
+  if (returnTo === "calendar") {
+    redirect("/profile?tab=calendar&onboarding=updated");
+  }
 
   const nextStep = getNextSetupStep(parsed.step);
   if (nextStep) {

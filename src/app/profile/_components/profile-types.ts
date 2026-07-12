@@ -21,6 +21,7 @@ export type ProfileTab =
   | "overview"
   | "integrations"
   | "games"
+  | "calendar"
   | "journal"
   | "playerProfile"
   | "assistant"

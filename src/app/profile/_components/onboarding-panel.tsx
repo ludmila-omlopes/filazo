@@ -246,6 +246,26 @@ function RhythmStep({
   );
 }
 
+export function CalendarRhythmForm({ locale, profile }: { locale: Locale; profile: ProfileData }) {
+  const t = createTranslator(locale);
+  const answers = readAnswers(profile);
+  return <form action={saveOnboardingStepAction} className="grid gap-5">
+    <input name="step" type="hidden" value="rhythm" />
+    <input name="returnTo" type="hidden" value="calendar" />
+    <label className="grid gap-2">
+      <span className="text-sm font-semibold">{t("setup.playFrequency")}</span>
+      <select autoComplete="off" className="min-h-11 rounded-inner border border-edge bg-canvas px-3 text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" defaultValue={answers.playFrequency ?? ""} name="playFrequency">
+        {getPlayFrequencyOptions(t).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+      </select>
+    </label>
+    <fieldset className="grid gap-2">
+      <legend className="text-sm font-semibold">{t("setup.playWindows")}</legend>
+      <CheckboxGroup name="playTimes" options={getPlayTimeOptions(t)} values={answers.playTimes} />
+    </fieldset>
+    <div className="flex justify-end border-t border-edge pt-4"><Button type="submit">{t("profile.calendar.saveRhythm")}</Button></div>
+  </form>;
+}
+
 function PlatformsStep({
   answers,
   locale,
