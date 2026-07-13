@@ -48,6 +48,19 @@ enum ImportRowStatus {
   FAILED
 }
 
+enum PlatformSyncTrigger {
+  MANUAL
+  SCHEDULED
+}
+
+enum PlatformSyncRunStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
 enum BacklogFriction {
   CHOICE_OVERLOAD
   TIME_COMMITMENT
@@ -118,13 +131,53 @@ model ExternalAccount {
   profileUrl        String?
   metadata          Json?
   lastSyncedAt      DateTime?
+  nextSyncAt        DateTime?
+  lastSyncAttemptAt DateTime?
+  syncFailureCount  Int              @default(0)
+  lastSyncErrorCode String?
+  syncLeaseToken    String?
+  syncLeaseExpiresAt DateTime?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   gameEntries       UserGameEntry[]
+  platformSyncRuns  PlatformSyncRun[]
 
   @@unique([provider, providerAccountId])
   @@index([userId, provider])
+  @@index([provider, nextSyncAt])
+  @@index([syncLeaseExpiresAt])
+}
+
+model PlatformSyncRun {
+  id                String                @id @default(cuid())
+  externalAccountId String
+  provider          ExternalProvider
+  trigger           PlatformSyncTrigger
+  status            PlatformSyncRunStatus @default(PENDING)
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  leaseExpiresAt    DateTime?
+  attempt           Int                   @default(1)
+  syncedCount       Int?
+  errorCode         String?
+  errorMessage      String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  externalAccount   ExternalAccount       @relation(fields: [externalAccountId], references: [id], onDelete: Cascade)
+
+  @@index([externalAccountId, createdAt])
+  @@index([provider, status, createdAt])
+  @@index([status, leaseExpiresAt])
+}
+
+model PlatformSyncSchedulerState {
+  id              String    @id
+  leaseToken      String?
+  leaseExpiresAt  DateTime?
+  lastTriggeredAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Game {

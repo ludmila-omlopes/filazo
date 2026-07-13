@@ -56,6 +56,15 @@ function getSteamApiKey() {
   return process.env.STEAM_API_KEY;
 }
 
+function createSteamApiError(message: string, response: Response) {
+  const error = new Error(`${message} (${response.status}).`) as Error & {
+    retryAfter?: string;
+  };
+  const retryAfter = response.headers.get("retry-after");
+  if (retryAfter) error.retryAfter = retryAfter;
+  return error;
+}
+
 export function isSteamConfigured() {
   return Boolean(getSteamApiKey());
 }
@@ -117,6 +126,7 @@ export async function verifySteamOpenIdCallback(
 
 async function fetchSteamPlayerSummary(
   steamId: string,
+  options: { signal?: AbortSignal } = {},
 ): Promise<ProviderProfile> {
   const apiKey = getSteamApiKey();
   if (!apiKey) {
@@ -138,10 +148,11 @@ async function fetchSteamPlayerSummary(
 
   const response = await fetch(url, {
     cache: "no-store",
+    signal: options.signal,
   });
 
   if (!response.ok) {
-    throw new Error("Could not fetch Steam profile.");
+    throw createSteamApiError("Could not fetch Steam profile", response);
   }
 
   const data = (await response.json()) as SteamPlayerSummaryResponse;
@@ -163,6 +174,7 @@ async function fetchSteamPlayerSummary(
 
 async function fetchSteamOwnedGames(
   steamId: string,
+  options: { signal?: AbortSignal } = {},
 ): Promise<SyncedLibraryGame[]> {
   const apiKey = getSteamApiKey();
   if (!apiKey) {
@@ -181,10 +193,11 @@ async function fetchSteamOwnedGames(
 
   const response = await fetch(url, {
     cache: "no-store",
+    signal: options.signal,
   });
 
   if (!response.ok) {
-    throw new Error("Could not fetch owned games from Steam.");
+    throw createSteamApiError("Could not fetch owned games from Steam", response);
   }
 
   const data = (await response.json()) as SteamOwnedGamesResponse;
@@ -192,6 +205,7 @@ async function fetchSteamOwnedGames(
   const achievementCompletions = await fetchSteamAchievementCompletions(
     steamId,
     games.map((game) => game.appid),
+    options,
   );
 
   return games.map((game) => {
@@ -232,16 +246,20 @@ function parseSteamLastPlayedAt(value: number | undefined) {
 async function fetchSteamAchievementCompletions(
   steamId: string,
   appIds: number[],
+  options: { signal?: AbortSignal } = {},
 ) {
   const completions = new Map<number, SteamAchievementCompletion>();
   const concurrency = 6;
 
   for (let index = 0; index < appIds.length; index += concurrency) {
+    if (options.signal?.aborted) {
+      throw new Error("Steam synchronization was aborted.");
+    }
     const batch = appIds.slice(index, index + concurrency);
     const results = await Promise.all(
       batch.map(async (appId) => [
         appId,
-        await fetchSteamAchievementCompletion(steamId, appId),
+        await fetchSteamAchievementCompletion(steamId, appId, options),
       ] as const),
     );
 
@@ -256,6 +274,7 @@ async function fetchSteamAchievementCompletions(
 export async function fetchSteamAchievementCompletion(
   steamId: string,
   appId: number,
+  options: { signal?: AbortSignal } = {},
 ): Promise<SteamAchievementCompletion> {
   const apiKey = getSteamApiKey();
   if (!apiKey) {
@@ -272,6 +291,7 @@ export async function fetchSteamAchievementCompletion(
   try {
     const response = await fetch(url, {
       cache: "no-store",
+      signal: options.signal,
     });
 
     if (!response.ok) {
@@ -302,7 +322,10 @@ export async function fetchSteamAchievementCompletion(
       totalAchievements: achievements.length,
       reason: "available",
     };
-  } catch {
+  } catch (error) {
+    if (options.signal?.aborted) {
+      throw error;
+    }
     return createUnavailableAchievementCompletion();
   }
 }

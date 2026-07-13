@@ -12,9 +12,6 @@ import { z } from "zod";
 import {
   importCsvForUser,
   resolveCatalogGame,
-  syncPlayStationLibraryForUser,
-  syncSteamLibraryForUser,
-  syncXboxLibraryForUser,
 } from "@/lib/catalog";
 import { parseCsvColumnMappingJson } from "@/lib/csv-import-mapping";
 import { getIgdbGameById } from "@/lib/igdb";
@@ -37,6 +34,7 @@ import { getRequestLocale } from "@/lib/request-locale";
 import { syncUserReviews } from "@/lib/reviews";
 import { getSessionUserId } from "@/lib/session";
 import { detectFinishedGamesForUser } from "@/lib/story-completion";
+import { runManualPlatformSync } from "@/lib/platform-sync";
 
 const importSchema = z.object({
   fileName: z.string().min(1),
@@ -1033,15 +1031,27 @@ export async function syncSteamLibraryAction() {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needSteamLogin"))}`);
   }
 
-  let syncedCount: number;
+  let result: Awaited<ReturnType<typeof runManualPlatformSync>>;
   try {
-    const result = await syncSteamLibraryForUser(userId);
-    syncedCount = result.syncedCount;
+    result = await runManualPlatformSync({
+      userId,
+      provider: ExternalProvider.STEAM,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : t("profileAction.steamSyncFailed");
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
+  if (result.kind !== "succeeded") {
+    const message =
+      result.kind === "skipped" && result.reason !== "not-connected"
+        ? t("profile.sources.syncing")
+        : t("profileAction.steamSyncFailed");
+    redirect(
+      `/profile?tab=integrations&error=${encodeURIComponent(message)}`,
+    );
+  }
+  const syncedCount = result.syncedCount;
 
   revalidatePath("/profile");
   revalidatePath("/");
@@ -1117,10 +1127,12 @@ export async function syncPlayStationLibraryAction() {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needPlayStationSyncLogin"))}`);
   }
 
-  let syncedCount: number;
+  let result: Awaited<ReturnType<typeof runManualPlatformSync>>;
   try {
-    const result = await syncPlayStationLibraryForUser(userId);
-    syncedCount = result.syncedCount;
+    result = await runManualPlatformSync({
+      userId,
+      provider: ExternalProvider.PLAYSTATION,
+    });
   } catch (error) {
     const message =
       error instanceof Error
@@ -1128,6 +1140,16 @@ export async function syncPlayStationLibraryAction() {
         : t("profileAction.playStationSyncFailed");
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
+  if (result.kind !== "succeeded") {
+    const message =
+      result.kind === "skipped" && result.reason !== "not-connected"
+        ? t("profile.sources.syncing")
+        : t("profileAction.playStationSyncFailed");
+    redirect(
+      `/profile?tab=integrations&error=${encodeURIComponent(message)}`,
+    );
+  }
+  const syncedCount = result.syncedCount;
 
   revalidatePath("/profile");
   revalidatePath("/");
@@ -1142,15 +1164,27 @@ export async function syncXboxLibraryAction() {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needXboxSyncLogin"))}`);
   }
 
-  let syncedCount: number;
+  let result: Awaited<ReturnType<typeof runManualPlatformSync>>;
   try {
-    const result = await syncXboxLibraryForUser(userId);
-    syncedCount = result.syncedCount;
+    result = await runManualPlatformSync({
+      userId,
+      provider: ExternalProvider.XBOX,
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : t("profileAction.xboxSyncFailed");
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
+  if (result.kind !== "succeeded") {
+    const message =
+      result.kind === "skipped" && result.reason !== "not-connected"
+        ? t("profile.sources.syncing")
+        : t("profileAction.xboxSyncFailed");
+    redirect(
+      `/profile?tab=integrations&error=${encodeURIComponent(message)}`,
+    );
+  }
+  const syncedCount = result.syncedCount;
 
   revalidatePath("/profile");
   revalidatePath("/");

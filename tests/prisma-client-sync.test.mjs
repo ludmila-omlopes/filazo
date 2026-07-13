@@ -33,6 +33,12 @@ test("generated Prisma client includes synced Steam user game fields", () => {
   const journalMediaModel = Prisma.dmmf.datamodel.models.find(
     (item) => item.name === "JournalMedia",
   );
+  const externalAccountModel = Prisma.dmmf.datamodel.models.find(
+    (item) => item.name === "ExternalAccount",
+  );
+  const platformSyncRunModel = Prisma.dmmf.datamodel.models.find(
+    (item) => item.name === "PlatformSyncRun",
+  );
 
   assert.ok(model, "UserGameEntry model should exist in generated Prisma client");
   assert.ok(
@@ -91,6 +97,18 @@ test("generated Prisma client includes synced Steam user game fields", () => {
   assert.ok(reviewModel, "UserGameReview model should exist.");
   assert.ok(journalModel, "GameJournalEntry model should exist.");
   assert.ok(journalMediaModel, "JournalMedia model should exist.");
+  assert.ok(externalAccountModel, "ExternalAccount model should exist.");
+  assert.ok(platformSyncRunModel, "PlatformSyncRun model should exist.");
+  assert.ok(
+    externalAccountModel.fields.some((field) => field.name === "nextSyncAt"),
+    "Run npm run db:generate after adding platform sync scheduling fields.",
+  );
+  assert.ok(
+    externalAccountModel.fields.some(
+      (field) => field.name === "syncLeaseExpiresAt",
+    ),
+    "Run npm run db:generate after adding the platform sync lease.",
+  );
   assert.ok(
     userModel.fields.some((field) => field.name === "onboardingAnswers"),
     "Run npm run db:generate after changing prisma/schema.prisma.",

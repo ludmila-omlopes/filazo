@@ -393,6 +393,8 @@ const messages = {
     "profile.sources.disconnected": "Disconnected",
     "profile.sources.notSynced": "Not synced",
     "profile.sources.synced": "Synced {date}",
+    "profile.sources.syncing": "Syncing…",
+    "profile.sources.reconnectNeeded": "Reconnect needed",
     "profile.sources.tokenGuide": "How to get the token",
     "profile.sources.tokenStep1":
       "1. Sign in to PlayStation in your browser.",
@@ -2372,6 +2374,8 @@ const messages = {
       "Entre antes de gerar um perfil de jogador.",
     "assistantAction.profileFailed":
       "A geração do perfil de jogador não terminou.",
+    "profile.sources.syncing": "Sincronizando...",
+    "profile.sources.reconnectNeeded": "Reconectar necessario",
   },
 } satisfies Record<string, Record<string, string>>;
 
