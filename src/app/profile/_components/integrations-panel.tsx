@@ -85,6 +85,28 @@ function getSourceState(account: ProviderAccount, locale: Locale) {
     };
   }
 
+  if (
+    account.syncLeaseExpiresAt &&
+    account.syncLeaseExpiresAt.getTime() > Date.now()
+  ) {
+    return {
+      label: t("profile.sources.syncing"),
+      tone: "bg-sky-soft text-ink border-sky/50",
+      dot: "bg-sky",
+    };
+  }
+
+  if (
+    account.lastSyncErrorCode === "AUTH" ||
+    account.lastSyncErrorCode === "CONFIGURATION"
+  ) {
+    return {
+      label: t("profile.sources.reconnectNeeded"),
+      tone: "bg-clay-soft text-ink border-clay/35",
+      dot: "bg-clay",
+    };
+  }
+
   if (!account.lastSyncedAt) {
     return {
       label: t("profile.sources.notSynced"),

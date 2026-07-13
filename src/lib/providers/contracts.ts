@@ -57,8 +57,14 @@ export type EnrichedReviewScore = {
 
 export interface ProviderAccountAdapter {
   provider: "STEAM";
-  fetchProfile(providerAccountId: string): Promise<ProviderProfile>;
-  syncOwnedLibrary(providerAccountId: string): Promise<SyncedLibraryGame[]>;
+  fetchProfile(
+    providerAccountId: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<ProviderProfile>;
+  syncOwnedLibrary(
+    providerAccountId: string,
+    options?: { signal?: AbortSignal },
+  ): Promise<SyncedLibraryGame[]>;
 }
 
 export interface CatalogMetadataAdapter {

@@ -3,6 +3,7 @@ import {
   ExternalProvider,
   ImportJobStatus,
   ImportRowStatus,
+  type ExternalAccount,
   type Prisma,
   UserGameStatus,
 } from "@prisma/client";
@@ -19,10 +20,12 @@ import {
   canonicalizePlayStationGameTitle,
   getPlayStationArtworkFallback,
 } from "@/lib/playstation-catalog";
-import { syncPlayStationLibraryForAccount } from "@/lib/playstation";
+import {
+  syncPlayStationLibraryForAccount as fetchPlayStationLibraryForAccount,
+} from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
 import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
-import { syncXboxLibraryForAccount } from "@/lib/xbox";
+import { syncXboxLibraryForAccount as fetchXboxLibraryForAccount } from "@/lib/xbox";
 import type { CsvColumnMapping } from "@/lib/csv-import-mapping";
 import { getBacklogEstimate } from "@/lib/play-planning";
 import {
@@ -56,6 +59,10 @@ type NormalizedImportRow = {
   notes?: string | null;
   externalId?: string | null;
   rawData: Record<string, unknown>;
+};
+
+type PlatformSyncExecutionOptions = {
+  signal?: AbortSignal;
 };
 
 function isJsonRecord(
@@ -540,21 +547,63 @@ async function applySyncedProgressToRelatedEntries({
   }
 }
 
-export async function syncSteamLibraryForUser(userId: string) {
-  const steamAccount = await prisma.externalAccount.findFirst({
+async function findPlatformAccountForUser(
+  userId: string,
+  provider: ExternalProvider,
+) {
+  return prisma.externalAccount.findFirst({
     where: {
       userId,
-      provider: ExternalProvider.STEAM,
+      provider,
     },
   });
+}
+
+function throwIfPlatformSyncAborted(signal: AbortSignal | undefined) {
+  if (signal?.aborted) {
+    throw new Error("Platform synchronization was aborted.");
+  }
+}
+
+export async function syncPlatformLibraryForAccount(
+  account: ExternalAccount,
+  options: PlatformSyncExecutionOptions = {},
+) {
+  throwIfPlatformSyncAborted(options.signal);
+  switch (account.provider) {
+    case ExternalProvider.STEAM:
+      return syncSteamLibraryForAccount(account, options);
+    case ExternalProvider.PLAYSTATION:
+      return syncPlayStationLibraryForAccount(account, options);
+    case ExternalProvider.XBOX:
+      return syncXboxLibraryForAccount(account, options);
+    default:
+      throw new Error("This platform does not support library synchronization.");
+  }
+}
+
+export async function syncSteamLibraryForUser(userId: string) {
+  const steamAccount = await findPlatformAccountForUser(
+    userId,
+    ExternalProvider.STEAM,
+  );
 
   if (!steamAccount) {
     throw new Error("Connect a Steam account before syncing your library.");
   }
 
+  return syncPlatformLibraryForAccount(steamAccount);
+}
+
+async function syncSteamLibraryForAccount(
+  steamAccount: ExternalAccount,
+  options: PlatformSyncExecutionOptions,
+) {
+  const userId = steamAccount.userId;
+
   const [profile, games] = await Promise.all([
-    steamAdapter.fetchProfile(steamAccount.providerAccountId),
-    steamAdapter.syncOwnedLibrary(steamAccount.providerAccountId),
+    steamAdapter.fetchProfile(steamAccount.providerAccountId, options),
+    steamAdapter.syncOwnedLibrary(steamAccount.providerAccountId, options),
   ]);
 
   await prisma.user.update({
@@ -573,13 +622,13 @@ export async function syncSteamLibraryForUser(userId: string) {
       avatarUrl: profile.avatarUrl ?? undefined,
       profileUrl: profile.profileUrl ?? undefined,
       metadata: profile.metadata as Prisma.InputJsonValue | undefined,
-      lastSyncedAt: new Date(),
     },
   });
 
   let syncedCount = 0;
 
   for (const syncedGame of games) {
+    throwIfPlatformSyncAborted(options.signal);
     const game = await resolveCatalogGame({
       title: syncedGame.title,
       platformName: syncedGame.platformName,
@@ -649,24 +698,33 @@ export async function syncSteamLibraryForUser(userId: string) {
 }
 
 export async function syncPlayStationLibraryForUser(userId: string) {
-  const playStationAccount = await prisma.externalAccount.findFirst({
-    where: {
-      userId,
-      provider: ExternalProvider.PLAYSTATION,
-    },
-  });
+  const playStationAccount = await findPlatformAccountForUser(
+    userId,
+    ExternalProvider.PLAYSTATION,
+  );
 
   if (!playStationAccount) {
     throw new Error("Connect PlayStation before syncing your played catalog.");
   }
 
-  const { profile, games } = await syncPlayStationLibraryForAccount(
+  return syncPlatformLibraryForAccount(playStationAccount);
+}
+
+async function syncPlayStationLibraryForAccount(
+  playStationAccount: ExternalAccount,
+  options: PlatformSyncExecutionOptions,
+) {
+  const userId = playStationAccount.userId;
+
+  const { profile, games } = await fetchPlayStationLibraryForAccount(
     playStationAccount,
   );
+  throwIfPlatformSyncAborted(options.signal);
 
   let syncedCount = 0;
 
   for (const syncedGame of games) {
+    throwIfPlatformSyncAborted(options.signal);
     const providerGameIds = Array.from(
       new Set([syncedGame.providerGameId, ...(syncedGame.providerGameIds ?? [])]),
     );
@@ -756,7 +814,6 @@ export async function syncPlayStationLibraryForUser(userId: string) {
   }
 
   await prunePlayStationNonGameEntries(playStationAccount.id);
-
   return {
     syncedCount,
     profile,
@@ -764,22 +821,31 @@ export async function syncPlayStationLibraryForUser(userId: string) {
 }
 
 export async function syncXboxLibraryForUser(userId: string) {
-  const xboxAccount = await prisma.externalAccount.findFirst({
-    where: {
-      userId,
-      provider: ExternalProvider.XBOX,
-    },
-  });
+  const xboxAccount = await findPlatformAccountForUser(
+    userId,
+    ExternalProvider.XBOX,
+  );
 
   if (!xboxAccount) {
     throw new Error("Connect Xbox before syncing your played catalog.");
   }
 
-  const { profile, games } = await syncXboxLibraryForAccount(xboxAccount);
+  return syncPlatformLibraryForAccount(xboxAccount);
+}
+
+async function syncXboxLibraryForAccount(
+  xboxAccount: ExternalAccount,
+  options: PlatformSyncExecutionOptions,
+) {
+  const userId = xboxAccount.userId;
+
+  const { profile, games } = await fetchXboxLibraryForAccount(xboxAccount);
+  throwIfPlatformSyncAborted(options.signal);
 
   let syncedCount = 0;
 
   for (const syncedGame of games) {
+    throwIfPlatformSyncAborted(options.signal);
     const providerGameIds = Array.from(
       new Set([syncedGame.providerGameId, ...(syncedGame.providerGameIds ?? [])]),
     );

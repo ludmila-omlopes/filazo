@@ -767,7 +767,6 @@ export async function syncPlayStationLibraryForAccount(
       avatarUrl: profileResult.profile.avatarUrl ?? undefined,
       profileUrl: profileResult.profile.profileUrl ?? undefined,
       metadata: nextMetadata as Prisma.InputJsonValue,
-      lastSyncedAt: new Date(),
     },
   });
 

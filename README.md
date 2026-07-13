@@ -43,6 +43,7 @@ The app is centered on a canonical `Game` record.
 - `UserGameReview` stores imported provider reviews tied to both a user entry and canonical game
 - `GameJournalEntry` and `JournalMedia` store per-game journal notes, screenshots, voice-note metadata, transcripts, and generated recaps
 - `ExternalAccount` stores connected provider accounts like Steam, PlayStation, and Xbox
+- `PlatformSyncRun` records sanitized manual and scheduled platform-sync outcomes; an account lease, next due time, failure count, and last safe error code live on `ExternalAccount`
 - `BetaTesterApplication` stores Google-authenticated beta tester requests, approval status, admin justification, and the one-year access expiry for approved testers
 - PlayStation refresh tokens are encrypted in `ExternalAccount.metadata`; NPSSO values are exchanged and then discarded
 - `ImportJob` and `ImportRow` keep an audit trail of CSV and photo imports
@@ -56,6 +57,7 @@ This means multiple providers can eventually point to the same internal game ins
 - Admin-only beta review area for `ludmila.omlopes@gmail.com`, with approve/reject decisions and required justification
 - English and Portuguese (Brazil) UI with a header language switcher
 - Dedicated profile integrations area for connecting, syncing, and disconnecting external accounts
+- Optional, feature-flagged periodic Steam, PlayStation, and Xbox synchronization with a PostgreSQL lease shared by manual and scheduled runs
 - Steam OpenID sign-in
 - Steam owned games sync with playtime, last played date, and achievement-based completion percentages when Steam exposes the data
 - PlayStation connection through NPSSO with sync for PS4/PS5 purchased games, played trophy titles, and trophy progress
@@ -112,6 +114,20 @@ BLOB_READ_WRITE_TOKEN=""
 # Steam
 STEAM_API_KEY=""
 
+# Automated platform-library sync. It remains disabled until the production
+# scheduler and CRON_SECRET have been configured and verified.
+CRON_SECRET=""
+PLATFORM_SYNC_ENABLED="false"
+PLATFORM_SYNC_STEAM_ENABLED="true"
+PLATFORM_SYNC_PLAYSTATION_ENABLED="true"
+PLATFORM_SYNC_XBOX_ENABLED="true"
+PLATFORM_SYNC_BATCH_SIZE="6"
+PLATFORM_SYNC_MAX_CONCURRENCY="2"
+PLATFORM_SYNC_ACCOUNT_TIMEOUT_MS="45000"
+PLATFORM_SYNC_RUN_BUDGET_MS="90000"
+PLATFORM_SYNC_JITTER_MINUTES="90"
+PLATFORM_SYNC_SCHEDULER_RATE_LIMIT_SECONDS="60"
+
 # Google login
 GOOGLE_CLIENT_ID=""
 GOOGLE_CLIENT_SECRET=""
@@ -167,6 +183,9 @@ Notes:
 - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` enable the Google button in the login popup and the beta access login. Add both `${APP_URL}/api/auth/google/callback` and `${APP_URL}/api/auth/youtube/callback` as authorized redirect URIs in Google Cloud. The beta access flow uses Google identity scopes only (`openid email profile`), which avoids the blocked-app behavior triggered by unnecessary YouTube scopes.
 - `RESEND_API_KEY` and `BETA_APPROVAL_FROM_EMAIL` enable automatic approval emails when an admin approves a beta tester. `BETA_APPROVAL_REPLY_TO` is optional. `BETA_DISCORD_INVITE_URL` adds the beta Discord invite to the approval email. If Resend is not configured, approvals still succeed and the app logs that the email was skipped.
 - `STEAM_API_KEY` is required for owned library sync. Steam sign-in itself uses OpenID.
+- `CRON_SECRET` must be a distinct, high-entropy production secret. The internal scheduler endpoint accepts only `GET /api/internal/platform-sync` with `Authorization: Bearer <CRON_SECRET>` and rejects query parameters. Never put this secret in a URL, client code, logs, or monitoring labels.
+- `PLATFORM_SYNC_ENABLED` is deliberately `false` by default. When enabled, each provider's **automatic** sync can still be paused with its own `PLATFORM_SYNC_*_ENABLED` flag; manual refresh remains available. A successful manual or scheduled sync schedules the next automatic attempt at least 24 hours later plus jitter; manual sync bypasses that 24-hour window but shares the lease and has a five-minute cooldown.
+- Scheduled work is bounded by the batch, global-concurrency, account-timeout, and run-budget settings above. Failed accounts use persisted exponential backoff, honoring a detectable retry delay, while authentication/configuration failures wait seven days instead of retrying aggressively. Runs retain only sanitized, 280-character error messages and are pruned after 90 days.
 - PlayStation sync does not require an app key. Users provide an NPSSO token in the profile page; the app exchanges it for PlayStation API tokens, stores encrypted refresh/access tokens, and does not store the NPSSO.
 - `XBOX_CLIENT_ID` is required for Xbox account sync. Register a Microsoft OAuth app for personal Microsoft accounts and add `${APP_URL}/api/auth/xbox/callback` as a web redirect URI. `XBOX_CLIENT_SECRET` is recommended for web app token exchange.
 - Xbox sync stores encrypted Microsoft refresh/access tokens in `ExternalAccount.metadata`. It imports Xbox achievement-history and recent-title-history records, not a guaranteed complete ownership library; Xbox CSV remains the fallback for owned games with no achievement activity.
@@ -258,6 +277,31 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/filazo?schema=public"
 Optional integrations still degrade independently: missing IGDB credentials only
 skip metadata enrichment, and missing `STEAM_API_KEY` only blocks owned-library
 sync after Steam sign-in.
+
+### Automated platform sync on Vercel
+
+Production is configured for Vercel Cron through [`vercel.json`](./vercel.json),
+which invokes the internal route hourly. Vercel calls cron routes with `GET` and
+automatically supplies `Authorization: Bearer <CRON_SECRET>` when that secret is
+set in the project. The route uses a database-backed scheduler lease and rate
+limit because Vercel can deliver overlapping or duplicate invocations.
+
+The hourly schedule requires a Vercel plan that permits hourly cron jobs; Vercel
+Hobby permits at most one run per day. Do not enable `PLATFORM_SYNC_ENABLED`
+until the production plan, function duration, `CRON_SECRET`, and the deployed
+cron invocation have been verified. The default 90-second invocation budget is
+intentionally below typical function limits, and the implementation starts only
+a small batch per invocation.
+
+For a local smoke test after migrating the database, set a temporary local
+`CRON_SECRET` and call the route without a query string:
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3001/api/internal/platform-sync
+```
+
+The response contains only aggregate counts. It never includes user IDs,
+provider account IDs, tokens, game titles, or provider payloads.
 
 ## Available Scripts
 

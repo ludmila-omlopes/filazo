@@ -264,8 +264,12 @@ async function requestJson<T>(
   const response = await fetch(url, init);
 
   if (!response.ok) {
-    const body = await response.text();
-    throw new Error(`${init.errorMessage} (${response.status}): ${body}`);
+    const error = new Error(`${init.errorMessage} (${response.status}).`) as Error & {
+      retryAfter?: string;
+    };
+    const retryAfter = response.headers.get("retry-after");
+    if (retryAfter) error.retryAfter = retryAfter;
+    throw error;
   }
 
   return response.json() as Promise<T>;
@@ -758,7 +762,6 @@ export async function syncXboxLibraryForAccount(account: ExternalAccount) {
       avatarUrl: profile.avatarUrl ?? undefined,
       profileUrl: profile.profileUrl ?? undefined,
       metadata: nextMetadata as Prisma.InputJsonValue,
-      lastSyncedAt: new Date(),
     },
   });
 
