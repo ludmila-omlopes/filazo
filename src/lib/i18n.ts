@@ -465,6 +465,10 @@ const messages = {
     "profile.currentPlaying.description":
       "Pick at most 3 games. It's better for you, trust me.",
     "profile.currentPlaying.inView": "{count} of 3 in view",
+    "profile.currentPlaying.similarGenre.two":
+      "Two {genre} games are close by. Want to leave room for a little variety?",
+    "profile.currentPlaying.similarGenre.three":
+      "All three picks share {genre}. Keeping them is fine; a different kind of game could give the rotation more breathing room.",
     "profile.currentPlaying.spot": "Spot {slot}",
     "profile.currentPlaying.openTitle": "Open for a game",
     "profile.currentPlaying.openBody":
@@ -1648,6 +1652,10 @@ const messages = {
     "profile.currentPlaying.description":
       "escolha no máximo 3 jogos. É melhor pra você, confia",
     "profile.currentPlaying.inView": "{count} de 3 em vista",
+    "profile.currentPlaying.similarGenre.two":
+      "Você deixou 2 jogos de {genre} por perto. Que tal abrir espaço para um pouco de variedade?",
+    "profile.currentPlaying.similarGenre.three":
+      "Os 3 jogos têm {genre} em comum. Tudo bem manter assim; se quiser, algo diferente pode dar mais respiro à rotação.",
     "profile.currentPlaying.spot": "Espaço {slot}",
     "profile.currentPlaying.openTitle": "Aberto para um jogo",
     "profile.currentPlaying.openBody":
