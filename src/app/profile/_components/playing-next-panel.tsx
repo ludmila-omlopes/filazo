@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/section-header";
+import { readStringList } from "@/lib/game-metadata";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { formatNumber, formatTimeEstimate } from "@/lib/utils";
 import {
@@ -52,28 +53,6 @@ type SearchResult = {
   isOwned: boolean;
   isQueued: boolean;
 };
-
-function readStringList(value: unknown): string[] {
-  if (!value) {
-    return [];
-  }
-
-  if (typeof value === "string") {
-    try {
-      return readStringList(JSON.parse(value));
-    } catch {
-      return [value];
-    }
-  }
-
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.filter(
-    (item): item is string => typeof item === "string" && item.trim().length > 0,
-  );
-}
 
 function getGameEstimateMinutes(entry: PlayingNextEntry) {
   return (

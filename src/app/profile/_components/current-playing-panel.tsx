@@ -31,7 +31,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/section-header";
+import { getSharedGameGenre } from "@/lib/game-metadata";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { formatNumber } from "@/lib/utils";
 import {
@@ -717,6 +719,7 @@ export function CurrentPlayingPanel({
       return entry ? [[slot, entry] as const] : [];
     }),
   );
+  const sharedGenre = getSharedGameGenre(selectedEntriesBySlot.values());
   const selectedEntryIds = new Set(selectedEntryIdsBySlot.values());
   const excludedSuggestionEntryIds = new Set([
     ...selectedEntryIds,
@@ -1031,6 +1034,16 @@ export function CurrentPlayingPanel({
 
       {selectedEntriesBySlot.size ? (
         <div className="grid gap-5">
+          {sharedGenre ? (
+            <Notice tone="info">
+              {t(
+                sharedGenre.count === CURRENT_PLAYING_SLOTS.length
+                  ? "profile.currentPlaying.similarGenre.three"
+                  : "profile.currentPlaying.similarGenre.two",
+                { genre: sharedGenre.name },
+              )}
+            </Notice>
+          ) : null}
           <div
             className="grid gap-4 lg:grid-cols-3"
             ref={currentPlayingAreaRef}
