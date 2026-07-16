@@ -642,7 +642,7 @@
 }
 
 .beta-banner {
-  height: var(--beta-banner-h);
+  min-height: var(--beta-banner-h);
 }
 
 html.has-beta-banner .app-shell {
@@ -651,4 +651,10 @@ html.has-beta-banner .app-shell {
 
 html.has-beta-banner .site-header {
   top: calc(0.75rem + var(--beta-banner-h));
+}
+
+@media (max-width: 640px) {
+  :root {
+    --beta-banner-h: 4rem;
+  }
 }

@@ -34,9 +34,8 @@ const messages = {
     "nav.footer": "Footer",
     "nav.profileSections": "Profile sections",
 
-    "banner.beta.message": "filazo is in beta.",
-    "banner.beta.cta": "Join our Discord",
-    "banner.beta.dismiss": "Dismiss beta notice",
+    "banner.beta.message":
+      "Beta tester applications are temporarily closed because we have reached capacity.",
 
     "locale.label": "Language",
     "locale.en": "EN",
@@ -178,9 +177,11 @@ const messages = {
     "beta.openAdmin": "Open admin area",
     "beta.sent": "Application received. It is now waiting for approval.",
     "beta.kicker": "Beta testers",
-    "beta.title": "Apply for early filazo access",
+    "beta.title": "Beta tester applications",
     "beta.body":
-      "Public registrations are closed. Approved beta testers receive full platform access for 1 year to test the catalog, imports, integrations, and recommendations.",
+      "Applications are temporarily closed while we work with the current group of beta testers.",
+    "beta.submissionsClosed":
+      "Beta tester applications are temporarily closed because we have reached capacity. Please check back later.",
     "beta.signInGoogle": "Sign in with Google and request access",
     "beta.justification": "Justification: {value}",
     "beta.existingAccount":
@@ -194,6 +195,8 @@ const messages = {
     "beta.submit": "Send application",
     "beta.error.invalidApplication":
       "Fill in your name and at least one platform.",
+    "beta.error.submissionsClosed":
+      "Beta tester applications are temporarily closed.",
 
     "admin.restricted":
       "This area is restricted to the admin. Sign in with Google using ludmila.omlopes@gmail.com.",
@@ -1220,9 +1223,8 @@ const messages = {
     "nav.footer": "Rodapé",
     "nav.profileSections": "Seções do perfil",
 
-    "banner.beta.message": "filazo está em beta.",
-    "banner.beta.cta": "Entre no nosso Discord",
-    "banner.beta.dismiss": "Dispensar aviso de beta",
+    "banner.beta.message":
+      "As inscrições para beta testers estão temporariamente fechadas porque já atingimos a capacidade.",
 
     "locale.label": "Idioma",
     "locale.en": "EN",
@@ -1367,9 +1369,11 @@ const messages = {
     "beta.openAdmin": "Abrir área de admin",
     "beta.sent": "Cadastro recebido. Agora ele aguarda aprovação.",
     "beta.kicker": "Beta testers",
-    "beta.title": "Cadastro para acesso antecipado ao filazo",
+    "beta.title": "Inscrições para beta testers",
     "beta.body":
-      "Novos registros públicos estão fechados. Beta testers aprovados terão acesso completo à plataforma por 1 ano para testar catálogo, imports, integrações e recomendações.",
+      "As inscrições estão temporariamente fechadas enquanto trabalhamos com o grupo atual de beta testers.",
+    "beta.submissionsClosed":
+      "As inscrições para beta testers estão temporariamente fechadas porque já atingimos a capacidade. Volte mais tarde.",
     "beta.signInGoogle": "Entrar com Google e solicitar acesso",
     "beta.justification": "Justificativa: {value}",
     "beta.existingAccount":
@@ -1383,6 +1387,8 @@ const messages = {
     "beta.submit": "Enviar cadastro",
     "beta.error.invalidApplication":
       "Preencha seu nome e pelo menos uma plataforma.",
+    "beta.error.submissionsClosed":
+      "As inscrições para beta testers estão temporariamente fechadas.",
 
     "admin.restricted":
       "Esta área é restrita ao admin. Entre com o Google usando ludmila.omlopes@gmail.com.",
