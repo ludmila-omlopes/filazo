@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { toPlatformJson } from "@/lib/beta-access";
+import { BETA_SUBMISSIONS_OPEN } from "@/lib/beta-submissions";
 import { prisma } from "@/lib/prisma";
 import { getRequestTranslator } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
@@ -21,6 +22,10 @@ function redirectWithBetaError(message: string): never {
 
 export async function submitBetaApplicationAction(formData: FormData) {
   const { t } = await getRequestTranslator();
+  if (!BETA_SUBMISSIONS_OPEN) {
+    redirectWithBetaError(t("beta.error.submissionsClosed"));
+  }
+
   const userId = await getSessionUserId();
   if (!userId) {
     redirect("/beta");

@@ -12,6 +12,7 @@ import { cookies } from "next/headers";
 import "./globals.css";
 import { AuthDialog } from "@/components/auth-dialog";
 import { BetaBanner } from "@/components/beta-banner";
+import { InlineScript } from "@/components/inline-script";
 import { LocaleProvider } from "@/components/locale-provider";
 import { LocaleToggle } from "@/components/locale-toggle";
 import { SignOutForm } from "@/components/sign-out-form";
@@ -136,7 +137,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        <script dangerouslySetInnerHTML={{ __html: themeBootstrapScript }} />
+        <InlineScript html={themeBootstrapScript} />
         <ThemeRuntime mode={mode} />
         <LocaleProvider locale={locale}>
           <BetaBanner />
