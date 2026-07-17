@@ -3,20 +3,35 @@ type GameEnrichmentFields = {
   summary: string | null;
   coverUrl: string | null;
   heroUrl: string | null;
+  igdbCheckedAt: Date | null;
   hltbMainStoryMinutes: number | null;
   hltbMainExtraMinutes: number | null;
   hltbCompletionistMinutes: number | null;
   hltbUpdatedAt: Date | null;
+  hltbCheckedAt: Date | null;
   metacriticScore: number | null;
   metacriticUpdatedAt: Date | null;
+  metacriticCheckedAt: Date | null;
 } | null;
 
+const IGDB_RECHECK_MS = 1000 * 60 * 60 * 24 * 7;
 const METACRITIC_REFRESH_MS = 1000 * 60 * 60 * 24 * 30;
 const HLTB_REFRESH_MS = 1000 * 60 * 60 * 24 * 90;
 
-export function shouldSearchIgdb(game: GameEnrichmentFields): boolean {
+function isFresh(checkedAt: Date | null, maxAgeMs: number, now: Date) {
+  return Boolean(checkedAt) && now.getTime() - checkedAt!.getTime() < maxAgeMs;
+}
+
+export function shouldSearchIgdb(
+  game: GameEnrichmentFields,
+  now = new Date(),
+): boolean {
   if (!game) {
     return true;
+  }
+
+  if (isFresh(game.igdbCheckedAt, IGDB_RECHECK_MS, now)) {
+    return false;
   }
 
   return !game.igdbId || !game.summary || !game.coverUrl || !game.heroUrl;
@@ -38,10 +53,7 @@ export function shouldSearchHltb(
     return false;
   }
 
-  if (
-    game.hltbUpdatedAt &&
-    now.getTime() - game.hltbUpdatedAt.getTime() < HLTB_REFRESH_MS
-  ) {
+  if (isFresh(game.hltbCheckedAt, HLTB_REFRESH_MS, now)) {
     return false;
   }
 
@@ -56,8 +68,5 @@ export function shouldSearchMetacritic(
     return true;
   }
 
-  return (
-    !game.metacriticUpdatedAt ||
-    now.getTime() - game.metacriticUpdatedAt.getTime() >= METACRITIC_REFRESH_MS
-  );
+  return !isFresh(game.metacriticCheckedAt, METACRITIC_REFRESH_MS, now);
 }

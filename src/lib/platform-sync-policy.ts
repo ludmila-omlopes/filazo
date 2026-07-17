@@ -1,5 +1,4 @@
 export const PLATFORM_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
-export const PLATFORM_SYNC_MANUAL_COOLDOWN_MS = 5 * 60 * 1000;
 export const PLATFORM_SYNC_DEFAULT_JITTER_MS = 90 * 60 * 1000;
 export const PLATFORM_SYNC_MAX_BACKOFF_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -81,17 +80,6 @@ export function isAccountDueForScheduledSync(
 
   if (!account.lastSyncedAt) return true;
   return account.lastSyncedAt.getTime() + PLATFORM_SYNC_INTERVAL_MS <= now.getTime();
-}
-
-export function isManualSyncInCooldown(
-  lastSyncAttemptAt: Date | null,
-  now = new Date(),
-) {
-  return Boolean(
-    lastSyncAttemptAt &&
-      lastSyncAttemptAt.getTime() + PLATFORM_SYNC_MANUAL_COOLDOWN_MS >
-        now.getTime(),
-  );
 }
 
 export function getNextAutomaticSyncAt(

@@ -1047,12 +1047,11 @@ export async function syncSteamLibraryAction() {
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
   if (result.kind !== "succeeded") {
-    const message =
-      result.kind === "skipped" && result.reason !== "not-connected"
-        ? t("profile.sources.syncing")
-        : t("profileAction.steamSyncFailed");
+    if (result.kind === "skipped" && result.reason === "locked") {
+      redirect(`/profile?tab=integrations&syncPending=1`);
+    }
     redirect(
-      `/profile?tab=integrations&error=${encodeURIComponent(message)}`,
+      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.steamSyncFailed"))}`,
     );
   }
   const syncedCount = result.syncedCount;
@@ -1145,12 +1144,11 @@ export async function syncPlayStationLibraryAction() {
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
   if (result.kind !== "succeeded") {
-    const message =
-      result.kind === "skipped" && result.reason !== "not-connected"
-        ? t("profile.sources.syncing")
-        : t("profileAction.playStationSyncFailed");
+    if (result.kind === "skipped" && result.reason === "locked") {
+      redirect(`/profile?tab=integrations&syncPending=1`);
+    }
     redirect(
-      `/profile?tab=integrations&error=${encodeURIComponent(message)}`,
+      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.playStationSyncFailed"))}`,
     );
   }
   const syncedCount = result.syncedCount;
@@ -1180,12 +1178,11 @@ export async function syncXboxLibraryAction() {
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
   }
   if (result.kind !== "succeeded") {
-    const message =
-      result.kind === "skipped" && result.reason !== "not-connected"
-        ? t("profile.sources.syncing")
-        : t("profileAction.xboxSyncFailed");
+    if (result.kind === "skipped" && result.reason === "locked") {
+      redirect(`/profile?tab=integrations&syncPending=1`);
+    }
     redirect(
-      `/profile?tab=integrations&error=${encodeURIComponent(message)}`,
+      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.xboxSyncFailed"))}`,
     );
   }
   const syncedCount = result.syncedCount;

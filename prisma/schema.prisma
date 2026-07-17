@@ -211,13 +211,16 @@ model Game {
   metadataSource            ExternalProvider?
   igdbId                    Int?               @unique
   igdbSlug                  String?
+  igdbCheckedAt             DateTime?
   hltbMainStoryMinutes      Int?
   hltbMainExtraMinutes      Int?
   hltbCompletionistMinutes  Int?
   hltbUpdatedAt             DateTime?
+  hltbCheckedAt             DateTime?
   metacriticScore           Int?
   metacriticUrl             String?
   metacriticUpdatedAt       DateTime?
+  metacriticCheckedAt       DateTime?
   upcomingReleases          Json?
   upcomingReleasesCheckedAt DateTime?
   createdAt                 DateTime           @default(now())

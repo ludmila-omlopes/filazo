@@ -1,3 +1,12 @@
+import { Prisma } from "@prisma/client";
+
+export function isUniqueConstraintViolation(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  );
+}
+
 export function getDatabaseErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
 

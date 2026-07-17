@@ -2,13 +2,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   PLATFORM_SYNC_INTERVAL_MS,
-  PLATFORM_SYNC_MANUAL_COOLDOWN_MS,
   PLATFORM_SYNC_MAX_BACKOFF_MS,
   classifyPlatformSyncError,
   getNextAutomaticSyncAt,
   getRetryDelayMs,
   isAccountDueForScheduledSync,
-  isManualSyncInCooldown,
   sanitizePlatformSyncError,
 } from "./platform-sync-policy.ts";
 
@@ -51,23 +49,6 @@ test("scheduled eligibility respects nextSyncAt and the 24-hour window", () => {
         lastSyncedAt: new Date(NOW.getTime() - PLATFORM_SYNC_INTERVAL_MS * 2),
         nextSyncAt: new Date(NOW.getTime() + 1),
       },
-      NOW,
-    ),
-    false,
-  );
-});
-
-test("manual cooldown applies only for five minutes after an attempt", () => {
-  assert.equal(
-    isManualSyncInCooldown(
-      new Date(NOW.getTime() - PLATFORM_SYNC_MANUAL_COOLDOWN_MS + 1),
-      NOW,
-    ),
-    true,
-  );
-  assert.equal(
-    isManualSyncInCooldown(
-      new Date(NOW.getTime() - PLATFORM_SYNC_MANUAL_COOLDOWN_MS),
       NOW,
     ),
     false,
@@ -131,4 +112,64 @@ test("error sanitization removes tokens before a run can persist them", () => {
     classifyPlatformSyncError(rateLimited).retryAfterMs,
     120_000,
   );
+});
+
+test("classifies platform sync failures by code", () => {
+  const cases = [
+    ["Request timed out", "TIMEOUT"],
+    ["HTTP 429 rate limit", "RATE_LIMIT"],
+    ["Steam API key is required to sync owned games.", "CONFIGURATION"],
+    ["Could not fetch Steam profile (401).", "AUTH"],
+    ["fetch failed", "NETWORK"],
+    ["Could not load owned games from Steam (503).", "PROVIDER"],
+    ["something odd", "INTERNAL"],
+  ] as const;
+
+  for (const [message, code] of cases) {
+    assert.equal(classifyPlatformSyncError(new Error(message)).code, code);
+  }
+});
+
+test("characterizes classifier keyword precedence", () => {
+  // characterization: the literal environment variable name does not match
+  // the spaced "api key is required" configuration keyword.
+  assert.equal(
+    classifyPlatformSyncError(
+      new Error("STEAM_API_KEY is required to sync owned games from Steam."),
+    ).code,
+    "INTERNAL",
+  );
+  // characterization: "fetch" is checked before the generic HTTP status
+  // branch, so a provider 503 with that verb is currently a network error.
+  assert.equal(
+    classifyPlatformSyncError(
+      new Error("Could not fetch owned games from Steam (503)."),
+    ).code,
+    "NETWORK",
+  );
+});
+
+test("extracts retry-after delays from error metadata and messages", () => {
+  const fromMetadata = Object.assign(new Error("HTTP 429"), {
+    retryAfter: "120",
+  });
+  assert.equal(classifyPlatformSyncError(fromMetadata).retryAfterMs, 120_000);
+  assert.equal(
+    classifyPlatformSyncError(new Error("retry-after: 30 seconds")).retryAfterMs,
+    30_000,
+  );
+  assert.equal(classifyPlatformSyncError(new Error("no retry hint")).retryAfterMs, null);
+});
+
+test("sanitizes URLs and secrets and caps persisted messages", () => {
+  const message = sanitizePlatformSyncError(
+    new Error(
+      `client_secret=SHOULD_NOT_APPEAR https://example.test/path?api_key=SHOULD_NOT_APPEAR ${"x".repeat(400)}`,
+    ),
+  );
+
+  assert.match(message, /\[redacted\]/);
+  assert.match(message, /\[url\]/);
+  assert.doesNotMatch(message, /SHOULD_NOT_APPEAR|example\.test/);
+  assert.equal(message.length, 280);
 });

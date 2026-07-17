@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "@/components/locale-provider";
+import { SafeImage } from "@/components/safe-image";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -144,7 +144,7 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
               >
                 <div className="relative aspect-[3/4] overflow-hidden rounded-[6px] bg-sage-soft">
                   {result.coverUrl ? (
-                    <Image
+                    <SafeImage
                       alt=""
                       className="object-cover"
                       fill

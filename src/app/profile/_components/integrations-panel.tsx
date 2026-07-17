@@ -39,6 +39,13 @@ type SourceProvider =
   | typeof ExternalProvider.PLAYSTATION
   | typeof ExternalProvider.XBOX;
 
+function isSourceSyncing(account: ProviderAccount) {
+  return Boolean(
+    account?.syncLeaseExpiresAt &&
+      account.syncLeaseExpiresAt.getTime() > Date.now(),
+  );
+}
+
 function ConnectionRow({
   label,
   children,
@@ -85,10 +92,7 @@ function getSourceState(account: ProviderAccount, locale: Locale) {
     };
   }
 
-  if (
-    account.syncLeaseExpiresAt &&
-    account.syncLeaseExpiresAt.getTime() > Date.now()
-  ) {
+  if (isSourceSyncing(account)) {
     return {
       label: t("profile.sources.syncing"),
       tone: "bg-sky-soft text-ink border-sky/50",
@@ -532,6 +536,9 @@ export function IntegrationsPanel({
   profile: ProfileData;
 }) {
   const t = createTranslator(locale);
+  const steamSyncing = isSourceSyncing(profile.steamAccount);
+  const playStationSyncing = isSourceSyncing(profile.playStationAccount);
+  const xboxSyncing = isSourceSyncing(profile.xboxAccount);
 
   return (
     <section className="panel bg-sky-soft/55">
@@ -568,6 +575,7 @@ export function IntegrationsPanel({
               <SyncActionForm
                 action={syncSteamLibraryAction}
                 buttonLabel={t("profile.sources.refreshSteam")}
+                externallyPending={steamSyncing}
                 pendingLabel={t("profile.sources.refreshing")}
                 pendingNotice={t("profile.sources.steamPending")}
               />
@@ -578,6 +586,18 @@ export function IntegrationsPanel({
             )
           }
         >
+          <div className="rounded-inner border border-sand/70 bg-sand-soft px-4 py-3 text-sm leading-relaxed text-ink-soft">
+            <p>{t("profile.sources.steamPrivacyNotice")}</p>
+            <a
+              className="mt-2 inline-flex items-center gap-1 font-semibold text-ink underline underline-offset-4"
+              href="https://steamcommunity.com/my/edit/settings"
+              rel="noreferrer"
+              target="_blank"
+            >
+              {t("profile.sources.steamPrivacyAction")}
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+            </a>
+          </div>
           <details className="text-sm text-ink-soft">
             <summary className="cursor-pointer font-semibold text-ink">
               {t("profile.sources.technicalStatus")}
@@ -607,6 +627,7 @@ export function IntegrationsPanel({
               <SyncActionForm
                 action={syncPlayStationLibraryAction}
                 buttonLabel={t("profile.sources.refreshPlayStation")}
+                externallyPending={playStationSyncing}
                 pendingLabel={t("profile.sources.refreshing")}
                 pendingNotice={t("profile.sources.playstationPending")}
               />
@@ -651,6 +672,7 @@ export function IntegrationsPanel({
               <SyncActionForm
                 action={syncXboxLibraryAction}
                 buttonLabel={t("profile.sources.refreshXbox")}
+                externallyPending={xboxSyncing}
                 pendingLabel={t("profile.sources.refreshing")}
                 pendingNotice={t("profile.sources.xboxPending")}
               />

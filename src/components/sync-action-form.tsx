@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 
@@ -8,33 +10,43 @@ type SyncActionFormProps = {
   buttonLabel: string;
   pendingLabel: string;
   pendingNotice: string;
+  externallyPending?: boolean;
 };
 
 function SyncSubmitButton({
   buttonLabel,
+  externallyPending,
   pendingLabel,
 }: {
   buttonLabel: string;
+  externallyPending: boolean;
   pendingLabel: string;
 }) {
   const { pending } = useFormStatus();
+  const isPending = pending || externallyPending;
 
   return (
     <Button
       type="submit"
-      disabled={pending}
-      aria-disabled={pending}
+      disabled={isPending}
+      aria-disabled={isPending}
       loading={pending}
     >
-      {pending ? pendingLabel : buttonLabel}
+      {isPending ? pendingLabel : buttonLabel}
     </Button>
   );
 }
 
-function SyncPendingNotice({ message }: { message: string }) {
+function SyncPendingNotice({
+  externallyPending,
+  message,
+}: {
+  externallyPending: boolean;
+  message: string;
+}) {
   const { pending } = useFormStatus();
 
-  if (!pending) {
+  if (!pending && !externallyPending) {
     return null;
   }
 
@@ -52,16 +64,35 @@ function SyncPendingNotice({ message }: { message: string }) {
 export function SyncActionForm({
   action,
   buttonLabel,
+  externallyPending = false,
   pendingLabel,
   pendingNotice,
 }: SyncActionFormProps) {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!externallyPending) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      router.refresh();
+    }, 2_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [externallyPending, router]);
+
   return (
     <form action={action}>
       <SyncSubmitButton
         buttonLabel={buttonLabel}
+        externallyPending={externallyPending}
         pendingLabel={pendingLabel}
       />
-      <SyncPendingNotice message={pendingNotice} />
+      <SyncPendingNotice
+        externallyPending={externallyPending}
+        message={pendingNotice}
+      />
     </form>
   );
 }

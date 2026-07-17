@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import {
   ChevronDown,
@@ -12,6 +11,7 @@ import {
 } from "../actions";
 import { JournalComposer } from "./journal-composer";
 import { JournalForm } from "./journal-form";
+import { SafeImage } from "@/components/safe-image";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -67,9 +67,10 @@ function GameChoice({
         )}
       >
         {entry.game.coverUrl ? (
-          <Image
+          <SafeImage
             alt=""
             className="h-full w-full object-cover"
+            fallback={entry.game.name.slice(0, 1)}
             height={80}
             src={entry.game.coverUrl}
             width={80}
@@ -149,7 +150,7 @@ function JournalPageCard({
                   className="rounded-inner border border-edge bg-canvas p-2"
                   key={media.id}
                 >
-                  <Image
+                  <SafeImage
                     alt={media.caption ?? `Diary media for ${entry.game.name}`}
                     className="h-auto w-full rounded-[6px] object-cover"
                     height={360}
@@ -273,9 +274,10 @@ export function JournalTab({
                 >
                   <span className="grid h-14 w-14 flex-none place-items-center overflow-hidden rounded-inner border border-edge bg-canvas font-display text-lg">
                     {selectedEntry.game.coverUrl ? (
-                      <Image
+                      <SafeImage
                         alt=""
                         className="h-full w-full object-cover"
+                        fallback={selectedEntry.game.name.slice(0, 1)}
                         height={112}
                         src={selectedEntry.game.coverUrl}
                         width={112}
@@ -341,9 +343,10 @@ export function JournalTab({
                 >
                   <span className="grid h-12 w-12 flex-none place-items-center overflow-hidden rounded-[8px] border border-edge bg-canvas text-sm font-bold">
                     {page.game.coverUrl ? (
-                      <Image
+                      <SafeImage
                         alt=""
                         className="h-full w-full object-cover"
+                        fallback={page.game.name.slice(0, 1)}
                         height={96}
                         src={page.game.coverUrl}
                         width={96}

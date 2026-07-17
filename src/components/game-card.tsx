@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { MouseEventHandler, ReactNode } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
+import { SafeImage } from "@/components/safe-image";
 import { Chip } from "@/components/ui/chip";
 import { StatusBadge, StatusLabel } from "@/components/ui/status-badge";
 import { translate, type Locale } from "@/lib/i18n";
@@ -118,6 +118,11 @@ function Cover({
   variant: GameCardVariant;
 }) {
   const isRow = variant === "row";
+  const fallback = (
+    <div className="grid h-full w-full place-items-center bg-sage-soft p-3 text-center font-display text-3xl font-medium text-ink-soft">
+      {getInitial(game.name)}
+    </div>
+  );
 
   return (
     <div
@@ -127,9 +132,10 @@ function Cover({
       )}
     >
       {game.coverUrl ? (
-        <Image
+        <SafeImage
           alt=""
           className="object-cover"
+          fallback={fallback}
           fill
           sizes={
             isRow
@@ -139,9 +145,7 @@ function Cover({
           src={game.coverUrl}
         />
       ) : (
-        <div className="grid h-full w-full place-items-center bg-sage-soft p-3 text-center font-display text-3xl font-medium text-ink-soft">
-          {getInitial(game.name)}
-        </div>
+        fallback
       )}
     </div>
   );

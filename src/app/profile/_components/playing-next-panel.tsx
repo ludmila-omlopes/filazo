@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
@@ -19,6 +18,7 @@ import {
   type MouseEvent,
 } from "react";
 import { GameCard } from "@/components/game-card";
+import { SafeImage } from "@/components/safe-image";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
@@ -569,7 +569,7 @@ export function PlayingNextPanel({
                   >
                     <span className="relative aspect-[3/4] overflow-hidden rounded-[6px] bg-sage-soft">
                       {result.coverUrl ? (
-                        <Image
+                        <SafeImage
                           alt=""
                           className="object-cover"
                           fill
