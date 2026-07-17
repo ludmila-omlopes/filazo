@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BetaTesterStatus } from "@prisma/client";
-import { ArrowLeft, Clock3 } from "lucide-react";
+import { Clock3 } from "lucide-react";
+import { AdminNav } from "../admin-nav";
 import { Notice } from "@/components/ui/notice";
 import { getSessionUserWithBeta, isAdminEmail } from "@/lib/beta-access";
 import { createTranslator } from "@/lib/i18n";
@@ -35,7 +36,7 @@ export default async function AdminActivityPage() {
   const format = (date: Date) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
   return <main id="main-content" className="mx-auto grid w-full max-w-[1180px] gap-7">
     <header>
-      <Link className="inline-flex items-center gap-2 text-sm font-bold text-ink-soft hover:text-ink" href="/admin"><ArrowLeft className="size-4" />{t("admin.activity.back")}</Link>
+      <AdminNav current="/admin/activity" locale={locale} />
       <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-ink-soft">{t("admin.activity.kicker")}</p>
       <h1 className="mt-2 font-display text-4xl font-medium">{t("admin.activity.title")}</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">{t("admin.activity.body")}</p>
