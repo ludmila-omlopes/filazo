@@ -1,6 +1,6 @@
 "use server";
 
-import { BetaTesterStatus } from "@prisma/client";
+import { BetaTesterStatus, FeedbackStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -24,6 +24,11 @@ const reviewSchema = z.object({
   applicationId: z.string().min(1),
   decision: z.enum(["approve", "reject"]),
   justification: z.string().trim().min(3).max(500),
+});
+
+const feedbackStatusSchema = z.object({
+  feedbackId: z.string().min(1),
+  status: z.nativeEnum(FeedbackStatus),
 });
 
 function intSettingSchema(key: keyof typeof AI_SETTINGS_LIMITS) {
@@ -114,7 +119,7 @@ export async function reviewBetaApplicationAction(formData: FormData) {
 
   if (!parsed.success) {
     redirect(
-      `/admin?error=${encodeURIComponent(
+      `/admin/beta?error=${encodeURIComponent(
         t("admin.error.justificationRequired"),
       )}`,
     );
@@ -168,8 +173,37 @@ export async function reviewBetaApplicationAction(formData: FormData) {
   }
 
   revalidatePath("/admin");
+  revalidatePath("/admin/beta");
   revalidatePath("/beta");
-  redirect(`/admin?${redirectParams.toString()}`);
+  redirect(`/admin/beta?${redirectParams.toString()}`);
+}
+
+export async function updateFeedbackStatusAction(formData: FormData) {
+  const { t } = await getRequestTranslator();
+  await requireAdmin();
+
+  const parsed = feedbackStatusSchema.safeParse({
+    feedbackId: formData.get("feedbackId"),
+    status: formData.get("status"),
+  });
+
+  if (!parsed.success) {
+    redirect(
+      `/admin/feedback?error=${encodeURIComponent(
+        t("admin.feedback.error.invalid"),
+      )}`,
+    );
+  }
+
+  await prisma.feedback.update({
+    where: { id: parsed.data.feedbackId },
+    data: { status: parsed.data.status },
+  });
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/feedback");
+  revalidatePath("/feedback");
+  redirect("/admin/feedback?updated=1");
 }
 
 export async function updateAiSettingsAction(formData: FormData) {
@@ -247,13 +281,13 @@ export async function updateAiSettingsAction(formData: FormData) {
 
   if (!parsed.success) {
     redirect(
-      `/admin?error=${encodeURIComponent(t("admin.ai.invalidSettings"))}`,
+      `/admin/ai?error=${encodeURIComponent(t("admin.ai.invalidSettings"))}`,
     );
   }
 
   await saveAiSettings(parsed.data);
 
-  revalidatePath("/admin");
+  revalidatePath("/admin/ai");
   revalidatePath("/profile");
-  redirect("/admin?aiSettings=1");
+  redirect("/admin/ai?aiSettings=1");
 }

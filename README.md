@@ -45,6 +45,7 @@ The app is centered on a canonical `Game` record.
 - `ExternalAccount` stores connected provider accounts like Steam, PlayStation, and Xbox
 - `PlatformSyncRun` records sanitized manual and scheduled platform-sync outcomes; an account lease, next due time, failure count, and last safe error code live on `ExternalAccount`
 - `BetaTesterApplication` stores Google-authenticated beta tester requests, approval status, admin justification, and the one-year access expiry for approved testers
+- `Feedback` stores signed-in user improvement suggestions and bug reports with a triage status (`NEW`, `IN_REVIEW`, `DONE`, `DECLINED`) shown on the admin feedback board
 - PlayStation refresh tokens are encrypted in `ExternalAccount.metadata`; NPSSO values are exchanged and then discarded
 - `ImportJob` and `ImportRow` keep an audit trail of CSV and photo imports
 
@@ -54,7 +55,8 @@ This means multiple providers can eventually point to the same internal game ins
 
 - Modal sign-in for existing first-party email/password accounts and existing Google OAuth accounts
 - Closed public registration with beta tester applications through Google login
-- Admin-only beta review area for `ludmila.omlopes@gmail.com`, with approve/reject decisions and required justification
+- Admin-only area for `ludmila.omlopes@gmail.com`, organized into sub-pages: overview (`/admin`), beta review with approve/reject decisions and required justification (`/admin/beta`), feedback triage kanban (`/admin/feedback`), AI settings (`/admin/ai`), and beta tester activity (`/admin/activity`)
+- Signed-in feedback form at `/feedback` for improvement suggestions and bug reports, with each user's submission history and status
 - English and Portuguese (Brazil) UI with a header language switcher
 - Dedicated profile integrations area for connecting, syncing, and disconnecting external accounts
 - Optional, feature-flagged periodic Steam, PlayStation, and Xbox synchronization with a PostgreSQL lease shared by manual and scheduled runs

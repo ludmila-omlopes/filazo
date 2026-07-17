@@ -28,6 +28,9 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           <Link className="nav-link" href="/profile">
             {t("common.library")}
           </Link>
+          <Link className="nav-link" href="/feedback">
+            {t("feedback.kicker")}
+          </Link>
           <Link className="nav-link" href="/privacy">
             {t("auth.dialog.privacy")}
           </Link>

@@ -95,6 +95,18 @@ enum BetaTesterStatus {
   REJECTED
 }
 
+enum FeedbackType {
+  IMPROVEMENT
+  BUG
+}
+
+enum FeedbackStatus {
+  NEW
+  IN_REVIEW
+  DONE
+  DECLINED
+}
+
 model User {
   id                       String                  @id @default(cuid())
   displayName              String?
@@ -118,6 +130,7 @@ model User {
   playerProfile            PlayerProfile?
   betaApplication          BetaTesterApplication?
   reviewedBetaApplications BetaTesterApplication[] @relation("BetaReviewer")
+  feedbackSubmissions      Feedback[]
 }
 
 model ExternalAccount {
@@ -478,6 +491,21 @@ model BetaTesterApplication {
 
   @@index([status, createdAt])
   @@index([reviewedById])
+}
+
+model Feedback {
+  id        String         @id @default(cuid())
+  userId    String
+  type      FeedbackType
+  status    FeedbackStatus @default(NEW)
+  title     String
+  details   String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
 }
 
 model ImportJob {
