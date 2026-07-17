@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useLocale, useTranslations } from "@/components/locale-provider";
+import { SafeImage } from "@/components/safe-image";
 import { Button } from "@/components/ui/button";
 import type { TranslationKey } from "@/lib/i18n";
 
@@ -202,7 +202,7 @@ export function BuyDecisionForm() {
             >
               <span className="relative aspect-[3/4] overflow-hidden rounded-[5px] bg-sage-soft">
                 {result.coverUrl ? (
-                  <Image
+                  <SafeImage
                     alt=""
                     className="object-cover"
                     fill

@@ -4,10 +4,23 @@ import { getRequestTranslator } from "@/lib/request-locale";
 import { getSessionUserId, setUserSession } from "@/lib/session";
 import { upsertSteamAccountForUser, verifySteamOpenIdCallback } from "@/lib/steam";
 
+import { cookies } from "next/headers";
+
+const STEAM_OPENID_STATE_COOKIE = "filazo-steam-oauth-state";
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const { t } = await getRequestTranslator();
+    const state = url.searchParams.get("state");
+    const cookieStore = await cookies();
+    const expectedState = cookieStore.get(STEAM_OPENID_STATE_COOKIE)?.value;
+    cookieStore.delete(STEAM_OPENID_STATE_COOKIE);
+
+    if (!state || !expectedState || state !== expectedState) {
+      throw new Error("Steam sign-in state could not be verified.");
+    }
+
     const steamId = await verifySteamOpenIdCallback(url.searchParams);
     const existingSessionUserId = await getSessionUserId();
 

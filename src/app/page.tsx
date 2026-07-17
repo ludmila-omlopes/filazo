@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -6,6 +5,7 @@ import type { CSSProperties } from "react";
 import type { Prisma } from "@prisma/client";
 import { AuthDialog } from "@/components/auth-dialog";
 import { GameCard, type GameCardGame } from "@/components/game-card";
+import { SafeImage } from "@/components/safe-image";
 import { PhaseBadge } from "@/components/theme-runtime";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -541,9 +541,14 @@ function CatalogCard({
       }
     >
       {game.coverUrl ? (
-        <Image
+        <SafeImage
           alt=""
           className="object-cover"
+          fallback={
+            <div className="grid h-full place-items-center bg-cream/85 p-3 text-center font-display text-lg leading-tight text-dusk-deep">
+              {game.name}
+            </div>
+          }
           fill
           sizes="230px"
           src={game.coverUrl}

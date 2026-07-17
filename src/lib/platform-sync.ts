@@ -12,7 +12,6 @@ import {
   getNextAutomaticSyncAt,
   getPlatformSyncPolicy,
   getRetryDelayMs,
-  isManualSyncInCooldown,
   type PlatformSyncErrorCode,
 } from "@/lib/platform-sync-policy";
 import { prisma } from "@/lib/prisma";
@@ -31,7 +30,7 @@ export type PlatformSyncProvider = (typeof PLATFORM_SYNC_PROVIDERS)[number];
 
 type SyncResult =
   | { kind: "succeeded"; syncedCount: number }
-  | { kind: "skipped"; reason: "cooldown" | "locked" | "not-connected" }
+  | { kind: "skipped"; reason: "locked" | "not-connected" }
   | { code: PlatformSyncErrorCode; kind: "failed" };
 
 type ScheduledSyncSummary = {
@@ -79,7 +78,7 @@ async function recordSkippedRun({
   trigger,
 }: {
   account: Pick<ExternalAccount, "id" | "provider" | "syncFailureCount">;
-  reason: "COOLDOWN" | "LEASE_ACTIVE";
+  reason: "LEASE_ACTIVE";
   trigger: PlatformSyncTrigger;
 }) {
   const now = new Date();
@@ -113,17 +112,9 @@ async function acquireAccountLease({
   trigger: PlatformSyncTrigger;
 }): Promise<
   | { account: ExternalAccount; leaseExpiresAt: Date; runId: string }
-  | { reason: "cooldown" | "locked" }
+  | { reason: "locked" }
 > {
   const now = new Date();
-  if (
-    trigger === PlatformSyncTrigger.MANUAL &&
-    isManualSyncInCooldown(account.lastSyncAttemptAt, now)
-  ) {
-    await recordSkippedRun({ account, reason: "COOLDOWN", trigger });
-    return { reason: "cooldown" };
-  }
-
   const runId = randomUUID();
   const leaseExpiresAt = buildLeaseExpiry(now);
   const conditions: Prisma.ExternalAccountWhereInput[] = [
@@ -134,16 +125,6 @@ async function acquireAccountLease({
       ],
     },
   ];
-  if (trigger === PlatformSyncTrigger.MANUAL) {
-    const cooldownCutoff = new Date(now.getTime() - 5 * 60 * 1000);
-    conditions.push({
-      OR: [
-        { lastSyncAttemptAt: null },
-        { lastSyncAttemptAt: { lt: cooldownCutoff } },
-      ],
-    });
-  }
-
   const lease = await prisma.externalAccount.updateMany({
     where: {
       id: account.id,
@@ -158,13 +139,7 @@ async function acquireAccountLease({
   });
   if (!lease.count) {
     await recordSkippedRun({ account, reason: "LEASE_ACTIVE", trigger });
-    return {
-      reason:
-        trigger === PlatformSyncTrigger.MANUAL &&
-        isManualSyncInCooldown(account.lastSyncAttemptAt, now)
-          ? "cooldown"
-          : "locked",
-    };
+    return { reason: "locked" };
   }
 
   const lockedAccount = await prisma.externalAccount.findUnique({

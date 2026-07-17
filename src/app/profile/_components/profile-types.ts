@@ -28,7 +28,7 @@ export type ProfileTab =
   | "setup";
 
 export type StatusMessage = {
-  tone: "success" | "error";
+  tone: "success" | "error" | "info";
   message: string;
 } | null;
 

@@ -462,7 +462,10 @@ const messages = {
       "The token is temporary. Filazo exchanges it for a secure connection and does not keep the pasted value.",
     "profile.sources.steamTitle": "Steam library",
     "profile.sources.steamBody":
-      "Bring in owned games, playtime, recently played dates, and progress.",
+      "Bring in owned games, playtime, and recently played dates. Achievement progress is updated separately.",
+    "profile.sources.steamPrivacyNotice":
+      "Your Steam library and game details must be public. Private libraries return no games during synchronization.",
+    "profile.sources.steamPrivacyAction": "Review Steam privacy settings",
     "profile.sources.refreshSteam": "Refresh Steam",
     "profile.sources.refreshing": "Refreshing...",
     "profile.sources.steamPending":
@@ -1115,6 +1118,8 @@ const messages = {
     "signal.UPCOMING_RELEASE_WATCH": "new release soon",
 
     "statusMessage.steamRefreshed": "Steam refreshed. {count} games updated.",
+    "statusMessage.syncAlreadyRunning":
+      "This library is already syncing. Progress will appear here when it finishes.",
     "statusMessage.profileCreated":
       "Profile created. Add games whenever you are ready.",
     "statusMessage.signedIn": "Signed in. Your catalog is ready.",
@@ -1702,7 +1707,10 @@ const messages = {
       "O token é temporário. A filazo troca ele por uma conexão segura e não guarda o valor colado.",
     "profile.sources.steamTitle": "Biblioteca Steam",
     "profile.sources.steamBody":
-      "Traga jogos seus, tempo de jogo, datas recentes e progresso.",
+      "Traga seus jogos, tempo de jogo e datas recentes. O progresso de conquistas é atualizado separadamente.",
+    "profile.sources.steamPrivacyNotice":
+      "Sua biblioteca e os detalhes de jogos precisam estar públicos na Steam. Bibliotecas privadas não retornam jogos durante a sincronização.",
+    "profile.sources.steamPrivacyAction": "Revisar privacidade na Steam",
     "profile.sources.refreshSteam": "Atualizar Steam",
     "profile.sources.refreshing": "Atualizando...",
     "profile.sources.steamPending":
@@ -2357,6 +2365,8 @@ const messages = {
     "signal.UPCOMING_RELEASE_WATCH": "lançamento perto",
 
     "statusMessage.steamRefreshed": "Steam atualizada. {count} jogos mudaram.",
+    "statusMessage.syncAlreadyRunning":
+      "Esta biblioteca já está sincronizando. O progresso aparece aqui quando terminar.",
     "statusMessage.profileCreated":
       "Perfil criado. Adicione jogos quando quiser.",
     "statusMessage.signedIn": "Login feito. Seu catálogo está pronto.",

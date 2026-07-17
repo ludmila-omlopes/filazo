@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ExternalProvider } from "@prisma/client";
 import { BookOpen, ChevronRight } from "lucide-react";
@@ -11,6 +10,7 @@ import {
   savePlayingNextDateAction,
 } from "@/app/profile/actions";
 import { PhysicalMediaButton } from "@/app/profile/_components/physical-media-button";
+import { SafeImage } from "@/components/safe-image";
 import { ScreenshotLightbox } from "@/components/screenshot-lightbox";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
@@ -112,9 +112,14 @@ function GameCover({
   return (
     <div className="printed-cover relative aspect-[3/4] w-full max-w-[230px] overflow-hidden rounded-card border border-edge bg-sage-soft shadow-lift max-md:mx-auto">
       {game.coverUrl ? (
-        <Image
+        <SafeImage
           alt={t("game.coverAlt", { name: game.name })}
           className="object-cover"
+          fallback={
+            <div className="grid h-full w-full place-items-center p-5 text-center font-display text-2xl text-ink">
+              {game.name}
+            </div>
+          }
           fill
           priority
           sizes="(max-width: 768px) 180px, 230px"

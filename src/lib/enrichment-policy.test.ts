@@ -22,23 +22,34 @@ test("fully enriched games skip fresh provider searches", () => {
   assert.equal(shouldSearchMetacritic(game, NOW), false);
 });
 
-test("IGDB search runs when core metadata is missing", () => {
-  assert.equal(shouldSearchIgdb(createGame({ coverUrl: null })), true);
+test("IGDB search respects missing metadata attempt staleness", () => {
+  assert.equal(
+    shouldSearchIgdb(createGame({ coverUrl: null, igdbCheckedAt: daysAgo(2) }), NOW),
+    false,
+  );
+  assert.equal(
+    shouldSearchIgdb(createGame({ coverUrl: null, igdbCheckedAt: daysAgo(8) }), NOW),
+    true,
+  );
+  assert.equal(
+    shouldSearchIgdb(createGame({ coverUrl: null, igdbCheckedAt: null }), NOW),
+    true,
+  );
 });
 
-test("HLTB search skips complete estimates regardless of timestamp age", () => {
+test("HLTB search skips complete estimates regardless of attempt age", () => {
   assert.equal(
-    shouldSearchHltb(createGame({ hltbUpdatedAt: daysAgo(100) }), NOW),
+    shouldSearchHltb(createGame({ hltbCheckedAt: daysAgo(100) }), NOW),
     false,
   );
 });
 
-test("HLTB search respects missing estimate staleness", () => {
+test("HLTB search respects missing estimate attempt staleness", () => {
   assert.equal(
     shouldSearchHltb(
       createGame({
         hltbMainExtraMinutes: null,
-        hltbUpdatedAt: daysAgo(10),
+        hltbCheckedAt: daysAgo(30),
       }),
       NOW,
     ),
@@ -48,7 +59,7 @@ test("HLTB search respects missing estimate staleness", () => {
     shouldSearchHltb(
       createGame({
         hltbMainExtraMinutes: null,
-        hltbUpdatedAt: daysAgo(100),
+        hltbCheckedAt: daysAgo(91),
       }),
       NOW,
     ),
@@ -58,7 +69,7 @@ test("HLTB search respects missing estimate staleness", () => {
     shouldSearchHltb(
       createGame({
         hltbMainExtraMinutes: null,
-        hltbUpdatedAt: null,
+        hltbCheckedAt: null,
       }),
       NOW,
     ),
@@ -66,13 +77,19 @@ test("HLTB search respects missing estimate staleness", () => {
   );
 });
 
-test("Metacritic search refreshes stale scores", () => {
+test("Metacritic search respects attempt staleness", () => {
   assert.equal(
-    shouldSearchMetacritic(createGame({ metacriticUpdatedAt: daysAgo(5) }), NOW),
+    shouldSearchMetacritic(
+      createGame({ metacriticScore: null, metacriticCheckedAt: daysAgo(10) }),
+      NOW,
+    ),
     false,
   );
   assert.equal(
-    shouldSearchMetacritic(createGame({ metacriticUpdatedAt: daysAgo(60) }), NOW),
+    shouldSearchMetacritic(
+      createGame({ metacriticScore: null, metacriticCheckedAt: daysAgo(31) }),
+      NOW,
+    ),
     true,
   );
 });
@@ -89,12 +106,15 @@ function createGame(
     summary: "A game.",
     coverUrl: "https://example.com/cover.jpg",
     heroUrl: "https://example.com/hero.jpg",
+    igdbCheckedAt: null,
     hltbMainStoryMinutes: 600,
     hltbMainExtraMinutes: 900,
     hltbCompletionistMinutes: 1200,
     hltbUpdatedAt: daysAgo(10),
+    hltbCheckedAt: daysAgo(10),
     metacriticScore: 85,
     metacriticUpdatedAt: daysAgo(5),
+    metacriticCheckedAt: daysAgo(5),
     ...overrides,
   };
 }

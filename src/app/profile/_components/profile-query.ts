@@ -37,6 +37,7 @@ export type ProfileSearchParams = Promise<{
   reviewsSynced?: string;
   journal?: string;
   onboarding?: string;
+  syncPending?: string;
   error?: string;
 }>;
 
@@ -106,6 +107,13 @@ export function getStatusMessage(
 
   if (query.error) {
     return { tone: "error", message: query.error };
+  }
+
+  if (query.syncPending) {
+    return {
+      tone: "info",
+      message: t("statusMessage.syncAlreadyRunning"),
+    };
   }
 
   if (query.synced) {

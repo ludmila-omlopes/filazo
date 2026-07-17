@@ -1,5 +1,10 @@
 ﻿import { ExternalProvider, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getUserProfileSyncData } from "@/lib/user-profile-sync";
+import {
+  mapSteamOwnedGames,
+  type SteamOwnedGame,
+} from "@/lib/steam-library";
 import { uniqueSlug } from "@/lib/utils";
 import type {
   ProviderAccountAdapter,
@@ -7,7 +12,10 @@ import type {
   SyncedLibraryGame,
 } from "@/lib/providers/contracts";
 
-const STEAM_OPENID_ENDPOINT = "https://steamcommunity.com/openid/login";
+export {
+  createSteamAuthUrl,
+  verifySteamOpenIdCallback,
+} from "@/lib/steam-openid";
 
 type SteamPlayerSummaryResponse = {
   response?: {
@@ -24,14 +32,7 @@ type SteamPlayerSummaryResponse = {
 
 type SteamOwnedGamesResponse = {
   response?: {
-    games?: Array<{
-      appid: number;
-      name?: string;
-      playtime_forever?: number;
-      img_icon_url?: string;
-      img_logo_url?: string;
-      rtime_last_played?: number;
-    }>;
+    games?: SteamOwnedGame[];
   };
 };
 
@@ -67,61 +68,6 @@ function createSteamApiError(message: string, response: Response) {
 
 export function isSteamConfigured() {
   return Boolean(getSteamApiKey());
-}
-
-export function createSteamAuthUrl(origin: string) {
-  const url = new URL(STEAM_OPENID_ENDPOINT);
-  url.searchParams.set("openid.ns", "http://specs.openid.net/auth/2.0");
-  url.searchParams.set("openid.mode", "checkid_setup");
-  url.searchParams.set(
-    "openid.return_to",
-    `${origin}/api/auth/steam/callback`,
-  );
-  url.searchParams.set("openid.realm", origin);
-  url.searchParams.set(
-    "openid.identity",
-    "http://specs.openid.net/auth/2.0/identifier_select",
-  );
-  url.searchParams.set(
-    "openid.claimed_id",
-    "http://specs.openid.net/auth/2.0/identifier_select",
-  );
-  return url.toString();
-}
-
-export async function verifySteamOpenIdCallback(
-  searchParams: URLSearchParams,
-) {
-  const params = new URLSearchParams();
-  searchParams.forEach((value, key) => {
-    params.set(key, value);
-  });
-  params.set("openid.mode", "check_authentication");
-
-  const response = await fetch(STEAM_OPENID_ENDPOINT, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: params.toString(),
-    cache: "no-store",
-  });
-
-  const text = await response.text();
-  if (!text.includes("is_valid:true")) {
-    throw new Error("Steam OpenID verification did not complete.");
-  }
-
-  const claimedId = searchParams.get("openid.claimed_id");
-  const steamId =
-    claimedId?.match(/\/id\/(\d+)$/)?.[1] ??
-    claimedId?.match(/\/openid\/id\/(\d+)$/)?.[1];
-
-  if (!steamId) {
-    throw new Error("Steam OpenID callback did not include a valid Steam ID.");
-  }
-
-  return steamId;
 }
 
 async function fetchSteamPlayerSummary(
@@ -201,74 +147,7 @@ async function fetchSteamOwnedGames(
   }
 
   const data = (await response.json()) as SteamOwnedGamesResponse;
-  const games = (data.response?.games ?? []).filter((game) => game.name);
-  const achievementCompletions = await fetchSteamAchievementCompletions(
-    steamId,
-    games.map((game) => game.appid),
-    options,
-  );
-
-  return games.map((game) => {
-    const achievementCompletion = achievementCompletions.get(game.appid) ?? {
-      completionPercent: null,
-      unlockedAchievements: 0,
-      totalAchievements: 0,
-      reason: "unavailable" as const,
-    };
-
-    return {
-      providerGameId: String(game.appid),
-      title: game.name ?? `Steam App ${game.appid}`,
-      platformName: "Steam",
-      playtimeMinutes: game.playtime_forever ?? 0,
-      lastPlayedAt: parseSteamLastPlayedAt(game.rtime_last_played),
-      completionPercent: achievementCompletion.completionPercent,
-      storeUrl: `https://store.steampowered.com/app/${game.appid}`,
-      rawData: {
-        appid: game.appid,
-        iconUrl: game.img_icon_url ?? null,
-        logoUrl: game.img_logo_url ?? null,
-        rtimeLastPlayed: game.rtime_last_played ?? null,
-        achievementCompletion,
-      },
-    };
-  });
-}
-
-function parseSteamLastPlayedAt(value: number | undefined) {
-  if (!value || !Number.isFinite(value)) {
-    return null;
-  }
-
-  return new Date(value * 1000);
-}
-
-async function fetchSteamAchievementCompletions(
-  steamId: string,
-  appIds: number[],
-  options: { signal?: AbortSignal } = {},
-) {
-  const completions = new Map<number, SteamAchievementCompletion>();
-  const concurrency = 6;
-
-  for (let index = 0; index < appIds.length; index += concurrency) {
-    if (options.signal?.aborted) {
-      throw new Error("Steam synchronization was aborted.");
-    }
-    const batch = appIds.slice(index, index + concurrency);
-    const results = await Promise.all(
-      batch.map(async (appId) => [
-        appId,
-        await fetchSteamAchievementCompletion(steamId, appId, options),
-      ] as const),
-    );
-
-    for (const [appId, completion] of results) {
-      completions.set(appId, completion);
-    }
-  }
-
-  return completions;
+  return mapSteamOwnedGames(data.response?.games ?? []);
 }
 
 export async function fetchSteamAchievementCompletion(
@@ -354,12 +233,13 @@ export async function upsertSteamAccountForUser({
 }) {
   const profile = await steamAdapter.fetchProfile(steamId);
 
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { displayName: true, avatarUrl: true },
+  });
   await prisma.user.update({
     where: { id: userId },
-    data: {
-      displayName: profile.displayName ?? undefined,
-      avatarUrl: profile.avatarUrl ?? undefined,
-    },
+    data: getUserProfileSyncData(existingUser, profile),
   });
 
   return prisma.externalAccount.upsert({
