@@ -118,6 +118,7 @@ model User {
   onboardingAnswers        Json?
   onboardingCompletedAt    DateTime?
   onboardingSkippedAt      DateTime?
+  lastActiveAt             DateTime                @default(now())
   createdAt                DateTime                @default(now())
   updatedAt                DateTime                @updatedAt
   externalAccounts         ExternalAccount[]
@@ -131,6 +132,8 @@ model User {
   betaApplication          BetaTesterApplication?
   reviewedBetaApplications BetaTesterApplication[] @relation("BetaReviewer")
   feedbackSubmissions      Feedback[]
+
+  @@index([lastActiveAt])
 }
 
 model ExternalAccount {
