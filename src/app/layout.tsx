@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { Suspense } from "react";
 import "@fontsource/instrument-sans/400.css";
 import "@fontsource/instrument-sans/500.css";
 import "@fontsource/instrument-sans/600.css";
@@ -15,6 +16,8 @@ import { BetaBanner } from "@/components/beta-banner";
 import { InlineScript } from "@/components/inline-script";
 import { LocaleProvider } from "@/components/locale-provider";
 import { LocaleToggle } from "@/components/locale-toggle";
+import { MobileAccountMenu } from "@/components/mobile-account-menu";
+import { MobileAppNavigation } from "@/components/mobile-app-navigation";
 import { SignOutForm } from "@/components/sign-out-form";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeaderFrame } from "@/components/site-header-frame";
@@ -83,6 +86,10 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  viewportFit: "cover",
+};
+
 /**
  * Runs before first paint: resolves the saved mode (and, for "auto", the
  * visitor's local time of day) onto <html data-theme/data-phase> so there is no
@@ -148,9 +155,12 @@ export default async function RootLayout({
             <a href="#main-content">{t("common.skipToContent")}</a>
           </Button>
 
-          <div className="app-shell min-h-screen px-6 pb-6 max-md:px-4 max-md:pb-4">
+          <div className="app-shell min-h-screen pb-6 pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))] max-md:pb-4 max-md:pl-[max(1rem,env(safe-area-inset-left))] max-md:pr-[max(1rem,env(safe-area-inset-right))]">
             <SiteHeaderFrame>
-              <Link href={homeHref} className="group inline-flex items-baseline gap-2">
+              <Link
+                href={homeHref}
+                className="group inline-flex min-h-11 items-center gap-2"
+              >
                 <span className="font-display text-[1.45rem] font-medium">
                   filazo
                 </span>
@@ -161,7 +171,7 @@ export default async function RootLayout({
               </Link>
 
               <nav
-                className="flex flex-wrap items-center justify-end gap-6 max-sm:justify-start"
+                className="hidden flex-wrap items-center justify-end gap-6 lg:flex"
                 aria-label={t("nav.main")}
               >
                 <Link href={homeHref} className="nav-link text-sm">
@@ -198,9 +208,32 @@ export default async function RootLayout({
                   />
                 )}
               </nav>
+              {navigationUser ? (
+                <Suspense
+                  fallback={<div aria-hidden className="min-h-11 min-w-11 lg:hidden" />}
+                >
+                  <MobileAccountMenu
+                    displayName={navigationUser.displayName ?? t("common.player")}
+                    isAdmin={isAdminEmail(navigationUser.email)}
+                    locale={locale}
+                    mode={mode}
+                    signOut={<SignOutForm label={t("auth.signOut")} />}
+                  />
+                </Suspense>
+              ) : (
+                <div className="lg:hidden">
+                  <AuthDialog
+                    triggerLabel={t("auth.trigger.signIn")}
+                    triggerSize="sm"
+                  />
+                </div>
+              )}
             </SiteHeaderFrame>
             {children}
             <SiteFooter locale={locale} />
+            <Suspense fallback={null}>
+              <MobileAppNavigation signedIn={Boolean(navigationUser)} />
+            </Suspense>
           </div>
         </LocaleProvider>
       </body>

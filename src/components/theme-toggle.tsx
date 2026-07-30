@@ -78,7 +78,10 @@ export function ThemeToggle({ mode }: { mode: FilazoThemeMode }) {
         disabled={isPending}
         aria-label={t("theme.phaseSliderLabel")}
         aria-valuetext={phaseLabel}
-        className={cn("phase-slider w-28", isAuto && "opacity-60")}
+        className={cn(
+          "phase-slider w-28 max-lg:min-h-11",
+          isAuto && "opacity-60",
+        )}
       />
       <span
         className="w-[9ch] text-caption font-semibold capitalize text-ink-soft"
@@ -90,7 +93,7 @@ export function ThemeToggle({ mode }: { mode: FilazoThemeMode }) {
         aria-label={t("theme.autoLabel")}
         aria-pressed={isAuto}
         className={cn(
-          "grid h-8 w-8 cursor-pointer place-items-center rounded-pill transition-[background-color,box-shadow,color,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70",
+          "grid h-8 w-8 cursor-pointer place-items-center rounded-pill transition-[background-color,box-shadow,color,opacity] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70 max-lg:h-11 max-lg:w-11",
           isAuto
             ? "bg-ink text-surface shadow-rest"
             : "text-ink-soft hover:bg-sage-soft hover:text-ink",

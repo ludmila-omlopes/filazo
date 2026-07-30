@@ -33,6 +33,10 @@ const messages = {
     "nav.main": "Main",
     "nav.footer": "Footer",
     "nav.profileSections": "Profile sections",
+    "nav.mobilePrimary": "Primary mobile navigation",
+    "nav.openAccountMenu": "Open account menu",
+    "nav.account": "Account",
+    "nav.secondary": "More destinations",
 
     "banner.beta.message":
       "Beta tester applications are temporarily closed because we have reached capacity.",
@@ -1276,6 +1280,10 @@ const messages = {
     "nav.main": "Principal",
     "nav.footer": "Rodapé",
     "nav.profileSections": "Seções do perfil",
+    "nav.mobilePrimary": "Navegação principal no celular",
+    "nav.openAccountMenu": "Abrir menu da conta",
+    "nav.account": "Conta",
+    "nav.secondary": "Mais destinos",
 
     "banner.beta.message":
       "As inscrições para beta testers estão temporariamente fechadas porque já atingimos a capacidade.",
