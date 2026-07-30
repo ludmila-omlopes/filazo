@@ -25,8 +25,9 @@ queue, authenticated response cache, or catalog cache is part of this release.
 | 2026-07-30 | `npm run typecheck` | PASS | Next.js route types and TypeScript. |
 | 2026-07-30 | `npm run build` | PASS | Next.js 16 production build completed. |
 | 2026-07-30 | Public `GET /` and signed-out `GET /profile` from the local production server | PASS | Both returned HTTP 200 through the database-unavailable fallback; the signed-out response contained no product bottom-nav markup. No authenticated mutation or production environment was used. |
-| 2026-07-30 | Headless Chrome public-shell screenshots at 390x844 and 844x390 | PASS (limited) | Compact logo/sign-in header, beta-banner spacing, no horizontal overflow, and readable public content were visually checked. Screenshots are local, non-sensitive QA artifacts. |
+| 2026-07-30 | Headless Chrome public-shell screenshots at 390x844 and 844x390 | PASS (limited) | Compact logo/menu header, beta-banner spacing, no horizontal overflow, and readable public content were visually checked. Screenshots are local, non-sensitive QA artifacts. |
 | 2026-07-30 | Headless Chrome responsive DOM checks at 430x932 and 768x1024 | PASS (limited) | Desktop nav remained hidden and the compact auth action remained visible; `scrollWidth` did not exceed `clientWidth`. At 1280x800 the desktop nav was visible and compact auth was hidden. |
+| 2026-07-30 | Headless Chrome signed-out account menu at 390x844 | PASS (limited) | Locale, theme, and sign-in remained reachable; every rendered control measured at least 44x44 CSS pixels, the panel fit the viewport, Escape closed it, and the sign-in dialog opened. |
 | 2026-07-30 | Authenticated browser journeys | BLOCKED | The local database is unavailable and no dedicated non-production test account exists. Authentication was not weakened and production mutations were not used. |
 
 ## Viewport baseline

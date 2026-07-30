@@ -16,8 +16,10 @@ import { BetaBanner } from "@/components/beta-banner";
 import { InlineScript } from "@/components/inline-script";
 import { LocaleProvider } from "@/components/locale-provider";
 import { LocaleToggle } from "@/components/locale-toggle";
-import { MobileAccountMenu } from "@/components/mobile-account-menu";
-import { MobileAppNavigation } from "@/components/mobile-app-navigation";
+import {
+  MobileAccountMenu,
+  MobileAppNavigation,
+} from "@/components/mobile-app-navigation";
 import { SignOutForm } from "@/components/sign-out-form";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeaderFrame } from "@/components/site-header-frame";
@@ -208,26 +210,32 @@ export default async function RootLayout({
                   />
                 )}
               </nav>
-              {navigationUser ? (
-                <Suspense
-                  fallback={<div aria-hidden className="min-h-11 min-w-11 lg:hidden" />}
-                >
-                  <MobileAccountMenu
-                    displayName={navigationUser.displayName ?? t("common.player")}
-                    isAdmin={isAdminEmail(navigationUser.email)}
-                    locale={locale}
-                    mode={mode}
-                    signOut={<SignOutForm label={t("auth.signOut")} />}
-                  />
-                </Suspense>
-              ) : (
-                <div className="lg:hidden">
-                  <AuthDialog
-                    triggerLabel={t("auth.trigger.signIn")}
-                    triggerSize="sm"
-                  />
-                </div>
-              )}
+              <Suspense
+                fallback={<div aria-hidden className="min-h-11 min-w-11 lg:hidden" />}
+              >
+                <MobileAccountMenu
+                  accountAction={
+                    navigationUser ? (
+                      <SignOutForm label={t("auth.signOut")} />
+                    ) : (
+                      <AuthDialog
+                        triggerLabel={t("auth.trigger.signIn")}
+                        triggerSize="sm"
+                      />
+                    )
+                  }
+                  displayName={
+                    navigationUser?.displayName ??
+                    (navigationUser ? t("common.player") : t("auth.trigger.signIn"))
+                  }
+                  isAdmin={Boolean(
+                    navigationUser && isAdminEmail(navigationUser.email),
+                  )}
+                  locale={locale}
+                  mode={mode}
+                  signedIn={Boolean(navigationUser)}
+                />
+              </Suspense>
             </SiteHeaderFrame>
             {children}
             <SiteFooter locale={locale} />

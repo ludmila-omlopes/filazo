@@ -643,6 +643,9 @@
 
 .beta-banner {
   min-height: var(--beta-banner-h);
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-top: env(safe-area-inset-top);
 }
 
 html.has-beta-banner .app-shell {

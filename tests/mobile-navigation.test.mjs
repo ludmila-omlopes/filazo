@@ -110,18 +110,13 @@ test("compact buttons preserve 44px touch targets on mobile", () => {
 });
 
 test("mobile account controls preserve 44px touch targets", () => {
-  const localeSource = readFileSync(
-    new URL("../src/components/locale-toggle.tsx", import.meta.url),
-    "utf8",
-  );
-  const themeSource = readFileSync(
-    new URL("../src/components/theme-toggle.tsx", import.meta.url),
+  const accountMenuSource = readFileSync(
+    new URL("../src/components/mobile-app-navigation.tsx", import.meta.url),
     "utf8",
   );
 
-  assert.match(localeSource, /max-lg:min-h-11 max-lg:min-w-11/);
-  assert.match(themeSource, /max-lg:min-h-11/);
-  assert.match(themeSource, /max-lg:h-11 max-lg:w-11/);
+  assert.match(accountMenuSource, /\[&_button\]:min-h-11 \[&_button\]:min-w-11/);
+  assert.match(accountMenuSource, /\[&_input\]:min-h-11/);
 });
 
 test("mobile shell enables safe-area insets and closes its account menu after navigation", () => {
@@ -130,7 +125,7 @@ test("mobile shell enables safe-area insets and closes its account menu after na
     "utf8",
   );
   const accountMenuSource = readFileSync(
-    new URL("../src/components/mobile-account-menu.tsx", import.meta.url),
+    new URL("../src/components/mobile-app-navigation.tsx", import.meta.url),
     "utf8",
   );
   const appNavigationSource = readFileSync(
@@ -148,22 +143,27 @@ test("mobile shell enables safe-area insets and closes its account menu after na
     new URL("../src/app/profile/page.tsx", import.meta.url),
     "utf8",
   );
-  const betaBannerSource = readFileSync(
-    new URL("../src/components/beta-banner.tsx", import.meta.url),
+  const globalsSource = readFileSync(
+    new URL("../src/app/globals.css", import.meta.url),
     "utf8",
   );
 
   assert.match(layoutSource, /viewportFit:\s*"cover"/);
   assert.match(layoutSource, /safe-area-inset-left/);
   assert.match(layoutSource, /safe-area-inset-right/);
+  assert.match(layoutSource, /signedIn=\{Boolean\(navigationUser\)\}/);
+  assert.match(layoutSource, /accountAction=/);
   assert.match(accountMenuSource, /aria-current=/);
   assert.match(accountMenuSource, /lg:hidden/);
   assert.match(accountMenuSource, /removeAttribute\("open"\)/);
+  assert.match(accountMenuSource, /event\.key === "Escape"/);
+  assert.match(accountMenuSource, /contains\(event\.target as Node\)/);
+  assert.match(accountMenuSource, /max-h-\[calc\(100dvh/);
   assert.match(appNavigationSource, /lg:hidden/);
   assert.match(appNavigationSource, /safe-area-inset-left/);
   assert.match(appNavigationSource, /safe-area-inset-right/);
   assert.match(profileRailSource, /max-lg:hidden/);
   assert.doesNotMatch(profileRailSource, /<h1/);
   assert.match(profilePageSource, /<h1 className="sr-only">/);
-  assert.match(betaBannerSource, /safe-area-inset-top/);
+  assert.match(globalsSource, /safe-area-inset-top/);
 });

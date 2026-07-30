@@ -43,7 +43,7 @@ export function LocaleToggle({ locale }: { locale: Locale }) {
             }
             aria-pressed={isActive}
             className={cn(
-              "rounded-pill px-2.5 py-1 text-[0.72rem] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70 max-lg:min-h-11 max-lg:min-w-11",
+              "rounded-pill px-2.5 py-1 text-[0.72rem] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-70",
               isActive
                 ? "bg-ink text-surface"
                 : "text-ink-soft hover:bg-sage-soft hover:text-ink",
