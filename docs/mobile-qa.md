@@ -5,9 +5,11 @@ Last updated: 2026-07-30 (UTC)
 ## Release status
 
 **Not beta-ready yet.** The automated mobile-navigation baseline is in place,
-but this environment has no browser binary and no physical iPhone or Android
-device. Rows that require visual, touch, media, installed-mode, or provider QA
-remain explicitly pending; they must not be treated as passing evidence.
+and the signed-out public shell has been checked in headless Chrome. This
+environment still has no authenticated test database/account or physical iPhone
+or Android device. Rows that require authenticated journeys, real touch, media,
+installed-mode, or provider QA remain explicitly pending; they must not be
+treated as passing evidence.
 
 The implementation must remain online-first. No service worker, offline mutation
 queue, authenticated response cache, or catalog cache is part of this release.
@@ -23,7 +25,9 @@ queue, authenticated response cache, or catalog cache is part of this release.
 | 2026-07-30 | `npm run typecheck` | PASS | Next.js route types and TypeScript. |
 | 2026-07-30 | `npm run build` | PASS | Next.js 16 production build completed. |
 | 2026-07-30 | Public `GET /` and signed-out `GET /profile` from the local production server | PASS | Both returned HTTP 200 through the database-unavailable fallback; the signed-out response contained no product bottom-nav markup. No authenticated mutation or production environment was used. |
-| 2026-07-30 | Browser screenshots | BLOCKED | No Chrome, Chromium, Firefox, Playwright, or Puppeteer browser binary is available in this environment. |
+| 2026-07-30 | Headless Chrome public-shell screenshots at 390x844 and 844x390 | PASS (limited) | Compact logo/sign-in header, beta-banner spacing, no horizontal overflow, and readable public content were visually checked. Screenshots are local, non-sensitive QA artifacts. |
+| 2026-07-30 | Headless Chrome responsive DOM checks at 430x932 and 768x1024 | PASS (limited) | Desktop nav remained hidden and the compact auth action remained visible; `scrollWidth` did not exceed `clientWidth`. At 1280x800 the desktop nav was visible and compact auth was hidden. |
+| 2026-07-30 | Authenticated browser journeys | BLOCKED | The local database is unavailable and no dedicated non-production test account exists. Authentication was not weakened and production mutations were not used. |
 
 ## Viewport baseline
 
@@ -33,9 +37,10 @@ for the start and completion of each core journey, plus the open account menu.
 | Viewport | Browser/emulation | Header | Profile content starts above rail | Bottom bar / safe area | Keyboard / zoom | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | 360x800 portrait | Pending | Pending | Pending | Pending | Pending | NOT RUN |
-| 390x844 portrait | Pending | Pending | Pending | Pending | Pending | NOT RUN |
-| 430x932 portrait | Pending | Pending | Pending | Pending | Pending | NOT RUN |
-| 844x390 small landscape | Pending | Pending | Pending | Pending | Pending | NOT RUN |
+| 390x844 portrait | Headless Chrome, signed out | PASS | Auth-required | N/A signed out | Pending | PARTIAL |
+| 430x932 portrait | Headless Chrome, signed out | PASS | Auth-required | N/A signed out | Pending | PARTIAL |
+| 768x1024 tablet portrait | Headless Chrome, signed out | PASS | Auth-required | N/A signed out | Pending | PARTIAL |
+| 844x390 small landscape | Headless Chrome, signed out | PASS | Auth-required | N/A signed out | Pending | PARTIAL |
 
 Required checks for every viewport:
 
@@ -45,7 +50,7 @@ Required checks for every viewport:
 - landing, login, beta, terms, privacy, auth helper, and admin routes do not
   expose the product bottom bar;
 - the full profile identity card and section rail do not precede active content
-  at widths below 640px;
+  below the desktop breakpoint;
 - Sources, Calendar, player profile, Guide, Setup, language, theme, and sign-out
   remain keyboard- and touch-reachable from the account menu;
 - `aria-current="page"` follows the current route/profile tab;
@@ -66,7 +71,7 @@ Required checks for every viewport:
 3. Open the account menu and reach every secondary profile section.
 4. Return through Home in the bottom bar.
 
-Status: **NOT RUN on a browser or device**.
+Status: **NOT RUN while authenticated or on a physical device**.
 
 ### 2. Catalog search and game detail
 
@@ -75,7 +80,8 @@ Status: **NOT RUN on a browser or device**.
 3. Open a game detail page and confirm Catalog remains current in the bar.
 4. Use explicit Update status disclosure and save a status.
 
-Status: **NOT RUN on a browser or device**. No mutation was sent to production.
+Status: **NOT RUN while authenticated or on a physical device**. No mutation
+was sent to production.
 
 ### 3. Tonight and status update
 
@@ -84,7 +90,8 @@ Status: **NOT RUN on a browser or device**. No mutation was sent to production.
 3. Update status and return to Tonight.
 4. Confirm required actions do not depend on hover.
 
-Status: **NOT RUN on a browser or device**. No mutation was sent to production.
+Status: **NOT RUN while authenticated or on a physical device**. No mutation
+was sent to production.
 
 ### 4. Journal text, photo, and voice
 
@@ -93,8 +100,8 @@ Status: **NOT RUN on a browser or device**. No mutation was sent to production.
 3. Grant microphone permission, record, stop, play back, and upload a voice note.
 4. Deny microphone permission and confirm the audio-file fallback remains clear.
 
-Status: **NOT RUN on a browser or device**. Camera, microphone, playback, and
-upload require device QA.
+Status: **NOT RUN while authenticated or on a physical device**. Camera,
+microphone, playback, and upload require device QA.
 
 ## Real-device matrix
 
