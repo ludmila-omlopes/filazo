@@ -5,6 +5,7 @@ import {
   PlatformSyncTrigger,
   Prisma,
   type ExternalAccount,
+  type User,
 } from "@prisma/client";
 import { syncPlatformLibraryForAccount } from "@/lib/catalog";
 import {
@@ -12,6 +13,7 @@ import {
   getNextAutomaticSyncAt,
   getPlatformSyncPolicy,
   getRetryDelayMs,
+  PLATFORM_SYNC_INACTIVE_PAUSE_AFTER_MS,
   type PlatformSyncErrorCode,
 } from "@/lib/platform-sync-policy";
 import { prisma } from "@/lib/prisma";
@@ -27,6 +29,9 @@ export const PLATFORM_SYNC_PROVIDERS = [
 ] as const;
 
 export type PlatformSyncProvider = (typeof PLATFORM_SYNC_PROVIDERS)[number];
+type SyncedExternalAccount = ExternalAccount & {
+  user: Pick<User, "lastActiveAt">;
+};
 
 type SyncResult =
   | { kind: "succeeded"; syncedCount: number }
@@ -111,7 +116,7 @@ async function acquireAccountLease({
   >;
   trigger: PlatformSyncTrigger;
 }): Promise<
-  | { account: ExternalAccount; leaseExpiresAt: Date; runId: string }
+  | { account: SyncedExternalAccount; leaseExpiresAt: Date; runId: string }
   | { reason: "locked" }
 > {
   const now = new Date();
@@ -144,6 +149,7 @@ async function acquireAccountLease({
 
   const lockedAccount = await prisma.externalAccount.findUnique({
     where: { id: account.id },
+    include: { user: { select: { lastActiveAt: true } } },
   });
   if (!lockedAccount || lockedAccount.syncLeaseToken !== runId) {
     return { reason: "locked" };
@@ -190,10 +196,12 @@ async function acquireAccountLease({
 
 async function finishSucceededRun({
   accountId,
+  lastActiveAt,
   runId,
   syncedCount,
 }: {
   accountId: string;
+  lastActiveAt: Date;
   runId: string;
   syncedCount: number;
 }) {
@@ -204,7 +212,12 @@ async function finishSucceededRun({
       where: { id: accountId, syncLeaseToken: runId },
       data: {
         lastSyncedAt: now,
-        nextSyncAt: getNextAutomaticSyncAt(now, policy.jitterMs),
+        nextSyncAt: getNextAutomaticSyncAt(
+          now,
+          policy.jitterMs,
+          Math.random,
+          lastActiveAt,
+        ),
         syncFailureCount: 0,
         lastSyncErrorCode: null,
         syncLeaseExpiresAt: null,
@@ -309,6 +322,7 @@ async function runAccountSync({
     if (timeoutId) clearTimeout(timeoutId);
     const finished = await finishSucceededRun({
       accountId: lease.account.id,
+      lastActiveAt: lease.account.user.lastActiveAt,
       runId: lease.runId,
       syncedCount: result.syncedCount,
     });
@@ -422,9 +436,13 @@ export async function runDuePlatformSyncs(): Promise<ScheduledSyncSummary> {
 
   const now = new Date();
   const legacyDueAt = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const automaticSyncPauseAt = new Date(
+    now.getTime() - PLATFORM_SYNC_INACTIVE_PAUSE_AFTER_MS,
+  );
   const accounts = await prisma.externalAccount.findMany({
     where: {
       provider: { in: providers },
+      user: { lastActiveAt: { gt: automaticSyncPauseAt } },
       OR: [
         { nextSyncAt: { lte: now } },
         { nextSyncAt: null, lastSyncedAt: null },
@@ -469,12 +487,16 @@ export async function runDuePlatformSyncs(): Promise<ScheduledSyncSummary> {
 export async function getPlatformSyncOperationalSummary(now = new Date()) {
   const providers = [...PLATFORM_SYNC_PROVIDERS];
   const dueAt = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const automaticSyncPauseAt = new Date(
+    now.getTime() - PLATFORM_SYNC_INACTIVE_PAUSE_AFTER_MS,
+  );
   const recentRunAt = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   const [eligibleAccounts, expiredLeases, repeatedFailures, recentRuns] =
     await Promise.all([
       prisma.externalAccount.count({
         where: {
           provider: { in: providers },
+          user: { lastActiveAt: { gt: automaticSyncPauseAt } },
           OR: [
             { nextSyncAt: { lte: now } },
             { nextSyncAt: null, lastSyncedAt: null },

@@ -1,4 +1,7 @@
 export const PLATFORM_SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000;
+export const PLATFORM_SYNC_INACTIVE_WEEKLY_AFTER_MS = 14 * PLATFORM_SYNC_INTERVAL_MS;
+export const PLATFORM_SYNC_INACTIVE_PAUSE_AFTER_MS = 60 * PLATFORM_SYNC_INTERVAL_MS;
+export const PLATFORM_SYNC_INACTIVE_INTERVAL_MS = 7 * PLATFORM_SYNC_INTERVAL_MS;
 export const PLATFORM_SYNC_DEFAULT_JITTER_MS = 90 * 60 * 1000;
 export const PLATFORM_SYNC_MAX_BACKOFF_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -86,9 +89,19 @@ export function getNextAutomaticSyncAt(
   now = new Date(),
   jitterMs = PLATFORM_SYNC_DEFAULT_JITTER_MS,
   random = Math.random,
+  lastActiveAt: Date | null = now,
 ) {
+  const inactiveForMs = lastActiveAt
+    ? Math.max(0, now.getTime() - lastActiveAt.getTime())
+    : 0;
+  if (inactiveForMs >= PLATFORM_SYNC_INACTIVE_PAUSE_AFTER_MS) return null;
+
+  const intervalMs =
+    inactiveForMs >= PLATFORM_SYNC_INACTIVE_WEEKLY_AFTER_MS
+      ? PLATFORM_SYNC_INACTIVE_INTERVAL_MS
+      : PLATFORM_SYNC_INTERVAL_MS;
   const jitter = Math.floor(Math.max(0, jitterMs) * Math.min(1, Math.max(0, random())));
-  return new Date(now.getTime() + PLATFORM_SYNC_INTERVAL_MS + jitter);
+  return new Date(now.getTime() + intervalMs + jitter);
 }
 
 export function getRetryDelayMs({

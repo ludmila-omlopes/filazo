@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  PLATFORM_SYNC_INACTIVE_PAUSE_AFTER_MS,
+  PLATFORM_SYNC_INACTIVE_WEEKLY_AFTER_MS,
   PLATFORM_SYNC_INTERVAL_MS,
   PLATFORM_SYNC_MAX_BACKOFF_MS,
   classifyPlatformSyncError,
@@ -56,13 +58,37 @@ test("scheduled eligibility respects nextSyncAt and the 24-hour window", () => {
 });
 
 test("next automatic sync is never before 24 hours and includes bounded jitter", () => {
+  const withoutJitter = getNextAutomaticSyncAt(NOW, 60_000, () => 0);
+  const withJitter = getNextAutomaticSyncAt(NOW, 60_000, () => 1);
+  assert.ok(withoutJitter);
+  assert.ok(withJitter);
   assert.equal(
-    getNextAutomaticSyncAt(NOW, 60_000, () => 0).toISOString(),
+    withoutJitter.toISOString(),
     new Date(NOW.getTime() + PLATFORM_SYNC_INTERVAL_MS).toISOString(),
   );
   assert.equal(
-    getNextAutomaticSyncAt(NOW, 60_000, () => 1).toISOString(),
+    withJitter.toISOString(),
     new Date(NOW.getTime() + PLATFORM_SYNC_INTERVAL_MS + 60_000).toISOString(),
+  );
+});
+
+test("next automatic sync slows to weekly for inactive users and pauses after 60 days", () => {
+  const weeklyUser = new Date(
+    NOW.getTime() - PLATFORM_SYNC_INACTIVE_WEEKLY_AFTER_MS,
+  );
+  const pausedUser = new Date(
+    NOW.getTime() - PLATFORM_SYNC_INACTIVE_PAUSE_AFTER_MS,
+  );
+  const weeklySyncAt = getNextAutomaticSyncAt(NOW, 0, () => 0, weeklyUser);
+
+  assert.ok(weeklySyncAt);
+  assert.equal(
+    weeklySyncAt.toISOString(),
+    new Date(NOW.getTime() + 7 * PLATFORM_SYNC_INTERVAL_MS).toISOString(),
+  );
+  assert.equal(
+    getNextAutomaticSyncAt(NOW, 0, () => 0, pausedUser),
+    null,
   );
 });
 
