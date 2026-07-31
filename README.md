@@ -109,6 +109,8 @@ Read [`AGENTS.md`](./AGENTS.md) before changing catalog resolution, provider int
 
 Deploy on Vercel or another host capable of reaching PostgreSQL. Set at least `APP_URL`, `AUTH_SECRET`, and `DATABASE_URL`, then apply the schema with `npm run db:init`.
 
+Runtime exceptions are reported to the `emada/filazo` Sentry project. Handled database failures are tagged with their route, operation, and Prisma error code without attaching user data or HTTP request bodies. Connect the official Sentry integration in Vercel so production builds can upload source maps without committing `SENTRY_AUTH_TOKEN`.
+
 Automated provider sync is disabled by default. To enable it in production, configure `CRON_SECRET`, set `PLATFORM_SYNC_ENABLED=true`, and verify the scheduled internal route. Do not expose the cron secret in URLs, client code, logs, or monitoring labels. The complete sync settings are documented in [`.env.example`](./.env.example) and [`vercel.json`](./vercel.json).
 
 ## Localization and product direction

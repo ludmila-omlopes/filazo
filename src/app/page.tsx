@@ -10,7 +10,10 @@ import { PhaseBadge } from "@/components/theme-runtime";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
-import { getDatabaseErrorMessage } from "@/lib/database-errors";
+import {
+  getDatabaseErrorMessage,
+  reportDatabaseError,
+} from "@/lib/database-errors";
 import { createTranslator } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -197,6 +200,10 @@ async function getHomeData() {
     };
   } catch (error) {
     console.error("Could not load home catalog data.", error);
+    reportDatabaseError(error, {
+      operation: "load-home-catalog",
+      route: "/",
+    });
 
     return {
       catalogCount: 0,

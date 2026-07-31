@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { AuthDialog } from "@/components/auth-dialog";
-import { getDatabaseErrorMessage } from "@/lib/database-errors";
+import {
+  getDatabaseErrorMessage,
+  reportDatabaseError,
+} from "@/lib/database-errors";
 import { createTranslator } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -31,6 +34,10 @@ export default async function LoginPage({
       hasSessionUser = Boolean(user);
     } catch (error) {
       console.error("Could not verify login session.", error);
+      reportDatabaseError(error, {
+        operation: "verify-login-session",
+        route: "/login",
+      });
       sessionError = getDatabaseErrorMessage(error);
     }
 

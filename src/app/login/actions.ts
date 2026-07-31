@@ -8,7 +8,10 @@ import {
   normalizeEmail,
   verifyPassword,
 } from "@/lib/password-auth";
-import { getDatabaseErrorMessage } from "@/lib/database-errors";
+import {
+  getDatabaseErrorMessage,
+  reportDatabaseError,
+} from "@/lib/database-errors";
 import { prisma } from "@/lib/prisma";
 import { getRequestTranslator } from "@/lib/request-locale";
 import { getSessionUserId, setUserSession } from "@/lib/session";
@@ -57,6 +60,10 @@ export async function emailAuthAction(formData: FormData) {
     const user = await prisma.user
       .findUnique({ where: { email } })
       .catch((error: unknown) => {
+        reportDatabaseError(error, {
+          operation: "email-sign-in",
+          route: "/login",
+        });
         redirectWithAuthError(getDatabaseErrorMessage(error));
       });
 
