@@ -39,6 +39,7 @@ import { getPlayerProfileForUser } from "@/lib/assistant/profile-agent";
 import { getAiSettings } from "@/lib/ai-settings";
 import { getPlayTimeBenchmark, getProfileData } from "@/lib/catalog";
 import { createTranslator } from "@/lib/i18n";
+import { reportDatabaseError } from "@/lib/database-errors";
 import {
   parseProfileGameSort,
   sortProfileGameEntries,
@@ -61,6 +62,10 @@ export default async function ProfilePage({
     sessionUser = await getSessionUserWithBeta(userId);
   } catch (error) {
     console.error("Could not verify profile access.", error);
+    reportDatabaseError(error, {
+      operation: "verify-profile-access",
+      route: "/profile",
+    });
     return <ProfileErrorPanel error={error} locale={locale} />;
   }
 
@@ -92,6 +97,10 @@ export default async function ProfilePage({
     profile = await getProfileData(profileUserId, { scope: activeTab });
   } catch (error) {
     console.error("Could not load profile data.", error);
+    reportDatabaseError(error, {
+      operation: "load-profile",
+      route: "/profile",
+    });
     return <ProfileErrorPanel error={error} locale={locale} />;
   }
 
