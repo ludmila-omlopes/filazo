@@ -638,11 +638,14 @@
    reserves its height so the shell content and the sticky header sit below it
    without a layout jump on first paint. */
 :root {
-  --beta-banner-h: 2.5rem;
+  --beta-banner-h: calc(2.5rem + env(safe-area-inset-top));
 }
 
 .beta-banner {
   min-height: var(--beta-banner-h);
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  padding-top: env(safe-area-inset-top);
 }
 
 html.has-beta-banner .app-shell {
@@ -655,6 +658,6 @@ html.has-beta-banner .site-header {
 
 @media (max-width: 640px) {
   :root {
-    --beta-banner-h: 4rem;
+    --beta-banner-h: calc(4rem + env(safe-area-inset-top));
   }
 }

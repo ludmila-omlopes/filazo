@@ -166,6 +166,9 @@ export default async function ProfilePage({
       />
 
       <div className="grid min-w-0 gap-7">
+        <h1 className="sr-only">
+          {profile.user.displayName ?? t("common.player")} — {t("common.library")}
+        </h1>
         {isReadOnlyPreview ? (
           <Notice tone="info">
             {t("admin.preview.viewing", {

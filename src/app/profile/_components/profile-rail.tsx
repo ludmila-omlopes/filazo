@@ -97,7 +97,7 @@ export function ProfileRail({
   }
 
   return (
-    <aside className="sticky top-28 grid gap-4 self-start max-lg:static">
+    <aside className="sticky top-28 grid gap-4 self-start max-lg:hidden">
       <div className="relative overflow-hidden rounded-card border border-edge bg-dusk-deep p-6 text-cream shadow-rest">
         <div aria-hidden className="absolute inset-x-0 top-0 h-2 bg-glow" />
         <div
@@ -118,9 +118,9 @@ export function ProfileRail({
               <span>{(profile.user.displayName ?? "P").slice(0, 1)}</span>
             )}
           </div>
-          <h1 className="mt-4 truncate font-display text-xl font-medium">
+          <p className="mt-4 truncate font-display text-xl font-medium">
             {profile.user.displayName ?? t("common.player")}
-          </h1>
+          </p>
             <p className="mt-1 text-xs leading-relaxed text-cream/55">
               {t("profile.rail.catalogMood")}
             </p>
