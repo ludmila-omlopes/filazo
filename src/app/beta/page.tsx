@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import { getSessionUserWithBeta, isAdminEmail } from "@/lib/beta-access";
-import { BETA_SUBMISSIONS_OPEN } from "@/lib/beta-submissions";
+import { getBetaSubmissionsOpen } from "@/lib/beta-submissions";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
@@ -80,7 +80,10 @@ export default async function BetaPage({
   const locale: Locale = await getRequestLocale();
   const t = createTranslator(locale);
   const query = await searchParams;
-  const user = await getSessionUserWithBeta(await getSessionUserId());
+  const [user, submissionsOpen] = await Promise.all([
+    getSessionUserWithBeta(await getSessionUserId()),
+    getBetaSubmissionsOpen(),
+  ]);
   const application = user?.betaApplication ?? null;
   const selectedPlatforms = new Set(asStringArray(application?.platforms));
   const statusCopy = getStatusCopy(application?.status, t);
@@ -116,9 +119,9 @@ export default async function BetaPage({
             {t("beta.title")}
           </h1>
           <p className="max-w-[62ch] leading-relaxed text-cream/76">
-            {t("beta.body")}
+            {t(submissionsOpen ? "beta.body.open" : "beta.body")}
           </p>
-          {!user && BETA_SUBMISSIONS_OPEN ? (
+          {!user && submissionsOpen ? (
             <Button
               asChild
               className="min-h-12 w-fit bg-cream px-7 text-base text-dusk-deep hover:bg-glow"
@@ -148,7 +151,7 @@ export default async function BetaPage({
               </Notice>
             ) : null}
 
-            {!BETA_SUBMISSIONS_OPEN ? (
+            {!submissionsOpen ? (
               <Notice tone="info">{t("beta.submissionsClosed")}</Notice>
             ) : null}
 
@@ -165,7 +168,7 @@ export default async function BetaPage({
               <Button asChild className="w-fit">
                 <Link href="/profile">{t("beta.openPlatform")}</Link>
               </Button>
-            ) : BETA_SUBMISSIONS_OPEN ? (
+            ) : submissionsOpen ? (
               <form action={submitBetaApplicationAction} className="grid gap-5">
                 <label className="grid gap-2">
                   <span className="text-sm font-bold text-ink">

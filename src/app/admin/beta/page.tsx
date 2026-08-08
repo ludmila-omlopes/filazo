@@ -1,16 +1,21 @@
 import { BetaTesterStatus, type Prisma } from "@prisma/client";
-import { reviewBetaApplicationAction } from "../actions";
+import {
+  reviewBetaApplicationAction,
+  updateBetaSubmissionsAction,
+} from "../actions";
 import { AdminNav } from "../admin-nav";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import { getSessionUserWithBeta, isAdminEmail } from "@/lib/beta-access";
+import { getBetaSubmissionsOpen } from "@/lib/beta-submissions";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
 
 type AdminBetaSearchParams = Promise<{
+  applicationsUpdated?: string;
   emailFailed?: string;
   emailSent?: string;
   emailSkipped?: string;
@@ -61,19 +66,22 @@ export default async function AdminBetaPage({
     );
   }
 
-  const applications = await prisma.betaTesterApplication.findMany({
-    where: {
-      status: { not: BetaTesterStatus.DRAFT },
-    },
-    include: {
-      user: true,
-      reviewedBy: true,
-    },
-    orderBy: [
-      { status: "desc" },
-      { createdAt: "asc" },
-    ],
-  });
+  const [applications, submissionsOpen] = await Promise.all([
+    prisma.betaTesterApplication.findMany({
+      where: {
+        status: { not: BetaTesterStatus.DRAFT },
+      },
+      include: {
+        user: true,
+        reviewedBy: true,
+      },
+      orderBy: [
+        { status: "desc" },
+        { createdAt: "asc" },
+      ],
+    }),
+    getBetaSubmissionsOpen(),
+  ]);
 
   const pendingCount = applications.filter(
     (application) => application.status === BetaTesterStatus.PENDING,
@@ -97,6 +105,9 @@ export default async function AdminBetaPage({
       {query.emailFailed ? (
         <Notice tone="error">{t("admin.email.failed")}</Notice>
       ) : null}
+      {query.applicationsUpdated ? (
+        <Notice tone="success">{t("admin.applications.updated")}</Notice>
+      ) : null}
 
       <section className="grid gap-4">
         <AdminNav current="/admin/beta" locale={locale} />
@@ -106,6 +117,40 @@ export default async function AdminBetaPage({
         <h1 className="text-page-title">{t("admin.title")}</h1>
         <p className="max-w-[62ch] text-ink-soft">{t("admin.body")}</p>
       </section>
+
+      <Card tactile>
+        <CardContent className="flex flex-wrap items-center justify-between gap-5 p-6">
+          <div className="max-w-[62ch]">
+            <p className="text-kicker font-bold uppercase text-ink-soft">
+              {t("admin.applications.kicker")}
+            </p>
+            <h2 className="mt-1 font-display text-2xl font-medium">
+              {t(
+                submissionsOpen
+                  ? "admin.applications.open"
+                  : "admin.applications.closed",
+              )}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+              {t("admin.applications.body")}
+            </p>
+          </div>
+          <form action={updateBetaSubmissionsAction}>
+            <input
+              name="open"
+              type="hidden"
+              value={submissionsOpen ? "false" : "true"}
+            />
+            <Button type="submit" variant={submissionsOpen ? "outline" : "default"}>
+              {t(
+                submissionsOpen
+                  ? "admin.applications.close"
+                  : "admin.applications.openAction",
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
         <Card tactile>

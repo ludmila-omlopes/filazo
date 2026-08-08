@@ -2,16 +2,18 @@ import Link from "next/link";
 import { BetaTesterStatus } from "@prisma/client";
 import { Clock3 } from "lucide-react";
 import { AdminNav } from "../admin-nav";
+import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
 import { getSessionUserWithBeta, isAdminEmail } from "@/lib/beta-access";
+import {
+  BETA_ACTIVE_WINDOW_DAYS,
+  isBetaTesterActive,
+  latestDate,
+} from "@/lib/beta-activity";
 import { createTranslator } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
-
-function latestDate(dates: Array<Date | null | undefined>) {
-  return dates.filter((date): date is Date => Boolean(date)).sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
-}
 
 export default async function AdminActivityPage() {
   const locale = await getRequestLocale();
@@ -25,13 +27,25 @@ export default async function AdminActivityPage() {
     where: { status: BetaTesterStatus.APPROVED },
     orderBy: { reviewedAt: "desc" },
     include: { user: { select: {
-      id: true, displayName: true, email: true, createdAt: true, updatedAt: true,
+      id: true, displayName: true, email: true, createdAt: true, updatedAt: true, lastActiveAt: true,
       externalAccounts: { select: { provider: true, lastSyncedAt: true, updatedAt: true } },
       importJobs: { orderBy: { createdAt: "desc" }, take: 3, select: { id: true, fileName: true, status: true, createdAt: true, completedAt: true } },
       gameEntries: { orderBy: { updatedAt: "desc" }, take: 5, select: { id: true, status: true, source: true, createdAt: true, updatedAt: true, lastPlayedAt: true, game: { select: { name: true, slug: true } } } },
       journalEntries: { orderBy: { occurredAt: "desc" }, take: 3, select: { id: true, occurredAt: true, game: { select: { name: true } } } },
     } } },
   });
+
+  const testerActivity = testers.map(({ user }) => {
+    const latest = latestDate([user.lastActiveAt, user.updatedAt, ...user.externalAccounts.flatMap((a) => [a.lastSyncedAt, a.updatedAt]), ...user.importJobs.flatMap((j) => [j.completedAt, j.createdAt]), ...user.gameEntries.flatMap((e) => [e.updatedAt, e.lastPlayedAt]), ...user.journalEntries.map((e) => e.occurredAt)]);
+
+    return {
+      user,
+      latest,
+      active: isBetaTesterActive(user.lastActiveAt),
+    };
+  });
+  const activeCount = testerActivity.filter(({ active }) => active).length;
+  const inactiveCount = testerActivity.length - activeCount;
 
   const format = (date: Date) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
   return <main id="main-content" className="mx-auto grid w-full max-w-[1180px] gap-7">
@@ -41,9 +55,22 @@ export default async function AdminActivityPage() {
       <h1 className="mt-2 font-display text-4xl font-medium">{t("admin.activity.title")}</h1>
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">{t("admin.activity.body")}</p>
     </header>
+    <section className="grid grid-cols-2 gap-4 max-sm:grid-cols-1" aria-label={t("admin.activity.summary")}>
+      <Card tactile>
+        <CardContent className="p-5">
+          <p className="text-sm font-bold text-ink-soft">{t("admin.activity.active", { days: BETA_ACTIVE_WINDOW_DAYS })}</p>
+          <p className="mt-2 font-display text-4xl">{activeCount}</p>
+        </CardContent>
+      </Card>
+      <Card tactile>
+        <CardContent className="p-5">
+          <p className="text-sm font-bold text-ink-soft">{t("admin.activity.inactive", { days: BETA_ACTIVE_WINDOW_DAYS })}</p>
+          <p className="mt-2 font-display text-4xl">{inactiveCount}</p>
+        </CardContent>
+      </Card>
+    </section>
     <div className="grid gap-5">
-      {testers.map(({ user }) => {
-        const latest = latestDate([user.updatedAt, ...user.externalAccounts.flatMap((a) => [a.lastSyncedAt, a.updatedAt]), ...user.importJobs.flatMap((j) => [j.completedAt, j.createdAt]), ...user.gameEntries.flatMap((e) => [e.updatedAt, e.lastPlayedAt]), ...user.journalEntries.map((e) => e.occurredAt)]);
+      {testerActivity.map(({ user, latest }) => {
         return <article className="rounded-card border border-edge bg-surface p-5 shadow-rest" key={user.id}>
           <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="font-display text-xl">{user.displayName ?? t("admin.noName")}</h2><p className="text-sm text-ink-soft">{user.email ?? t("admin.noEmail")}</p></div>{latest ? <p className="flex items-center gap-2 text-xs font-bold text-ink-soft"><Clock3 className="size-4" />{t("admin.activity.latest", { date: format(latest) })}</p> : null}</div>
           <div className="mt-5 grid gap-4 md:grid-cols-3">
