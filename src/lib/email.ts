@@ -1,13 +1,10 @@
 "use server";
 
 import { Resend } from "resend";
+import { getBetaDiscordInviteUrl } from "@/lib/beta-community";
 
 function getBaseUrl() {
   return (process.env.APP_URL || "http://localhost:3001").replace(/\/+$/, "");
-}
-
-function getDiscordInviteUrl() {
-  return process.env.BETA_DISCORD_INVITE_URL?.trim() || null;
 }
 
 function escapeHtml(value: string) {
@@ -41,7 +38,7 @@ function buildApprovalEmail({
   recipientName: string;
 }) {
   const profileUrl = `${getBaseUrl()}/profile`;
-  const discordInviteUrl = getDiscordInviteUrl();
+  const discordInviteUrl = getBetaDiscordInviteUrl();
 
   const greeting = recipientName.trim() || "there";
   const safeGreeting = escapeHtml(greeting);

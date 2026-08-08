@@ -20,6 +20,8 @@ A calm, personal game library. Filazo gathers games from multiple sources into o
 
 > **Catalog rule:** `Game` is the shared canonical record. `GameProviderLink` maps a provider's IDs to it, and `UserGameEntry` stores a person's ownership, progress, and status. New integrations must use this resolution flow.
 
+Beta application intake is stored in `BetaSettings`. Admins can open or close applications, while the activity view uses `User.lastActiveAt` to summarize approved testers as active or inactive. The top beta banner follows the application setting and directs current testers to Discord or `/feedback`.
+
 ## Requirements
 
 - Node.js 22.5 or newer (CI uses Node 26)

@@ -39,7 +39,13 @@ const messages = {
     "nav.secondary": "More destinations",
 
     "banner.beta.message":
-      "Beta tester applications are temporarily closed because we have reached capacity.",
+      "Beta applications are paused.",
+    "banner.beta.applicationsOpen": "Beta applications are open:",
+    "banner.beta.apply": "request access",
+    "banner.beta.testers": "Testers:",
+    "banner.beta.discord": "join Discord",
+    "banner.beta.or": "or",
+    "banner.beta.feedback": "send feedback",
 
     "locale.label": "Language",
     "locale.en": "EN",
@@ -184,6 +190,8 @@ const messages = {
     "beta.title": "Beta tester applications",
     "beta.body":
       "Applications are temporarily closed while we work with the current group of beta testers.",
+    "beta.body.open":
+      "Applications are open. Sign in with Google and tell us which platforms you play on to request access.",
     "beta.submissionsClosed":
       "Beta tester applications are temporarily closed because we have reached capacity. Please check back later.",
     "beta.signInGoogle": "Sign in with Google and request access",
@@ -215,6 +223,14 @@ const messages = {
     "admin.title": "Beta testers",
     "admin.body":
       "Approve or decline beta tester applications. Approvals unlock full platform access for 1 year.",
+    "admin.applications.kicker": "Application intake",
+    "admin.applications.open": "Applications are open",
+    "admin.applications.closed": "Applications are closed",
+    "admin.applications.body":
+      "This controls whether new candidates can sign in and submit a beta tester application.",
+    "admin.applications.openAction": "Open applications",
+    "admin.applications.close": "Close applications",
+    "admin.applications.updated": "Application availability updated.",
     "admin.pending": "Pending",
     "admin.totalReviewable": "Reviewable total",
     "admin.status.pending": "Pending",
@@ -370,6 +386,9 @@ const messages = {
     "admin.activity.kicker": "Beta operations",
     "admin.activity.title": "Beta tester activity",
     "admin.activity.body": "Recent account, source, import, and library signals for approved testers. These timestamps are operational context, not a score.",
+    "admin.activity.summary": "Tester activity summary",
+    "admin.activity.active": "Active in the last {days} days",
+    "admin.activity.inactive": "Inactive for more than {days} days",
     "admin.activity.latest": "Latest signal: {date}",
     "admin.activity.syncs": "Source syncs",
     "admin.activity.imports": "Imports",
@@ -1286,7 +1305,13 @@ const messages = {
     "nav.secondary": "Mais destinos",
 
     "banner.beta.message":
-      "As inscrições para beta testers estão temporariamente fechadas porque já atingimos a capacidade.",
+      "As inscrições para beta testers estão pausadas.",
+    "banner.beta.applicationsOpen": "Inscrições para beta testers abertas:",
+    "banner.beta.apply": "solicite acesso",
+    "banner.beta.testers": "Testers:",
+    "banner.beta.discord": "entrem no Discord",
+    "banner.beta.or": "ou",
+    "banner.beta.feedback": "enviem feedback",
 
     "locale.label": "Idioma",
     "locale.en": "EN",
@@ -1434,6 +1459,8 @@ const messages = {
     "beta.title": "Inscrições para beta testers",
     "beta.body":
       "As inscrições estão temporariamente fechadas enquanto trabalhamos com o grupo atual de beta testers.",
+    "beta.body.open":
+      "As inscrições estão abertas. Entre com o Google e conte em quais plataformas você joga para solicitar acesso.",
     "beta.submissionsClosed":
       "As inscrições para beta testers estão temporariamente fechadas porque já atingimos a capacidade. Volte mais tarde.",
     "beta.signInGoogle": "Entrar com Google e solicitar acesso",
@@ -1465,6 +1492,14 @@ const messages = {
     "admin.title": "Beta testers",
     "admin.body":
       "Aprove ou recuse cadastros de beta testers. Aprovações liberam acesso completo à plataforma por 1 ano.",
+    "admin.applications.kicker": "Entrada de cadastros",
+    "admin.applications.open": "As inscrições estão abertas",
+    "admin.applications.closed": "As inscrições estão fechadas",
+    "admin.applications.body":
+      "Este controle define se novas pessoas podem entrar e enviar um cadastro para beta tester.",
+    "admin.applications.openAction": "Abrir inscrições",
+    "admin.applications.close": "Fechar inscrições",
+    "admin.applications.updated": "Disponibilidade das inscrições atualizada.",
     "admin.pending": "Pendentes",
     "admin.totalReviewable": "Total analisável",
     "admin.status.pending": "Pendente",
@@ -1620,6 +1655,9 @@ const messages = {
     "admin.activity.kicker": "Operação da beta",
     "admin.activity.title": "Atividade de beta testers",
     "admin.activity.body": "Sinais recentes de conta, fontes, importações e biblioteca das pessoas aprovadas. Os horários dão contexto operacional, não uma pontuação.",
+    "admin.activity.summary": "Resumo de atividade dos testers",
+    "admin.activity.active": "Ativos nos últimos {days} dias",
+    "admin.activity.inactive": "Inativos há mais de {days} dias",
     "admin.activity.latest": "Sinal mais recente: {date}",
     "admin.activity.syncs": "Sincronizações",
     "admin.activity.imports": "Importações",

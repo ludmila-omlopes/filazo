@@ -15,6 +15,7 @@ import {
   saveAiSettings,
   type AiSettingsValues,
 } from "@/lib/ai-settings";
+import { setBetaSubmissionsOpen } from "@/lib/beta-submissions";
 import { sendBetaApprovalEmail } from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { getRequestTranslator } from "@/lib/request-locale";
@@ -29,6 +30,10 @@ const reviewSchema = z.object({
 const feedbackStatusSchema = z.object({
   feedbackId: z.string().min(1),
   status: z.nativeEnum(FeedbackStatus),
+});
+
+const betaSubmissionsSchema = z.object({
+  open: z.enum(["true", "false"]),
 });
 
 function intSettingSchema(key: keyof typeof AI_SETTINGS_LIMITS) {
@@ -176,6 +181,24 @@ export async function reviewBetaApplicationAction(formData: FormData) {
   revalidatePath("/admin/beta");
   revalidatePath("/beta");
   redirect(`/admin/beta?${redirectParams.toString()}`);
+}
+
+export async function updateBetaSubmissionsAction(formData: FormData) {
+  await requireAdmin();
+  const parsed = betaSubmissionsSchema.safeParse({
+    open: formData.get("open"),
+  });
+
+  if (!parsed.success) {
+    redirect("/admin/beta");
+  }
+
+  await setBetaSubmissionsOpen(parsed.data.open === "true");
+
+  revalidatePath("/", "layout");
+  revalidatePath("/admin/beta");
+  revalidatePath("/beta");
+  redirect("/admin/beta?applicationsUpdated=1");
 }
 
 export async function updateFeedbackStatusAction(formData: FormData) {

@@ -28,6 +28,8 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { createTranslator } from "@/lib/i18n";
 import { isAdminEmail } from "@/lib/beta-access";
+import { getBetaDiscordInviteUrl } from "@/lib/beta-community";
+import { getBetaSubmissionsOpen } from "@/lib/beta-submissions";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
@@ -134,7 +136,11 @@ export default async function RootLayout({
   const initialTheme = mode === "auto" ? "day" : themeForPhase(mode);
   const initialPhase = mode === "auto" ? undefined : mode;
   const userId = await getSessionUserId();
-  const navigationUser = await getNavigationUser(userId);
+  const [navigationUser, betaSubmissionsOpen] = await Promise.all([
+    getNavigationUser(userId),
+    getBetaSubmissionsOpen(),
+  ]);
+  const betaDiscordInviteUrl = getBetaDiscordInviteUrl();
   const homeHref = userId ? "/profile" : "/";
 
   return (
@@ -149,7 +155,10 @@ export default async function RootLayout({
         <InlineScript html={themeBootstrapScript} />
         <ThemeRuntime mode={mode} />
         <LocaleProvider locale={locale}>
-          <BetaBanner />
+          <BetaBanner
+            discordInviteUrl={betaDiscordInviteUrl}
+            submissionsOpen={betaSubmissionsOpen}
+          />
           <Button
             asChild
             className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
