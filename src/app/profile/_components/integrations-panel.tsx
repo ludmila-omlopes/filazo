@@ -11,6 +11,10 @@ import { SectionHeader } from "@/components/ui/section-header";
 import type { AiSettingsValues } from "@/lib/ai-settings";
 import { hasIgdbConfig } from "@/lib/igdb";
 import { createTranslator, type Locale } from "@/lib/i18n";
+import {
+  getImportSourceImages,
+  isPhotoImport,
+} from "@/lib/import-audit";
 import { isAiProviderConfigured } from "@/lib/openai";
 import { isSteamConfigured } from "@/lib/steam";
 import { isXboxConfigured } from "@/lib/xbox";
@@ -26,6 +30,7 @@ import {
   syncUserReviewsAction,
   syncXboxLibraryAction,
 } from "../actions";
+import { ImportImageGallery } from "./import-image-gallery";
 import { ManualGameLookupPanel } from "./manual-game-lookup-panel";
 import type { ProfileData } from "./profile-types";
 
@@ -342,7 +347,7 @@ function CsvImportRow({
         }
       />
       <CsvImportWidget action={importCsvAction} />
-      <ImportAuditPreview locale={locale} profile={profile} />
+      <ImportAuditPreview locale={locale} profile={profile} source="file" />
     </div>
   );
 }
@@ -359,42 +364,69 @@ function getRawTitle(value: unknown) {
 function ImportAuditPreview({
   locale,
   profile,
+  source,
 }: {
   locale: Locale;
   profile: ProfileData;
+  source: "file" | "photo";
 }) {
   const t = createTranslator(locale);
-  const rows = profile.latestImport?.rows ?? [];
-  if (!rows.length) {
+  const latestImport = profile.latestImport;
+  const photoImport = isPhotoImport(latestImport?.columnMapping);
+  if (!latestImport || photoImport !== (source === "photo")) {
     return null;
   }
+  const rows = latestImport.rows;
+  const images = photoImport
+    ? getImportSourceImages({ rows, summary: latestImport.summary })
+    : [];
+  if (!rows.length && !images.length) return null;
 
   return (
     <details className="mt-5 rounded-inner border border-edge bg-canvas/60 p-4 text-sm">
       <summary className="cursor-pointer font-bold">
         {t("profile.importAudit.title")}
       </summary>
-      <div className="mt-3 grid gap-2">
-        {rows.map((row) => (
-          <div
-            className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-inner border border-edge bg-surface p-3"
-            key={row.id}
-          >
-            <span className="min-w-0 truncate font-semibold">
-              {getRawTitle(row.rawData) ??
-                row.normalizedTitle ??
-                t("profile.importAudit.row", { index: row.rowIndex + 1 })}
-            </span>
-            <span className="rounded-pill border border-edge px-2 py-0.5 text-[0.7rem] font-bold uppercase">
-              {row.outcome ?? t("profile.importAudit.pending")}
-            </span>
-            {row.error ? (
-              <p className="col-span-2 text-xs leading-relaxed text-ink-soft">
-                {row.error}
-              </p>
-            ) : null}
+      <div className="mt-3 grid gap-4">
+        {images.length ? (
+          <section className="grid gap-2" aria-labelledby="import-images-title">
+            <h3 className="font-bold" id="import-images-title">
+              {t("profile.importAudit.imagesTitle")}
+            </h3>
+            <ImportImageGallery
+              closeLabel={t("profile.importAudit.closeImage")}
+              imageLabel={t("profile.importAudit.imageLabel")}
+              images={images}
+              nextLabel={t("profile.importAudit.nextImage")}
+              openLabel={t("profile.importAudit.openImage")}
+              previousLabel={t("profile.importAudit.previousImage")}
+            />
+          </section>
+        ) : null}
+        {rows.length ? (
+          <div className="grid gap-2">
+            {rows.map((row) => (
+              <div
+                className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 rounded-inner border border-edge bg-surface p-3"
+                key={row.id}
+              >
+                <span className="min-w-0 truncate font-semibold">
+                  {getRawTitle(row.rawData) ??
+                    row.normalizedTitle ??
+                    t("profile.importAudit.row", { index: row.rowIndex + 1 })}
+                </span>
+                <span className="rounded-pill border border-edge px-2 py-0.5 text-[0.7rem] font-bold uppercase">
+                  {row.outcome ?? t("profile.importAudit.pending")}
+                </span>
+                {row.error ? (
+                  <p className="col-span-2 text-xs leading-relaxed text-ink-soft">
+                    {row.error}
+                  </p>
+                ) : null}
+              </div>
+            ))}
           </div>
-        ))}
+        ) : null}
       </div>
     </details>
   );
@@ -458,7 +490,7 @@ function PhotoImportRow({
           {t("profile.photoImport.submit")}
         </Button>
       </form>
-      <ImportAuditPreview locale={locale} profile={profile} />
+      <ImportAuditPreview locale={locale} profile={profile} source="photo" />
     </div>
   );
 }
