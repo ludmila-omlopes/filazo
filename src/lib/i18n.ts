@@ -37,6 +37,15 @@ const messages = {
     "nav.openAccountMenu": "Open account menu",
     "nav.account": "Account",
     "nav.secondary": "More destinations",
+    "install.title": "Install filazo",
+    "install.description":
+      "Keep your library one tap away while everything stays safely online.",
+    "install.action": "Install app",
+    "install.dismiss": "Dismiss install help",
+    "install.iosHelp":
+      "In Safari, open Share and choose Add to Home Screen.",
+    "install.browserHelp":
+      "Open your browser menu and choose Install app or Add to Home screen.",
 
     "banner.beta.message":
       "Beta applications are paused.",
@@ -1309,6 +1318,15 @@ const messages = {
     "nav.openAccountMenu": "Abrir menu da conta",
     "nav.account": "Conta",
     "nav.secondary": "Mais destinos",
+    "install.title": "Instalar o filazo",
+    "install.description":
+      "Deixe sua biblioteca a um toque de distância, sempre com os dados online.",
+    "install.action": "Instalar app",
+    "install.dismiss": "Dispensar ajuda de instalação",
+    "install.iosHelp":
+      "No Safari, abra Compartilhar e escolha Adicionar à Tela de Início.",
+    "install.browserHelp":
+      "Abra o menu do navegador e escolha Instalar app ou Adicionar à tela inicial.",
 
     "banner.beta.message":
       "As inscrições para beta testers estão pausadas.",
