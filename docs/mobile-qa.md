@@ -1,15 +1,15 @@
 # Mobile and PWA QA
 
-Last updated: 2026-07-30 (UTC)
+Last updated: 2026-08-21 (UTC)
 
 ## Release status
 
-**Not beta-ready yet.** The automated mobile-navigation baseline is in place,
-and the signed-out public shell has been checked in headless Chrome. This
-environment still has no authenticated test database/account or physical iPhone
-or Android device. Rows that require authenticated journeys, real touch, media,
-installed-mode, or provider QA remain explicitly pending; they must not be
-treated as passing evidence.
+**Not beta-ready yet.** The automated mobile-navigation baseline and online-first
+PWA installability are in place, and the signed-out public shell has been checked
+in headless Chrome. This environment still has no dedicated authenticated test
+account or physical iPhone or Android device. Rows that require authenticated
+journeys, real touch, media, installed-mode, or provider QA remain explicitly
+pending; they must not be treated as passing evidence.
 
 The implementation must remain online-first. No service worker, offline mutation
 queue, authenticated response cache, or catalog cache is part of this release.
@@ -29,6 +29,24 @@ queue, authenticated response cache, or catalog cache is part of this release.
 | 2026-07-30 | Headless Chrome responsive DOM checks at 430x932 and 768x1024 | PASS (limited) | Desktop nav remained hidden and the compact auth action remained visible; `scrollWidth` did not exceed `clientWidth`. At 1280x800 the desktop nav was visible and compact auth was hidden. |
 | 2026-07-30 | Headless Chrome signed-out account menu at 390x844 | PASS (limited) | Locale, theme, and sign-in remained reachable; every rendered control measured at least 44x44 CSS pixels, the panel fit the viewport, Escape closed it, and the sign-in dialog opened. |
 | 2026-07-30 | Authenticated browser journeys | BLOCKED | The local database is unavailable and no dedicated non-production test account exists. Authentication was not weakened and production mutations were not used. |
+| 2026-08-21 | `npx -y npm@11 ci` | PASS | Clean install completed and Prisma Client generated from the unchanged schema. npm reported its existing dependency audit findings; no automated audit fix was applied. |
+| 2026-08-21 | `npm run lint`, `npm run typecheck`, `npm test` | PASS | Lint exited 0 with the same three pre-existing `next/image` warnings; typecheck passed; all 174 tests passed, including PWA manifest, icon, standalone, platform-help, and dismissal coverage. |
+| 2026-08-21 | `npm run build` | PASS | Next.js 16 production build completed and prerendered `/manifest.webmanifest` as a static route. The existing multi-lockfile workspace-root warning remains. |
+| 2026-08-21 | Production server manifest and icon requests | PASS | `/manifest.webmanifest` returned HTTP 200 as `application/manifest+json`; 192px, 512px, and maskable 512px icons each returned HTTP 200. The landing HTML linked the manifest and included Apple installed-mode and light/dark theme-color metadata. |
+| 2026-08-21 | Chrome DevTools Protocol manifest/installability inspection at 390x844 | PASS (limited) | Chrome loaded the expected manifest URL with no manifest errors. Its only installability error was `in-incognito`, which is inherent to the isolated headless browser context. A normal browser application-panel check and home-screen installation remain device QA. |
+
+## PWA installability status
+
+- The manifest uses stable `id: "/"`, `scope: "/"`, `start_url: "/profile"`,
+  and `display: "standalone"` with Catalog, Tonight, and Journal shortcuts.
+- The account menu provides a Chromium install action when
+  `beforeinstallprompt` is available, Safari instructions for iOS, generic
+  browser-menu guidance elsewhere, standalone detection, and remembered
+  dismissal.
+- The release remains online-first. There is no service worker, fetch handler,
+  offline cache, background sync, or mutation queue.
+- Physical iOS/Android home-screen launch, installed-mode navigation, and
+  provider callbacks remain **NOT RUN** and belong to the real-device gate.
 
 ## Viewport baseline
 

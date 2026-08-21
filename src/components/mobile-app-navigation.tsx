@@ -17,6 +17,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, type ReactNode } from "react";
 import { useTranslations } from "@/components/locale-provider";
+import { InstallAppCard } from "@/components/install-app-card";
 import { LocaleToggle } from "@/components/locale-toggle";
 import { ThemeToggle } from "@/components/theme-toggle";
 import type { Locale } from "@/lib/i18n";
@@ -228,41 +229,46 @@ export function MobileAccountMenu({
         </div>
 
         {signedIn ? (
-          <nav aria-label={t("nav.secondary")} className="grid gap-1">
-            {secondaryItems.map(({ href, tab, labelKey, icon: Icon }) => (
-              <Link
-                aria-current={currentTab === tab ? "page" : undefined}
-                className={cn(
-                  "flex min-h-11 items-center gap-3 rounded-inner px-3 py-2 text-sm font-bold transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  currentTab === tab ? "bg-canvas text-ink" : "text-ink-soft",
-                )}
-                href={getMobileProfileHref(tab, searchParams)}
-                key={href}
-                onClick={closeMenu}
-              >
-                <Icon aria-hidden="true" className="h-4.5 w-4.5" />
-                {t(labelKey)}
-              </Link>
-            ))}
-            {isAdmin ? (
-              <Link
-                aria-current={
-                  pathname.startsWith("/admin") ? "page" : undefined
-                }
-                className={cn(
-                  "flex min-h-11 items-center gap-3 rounded-inner px-3 py-2 text-sm font-bold transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  pathname.startsWith("/admin")
-                    ? "bg-canvas text-ink"
-                    : "text-ink-soft",
-                )}
-                href="/admin"
-                onClick={closeMenu}
-              >
-                <ShieldCheck aria-hidden="true" className="h-4.5 w-4.5" />
-                {t("admin.kicker")}
-              </Link>
-            ) : null}
-          </nav>
+          <>
+            <nav aria-label={t("nav.secondary")} className="grid gap-1">
+              {secondaryItems.map(({ href, tab, labelKey, icon: Icon }) => (
+                <Link
+                  aria-current={currentTab === tab ? "page" : undefined}
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-inner px-3 py-2 text-sm font-bold transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    currentTab === tab
+                      ? "bg-canvas text-ink"
+                      : "text-ink-soft",
+                  )}
+                  href={getMobileProfileHref(tab, searchParams)}
+                  key={href}
+                  onClick={closeMenu}
+                >
+                  <Icon aria-hidden="true" className="h-4.5 w-4.5" />
+                  {t(labelKey)}
+                </Link>
+              ))}
+              {isAdmin ? (
+                <Link
+                  aria-current={
+                    pathname.startsWith("/admin") ? "page" : undefined
+                  }
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-inner px-3 py-2 text-sm font-bold transition-colors hover:bg-canvas hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    pathname.startsWith("/admin")
+                      ? "bg-canvas text-ink"
+                      : "text-ink-soft",
+                  )}
+                  href="/admin"
+                  onClick={closeMenu}
+                >
+                  <ShieldCheck aria-hidden="true" className="h-4.5 w-4.5" />
+                  {t("admin.kicker")}
+                </Link>
+              ) : null}
+            </nav>
+            <InstallAppCard />
+          </>
         ) : null}
 
         <div className="grid gap-3 border-t border-edge pt-4 [&_button]:min-h-11 [&_button]:min-w-11 [&_input]:min-h-11">
