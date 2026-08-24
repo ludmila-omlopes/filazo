@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { useTranslations } from "@/components/locale-provider";
 import { InstallAppCard } from "@/components/install-app-card";
 import { LocaleToggle } from "@/components/locale-toggle";
@@ -176,8 +176,48 @@ export function MobileAccountMenu({
   const searchParams = useSearchParams();
   const search = searchParams.toString();
   const detailsRef = useRef<HTMLDetailsElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const layoutFrameRef = useRef<number | null>(null);
   const currentTab =
     pathname === "/profile" ? getMobileProfileTab(searchParams) : undefined;
+
+  const updateMenuBounds = useCallback(() => {
+    if (!detailsRef.current?.open) {
+      return;
+    }
+
+    if (layoutFrameRef.current !== null) {
+      window.cancelAnimationFrame(layoutFrameRef.current);
+    }
+
+    layoutFrameRef.current = window.requestAnimationFrame(() => {
+      const menu = menuRef.current;
+      if (!menu) {
+        return;
+      }
+
+      const visualViewport = window.visualViewport;
+      const viewportBottom = visualViewport
+        ? visualViewport.offsetTop + visualViewport.height
+        : window.innerHeight;
+      const bottomNavigation = document.querySelector<HTMLElement>(
+        ".mobile-app-navigation",
+      );
+      const lowerBoundary = Math.min(
+        viewportBottom,
+        bottomNavigation?.getBoundingClientRect().top ?? viewportBottom,
+      );
+      const availableHeight = Math.max(
+        0,
+        Math.floor(lowerBoundary - menu.getBoundingClientRect().top - 12),
+      );
+
+      menu.style.setProperty(
+        "--mobile-account-menu-max-height",
+        `${availableHeight}px`,
+      );
+    });
+  }, []);
 
   function closeMenu() {
     detailsRef.current?.removeAttribute("open");
@@ -209,8 +249,31 @@ export function MobileAccountMenu({
     };
   }, []);
 
+  useEffect(() => {
+    const visualViewport = window.visualViewport;
+
+    window.addEventListener("resize", updateMenuBounds);
+    window.addEventListener("scroll", updateMenuBounds, { passive: true });
+    visualViewport?.addEventListener("resize", updateMenuBounds);
+    visualViewport?.addEventListener("scroll", updateMenuBounds);
+
+    return () => {
+      window.removeEventListener("resize", updateMenuBounds);
+      window.removeEventListener("scroll", updateMenuBounds);
+      visualViewport?.removeEventListener("resize", updateMenuBounds);
+      visualViewport?.removeEventListener("scroll", updateMenuBounds);
+      if (layoutFrameRef.current !== null) {
+        window.cancelAnimationFrame(layoutFrameRef.current);
+      }
+    };
+  }, [updateMenuBounds]);
+
   return (
-    <details className="group relative lg:hidden" ref={detailsRef}>
+    <details
+      className="group relative lg:hidden"
+      onToggle={updateMenuBounds}
+      ref={detailsRef}
+    >
       <summary
         aria-label={t("nav.openAccountMenu")}
         className="grid min-h-11 min-w-11 cursor-pointer list-none place-items-center rounded-inner border border-edge bg-surface text-ink shadow-rest transition-colors hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas [&::-webkit-details-marker]:hidden"
@@ -218,7 +281,14 @@ export function MobileAccountMenu({
         <Menu aria-hidden="true" className="h-5 w-5" />
       </summary>
 
-      <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 grid max-h-[calc(100dvh-var(--beta-banner-h)-5rem)] w-[min(20rem,calc(100vw-2rem))] gap-4 overflow-y-auto overscroll-contain rounded-card border border-edge bg-surface p-4 shadow-float">
+      <div
+        className="absolute right-0 top-[calc(100%+0.5rem)] z-50 grid w-[min(20rem,calc(100vw-2rem))] gap-4 overflow-y-auto overscroll-contain rounded-card border border-edge bg-surface p-4 shadow-float"
+        ref={menuRef}
+        style={{
+          maxHeight:
+            "var(--mobile-account-menu-max-height, calc(100dvh - var(--beta-banner-h) - 5rem))",
+        }}
+      >
         <div>
           <p className="text-caption font-bold uppercase tracking-wide text-ink-soft">
             {t("nav.account")}

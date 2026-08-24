@@ -1,6 +1,6 @@
 # Mobile and PWA QA
 
-Last updated: 2026-08-21 (UTC)
+Last updated: 2026-08-24 (UTC)
 
 ## Release status
 
@@ -34,6 +34,7 @@ queue, authenticated response cache, or catalog cache is part of this release.
 | 2026-08-21 | `npm run build` | PASS | Next.js 16 production build completed and prerendered `/manifest.webmanifest` as a static route. The existing multi-lockfile workspace-root warning remains. |
 | 2026-08-21 | Production server manifest and icon requests | PASS | `/manifest.webmanifest` returned HTTP 200 as `application/manifest+json`; 192px, 512px, and maskable 512px icons each returned HTTP 200. The landing HTML linked the manifest and included Apple installed-mode and light/dark theme-color metadata. |
 | 2026-08-21 | Chrome DevTools Protocol manifest/installability inspection at 390x844 | PASS (limited) | Chrome loaded the expected manifest URL with no manifest errors. Its only installability error was `in-incognito`, which is inherent to the isolated headless browser context. A normal browser application-panel check and home-screen installation remain device QA. |
+| 2026-08-24 | Account-menu lower boundary on short mobile viewports | PASS (automated), manual recheck pending | The menu now measures the live bottom-navigation and visual-viewport boundaries, caps its own scroll area above them, and recalculates after toggle, resize, page scroll, keyboard/visual-viewport resize, or visual-viewport scroll. The focused mobile-navigation test, full 174-test suite, typecheck, lint, and production build pass. |
 
 ## PWA installability status
 
