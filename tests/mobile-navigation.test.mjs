@@ -158,7 +158,11 @@ test("mobile shell enables safe-area insets and closes its account menu after na
   assert.match(accountMenuSource, /removeAttribute\("open"\)/);
   assert.match(accountMenuSource, /event\.key === "Escape"/);
   assert.match(accountMenuSource, /contains\(event\.target as Node\)/);
-  assert.match(accountMenuSource, /max-h-\[calc\(100dvh/);
+  assert.match(accountMenuSource, /--mobile-account-menu-max-height/);
+  assert.match(accountMenuSource, /\.mobile-app-navigation/);
+  assert.match(accountMenuSource, /getBoundingClientRect\(\)\.top/);
+  assert.match(accountMenuSource, /window\.visualViewport/);
+  assert.match(accountMenuSource, /onToggle=\{updateMenuBounds\}/);
   assert.match(appNavigationSource, /lg:hidden/);
   assert.match(appNavigationSource, /safe-area-inset-left/);
   assert.match(appNavigationSource, /safe-area-inset-right/);
