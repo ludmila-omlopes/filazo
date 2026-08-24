@@ -163,6 +163,10 @@ test("mobile shell enables safe-area insets and closes its account menu after na
   assert.match(accountMenuSource, /getBoundingClientRect\(\)\.top/);
   assert.match(accountMenuSource, /window\.visualViewport/);
   assert.match(accountMenuSource, /onToggle=\{updateMenuBounds\}/);
+  assert.match(appNavigationSource, /isKeyboardOpen/);
+  assert.match(appNavigationSource, /obscuredHeight >= 150/);
+  assert.match(appNavigationSource, /data-keyboard-open=\{isKeyboardOpen\}/);
+  assert.match(appNavigationSource, /inert=\{isKeyboardOpen \? true : undefined\}/);
   assert.match(appNavigationSource, /lg:hidden/);
   assert.match(appNavigationSource, /safe-area-inset-left/);
   assert.match(appNavigationSource, /safe-area-inset-right/);

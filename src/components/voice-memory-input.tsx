@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { Upload } from "lucide-react";
 import { useTranslations } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  classifyRecordingStartFailure,
+  getRecordingFileExtension,
+  selectRecorderMimeType,
+} from "@/lib/voice-recording";
 
 const DEFAULT_MAX_RECORDING_SECONDS = 180;
 const SILENT_INPUT_LEVEL = 3;
@@ -19,26 +25,9 @@ function getRecorderMimeType() {
     return "";
   }
 
-  return (
-    [
-      "audio/webm;codecs=opus",
-      "audio/webm",
-      "audio/mp4",
-      "audio/ogg;codecs=opus",
-    ].find((type) => MediaRecorder.isTypeSupported(type)) ?? ""
+  return selectRecorderMimeType((mimeType) =>
+    MediaRecorder.isTypeSupported(mimeType),
   );
-}
-
-function getFileExtension(mimeType: string) {
-  if (mimeType.includes("mp4")) {
-    return "m4a";
-  }
-
-  if (mimeType.includes("ogg")) {
-    return "ogg";
-  }
-
-  return "webm";
 }
 
 function formatDuration(seconds: number) {
@@ -77,6 +66,8 @@ export function VoiceMemoryInput({
   const [isRecording, setIsRecording] = useState(false);
   const [recordedUrl, setRecordedUrl] = useState("");
   const [seconds, setSeconds] = useState(0);
+  const [hasCheckedRecordingSupport, setHasCheckedRecordingSupport] =
+    useState(false);
   const [supportsRecording, setSupportsRecording] = useState(false);
 
   useEffect(() => {
@@ -85,6 +76,7 @@ export function VoiceMemoryInput({
         Boolean(navigator.mediaDevices?.getUserMedia) &&
           typeof MediaRecorder !== "undefined",
       );
+      setHasCheckedRecordingSupport(true);
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
@@ -245,6 +237,38 @@ export function VoiceMemoryInput({
     }
   }
 
+  function handleAudioSelection(event: ChangeEvent<HTMLInputElement>) {
+    const selectedFile = event.currentTarget.files?.[0];
+    if (!selectedFile) {
+      return;
+    }
+
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+    }
+    objectUrlRef.current = URL.createObjectURL(selectedFile);
+    setRecordedUrl(objectUrlRef.current);
+    setFileName(selectedFile.name);
+    setError("");
+    setInputWarning("");
+    setSeconds(0);
+  }
+
+  function getStartErrorMessage(error: unknown) {
+    switch (classifyRecordingStartFailure(error)) {
+      case "permission-denied":
+        return t("voiceMemory.permissionDenied");
+      case "microphone-unavailable":
+        return t("voiceMemory.microphoneUnavailable");
+      case "microphone-busy":
+        return t("voiceMemory.microphoneBusy");
+      case "secure-context-required":
+        return t("voiceMemory.secureContextRequired");
+      default:
+        return t("voiceMemory.couldNotStart");
+    }
+  }
+
   async function startRecording() {
     if (!supportsRecording) {
       setError(t("voiceMemory.browserUnavailable"));
@@ -279,17 +303,28 @@ export function VoiceMemoryInput({
       recorder.addEventListener("stop", () => {
         const recordingType = recorder.mimeType || mimeType || "audio/webm";
         const blob = new Blob(chunksRef.current, { type: recordingType });
-        const extension = getFileExtension(recordingType);
+        if (blob.size === 0) {
+          setError(t("voiceMemory.emptyRecording"));
+          stopMicMonitor();
+          stream.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+          return;
+        }
+
+        const extension = getRecordingFileExtension(recordingType);
         const recording = new File(
           [blob],
           `voice-memory-${new Date().toISOString().replace(/[:.]/g, "-")}.${extension}`,
           { type: recordingType },
         );
-        const transfer = new DataTransfer();
-
-        transfer.items.add(recording);
-        if (fileInputRef.current) {
-          fileInputRef.current.files = transfer.files;
+        try {
+          const transfer = new DataTransfer();
+          transfer.items.add(recording);
+          if (fileInputRef.current) {
+            fileInputRef.current.files = transfer.files;
+          }
+        } catch {
+          setError(t("voiceMemory.couldNotAttachRecording"));
         }
 
         if (objectUrlRef.current) {
@@ -309,8 +344,8 @@ export function VoiceMemoryInput({
       recorder.start();
       setSeconds(0);
       setIsRecording(true);
-    } catch {
-      setError(t("voiceMemory.couldNotStart"));
+    } catch (recordingError) {
+      setError(getStartErrorMessage(recordingError));
       setIsRecording(false);
       stopMicMonitor();
       streamRef.current?.getTracks().forEach((track) => track.stop());
@@ -366,6 +401,11 @@ export function VoiceMemoryInput({
             {t("voiceMemory.record")}
           </Button>
         )}
+        {hasCheckedRecordingSupport && !supportsRecording ? (
+          <p className="text-sm font-semibold leading-relaxed text-ink-soft" role="status">
+            {t("voiceMemory.browserUnavailable")}
+          </p>
+        ) : null}
         <span className="text-sm font-semibold text-ink-soft" aria-live="polite">
           {isRecording
             ? `${t("voiceMemory.recording")} ${formatDuration(seconds)}`
@@ -399,18 +439,29 @@ export function VoiceMemoryInput({
       </div>
 
       {recordedUrl ? (
-        <audio className="w-full" controls src={recordedUrl} />
+        <audio
+          aria-label={t("voiceMemory.playback")}
+          className="w-full"
+          controls
+          preload="metadata"
+          src={recordedUrl}
+        />
       ) : null}
 
-      <input
-        accept="audio/*"
-        aria-label={t("voiceMemory.recordedAudioInput")}
-        className="hidden"
-        name="audio"
-        ref={fileInputRef}
-        tabIndex={-1}
-        type="file"
-      />
+      <label className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-pill border border-edge bg-surface px-4 py-2 text-sm font-semibold text-ink shadow-btn-ghost transition-colors hover:bg-sand-soft focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-canvas">
+        <Upload aria-hidden="true" className="h-4 w-4" />
+        {t("voiceMemory.uploadInstead")}
+        <input
+          accept="audio/webm,audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,audio/ogg"
+          aria-label={t("voiceMemory.audioFile")}
+          className="sr-only"
+          disabled={isRecording}
+          name="audio"
+          onChange={handleAudioSelection}
+          ref={fileInputRef}
+          type="file"
+        />
+      </label>
 
       {error ? (
         <p className="text-sm font-semibold text-clay" role="status">

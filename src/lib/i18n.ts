@@ -873,6 +873,19 @@ const messages = {
       "Recording is not available in this browser. You can still upload audio.",
     "voiceMemory.couldNotStart":
       "Could not start recording. Check microphone permission or upload audio instead.",
+    "voiceMemory.permissionDenied":
+      "Microphone access was denied. Allow it in your browser settings or upload an audio file instead.",
+    "voiceMemory.microphoneUnavailable":
+      "No microphone is available. Connect one or upload an audio file instead.",
+    "voiceMemory.microphoneBusy":
+      "The microphone is busy in another app. Close it there and try again, or upload audio instead.",
+    "voiceMemory.secureContextRequired":
+      "Recording needs a secure browser connection. Open filazo over HTTPS or upload audio instead.",
+    "voiceMemory.emptyRecording":
+      "The recording contained no audio. Try again or upload an audio file instead.",
+    "voiceMemory.couldNotAttachRecording":
+      "This browser could not attach the recording. Use the audio upload button below instead.",
+    "voiceMemory.playback": "Voice-memory playback",
     "journal.label": "Journal",
     "journal.title": "Diary Pages",
     "journal.description":
@@ -898,6 +911,8 @@ const messages = {
     "journal.bodyPlaceholder":
       "I stopped at… I want to remember… Next time I should try…",
     "journal.screenshot": "Screenshot",
+    "journal.imageFromDevice": "Screenshot or photo from your device",
+    "journal.takePhoto": "Take a photo",
     "journal.extrasTitle": "Add a Screenshot or Date",
     "journal.extrasHint":
       "These join the page whether you write it or record it.",
@@ -2158,6 +2173,19 @@ const messages = {
       "A gravação não está disponível neste navegador. Você ainda pode enviar áudio.",
     "voiceMemory.couldNotStart":
       "Não foi possível começar a gravar. Verifique a permissão do microfone ou envie áudio no lugar.",
+    "voiceMemory.permissionDenied":
+      "O acesso ao microfone foi negado. Libere a permissão no navegador ou envie um arquivo de áudio.",
+    "voiceMemory.microphoneUnavailable":
+      "Nenhum microfone está disponível. Conecte um ou envie um arquivo de áudio.",
+    "voiceMemory.microphoneBusy":
+      "O microfone está sendo usado por outro aplicativo. Feche-o lá e tente novamente, ou envie um áudio.",
+    "voiceMemory.secureContextRequired":
+      "A gravação precisa de uma conexão segura. Abra o filazo via HTTPS ou envie um áudio.",
+    "voiceMemory.emptyRecording":
+      "A gravação não trouxe áudio. Tente novamente ou envie um arquivo de áudio.",
+    "voiceMemory.couldNotAttachRecording":
+      "Este navegador não conseguiu anexar a gravação. Use o botão de enviar áudio abaixo.",
+    "voiceMemory.playback": "Reprodução da memória de voz",
     "journal.label": "Diário",
     "journal.title": "Páginas de diário",
     "journal.description":
@@ -2183,6 +2211,8 @@ const messages = {
     "journal.bodyPlaceholder":
       "Parei em… Quero lembrar… Da próxima vez eu deveria tentar…",
     "journal.screenshot": "Screenshot",
+    "journal.imageFromDevice": "Screenshot ou foto do aparelho",
+    "journal.takePhoto": "Tirar uma foto",
     "journal.extrasTitle": "Adicionar screenshot ou data",
     "journal.extrasHint":
       "Valem para a página escrita ou gravada.",

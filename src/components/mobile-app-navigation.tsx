@@ -15,7 +15,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { useTranslations } from "@/components/locale-provider";
 import { InstallAppCard } from "@/components/install-app-card";
 import { LocaleToggle } from "@/components/locale-toggle";
@@ -71,6 +77,42 @@ export function MobileAppNavigation({ signedIn }: { signedIn: boolean }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const t = useTranslations();
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const visualViewport = window.visualViewport;
+    if (!visualViewport) {
+      return;
+    }
+
+    function updateKeyboardState() {
+      const activeElement = document.activeElement;
+      const isTextControl =
+        activeElement instanceof HTMLInputElement ||
+        activeElement instanceof HTMLTextAreaElement ||
+        activeElement instanceof HTMLSelectElement ||
+        activeElement?.getAttribute("contenteditable") === "true";
+      const obscuredHeight = window.innerHeight - visualViewport!.height;
+      const nextKeyboardOpen = isTextControl && obscuredHeight >= 150;
+
+      setIsKeyboardOpen((current) =>
+        current === nextKeyboardOpen ? current : nextKeyboardOpen,
+      );
+    }
+
+    updateKeyboardState();
+    visualViewport.addEventListener("resize", updateKeyboardState);
+    visualViewport.addEventListener("scroll", updateKeyboardState);
+    window.addEventListener("focusin", updateKeyboardState);
+    window.addEventListener("focusout", updateKeyboardState);
+
+    return () => {
+      visualViewport.removeEventListener("resize", updateKeyboardState);
+      visualViewport.removeEventListener("scroll", updateKeyboardState);
+      window.removeEventListener("focusin", updateKeyboardState);
+      window.removeEventListener("focusout", updateKeyboardState);
+    };
+  }, []);
 
   if (!signedIn || !isMobileProductRoute(pathname)) {
     return null;
@@ -85,8 +127,11 @@ export function MobileAppNavigation({ signedIn }: { signedIn: boolean }) {
         className="h-[calc(5.25rem+env(safe-area-inset-bottom))] lg:hidden"
       />
       <nav
+        aria-hidden={isKeyboardOpen || undefined}
         aria-label={t("nav.mobilePrimary")}
-        className="mobile-app-navigation fixed inset-x-0 bottom-0 z-50 border-t border-edge bg-surface/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] pt-2 shadow-[0_-12px_30px_rgba(52,53,66,0.12)] backdrop-blur-md lg:hidden"
+        className="mobile-app-navigation fixed inset-x-0 bottom-0 z-50 border-t border-edge bg-surface/95 pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(0.5rem,env(safe-area-inset-right))] pt-2 shadow-[0_-12px_30px_rgba(52,53,66,0.12)] backdrop-blur-md motion-safe:transition-[transform,opacity] data-[keyboard-open=true]:pointer-events-none data-[keyboard-open=true]:translate-y-full data-[keyboard-open=true]:opacity-0 lg:hidden"
+        data-keyboard-open={isKeyboardOpen}
+        inert={isKeyboardOpen ? true : undefined}
       >
         <div className="mx-auto grid max-w-lg grid-cols-4 gap-1">
           {navigationItems.map(({ id, href, labelKey, icon: Icon }) => {
