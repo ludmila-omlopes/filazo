@@ -1050,8 +1050,13 @@ export async function syncSteamLibraryAction() {
     if (result.kind === "skipped" && result.reason === "locked") {
       redirect(`/profile?tab=integrations&syncPending=1`);
     }
+    const message =
+      result.kind === "failed" &&
+      (result.code === "AUTH" || result.code === "CONFIGURATION")
+        ? t("profileAction.steamApiUnavailable")
+        : t("profileAction.steamSyncFailed");
     redirect(
-      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.steamSyncFailed"))}`,
+      `/profile?tab=integrations&error=${encodeURIComponent(message)}`,
     );
   }
   const syncedCount = result.syncedCount;

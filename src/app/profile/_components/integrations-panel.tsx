@@ -51,6 +51,14 @@ function isSourceSyncing(account: ProviderAccount) {
   );
 }
 
+function hasSteamApiConfigurationError(account: ProviderAccount) {
+  return Boolean(
+    account?.provider === ExternalProvider.STEAM &&
+      (account.lastSyncErrorCode === "AUTH" ||
+        account.lastSyncErrorCode === "CONFIGURATION"),
+  );
+}
+
 function ConnectionRow({
   label,
   children,
@@ -105,12 +113,33 @@ function getSourceState(account: ProviderAccount, locale: Locale) {
     };
   }
 
-  if (
-    account.lastSyncErrorCode === "AUTH" ||
-    account.lastSyncErrorCode === "CONFIGURATION"
-  ) {
+  if (hasSteamApiConfigurationError(account)) {
+    return {
+      label: t("profile.sources.steamApiUnavailable"),
+      tone: "bg-clay-soft text-ink border-clay/35",
+      dot: "bg-clay",
+    };
+  }
+
+  if (account.lastSyncErrorCode === "CONFIGURATION") {
+    return {
+      label: t("profile.sources.configurationNeeded"),
+      tone: "bg-clay-soft text-ink border-clay/35",
+      dot: "bg-clay",
+    };
+  }
+
+  if (account.lastSyncErrorCode === "AUTH") {
     return {
       label: t("profile.sources.reconnectNeeded"),
+      tone: "bg-clay-soft text-ink border-clay/35",
+      dot: "bg-clay",
+    };
+  }
+
+  if (account.lastSyncErrorCode) {
+    return {
+      label: t("profile.sources.syncFailed"),
       tone: "bg-clay-soft text-ink border-clay/35",
       dot: "bg-clay",
     };
@@ -569,6 +598,9 @@ export function IntegrationsPanel({
 }) {
   const t = createTranslator(locale);
   const steamSyncing = isSourceSyncing(profile.steamAccount);
+  const steamApiConfigurationError = hasSteamApiConfigurationError(
+    profile.steamAccount,
+  );
   const playStationSyncing = isSourceSyncing(profile.playStationAccount);
   const xboxSyncing = isSourceSyncing(profile.xboxAccount);
 
@@ -618,27 +650,41 @@ export function IntegrationsPanel({
             )
           }
         >
-          <div className="rounded-inner border border-sand/70 bg-sand-soft px-4 py-3 text-sm leading-relaxed text-ink-soft">
-            <p>{t("profile.sources.steamPrivacyNotice")}</p>
-            <a
-              className="mt-2 inline-flex items-center gap-1 font-semibold text-ink underline underline-offset-4"
-              href="https://steamcommunity.com/my/edit/settings"
-              rel="noreferrer"
-              target="_blank"
-            >
-              {t("profile.sources.steamPrivacyAction")}
-              <ExternalLink className="h-3.5 w-3.5" aria-hidden />
-            </a>
-          </div>
+          {steamApiConfigurationError ? (
+            <div className="rounded-inner border border-clay/35 bg-clay-soft px-4 py-3 text-sm leading-relaxed text-ink-soft">
+              <p>{t("profile.sources.steamApiErrorNotice")}</p>
+              <a
+                className="mt-2 inline-flex font-semibold text-ink underline underline-offset-4"
+                href="/feedback"
+              >
+                {t("profile.sources.contactSupport")}
+              </a>
+            </div>
+          ) : (
+            <div className="rounded-inner border border-sand/70 bg-sand-soft px-4 py-3 text-sm leading-relaxed text-ink-soft">
+              <p>{t("profile.sources.steamPrivacyNotice")}</p>
+              <a
+                className="mt-2 inline-flex items-center gap-1 font-semibold text-ink underline underline-offset-4"
+                href="https://steamcommunity.com/my/edit/settings"
+                rel="noreferrer"
+                target="_blank"
+              >
+                {t("profile.sources.steamPrivacyAction")}
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+              </a>
+            </div>
+          )}
           <details className="text-sm text-ink-soft">
             <summary className="cursor-pointer font-semibold text-ink">
               {t("profile.sources.technicalStatus")}
             </summary>
             <p className="mt-2">
               {t("profile.sources.steamApiStatus", {
-                steam: isSteamConfigured()
-                  ? t("profile.sources.steamReady")
-                  : t("profile.sources.steamMissingKey"),
+                steam: steamApiConfigurationError
+                  ? t("profile.sources.steamUnavailable")
+                  : isSteamConfigured()
+                    ? t("profile.sources.steamReady")
+                    : t("profile.sources.steamMissingKey"),
                 metadata: hasIgdbConfig()
                   ? t("profile.sources.steamReady")
                   : t("profile.sources.igdbMissingKeys"),

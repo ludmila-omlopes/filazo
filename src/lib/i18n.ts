@@ -483,6 +483,9 @@ const messages = {
     "profile.sources.synced": "Synced {date}",
     "profile.sources.syncing": "Syncing…",
     "profile.sources.reconnectNeeded": "Reconnect needed",
+    "profile.sources.configurationNeeded": "Service setup needed",
+    "profile.sources.syncFailed": "Sync failed",
+    "profile.sources.steamApiUnavailable": "Technical issue on the site",
     "profile.sources.tokenGuide": "How to get the token",
     "profile.sources.tokenStep1":
       "1. Sign in to PlayStation in your browser.",
@@ -498,6 +501,9 @@ const messages = {
     "profile.sources.steamPrivacyNotice":
       "Your Steam library and game details must be public. Private libraries return no games during synchronization.",
     "profile.sources.steamPrivacyAction": "Review Steam privacy settings",
+    "profile.sources.steamApiErrorNotice":
+      "Your library could not be updated because of a technical issue with Filazo's Steam integration. You do not need to change your Steam account or privacy settings. Please contact site support.",
+    "profile.sources.contactSupport": "Contact site support",
     "profile.sources.refreshSteam": "Refresh Steam",
     "profile.sources.refreshing": "Refreshing...",
     "profile.sources.steamPending":
@@ -512,6 +518,7 @@ const messages = {
     "profile.sources.technicalStatus": "Technical status",
     "profile.sources.steamReady": "ready",
     "profile.sources.steamMissingKey": "missing key",
+    "profile.sources.steamUnavailable": "unavailable",
     "profile.sources.igdbMissingKeys": "missing keys",
     "profile.sources.connectedSecurely": "Connected token stored securely.",
     "profile.sources.npsso": "NPSSO token",
@@ -1220,6 +1227,8 @@ const messages = {
 
     "profileAction.needSteamLogin": "Sign in before syncing Steam.",
     "profileAction.steamSyncFailed": "Steam sync did not complete.",
+    "profileAction.steamApiUnavailable":
+      "Your library could not be updated because of a technical issue on the site. Please contact support; you do not need to change your Steam account.",
     "profileAction.needIntegrationsLogin":
       "Sign in before changing integrations.",
     "profileAction.disconnectInvalid":
@@ -1781,6 +1790,9 @@ const messages = {
     "profile.sources.disconnected": "Desconectada",
     "profile.sources.notSynced": "Ainda sem sincronizar",
     "profile.sources.synced": "Sincronizada em {date}",
+    "profile.sources.configurationNeeded": "Configuração do serviço necessária",
+    "profile.sources.syncFailed": "Falha na sincronização",
+    "profile.sources.steamApiUnavailable": "Falha técnica no site",
     "profile.sources.tokenGuide": "Como obter o token",
     "profile.sources.tokenStep1":
       "1. Entre na PlayStation pelo navegador.",
@@ -1796,6 +1808,9 @@ const messages = {
     "profile.sources.steamPrivacyNotice":
       "Sua biblioteca e os detalhes de jogos precisam estar públicos na Steam. Bibliotecas privadas não retornam jogos durante a sincronização.",
     "profile.sources.steamPrivacyAction": "Revisar privacidade na Steam",
+    "profile.sources.steamApiErrorNotice":
+      "Não foi possível atualizar sua biblioteca por um problema técnico na integração da filazo com a Steam. Você não precisa alterar sua conta nem a privacidade na Steam. Entre em contato com o suporte do site.",
+    "profile.sources.contactSupport": "Entrar em contato com o suporte",
     "profile.sources.refreshSteam": "Atualizar Steam",
     "profile.sources.refreshing": "Atualizando...",
     "profile.sources.steamPending":
@@ -1810,6 +1825,7 @@ const messages = {
     "profile.sources.technicalStatus": "Status técnico",
     "profile.sources.steamReady": "pronto",
     "profile.sources.steamMissingKey": "sem chave",
+    "profile.sources.steamUnavailable": "indisponível",
     "profile.sources.igdbMissingKeys": "sem chaves",
     "profile.sources.connectedSecurely": "Token conectado e armazenado com segurança.",
     "profile.sources.npsso": "Token NPSSO",
@@ -2522,6 +2538,8 @@ const messages = {
       "Entre antes de sincronizar a Steam.",
     "profileAction.steamSyncFailed":
       "A sincronização da Steam não terminou.",
+    "profileAction.steamApiUnavailable":
+      "Não foi possível atualizar sua biblioteca por um problema técnico do site. Entre em contato com o suporte; você não precisa alterar sua conta Steam.",
     "profileAction.needIntegrationsLogin":
       "Entre antes de alterar as integrações.",
     "profileAction.disconnectInvalid":
@@ -2612,7 +2630,7 @@ const messages = {
     "assistantAction.profileFailed":
       "A geração do perfil de jogador não terminou.",
     "profile.sources.syncing": "Sincronizando...",
-    "profile.sources.reconnectNeeded": "Reconectar necessario",
+    "profile.sources.reconnectNeeded": "Reconectar necessário",
   },
 } satisfies Record<string, Record<string, string>>;
 
