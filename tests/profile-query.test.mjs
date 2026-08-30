@@ -6,7 +6,7 @@ import {
   UNKNOWN_PLATFORM_FILTER,
 } from "../src/app/profile/_components/profile-query.ts";
 
-test("profile catalog hides dropped and not-started entries by default", () => {
+test("profile catalog shows not-started entries and hides dropped entries by default", () => {
   const entries = [
     createEntry("Played Steam Game", {
       platformName: "Steam",
@@ -30,7 +30,7 @@ test("profile catalog hides dropped and not-started entries by default", () => {
       queryText: "",
       signalEntryIds: null,
     }).map((entry) => entry.game.name),
-    ["Played Steam Game"],
+    ["Played Steam Game", "Not Started Game"],
   );
 
   assert.deepEqual(

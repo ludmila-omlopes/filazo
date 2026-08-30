@@ -324,30 +324,10 @@ export function getUserPlatformLabel(entry: ProfileEntry) {
   return null;
 }
 
-export function isNotStartedEntry(entry: ProfileEntry) {
-  if (
-    entry.status !== UserGameStatus.OWNED &&
-    entry.status !== UserGameStatus.BACKLOG
-  ) {
-    return false;
-  }
-
-  return (
-    !entry.finishedAt &&
-    !entry.startedAt &&
-    !entry.lastPlayedAt &&
-    !entry.currentPlayingSlot &&
-    !entry.playingNextSlot &&
-    (entry.playtimeMinutes ?? 0) <= 0 &&
-    (entry.completionPercent ?? 0) <= 0
-  );
-}
-
 export function isDormantEntry(entry: ProfileEntry) {
   return (
     entry.status === UserGameStatus.DROPPED ||
-    entry.activeBacklog === false ||
-    isNotStartedEntry(entry)
+    entry.activeBacklog === false
   );
 }
 
