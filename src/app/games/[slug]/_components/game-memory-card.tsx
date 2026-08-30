@@ -229,7 +229,9 @@ function SaveSlot({
     return null;
   }
 
-  const hasStoryTime = Boolean(game.hltbMainStoryMinutes);
+  const storyMarkerLinks = game.providerLinks.filter(
+    (link) => link.storyAchievementId,
+  );
   const t = createTranslator(locale);
   const weeklyHours = weeklyHoursFromOnboarding(currentEntry.user.onboardingAnswers);
   const inferredStartedAt = estimatePlayStartDate(
@@ -295,17 +297,31 @@ function SaveSlot({
           <strong className="mt-2 block font-display text-2xl font-medium">
             {currentEntry.isPhysicalCopy
               ? t("physicalMedia.label")
-              : t("game.digitalOrUnspecified")}
+              : t("game.digital")}
           </strong>
         </div>
-        {hasStoryTime ? (
+        {storyMarkerLinks.length ? (
           <div className="rounded-inner border border-edge bg-surface p-4">
-            <span className="stat-label">{t("game.usualCredits")}</span>
-            <p className="mt-2 text-sm font-semibold leading-relaxed">
-              {t("game.creditsAround", {
-                value: formatTimeEstimate(game.hltbMainStoryMinutes, locale),
-              })}
-            </p>
+            <span className="stat-label">{t("game.creditsMarker")}</span>
+            {storyMarkerLinks.map((link) => (
+              <p
+                className="mt-2 text-sm font-semibold leading-relaxed"
+                key={link.id}
+              >
+                {t(
+                  link.provider === ExternalProvider.PLAYSTATION
+                    ? "game.storyTrophyWatched"
+                    : "game.storyAchievementWatched",
+                  {
+                    name:
+                      link.storyAchievementName ??
+                      link.storyAchievementId ??
+                      "",
+                    provider: getProviderLabel(link.provider),
+                  },
+                )}
+              </p>
+            ))}
           </div>
         ) : null}
       </div>
