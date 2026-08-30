@@ -1061,15 +1061,17 @@ const messages = {
     "game.coverAlt": "Cover art for {name}",
     "game.entryLabel": "Catalog entry",
     "game.relationship": "Your relationship with this game",
-    "game.ownershipFormat": "Ownership format",
-    "game.digitalOrUnspecified": "Digital or unspecified",
+    "game.ownershipFormat": "Format",
+    "game.digital": "Digital",
     "game.placeOnShelf": "Place on shelf",
     "game.recordedPlaytime": "Recorded playtime",
-    "game.usualCredits": "Usual credits",
-    "game.creditsAround":
-      "Most players see credits around {value}.",
     "game.creditsRolled":
       "Credits rolled {date}. This is separate from achievement collecting.",
+    "game.creditsMarker": "Credits achievement",
+    "game.storyAchievementWatched":
+      "The achievement “{name}” ({provider}) counts as credits rolled.",
+    "game.storyTrophyWatched":
+      "The trophy “{name}” ({provider}) counts as credits rolled.",
     "game.achievementSignals":
       "Some achievement signals are on the record, but credits are not marked yet.",
     "game.stillCurious":
@@ -2369,13 +2371,10 @@ const messages = {
     "game.breadcrumb": "Navegação",
     "game.entryLabel": "Entrada do catálogo",
     "game.relationship": "Sua relação com este jogo",
-    "game.ownershipFormat": "Formato da posse",
-    "game.digitalOrUnspecified": "Digital ou não informado",
+    "game.ownershipFormat": "Formato",
+    "game.digital": "Digital",
     "game.placeOnShelf": "Lugar na estante",
     "game.recordedPlaytime": "Tempo de jogo registrado",
-    "game.usualCredits": "Créditos habituais",
-    "game.creditsAround":
-      "A maioria das pessoas vê os créditos em torno de {value}.",
     "game.achievementSignals":
       "Alguns sinais de conquista estão registrados, mas os créditos ainda não foram marcados.",
     "game.stillCurious":
@@ -2412,6 +2411,11 @@ const messages = {
     "game.coverAlt": "Capa de {name}",
     "game.creditsRolled":
       "Créditos concluídos em {date}. Isso é separado da coleta de conquistas.",
+    "game.creditsMarker": "Conquista dos créditos",
+    "game.storyAchievementWatched":
+      "A conquista “{name}” ({provider}) vale como créditos concluídos.",
+    "game.storyTrophyWatched":
+      "O troféu “{name}” ({provider}) vale como créditos concluídos.",
     "game.entryCountOne": "1 entrada",
     "game.entryCountMany": "{count} entradas",
     "game.reception.beloved": "muito querido",
