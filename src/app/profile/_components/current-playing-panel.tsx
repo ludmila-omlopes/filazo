@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ListPlus,
   MoreHorizontal,
+  Plus,
   Search,
   Sparkles,
   X,
@@ -44,10 +45,10 @@ import {
 } from "../actions";
 import type { PlayerProfileData, ProfileData } from "./profile-types";
 
-const CURRENT_PLAYING_SLOTS = [1, 2, 3] as const;
+const INITIAL_CURRENT_PLAYING_SLOT_COUNT = 3;
 const collator = new Intl.Collator("en-US", { sensitivity: "base" });
 
-type CurrentPlayingSlotNumber = (typeof CURRENT_PLAYING_SLOTS)[number];
+type CurrentPlayingSlotNumber = number;
 type ShelfEntry = ProfileData["shelfEntries"][number];
 type SuggestedCurrentPlayingEntry = {
   entry: ShelfEntry;
@@ -81,7 +82,11 @@ function getPlayingStatusEntries(profile: ProfileData) {
 
       return collator.compare(left.game.name, right.game.name);
     })
-    .slice(0, CURRENT_PLAYING_SLOTS.length);
+    .slice(0, INITIAL_CURRENT_PLAYING_SLOT_COUNT);
+}
+
+function createCurrentPlayingSlots(count: number) {
+  return Array.from({ length: count }, (_, index) => index + 1);
 }
 
 function getDefaultCurrentPlayingEntry(
@@ -182,7 +187,7 @@ function getShelfSuggestionReason(
 
 function getSuggestedCurrentPlayingEntries({
   excludedEntryIds = new Set<string>(),
-  limit = CURRENT_PLAYING_SLOTS.length,
+  limit = INITIAL_CURRENT_PLAYING_SLOT_COUNT,
   locale,
   playerProfile,
   profile,
@@ -578,6 +583,84 @@ function FinishCelebrationDialog({
   );
 }
 
+function AddCurrentPlayingSlotDialog({
+  currentCount,
+  locale,
+  onCancel,
+  onConfirm,
+}: {
+  currentCount: number;
+  locale: Locale;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const t = createTranslator(locale);
+  const confirmButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    confirmButtonRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onCancel();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel]);
+
+  function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
+    if (event.target === event.currentTarget) {
+      onCancel();
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 grid place-items-center bg-ink/55 p-4 backdrop-blur-sm"
+      onMouseDown={handleBackdropClick}
+    >
+      <div
+        aria-describedby="add-current-playing-slot-description"
+        aria-labelledby="add-current-playing-slot-title"
+        aria-modal="true"
+        className="w-full max-w-[460px] rounded-card border border-edge bg-surface p-6 text-ink shadow-float"
+        role="alertdialog"
+      >
+        <p className="section-label !mb-2">
+          {t("profile.currentPlaying.addAnotherLabel")}
+        </p>
+        <h3
+          className="font-display text-3xl leading-tight"
+          id="add-current-playing-slot-title"
+        >
+          {t("profile.currentPlaying.addAnotherTitle")}
+        </h3>
+        <p
+          className="mt-4 text-sm leading-relaxed text-ink-soft"
+          id="add-current-playing-slot-description"
+        >
+          {t("profile.currentPlaying.addAnotherBody", {
+            count: formatNumber(currentCount, locale),
+          })}
+        </p>
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
+          <Button onClick={onCancel} type="button" variant="ghost">
+            {t("common.cancel")}
+          </Button>
+          <Button onClick={onConfirm} ref={confirmButtonRef} type="button">
+            <Plus className="h-4 w-4" />
+            {t("profile.currentPlaying.confirmAddAnother")}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SuggestedPicks({
   entries,
   isSaving,
@@ -669,8 +752,24 @@ export function CurrentPlayingPanel({
   const pendingScrollToCardsRef = useRef(false);
   const selectableEntries = getSelectableEntries(profile);
   const playingStatusEntries = getPlayingStatusEntries(profile);
+  const savedCurrentPlayingSlotCount = Math.max(
+    INITIAL_CURRENT_PLAYING_SLOT_COUNT,
+    ...profile.currentPlayingEntries.map(
+      (entry) => entry.currentPlayingSlot ?? 0,
+    ),
+  );
+  const [unlockedSlotCount, setUnlockedSlotCount] = useState(
+    savedCurrentPlayingSlotCount,
+  );
+  const currentPlayingSlotCount = Math.max(
+    unlockedSlotCount,
+    savedCurrentPlayingSlotCount,
+  );
+  const currentPlayingSlots = createCurrentPlayingSlots(
+    currentPlayingSlotCount,
+  );
   const initialEntriesBySlot = new Map(
-    CURRENT_PLAYING_SLOTS.flatMap((slot) => {
+    currentPlayingSlots.flatMap((slot) => {
       const entry = getDefaultCurrentPlayingEntry(
         profile,
         playingStatusEntries,
@@ -683,7 +782,7 @@ export function CurrentPlayingPanel({
   const [selectedEntryIdsBySlot, setSelectedEntryIdsBySlot] = useState(
     () =>
       new Map(
-        CURRENT_PLAYING_SLOTS.flatMap((slot) => {
+        currentPlayingSlots.flatMap((slot) => {
           const entry = initialEntriesBySlot.get(slot);
           return entry ? [[slot, entry.id] as const] : [];
         }),
@@ -696,6 +795,7 @@ export function CurrentPlayingPanel({
   const [isClearing, setIsClearing] = useState(false);
   const [activePickerSlot, setActivePickerSlot] =
     useState<CurrentPlayingSlotNumber | null>(null);
+  const [isAddSlotDialogOpen, setIsAddSlotDialogOpen] = useState(false);
   const [entryActionError, setEntryActionError] = useState<string | null>(null);
   const [pendingEntryAction, setPendingEntryAction] = useState<{
     entryId: string;
@@ -712,7 +812,7 @@ export function CurrentPlayingPanel({
     selectableEntries.map((entry) => [entry.id, entry]),
   );
   const selectedEntriesBySlot = new Map(
-    CURRENT_PLAYING_SLOTS.flatMap((slot) => {
+    currentPlayingSlots.flatMap((slot) => {
       const entryId = selectedEntryIdsBySlot.get(slot);
       const entry = entryId ? selectableEntryById.get(entryId) : null;
 
@@ -725,7 +825,7 @@ export function CurrentPlayingPanel({
     ...selectedEntryIds,
     ...actionedEntryIds,
   ]);
-  const openSlots = CURRENT_PLAYING_SLOTS.filter(
+  const openSlots = currentPlayingSlots.filter(
     (slot) => !selectedEntriesBySlot.has(slot),
   );
   const isAutosaving = autosaveCount > 0;
@@ -769,11 +869,15 @@ export function CurrentPlayingPanel({
     setCelebration(null);
   }, []);
 
+  const closeAddSlotDialog = useCallback(() => {
+    setIsAddSlotDialogOpen(false);
+  }, []);
+
   function buildCurrentPlayingFormData(
     selection: Map<CurrentPlayingSlotNumber, string>,
   ) {
     const formData = new FormData();
-    for (const slot of CURRENT_PLAYING_SLOTS) {
+    for (const slot of currentPlayingSlots) {
       formData.set(`slot${slot}EntryId`, selection.get(slot) ?? "");
     }
 
@@ -798,7 +902,9 @@ export function CurrentPlayingPanel({
 
   async function clearSelections() {
     const previousSelection = new Map(selectedEntryIdsBySlot);
+    const previousUnlockedSlotCount = unlockedSlotCount;
     setSelectedEntryIdsBySlot(new Map());
+    setUnlockedSlotCount(INITIAL_CURRENT_PLAYING_SLOT_COUNT);
     setAutosaveError(null);
     setIsClearing(true);
 
@@ -806,6 +912,7 @@ export function CurrentPlayingPanel({
       const result = await clearCurrentPlayingSelectionAction();
       if (!result.ok) {
         setSelectedEntryIdsBySlot(previousSelection);
+        setUnlockedSlotCount(previousUnlockedSlotCount);
         setAutosaveError(result.message);
         return;
       }
@@ -1004,6 +1111,13 @@ export function CurrentPlayingPanel({
     animateSlot(openSlots[0]);
   }
 
+  function confirmAddSlot() {
+    const nextSlot = currentPlayingSlotCount + 1;
+    setUnlockedSlotCount(nextSlot);
+    setIsAddSlotDialogOpen(false);
+    setActivePickerSlot(nextSlot);
+  }
+
   return (
     <section className="panel bg-sage-soft/40" ref={panelRef}>
       <SectionHeader
@@ -1012,6 +1126,7 @@ export function CurrentPlayingPanel({
             <div className="pill">
               {t("profile.currentPlaying.inView", {
                 count: formatNumber(selectedEntriesBySlot.size, locale),
+                capacity: formatNumber(currentPlayingSlotCount, locale),
               })}
             </div>
             {selectedEntriesBySlot.size ? (
@@ -1037,10 +1152,13 @@ export function CurrentPlayingPanel({
           {sharedGenre ? (
             <Notice tone="info">
               {t(
-                sharedGenre.count === CURRENT_PLAYING_SLOTS.length
-                  ? "profile.currentPlaying.similarGenre.three"
-                  : "profile.currentPlaying.similarGenre.two",
-                { genre: sharedGenre.name },
+                sharedGenre.count === selectedEntriesBySlot.size
+                  ? "profile.currentPlaying.similarGenre.all"
+                  : "profile.currentPlaying.similarGenre.some",
+                {
+                  count: formatNumber(sharedGenre.count, locale),
+                  genre: sharedGenre.name,
+                },
               )}
             </Notice>
           ) : null}
@@ -1048,7 +1166,7 @@ export function CurrentPlayingPanel({
             className="grid gap-4 lg:grid-cols-3"
             ref={currentPlayingAreaRef}
           >
-            {CURRENT_PLAYING_SLOTS.map((slot) => (
+            {currentPlayingSlots.map((slot) => (
               <CurrentPlayingSlot
                 animated={animatedSlot === slot}
                 entry={selectedEntriesBySlot.get(slot) ?? null}
@@ -1138,12 +1256,35 @@ export function CurrentPlayingPanel({
         </div>
       )}
 
+      {selectedEntriesBySlot.size >= INITIAL_CURRENT_PLAYING_SLOT_COUNT &&
+      !openSlots.length ? (
+        <Button
+          className="mt-5 justify-self-start"
+          disabled={isBusy}
+          onClick={() => setIsAddSlotDialogOpen(true)}
+          type="button"
+          variant="secondary"
+        >
+          <Plus className="h-4 w-4" />
+          {t("profile.currentPlaying.addAnother")}
+        </Button>
+      ) : null}
+
       {celebration ? (
         <FinishCelebrationDialog
           gameName={celebration.gameName}
           locale={locale}
           onClose={closeCelebration}
           providerRefreshStatus={celebration.providerRefreshStatus}
+        />
+      ) : null}
+
+      {isAddSlotDialogOpen ? (
+        <AddCurrentPlayingSlotDialog
+          currentCount={selectedEntriesBySlot.size}
+          locale={locale}
+          onCancel={closeAddSlotDialog}
+          onConfirm={confirmAddSlot}
         />
       ) : null}
 

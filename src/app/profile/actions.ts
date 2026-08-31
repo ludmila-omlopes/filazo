@@ -223,10 +223,11 @@ function parseOptionalEntryId(value: unknown) {
   return entryId || null;
 }
 
-const currentPlayingSchema = z.object({
-  slot1EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
-  slot2EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
-  slot3EntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
+const MAX_CURRENT_PLAYING_SLOTS = 100;
+
+const currentPlayingSelectionSchema = z.object({
+  entryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
+  slot: z.number().int().min(1).max(MAX_CURRENT_PLAYING_SLOTS),
 });
 
 const playingNextSchema = z.object({
@@ -282,7 +283,7 @@ const deleteJournalEntrySchema = z.object({
 });
 
 type CurrentPlayingSelection = {
-  slot: 1 | 2 | 3;
+  slot: number;
   entryId: string | null;
 };
 
@@ -306,21 +307,38 @@ type CurrentPlayingGameActionResult =
 function parseCurrentPlayingSelections(
   formData: FormData,
 ): CurrentPlayingSelection[] | null {
-  const parsed = currentPlayingSchema.safeParse({
-    slot1EntryId: formData.get("slot1EntryId"),
-    slot2EntryId: formData.get("slot2EntryId"),
-    slot3EntryId: formData.get("slot3EntryId"),
-  });
+  const selectionsBySlot = new Map<number, CurrentPlayingSelection>();
 
-  if (!parsed.success) {
+  for (const [key, value] of formData.entries()) {
+    const match = /^slot(\d+)EntryId$/.exec(key);
+    if (!match) {
+      continue;
+    }
+
+    const parsed = currentPlayingSelectionSchema.safeParse({
+      entryId: value,
+      slot: Number(match[1]),
+    });
+
+    if (!parsed.success || selectionsBySlot.has(parsed.data.slot)) {
+      return null;
+    }
+
+    selectionsBySlot.set(parsed.data.slot, parsed.data);
+  }
+
+  if ([1, 2, 3].some((slot) => !selectionsBySlot.has(slot))) {
     return null;
   }
 
-  return [
-    { slot: 1, entryId: parsed.data.slot1EntryId },
-    { slot: 2, entryId: parsed.data.slot2EntryId },
-    { slot: 3, entryId: parsed.data.slot3EntryId },
-  ];
+  const highestSlot = Math.max(...selectionsBySlot.keys());
+  if (selectionsBySlot.size !== highestSlot) {
+    return null;
+  }
+
+  return [...selectionsBySlot.values()].sort(
+    (left, right) => left.slot - right.slot,
+  );
 }
 
 function parsePlayingNextSelections(
@@ -446,7 +464,7 @@ async function saveCurrentPlayingSelectionsForUser({
     .filter((entryId): entryId is string => Boolean(entryId));
 
   if (new Set(selectedEntryIds).size !== selectedEntryIds.length) {
-    throw new Error("Choose three different games for Current playing.");
+    throw new Error("Choose different games for Current playing.");
   }
 
   if (selectedEntryIds.length) {
@@ -1687,7 +1705,7 @@ export async function saveCurrentPlayingSelectionAction(
   if (!selections) {
     return {
       ok: false,
-      message: "Choose up to three games for Current playing.",
+      message: "Choose a valid set of games for Current playing.",
     };
   }
 
