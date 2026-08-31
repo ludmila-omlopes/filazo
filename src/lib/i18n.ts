@@ -26,6 +26,7 @@ const messages = {
     "common.clearAll": "Clear all",
     "common.apply": "Apply",
     "common.close": "Close",
+    "common.cancel": "Cancel",
     "common.skipToContent": "Skip to content",
     "common.playtimeSoFar": "{value} so far",
     "common.your": "your",
@@ -541,12 +542,16 @@ const messages = {
     "profile.currentPlaying.label": "Current playing",
     "profile.currentPlaying.title": "Currently playing",
     "profile.currentPlaying.description":
-      "Pick at most 3 games. It's better for you, trust me.",
-    "profile.currentPlaying.inView": "{count} of 3 in view",
+      "Keep three games in focus, with room to add more when you mean to.",
+    "profile.currentPlaying.inView": "{count} of {capacity} in view",
     "profile.currentPlaying.similarGenre.two":
       "Two {genre} games are close by. Want to leave room for a little variety?",
     "profile.currentPlaying.similarGenre.three":
       "All three picks share {genre}. Keeping them is fine; a different kind of game could give the rotation more breathing room.",
+    "profile.currentPlaying.similarGenre.all":
+      "All your picks share {genre}. Keeping them is fine; a different kind of game could give the rotation more breathing room.",
+    "profile.currentPlaying.similarGenre.some":
+      "{count} of your picks share {genre}. Want to leave room for a little variety?",
     "profile.currentPlaying.spot": "Spot {slot}",
     "profile.currentPlaying.openTitle": "Open for a game",
     "profile.currentPlaying.openBody":
@@ -566,7 +571,7 @@ const messages = {
       "Saved player-profile recommendations come first when they exist. Remaining spots fall back to unfinished shelf entries with signals like playing status, recent activity, favorites, playtime, and shared review score. These suggestions come from your own catalog, not live web research.",
     "profile.currentPlaying.emptyTitle": "Nothing is pinned right now.",
     "profile.currentPlaying.emptyBody":
-      "Pick up to three games to keep your current rotation visible at a glance.",
+      "Pick three games to start your visible rotation. You can intentionally add more later.",
     "profile.currentPlaying.chooseChange":
       "Choose or change your three picks",
     "profile.currentPlaying.choose": "Choose your three picks",
@@ -576,6 +581,12 @@ const messages = {
     "profile.currentPlaying.clearTop": "Clear all",
     "profile.currentPlaying.dragOut": "Drag out to remove",
     "profile.currentPlaying.fillOpenSpots": "Fill open spots",
+    "profile.currentPlaying.addAnother": "Add another game",
+    "profile.currentPlaying.addAnotherLabel": "Expand your rotation",
+    "profile.currentPlaying.addAnotherTitle": "Add one more game?",
+    "profile.currentPlaying.addAnotherBody":
+      "You already have {count} games in view. Are you sure you want to add another?",
+    "profile.currentPlaying.confirmAddAnother": "Yes, add another",
     "profile.currentPlaying.finish": "Finished",
     "profile.currentPlaying.drop": "Drop game",
     "profile.currentPlaying.removeFromView": "Unpin",
@@ -595,7 +606,7 @@ const messages = {
     "profile.currentPlaying.refresh.failed":
       "Provider refresh did not complete, but the finish was saved.",
     "profile.currentPlaying.help":
-      "Leave any slot empty to clear it. You can feature fewer than three games if that feels better.",
+      "Leave any slot empty to clear it. After the first three, each extra space is added only when you confirm it.",
     "profile.currentPlaying.reason.playing":
       "Already marked as playing now, so it belongs near the top.",
     "profile.currentPlaying.reason.recent":
@@ -1214,9 +1225,9 @@ const messages = {
     "profileAction.needCurrentPlayingLogin":
       "Sign in before changing Current playing.",
     "profileAction.invalidCurrentPlaying":
-      "Choose up to three games for Current playing.",
+      "Choose a valid set of games for Current playing.",
     "profileAction.duplicateCurrentPlaying":
-      "Choose three different games for Current playing.",
+      "Choose different games for Current playing.",
     "profileAction.needPlayingNextLogin":
       "Sign in before changing Playing next.",
     "profileAction.invalidPlayingNext":
@@ -1292,6 +1303,7 @@ const messages = {
     "common.clearAll": "Limpar tudo",
     "common.apply": "Aplicar",
     "common.close": "Fechar",
+    "common.cancel": "Cancelar",
     "common.skipToContent": "Pular para o conteúdo",
     "common.playtimeSoFar": "{value} até agora",
     "common.your": "suas",
@@ -1809,12 +1821,16 @@ const messages = {
     "profile.currentPlaying.label": "Jogando agora",
     "profile.currentPlaying.title": "Jogando atualmente",
     "profile.currentPlaying.description":
-      "escolha no máximo 3 jogos. É melhor pra você, confia",
-    "profile.currentPlaying.inView": "{count} de 3 em vista",
+      "Mantenha três jogos em foco, com espaço para adicionar mais quando quiser.",
+    "profile.currentPlaying.inView": "{count} de {capacity} em vista",
     "profile.currentPlaying.similarGenre.two":
       "Você deixou 2 jogos de {genre} por perto. Que tal abrir espaço para um pouco de variedade?",
     "profile.currentPlaying.similarGenre.three":
       "Os 3 jogos têm {genre} em comum. Tudo bem manter assim; se quiser, algo diferente pode dar mais respiro à rotação.",
+    "profile.currentPlaying.similarGenre.all":
+      "Todos os seus jogos têm {genre} em comum. Tudo bem manter assim; se quiser, algo diferente pode dar mais respiro à rotação.",
+    "profile.currentPlaying.similarGenre.some":
+      "{count} dos seus jogos têm {genre} em comum. Que tal abrir espaço para um pouco de variedade?",
     "profile.currentPlaying.spot": "Espaço {slot}",
     "profile.currentPlaying.openTitle": "Aberto para um jogo",
     "profile.currentPlaying.openBody":
@@ -1834,7 +1850,7 @@ const messages = {
       "Recomendações salvas do perfil entram primeiro quando existem. Os espaços restantes recorrem a jogos inacabados da estante com sinais como status jogando, atividade recente, favoritos, tempo de jogo e nota compartilhada. Essas sugestões saem do seu próprio catálogo, não de pesquisa ao vivo na web.",
     "profile.currentPlaying.emptyTitle": "Nada está fixado agora.",
     "profile.currentPlaying.emptyBody":
-      "Escolha até três jogos para manter sua rotação atual visível de relance.",
+      "Escolha três jogos para começar sua rotação visível. Depois, você pode adicionar mais de propósito.",
     "profile.currentPlaying.chooseChange":
       "Escolha ou altere seus três jogos",
     "profile.currentPlaying.choose": "Escolha seus três jogos",
@@ -1844,6 +1860,12 @@ const messages = {
     "profile.currentPlaying.clearTop": "Limpar tudo",
     "profile.currentPlaying.dragOut": 'Arraste para fora para remover',
     "profile.currentPlaying.fillOpenSpots": "Preencher espaços",
+    "profile.currentPlaying.addAnother": "Adicionar mais um jogo",
+    "profile.currentPlaying.addAnotherLabel": "Ampliar sua rotação",
+    "profile.currentPlaying.addAnotherTitle": "Adicionar mais um jogo?",
+    "profile.currentPlaying.addAnotherBody":
+      "Você já tem {count} jogos em vista. Tem certeza de que quer adicionar mais um?",
+    "profile.currentPlaying.confirmAddAnother": "Sim, adicionar mais um",
     "profile.currentPlaying.finish": "Concluído",
     "profile.currentPlaying.drop": "Largar jogo",
     "profile.currentPlaying.removeFromView": "Tirar da lista",
@@ -1863,7 +1885,7 @@ const messages = {
     "profile.currentPlaying.refresh.failed":
       "A atualização da fonte não terminou, mas a conclusão foi salva.",
     "profile.currentPlaying.help":
-      "Deixe qualquer espaço vazio para limpar. Você pode destacar menos de três jogos se isso fizer mais sentido.",
+      "Deixe qualquer espaço vazio para limpar. Depois dos três primeiros, cada espaço extra só é adicionado com sua confirmação.",
     "profile.currentPlaying.reason.playing":
       "Já está marcado como jogando agora, então merece ficar perto do topo.",
     "profile.currentPlaying.reason.recent":
@@ -2490,9 +2512,9 @@ const messages = {
     "profileAction.needCurrentPlayingLogin":
       "Entre antes de alterar Jogando agora.",
     "profileAction.invalidCurrentPlaying":
-      "Escolha até três jogos para Jogando agora.",
+      "Escolha um conjunto válido de jogos para Jogando agora.",
     "profileAction.duplicateCurrentPlaying":
-      "Escolha três jogos diferentes para Jogando agora.",
+      "Escolha jogos diferentes para Jogando agora.",
     "profileAction.needPlayingNextLogin":
       "Entre antes de alterar Jogar depois.",
     "profileAction.invalidPlayingNext":
