@@ -184,6 +184,12 @@ model PlatformSyncRun {
   syncedCount       Int?
   errorCode         String?
   errorMessage      String?
+  snapshot          Json?
+  workerScope       String                @default("production")
+  cursor            Int                   @default(0)
+  totalCount        Int?
+  workerToken       String?
+  nextAttemptAt     DateTime              @default(now())
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
   externalAccount   ExternalAccount       @relation(fields: [externalAccountId], references: [id], onDelete: Cascade)
@@ -191,6 +197,7 @@ model PlatformSyncRun {
   @@index([externalAccountId, createdAt])
   @@index([provider, status, createdAt])
   @@index([status, leaseExpiresAt])
+  @@index([provider, status, nextAttemptAt])
 }
 
 model PlatformSyncSchedulerState {
@@ -240,6 +247,7 @@ model Game {
   importRows                ImportRow[]
   userReviews               UserGameReview[]
   journalEntries            GameJournalEntry[]
+  metadataJobs              GameMetadataJob[]
 
   @@index([normalizedName])
 }
@@ -314,6 +322,19 @@ model UserGameEntry {
   @@unique([userId, currentPlayingSlot])
   @@unique([userId, playingNextSlot])
   @@index([userId, status])
+}
+
+model GameMetadataJob {
+  gameId         String
+  workerScope    String   @default("production")
+  attempt        Int      @default(0)
+  nextAttemptAt  DateTime @default(now())
+  leaseExpiresAt DateTime?
+  workerToken    String?
+  game           Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, workerScope])
+  @@index([nextAttemptAt, leaseExpiresAt])
 }
 
 model UserGameProviderLink {

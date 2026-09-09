@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import {
   EntrySource,
   ExternalProvider,
@@ -35,6 +36,7 @@ import { syncUserReviews } from "@/lib/reviews";
 import { getSessionUserId } from "@/lib/session";
 import { detectFinishedGamesForUser } from "@/lib/story-completion";
 import { runManualPlatformSync } from "@/lib/platform-sync";
+import { steamSyncQueue } from "@/lib/steam-sync-queue";
 
 const importSchema = z.object({
   fileName: z.string().min(1),
@@ -1053,35 +1055,29 @@ export async function syncSteamLibraryAction() {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needSteamLogin"))}`);
   }
 
-  let result: Awaited<ReturnType<typeof runManualPlatformSync>>;
+  let result: Awaited<ReturnType<typeof steamSyncQueue.enqueue>>;
   try {
-    result = await runManualPlatformSync({
-      userId,
-      provider: ExternalProvider.STEAM,
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : t("profileAction.steamSyncFailed");
-    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
+    result = await steamSyncQueue.enqueue(userId);
+  } catch {
+    console.warn("Could not enqueue Steam synchronization.");
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.steamSyncFailed"))}`);
   }
-  if (result.kind !== "succeeded") {
-    if (result.kind === "skipped" && result.reason === "locked") {
-      redirect(`/profile?tab=integrations&syncPending=1`);
+  if (result.kind === "not-connected") {
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.steamSyncFailed"))}`);
+  }
+  const runId = result.runId;
+  after(async () => {
+    try {
+      if (await steamSyncQueue.drain(runId)) {
+        revalidatePath("/profile");
+        revalidatePath("/");
+      }
+    } catch {
+      console.warn("Steam worker deferred to the next scheduled tick.");
     }
-    const message =
-      result.kind === "failed" &&
-      (result.code === "AUTH" || result.code === "CONFIGURATION")
-        ? t("profileAction.steamApiUnavailable")
-        : t("profileAction.steamSyncFailed");
-    redirect(
-      `/profile?tab=integrations&error=${encodeURIComponent(message)}`,
-    );
-  }
-  const syncedCount = result.syncedCount;
-
+  });
   revalidatePath("/profile");
-  revalidatePath("/");
-  redirect(`/profile?tab=integrations&synced=${syncedCount}`);
+  redirect(`/profile?tab=integrations`);
 }
 
 export async function disconnectProviderAction(provider: ExternalProvider) {

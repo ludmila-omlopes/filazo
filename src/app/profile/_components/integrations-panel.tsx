@@ -45,6 +45,10 @@ type SourceProvider =
   | typeof ExternalProvider.XBOX;
 
 function isSourceSyncing(account: ProviderAccount) {
+  if (account?.provider === ExternalProvider.STEAM) {
+    const status = account.platformSyncRuns[0]?.status;
+    if (status === "PENDING" || status === "RUNNING") return true;
+  }
   return Boolean(
     account?.syncLeaseExpiresAt &&
       account.syncLeaseExpiresAt.getTime() > Date.now(),
@@ -598,6 +602,7 @@ export function IntegrationsPanel({
 }) {
   const t = createTranslator(locale);
   const steamSyncing = isSourceSyncing(profile.steamAccount);
+  const steamRun = profile.steamAccount?.platformSyncRuns[0];
   const steamApiConfigurationError = hasSteamApiConfigurationError(
     profile.steamAccount,
   );
@@ -641,7 +646,6 @@ export function IntegrationsPanel({
                 buttonLabel={t("profile.sources.refreshSteam")}
                 externallyPending={steamSyncing}
                 pendingLabel={t("profile.sources.refreshing")}
-                pendingNotice={t("profile.sources.steamPending")}
               />
             ) : (
               <Button asChild>
@@ -650,6 +654,21 @@ export function IntegrationsPanel({
             )
           }
         >
+          {steamSyncing ? (
+            <p role="status" className="text-sm font-semibold text-ink-soft">
+              {steamRun?.errorCode
+                ? t("profile.sources.steamRetrying")
+                : t("profile.sources.steamBackground")}
+              {steamRun?.totalCount != null ? (
+                <span className="mt-1 block text-xs font-normal">
+                  {t("profile.sources.steamProgress", {
+                    processed: formatNumber(steamRun.cursor, locale),
+                    total: formatNumber(steamRun.totalCount, locale),
+                  })}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
           {steamApiConfigurationError ? (
             <div className="rounded-inner border border-clay/35 bg-clay-soft px-4 py-3 text-sm leading-relaxed text-ink-soft">
               <p>{t("profile.sources.steamApiErrorNotice")}</p>

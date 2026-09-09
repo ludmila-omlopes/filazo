@@ -25,6 +25,7 @@ import {
   syncPlayStationLibraryForAccount as fetchPlayStationLibraryForAccount,
 } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
+import { getSyncWorkerScope } from "@/lib/steam-sync-state";
 import { getUserProfileSyncData } from "@/lib/user-profile-sync";
 import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
 import { syncXboxLibraryForAccount as fetchXboxLibraryForAccount } from "@/lib/xbox";
@@ -42,7 +43,10 @@ import {
   uniqueSlug,
 } from "@/lib/utils";
 
+const defaultCatalogClient = prisma;
+
 type ResolveGameInput = {
+  deferEnrichment?: boolean;
   title: string;
   platformName?: string | null;
   metadata?: Awaited<ReturnType<typeof igdbAdapter.searchBestMatch>> | null;
@@ -183,6 +187,7 @@ async function applyProviderArtworkFallback(
     heroUrl: string | null;
   },
   input: ResolveGameInput,
+  prisma: Prisma.TransactionClient = defaultCatalogClient,
 ) {
   const artwork = getProviderArtworkFallback(input);
   if (!artwork) {
@@ -233,6 +238,7 @@ function metadataToGameCreateInput(
 async function applyMetadataToExistingGame(
   gameId: string,
   metadata: Awaited<ReturnType<typeof igdbAdapter.searchBestMatch>>,
+  prisma: Prisma.TransactionClient = defaultCatalogClient,
 ) {
   if (!metadata) {
     return prisma.game.findUniqueOrThrow({ where: { id: gameId } });
@@ -263,6 +269,7 @@ async function applyMetadataToExistingGame(
 async function applyCompletionTimesToGame(
   gameId: string,
   completionTimes: Awaited<ReturnType<typeof hltbAdapter.searchBestMatch>>,
+  prisma: Prisma.TransactionClient = defaultCatalogClient,
 ) {
   if (!completionTimes) {
     return prisma.game.findUniqueOrThrow({ where: { id: gameId } });
@@ -306,6 +313,7 @@ async function applyCompletionTimesToGame(
 async function applyReviewScoreToGame(
   gameId: string,
   reviewScore: Awaited<ReturnType<typeof metacriticAdapter.searchBestMatch>>,
+  prisma: Prisma.TransactionClient = defaultCatalogClient,
 ) {
   if (!reviewScore) {
     return prisma.game.findUniqueOrThrow({ where: { id: gameId } });
@@ -344,7 +352,10 @@ async function applyReviewScoreToGame(
   return game;
 }
 
-export async function resolveCatalogGame(input: ResolveGameInput) {
+export async function resolveCatalogGame(
+  input: ResolveGameInput,
+  prisma: Prisma.TransactionClient = defaultCatalogClient,
+) {
   const canonicalTitle = canonicalizeGameTitle(input.title);
   const normalizedTitle = normalizeTitle(canonicalTitle);
   const searchTitle = cleanGameTitle(canonicalTitle);
@@ -381,13 +392,19 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
 
   const initiallyMatchedGame = game;
   const ranIgdbSearch =
-    !input.metadata && shouldSearchIgdb(initiallyMatchedGame);
+    !input.metadata && shouldSearchIgdb(initiallyMatchedGame) &&
+    (!input.deferEnrichment || !initiallyMatchedGame);
+  let igdbSearchFailed = false;
   const metadata =
     input.metadata ??
     (ranIgdbSearch
       ? await igdbAdapter.searchBestMatch({
           title: searchTitle,
           platformName: input.platformName,
+        }).catch((error: unknown) => {
+          if (!input.deferEnrichment) throw error;
+          igdbSearchFailed = true;
+          return null;
         })
       : null);
 
@@ -401,14 +418,14 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
   }
 
   const enrichmentSearchTitle = cleanGameTitle(metadata?.name ?? input.title);
-  const ranHltbSearch = shouldSearchHltb(initiallyMatchedGame);
+  const ranHltbSearch = !input.deferEnrichment && shouldSearchHltb(initiallyMatchedGame);
   const completionTimes = ranHltbSearch
     ? await hltbAdapter.searchBestMatch({
         title: enrichmentSearchTitle,
         platformName: input.platformName,
       })
     : null;
-  const ranMetacriticSearch = shouldSearchMetacritic(initiallyMatchedGame);
+  const ranMetacriticSearch = !input.deferEnrichment && shouldSearchMetacritic(initiallyMatchedGame);
   const reviewScore = ranMetacriticSearch
     ? await metacriticAdapter.searchBestMatch({
         title: enrichmentSearchTitle,
@@ -460,9 +477,9 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
     metadata &&
     (!game.igdbId || !game.coverUrl || !game.heroUrl || !game.summary)
   ) {
-    game = await applyMetadataToExistingGame(game.id, metadata);
+    game = await applyMetadataToExistingGame(game.id, metadata, prisma);
   } else if (!game.coverUrl || !game.heroUrl) {
-    game = await applyProviderArtworkFallback(game.id, game, input);
+    game = await applyProviderArtworkFallback(game.id, game, input, prisma);
   }
 
   if (
@@ -471,7 +488,7 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
       !game.hltbMainExtraMinutes ||
       !game.hltbCompletionistMinutes)
   ) {
-    game = await applyCompletionTimesToGame(game.id, completionTimes);
+    game = await applyCompletionTimesToGame(game.id, completionTimes, prisma);
   }
 
   if (
@@ -479,11 +496,11 @@ export async function resolveCatalogGame(input: ResolveGameInput) {
     (game.metacriticScore !== reviewScore.score ||
       game.metacriticUrl !== reviewScore.url)
   ) {
-    game = await applyReviewScoreToGame(game.id, reviewScore);
+    game = await applyReviewScoreToGame(game.id, reviewScore, prisma);
   }
 
   const checkedAtData = {
-    ...(ranIgdbSearch ? { igdbCheckedAt: new Date() } : {}),
+    ...(ranIgdbSearch && !igdbSearchFailed ? { igdbCheckedAt: new Date() } : {}),
     ...(ranHltbSearch ? { hltbCheckedAt: new Date() } : {}),
     ...(ranMetacriticSearch ? { metacriticCheckedAt: new Date() } : {}),
   };
@@ -575,7 +592,7 @@ async function applySyncedProgressToRelatedEntries({
   rawData: Record<string, unknown> | undefined;
   syncedMinutes: number | null | undefined;
   userId: string;
-}) {
+}, prisma: Prisma.TransactionClient = defaultCatalogClient) {
   const hasSyncedProgress =
     (syncedMinutes !== null && syncedMinutes !== undefined) ||
     (completionPercent !== null && completionPercent !== undefined) ||
@@ -702,74 +719,7 @@ async function syncSteamLibraryForAccount(
 
   for (const syncedGame of games) {
     throwIfPlatformSyncAborted(options.signal);
-    const game = await resolveCatalogGame({
-      title: syncedGame.title,
-      platformName: syncedGame.platformName,
-      provider: ExternalProvider.STEAM,
-      providerGameId: syncedGame.providerGameId,
-      storeUrl: syncedGame.storeUrl,
-      rawData: syncedGame.rawData,
-    });
-
-    const existingEntry = await prisma.userGameEntry.findUnique({
-      where: { userId_gameId_status: { userId, gameId: game.id, status: UserGameStatus.OWNED } },
-      select: {
-        id: true,
-        playtimeMinutes: true,
-        playtimeSource: true,
-        rawData: true,
-      },
-    });
-    const syncedRawData = mergeSyncedRawData(
-      existingEntry?.rawData,
-      syncedGame.rawData,
-    );
-    await applySyncedProgressToRelatedEntries({
-      userId,
-      gameId: game.id,
-      ownedEntryId: existingEntry?.id,
-      syncedMinutes: syncedGame.playtimeMinutes,
-      completionPercent: syncedGame.completionPercent,
-      lastPlayedAt: syncedGame.lastPlayedAt,
-      rawData: syncedGame.rawData,
-    });
-    const playtimeData = getSyncedPlaytimeData(existingEntry, syncedGame.playtimeMinutes);
-    await prisma.userGameEntry.upsert({
-      where: {
-        userId_gameId_status: {
-          userId,
-          gameId: game.id,
-          status: UserGameStatus.OWNED,
-        },
-      },
-      update: {
-        source: EntrySource.STEAM,
-        provider: ExternalProvider.STEAM,
-        externalAccountId: steamAccount.id,
-        platformName: syncedGame.platformName ?? undefined,
-        ...playtimeData,
-        lastPlayedAt: syncedGame.lastPlayedAt ?? undefined,
-        completionPercent: syncedGame.completionPercent ?? undefined,
-        rawData: syncedRawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: new Date(),
-      },
-      create: {
-        userId,
-        gameId: game.id,
-        status: UserGameStatus.OWNED,
-        source: EntrySource.STEAM,
-        provider: ExternalProvider.STEAM,
-        externalAccountId: steamAccount.id,
-        platformName: syncedGame.platformName ?? undefined,
-        playtimeMinutes: syncedGame.playtimeMinutes ?? undefined,
-        playtimeSource: syncedGame.playtimeMinutes !== null && syncedGame.playtimeMinutes !== undefined ? "sync" : undefined,
-        lastPlayedAt: syncedGame.lastPlayedAt ?? null,
-        completionPercent: syncedGame.completionPercent ?? null,
-        rawData: syncedRawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: new Date(),
-      },
-    });
-
+    await importSteamLibraryGame(steamAccount, syncedGame);
     syncedCount += 1;
   }
 
@@ -777,6 +727,105 @@ async function syncSteamLibraryForAccount(
     syncedCount,
     profile,
   };
+}
+
+export async function importSteamLibraryGame(
+  steamAccount: Pick<ExternalAccount, "id" | "userId">,
+  syncedGame: import("@/lib/providers/contracts").SyncedLibraryGame,
+  prisma: Prisma.TransactionClient = defaultCatalogClient,
+) {
+  const userId = steamAccount.userId;
+  if (prisma !== defaultCatalogClient) {
+    // Different accounts can import the same title simultaneously. Serialize
+    // provider identity and normalized-title resolution within this checkpoint.
+    await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`steam:${syncedGame.providerGameId}`}, 0))`;
+    await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`title:${normalizeTitle(canonicalizeGameTitle(syncedGame.title))}`}, 0))`;
+  }
+  const game = await resolveCatalogGame({
+    title: syncedGame.title,
+    platformName: syncedGame.platformName,
+    provider: ExternalProvider.STEAM,
+    providerGameId: syncedGame.providerGameId,
+    storeUrl: syncedGame.storeUrl,
+    rawData: syncedGame.rawData,
+    deferEnrichment: true,
+  }, prisma);
+
+  const existingEntry = await prisma.userGameEntry.findUnique({
+    where: { userId_gameId_status: { userId, gameId: game.id, status: UserGameStatus.OWNED } },
+    select: {
+      id: true,
+      playtimeMinutes: true,
+      playtimeSource: true,
+      rawData: true,
+    },
+  });
+  const syncedRawData = mergeSyncedRawData(
+    existingEntry?.rawData,
+    syncedGame.rawData,
+  );
+  await applySyncedProgressToRelatedEntries({
+    userId,
+    gameId: game.id,
+    ownedEntryId: existingEntry?.id,
+    syncedMinutes: syncedGame.playtimeMinutes,
+    completionPercent: syncedGame.completionPercent,
+    lastPlayedAt: syncedGame.lastPlayedAt,
+    rawData: syncedGame.rawData,
+  }, prisma);
+  const playtimeData = getSyncedPlaytimeData(existingEntry, syncedGame.playtimeMinutes);
+  await prisma.userGameEntry.upsert({
+    where: {
+      userId_gameId_status: {
+        userId,
+        gameId: game.id,
+        status: UserGameStatus.OWNED,
+      },
+    },
+    update: {
+      source: EntrySource.STEAM,
+      provider: ExternalProvider.STEAM,
+      externalAccountId: steamAccount.id,
+      platformName: syncedGame.platformName ?? undefined,
+      ...playtimeData,
+      lastPlayedAt: syncedGame.lastPlayedAt ?? undefined,
+      completionPercent: syncedGame.completionPercent ?? undefined,
+      rawData: syncedRawData as Prisma.InputJsonValue | undefined,
+      lastSyncedAt: new Date(),
+    },
+    create: {
+      userId,
+      gameId: game.id,
+      status: UserGameStatus.OWNED,
+      source: EntrySource.STEAM,
+      provider: ExternalProvider.STEAM,
+      externalAccountId: steamAccount.id,
+      platformName: syncedGame.platformName ?? undefined,
+      playtimeMinutes: syncedGame.playtimeMinutes ?? undefined,
+      playtimeSource: syncedGame.playtimeMinutes !== null && syncedGame.playtimeMinutes !== undefined ? "sync" : undefined,
+      lastPlayedAt: syncedGame.lastPlayedAt ?? null,
+      completionPercent: syncedGame.completionPercent ?? null,
+      rawData: syncedRawData as Prisma.InputJsonValue | undefined,
+      lastSyncedAt: new Date(),
+    },
+  });
+
+
+  await prisma.userGameProviderLink.upsert({
+    where: { externalAccountId_providerGameId: {
+      externalAccountId: steamAccount.id, providerGameId: syncedGame.providerGameId,
+    } },
+    create: {
+      userId, gameId: game.id, externalAccountId: steamAccount.id,
+      provider: ExternalProvider.STEAM, providerGameId: syncedGame.providerGameId,
+      platformName: syncedGame.platformName, rawData: syncedRawData as Prisma.InputJsonValue,
+    },
+    update: { gameId: game.id, lastSyncedAt: new Date() },
+  });
+  if (shouldSearchIgdb(game) || shouldSearchHltb(game) || shouldSearchMetacritic(game)) {
+    await prisma.gameMetadataJob.createMany({ data: [{ gameId: game.id, workerScope: getSyncWorkerScope() }], skipDuplicates: true });
+  }
+
 }
 
 export async function syncPlayStationLibraryForUser(userId: string) {
@@ -1399,6 +1448,10 @@ export async function getProfileData(
     include: {
       externalAccounts: {
         orderBy: { createdAt: "asc" },
+        include: { platformSyncRuns: {
+          orderBy: { createdAt: "desc" }, take: 1,
+          select: { status: true, cursor: true, totalCount: true, errorCode: true },
+        } },
       },
       gameEntries: gameEntriesQuery,
       journalEntries: {
@@ -1547,7 +1600,8 @@ const gameDetailInclude = {
 } satisfies Prisma.GameInclude;
 
 async function enrichMissingGameDetailData(
-  game: Prisma.GameGetPayload<{ include: typeof gameDetailInclude }>,
+  game: Prisma.GameGetPayload<{ include: { providerLinks: true } }>,
+  propagateErrors = false,
 ) {
   const searchTitle = cleanGameTitle(game.name);
   let enriched = false;
@@ -1602,6 +1656,7 @@ async function enrichMissingGameDetailData(
       }
     }
   } catch (error) {
+    if (propagateErrors) throw error;
     console.warn("Could not enrich game detail data.", {
       gameId: game.id,
       error,
@@ -1630,4 +1685,12 @@ export async function getGameBySlug(slug: string) {
     where: { slug },
     include: gameDetailInclude,
   });
+}
+
+
+export async function enrichCatalogGame(gameId: string) {
+  const game = await prisma.game.findUnique({
+    where: { id: gameId }, include: { providerLinks: true },
+  });
+  if (game) await enrichMissingGameDetailData(game, true);
 }

@@ -44,6 +44,7 @@ export async function GET(request: Request) {
       ok: true,
       status: result.summary.disabled ? "disabled" : "completed",
       started: result.summary.started,
+      queued: result.summary.queued,
       succeeded: result.summary.succeeded,
       failed: result.summary.failed,
       skipped: result.summary.skipped,

@@ -17,6 +17,7 @@ import {
   type PlatformSyncErrorCode,
 } from "@/lib/platform-sync-policy";
 import { prisma } from "@/lib/prisma";
+import { steamSyncQueue } from "@/lib/steam-sync-queue";
 
 const SCHEDULER_STATE_ID = "platform-sync";
 const LEASE_BUFFER_MS = 5 * 60 * 1000;
@@ -34,11 +35,13 @@ type SyncedExternalAccount = ExternalAccount & {
 };
 
 type SyncResult =
+  | { kind: "queued"; runId: string }
   | { kind: "succeeded"; syncedCount: number }
   | { kind: "skipped"; reason: "locked" | "not-connected" }
   | { code: PlatformSyncErrorCode; kind: "failed" };
 
 type ScheduledSyncSummary = {
+  queued: number;
   disabled: boolean;
   failed: number;
   skipped: number;
@@ -293,6 +296,12 @@ async function runAccountSync({
   >;
   trigger: PlatformSyncTrigger;
 }): Promise<SyncResult> {
+  if (account.provider === ExternalProvider.STEAM) {
+    const owner = await prisma.externalAccount.findUnique({ where: { id: account.id }, select: { userId: true } });
+    if (!owner) return { kind: "skipped", reason: "not-connected" };
+    const queued = await steamSyncQueue.enqueue(owner.userId, trigger);
+    return queued.kind === "queued" ? queued : { kind: "skipped", reason: "not-connected" };
+  }
   const lease = await acquireAccountLease({ account, trigger });
   if ("reason" in lease) {
     return { kind: "skipped", reason: lease.reason };
@@ -426,12 +435,12 @@ async function runScheduledBatch(
 export async function runDuePlatformSyncs(): Promise<ScheduledSyncSummary> {
   const policy = getPlatformSyncPolicy();
   if (!policy.enabled) {
-    return { disabled: true, failed: 0, skipped: 0, started: 0, succeeded: 0 };
+    return { disabled: true, failed: 0, skipped: 0, started: 0, succeeded: 0, queued: 0 };
   }
 
   const providers = getEnabledProviders();
   if (!providers.length) {
-    return { disabled: true, failed: 0, skipped: 0, started: 0, succeeded: 0 };
+    return { disabled: true, failed: 0, skipped: 0, started: 0, succeeded: 0, queued: 0 };
   }
 
   const now = new Date();
@@ -463,6 +472,7 @@ export async function runDuePlatformSyncs(): Promise<ScheduledSyncSummary> {
   const summary = results.reduce<ScheduledSyncSummary>(
     (current, result) => {
       if (result.kind === "succeeded") current.succeeded += 1;
+      if (result.kind === "queued") current.queued += 1;
       if (result.kind === "failed") current.failed += 1;
       if (result.kind === "skipped") current.skipped += 1;
       return current;
@@ -472,6 +482,7 @@ export async function runDuePlatformSyncs(): Promise<ScheduledSyncSummary> {
       failed: 0,
       skipped: 0,
       started: results.length,
+      queued: 0,
       succeeded: 0,
     },
   );

@@ -9,7 +9,7 @@ type SyncActionFormProps = {
   action: (formData: FormData) => void;
   buttonLabel: string;
   pendingLabel: string;
-  pendingNotice: string;
+  pendingNotice?: string;
   externallyPending?: boolean;
 };
 
@@ -77,7 +77,7 @@ export function SyncActionForm({
 
     const intervalId = window.setInterval(() => {
       router.refresh();
-    }, 2_000);
+    }, 5_000);
 
     return () => window.clearInterval(intervalId);
   }, [externallyPending, router]);
@@ -89,10 +89,12 @@ export function SyncActionForm({
         externallyPending={externallyPending}
         pendingLabel={pendingLabel}
       />
-      <SyncPendingNotice
-        externallyPending={externallyPending}
-        message={pendingNotice}
-      />
+      {pendingNotice ? (
+        <SyncPendingNotice
+          externallyPending={externallyPending}
+          message={pendingNotice}
+        />
+      ) : null}
     </form>
   );
 }

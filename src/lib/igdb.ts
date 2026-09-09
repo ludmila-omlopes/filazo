@@ -94,7 +94,7 @@ function isIgdbConfigured() {
   return Boolean(process.env.IGDB_CLIENT_ID && process.env.IGDB_CLIENT_SECRET);
 }
 
-async function getIgdbToken() {
+async function getIgdbToken(signal?: AbortSignal) {
   if (!isIgdbConfigured()) {
     return null;
   }
@@ -105,6 +105,7 @@ async function getIgdbToken() {
   }
 
   const response = await fetch("https://id.twitch.tv/oauth2/token", {
+    signal,
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -432,8 +433,8 @@ function mapUpcomingRelease(
   };
 }
 
-async function queryIgdbGames(query: string, limit: number) {
-  const token = await getIgdbToken();
+async function queryIgdbGames(query: string, limit: number, signal?: AbortSignal) {
+  const token = await getIgdbToken(signal);
   if (!token || !process.env.IGDB_CLIENT_ID) {
     return [];
   }
@@ -447,6 +448,7 @@ async function queryIgdbGames(query: string, limit: number) {
 
   const response = await fetch("https://api.igdb.com/v4/games", {
     method: "POST",
+    signal,
     headers: {
       "Client-ID": process.env.IGDB_CLIENT_ID,
       Authorization: `Bearer ${token}`,
@@ -494,8 +496,8 @@ async function fetchIgdbGameById(igdbId: number) {
 
 export const igdbAdapter: CatalogMetadataAdapter = {
   provider: "IGDB",
-  async searchBestMatch({ title, platformName }) {
-    const results = await queryIgdbGames(title, 10);
+  async searchBestMatch({ title, platformName, signal }) {
+    const results = await queryIgdbGames(title, 10, signal ?? AbortSignal.timeout(6_000));
     if (!results.length) {
       return null;
     }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mapSteamOwnedGames } from "./steam-library.ts";
+import { mapSteamOwnedGames, mapSteamOwnedGamesResponse } from "./steam-library.ts";
 
 test("Steam library mapping excludes achievement progress", () => {
   const [game] = mapSteamOwnedGames([
@@ -19,6 +19,22 @@ test("Steam library mapping excludes achievement progress", () => {
   assert.equal("achievementCompletion" in (game?.rawData ?? {}), false);
 });
 
-test("Steam library mapping ignores entries without a title", () => {
-  assert.deepEqual(mapSteamOwnedGames([{ appid: 456 }]), []);
+test("Steam library mapping preserves entries without a title", () => {
+  const [game] = mapSteamOwnedGames([{ appid: 456 }]);
+  assert.equal(game.providerGameId, "456");
+  assert.equal(game.title, "Steam App 456");
+});
+
+test("Steam keeps a large library intact, including unnamed titles", () => {
+  const games = Array.from({ length: 1508 }, (_, appid) => ({ appid: appid + 1, name: appid % 10 ? `Game ${appid}` : undefined }));
+  const mapped = mapSteamOwnedGamesResponse({ response: { games, game_count: 1508 } });
+  assert.equal(mapped.length, 1508);
+  assert.equal(new Set(mapped.map(game => game.providerGameId)).size, 1508);
+});
+
+test("Steam distinguishes an empty library from private or incomplete responses", () => {
+  assert.deepEqual(mapSteamOwnedGamesResponse({ response: { game_count: 0 } }), []);
+  assert.throws(() => mapSteamOwnedGamesResponse({ response: {} }), /unavailable/);
+  assert.throws(() => mapSteamOwnedGamesResponse({}), /unavailable/);
+  assert.throws(() => mapSteamOwnedGamesResponse({ response: { game_count: 2, games: [{ appid: 1 }] } }), /incomplete/);
 });

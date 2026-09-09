@@ -72,6 +72,7 @@ export interface CatalogMetadataAdapter {
   searchBestMatch(query: {
     title: string;
     platformName?: string | null;
+    signal?: AbortSignal;
   }): Promise<EnrichedGameMetadata | null>;
 }
 
