@@ -105,6 +105,7 @@ enum FeedbackType {
 enum FeedbackStatus {
   NEW
   IN_REVIEW
+  WAITING
   DONE
   DECLINED
 }

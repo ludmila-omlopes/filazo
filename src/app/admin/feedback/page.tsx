@@ -103,7 +103,7 @@ export default async function AdminFeedbackPage({
         <p className="max-w-[62ch] text-ink-soft">{t("admin.feedback.body")}</p>
       </section>
 
-      <div className="grid grid-cols-4 items-start gap-4 max-xl:grid-cols-2 max-md:grid-cols-1">
+      <div className="grid grid-cols-5 items-start gap-4 max-xl:grid-cols-2 max-md:grid-cols-1">
         {columns.map((column) => (
           <section
             aria-label={t(FEEDBACK_STATUS_LABEL_KEYS[column.status])}

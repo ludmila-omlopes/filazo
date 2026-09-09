@@ -4,6 +4,7 @@ import type { TranslationKey } from "@/lib/i18n";
 export const FEEDBACK_STATUS_ORDER = [
   FeedbackStatus.NEW,
   FeedbackStatus.IN_REVIEW,
+  FeedbackStatus.WAITING,
   FeedbackStatus.DONE,
   FeedbackStatus.DECLINED,
 ] as const;
@@ -12,6 +13,7 @@ export const FEEDBACK_STATUS_LABEL_KEYS: Record<FeedbackStatus, TranslationKey> 
   {
     [FeedbackStatus.NEW]: "feedback.status.new",
     [FeedbackStatus.IN_REVIEW]: "feedback.status.inReview",
+    [FeedbackStatus.WAITING]: "feedback.status.waiting",
     [FeedbackStatus.DONE]: "feedback.status.done",
     [FeedbackStatus.DECLINED]: "feedback.status.declined",
   };

@@ -135,6 +135,7 @@ export async function sendBetaApprovalEmail(input: {
 const FEEDBACK_STATUS_LABELS = {
   NEW: "New",
   IN_REVIEW: "In review",
+  WAITING: "Waiting",
   DONE: "Done",
   DECLINED: "Declined",
 } as const;
