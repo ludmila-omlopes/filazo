@@ -1,7 +1,7 @@
 "use server";
 
 import { BetaTesterStatus, FeedbackStatus } from "@prisma/client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import {
@@ -15,8 +15,14 @@ import {
   saveAiSettings,
   type AiSettingsValues,
 } from "@/lib/ai-settings";
-import { setBetaSubmissionsOpen } from "@/lib/beta-submissions";
-import { sendBetaApprovalEmail } from "@/lib/email";
+import {
+  BETA_SUBMISSIONS_CACHE_TAG,
+  setBetaSubmissionsOpen,
+} from "@/lib/beta-submissions";
+import {
+  sendBetaApprovalEmail,
+  sendFeedbackStatusEmail,
+} from "@/lib/email";
 import { prisma } from "@/lib/prisma";
 import { getRequestTranslator } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
@@ -194,6 +200,7 @@ export async function updateBetaSubmissionsAction(formData: FormData) {
   }
 
   await setBetaSubmissionsOpen(parsed.data.open === "true");
+  updateTag(BETA_SUBMISSIONS_CACHE_TAG);
 
   revalidatePath("/", "layout");
   revalidatePath("/admin/beta");
@@ -218,15 +225,48 @@ export async function updateFeedbackStatusAction(formData: FormData) {
     );
   }
 
-  await prisma.feedback.update({
+  const feedback = await prisma.feedback.findUnique({
     where: { id: parsed.data.feedbackId },
+    include: { user: { select: { email: true, displayName: true } } },
+  });
+
+  if (!feedback) {
+    redirect(
+      `/admin/feedback?error=${encodeURIComponent(
+        t("admin.feedback.error.invalid"),
+      )}`,
+    );
+  }
+
+  await prisma.feedback.update({
+    where: { id: feedback.id },
     data: { status: parsed.data.status },
   });
+
+  const redirectParams = new URLSearchParams({ updated: "1" });
+  if (feedback.status !== parsed.data.status && feedback.user?.email) {
+    try {
+      const result = await sendFeedbackStatusEmail({
+        to: feedback.user.email,
+        recipientName: feedback.user.displayName ?? feedback.user.email.split("@")[0],
+        status: parsed.data.status,
+        title: feedback.title,
+      });
+      if (!result.sent) redirectParams.set("emailSkipped", "1");
+    } catch (error) {
+      redirectParams.set("emailFailed", "1");
+      console.error("Failed to send feedback status email.", {
+        feedbackId: feedback.id,
+        status: parsed.data.status,
+        error,
+      });
+    }
+  }
 
   revalidatePath("/admin");
   revalidatePath("/admin/feedback");
   revalidatePath("/feedback");
-  redirect("/admin/feedback?updated=1");
+  redirect(`/admin/feedback?${redirectParams.toString()}`);
 }
 
 export async function updateAiSettingsAction(formData: FormData) {

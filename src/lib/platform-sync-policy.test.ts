@@ -154,16 +154,23 @@ test("classifies platform sync failures by code", () => {
   for (const [message, code] of cases) {
     assert.equal(classifyPlatformSyncError(new Error(message)).code, code);
   }
+
+  const rejectedSteamApiKey = Object.assign(
+    new Error("Could not fetch owned games from Steam (401)."),
+    { platformSyncErrorCode: "CONFIGURATION" },
+  );
+  assert.equal(
+    classifyPlatformSyncError(rejectedSteamApiKey).code,
+    "CONFIGURATION",
+  );
 });
 
 test("characterizes classifier keyword precedence", () => {
-  // characterization: the literal environment variable name does not match
-  // the spaced "api key is required" configuration keyword.
   assert.equal(
     classifyPlatformSyncError(
       new Error("STEAM_API_KEY is required to sync owned games from Steam."),
     ).code,
-    "INTERNAL",
+    "CONFIGURATION",
   );
   // characterization: "fetch" is checked before the generic HTTP status
   // branch, so a provider 503 with that verb is currently a network error.

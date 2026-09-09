@@ -18,6 +18,8 @@ import { getSessionUserId } from "@/lib/session";
 type AdminFeedbackSearchParams = Promise<{
   error?: string;
   updated?: string;
+  emailFailed?: string;
+  emailSkipped?: string;
 }>;
 
 export default async function AdminFeedbackPage({
@@ -62,6 +64,12 @@ export default async function AdminFeedbackPage({
       {query.error ? <Notice tone="error">{query.error}</Notice> : null}
       {query.updated ? (
         <Notice tone="success">{t("admin.feedback.updated")}</Notice>
+      ) : null}
+      {query.emailFailed ? (
+        <Notice tone="warning">{t("admin.feedback.emailFailed")}</Notice>
+      ) : null}
+      {query.emailSkipped ? (
+        <Notice tone="warning">{t("admin.feedback.emailSkipped")}</Notice>
       ) : null}
 
       <section className="grid gap-4">
@@ -111,8 +119,8 @@ export default async function AdminFeedbackPage({
                   </div>
 
                   <p className="truncate text-xs font-semibold text-ink-soft">
-                    {item.user.displayName ?? t("admin.noName")}
-                    {item.user.email ? ` · ${item.user.email}` : ""}
+                    {item.user?.displayName ?? t("admin.feedback.anonymous")}
+                    {item.user?.email ? ` · ${item.user.email}` : ""}
                   </p>
 
                   <form

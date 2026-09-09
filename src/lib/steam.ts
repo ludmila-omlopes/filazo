@@ -59,8 +59,14 @@ function getSteamApiKey() {
 
 function createSteamApiError(message: string, response: Response) {
   const error = new Error(`${message} (${response.status}).`) as Error & {
+    platformSyncErrorCode?: "CONFIGURATION";
     retryAfter?: string;
   };
+  if (response.status === 401 || response.status === 403) {
+    // Steam OpenID identifies the user, but Web API requests use the app's
+    // global STEAM_API_KEY. Reconnecting a user cannot repair a rejected key.
+    error.platformSyncErrorCode = "CONFIGURATION";
+  }
   const retryAfter = response.headers.get("retry-after");
   if (retryAfter) error.retryAfter = retryAfter;
   return error;

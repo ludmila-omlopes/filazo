@@ -89,6 +89,14 @@ const messages = {
     "auth.dialog.privacy": "Privacy Policy",
     "auth.dialog.or": "or",
     "auth.dialog.google": "Continue with Google",
+    "auth.feedback.contact": "Contact site support",
+    "auth.feedback.prompt":
+      "Tell us what happened and we will add it to the feedback board with this error reference.",
+    "auth.feedback.placeholder":
+      "What were you trying to do when Google sign-in failed?",
+    "auth.feedback.submit": "Send report",
+    "auth.feedback.sent": "Report sent to site support. Thank you.",
+    "auth.feedback.invalid": "Please describe what happened in at least 10 characters.",
     "auth.dialog.registrationClosed":
       "Public registrations are closed. If you do not have an account yet, request access through the beta tester signup.",
     "auth.dialog.requestBeta": "Request beta access",
@@ -106,7 +114,7 @@ const messages = {
     "auth.error.invalidEmailOrPassword":
       "Use a valid email and a password with at least 8 characters.",
     "auth.error.noPasswordAccount":
-      "No filazo password account exists for that email.",
+      "No filazo password account exists for that email. If you created the account with Google, use Continue with Google.",
     "auth.error.emailPasswordMismatch": "Email or password did not match.",
     "auth.error.displayNameLength":
       "Choose a profile name with 2 to 48 characters.",
@@ -120,6 +128,14 @@ const messages = {
     "auth.error.sessionExpired": "Session expired. Sign in again.",
     "auth.error.googleRegistrationClosed":
       "Public registrations are closed. Use the beta tester signup.",
+    "auth.error.googleMissingCode":
+      "Google did not return an authorization code. Try signing in again.",
+    "auth.error.googleStateInvalid":
+      "Google sign-in expired or could not be verified. Try signing in again.",
+    "auth.error.googleCallbackFailed":
+      "Could not finish Google sign-in. Try again. If it keeps failing, share reference {reference} with us.",
+    "auth.error.googleStartFailed":
+      "Could not start Google sign-in. Try again. If it keeps failing, share reference {reference} with us.",
     "auth.error.steamRegistrationClosed":
       "Public registrations are closed. Request beta access before connecting Steam.",
     "auth.error.xboxRegistrationClosed":
@@ -420,11 +436,16 @@ const messages = {
     "admin.feedback.kicker": "Triage",
     "admin.feedback.title": "Feedback board",
     "admin.feedback.body":
-      "Improvements and bug reports from signed-in users. Move cards across columns as you triage.",
+      "Improvements and bug reports from users, including reports sent before sign-in. Move cards across columns as you triage.",
     "admin.feedback.empty": "Nothing here.",
     "admin.feedback.updated": "Feedback updated.",
     "admin.feedback.moveTo": "Move to {status}",
     "admin.feedback.error.invalid": "Could not update this feedback item.",
+    "admin.feedback.anonymous": "Anonymous report",
+    "admin.feedback.emailFailed":
+      "The feedback moved, but its notification email could not be sent.",
+    "admin.feedback.emailSkipped":
+      "The feedback moved, but email notifications are not configured.",
     "feedback.kicker": "Feedback",
     "feedback.title": "Help shape filazo",
     "feedback.body":
@@ -475,6 +496,9 @@ const messages = {
     "profile.sources.synced": "Synced {date}",
     "profile.sources.syncing": "Syncing…",
     "profile.sources.reconnectNeeded": "Reconnect needed",
+    "profile.sources.configurationNeeded": "Service setup needed",
+    "profile.sources.syncFailed": "Sync failed",
+    "profile.sources.steamApiUnavailable": "Technical issue on the site",
     "profile.sources.tokenGuide": "How to get the token",
     "profile.sources.tokenStep1":
       "1. Sign in to PlayStation in your browser.",
@@ -490,6 +514,9 @@ const messages = {
     "profile.sources.steamPrivacyNotice":
       "Your Steam library and game details must be public. Private libraries return no games during synchronization.",
     "profile.sources.steamPrivacyAction": "Review Steam privacy settings",
+    "profile.sources.steamApiErrorNotice":
+      "Your library could not be updated because of a technical issue with Filazo's Steam integration. You do not need to change your Steam account or privacy settings. Please contact site support.",
+    "profile.sources.contactSupport": "Contact site support",
     "profile.sources.refreshSteam": "Refresh Steam",
     "profile.sources.refreshing": "Refreshing...",
     "profile.sources.steamPending":
@@ -504,6 +531,7 @@ const messages = {
     "profile.sources.technicalStatus": "Technical status",
     "profile.sources.steamReady": "ready",
     "profile.sources.steamMissingKey": "missing key",
+    "profile.sources.steamUnavailable": "unavailable",
     "profile.sources.igdbMissingKeys": "missing keys",
     "profile.sources.connectedSecurely": "Connected token stored securely.",
     "profile.sources.npsso": "NPSSO token",
@@ -682,8 +710,8 @@ const messages = {
     "profile.shelf.gameCount": "{count} games",
     "profile.shelf.gameCountOne": "1 game",
     "shelf.unknownPlatform": "Unknown platform",
-    "shelf.includeDormantChip": "Including dropped and not-started",
-    "shelf.includeDormantLabel": "Include dropped and not-started games",
+    "shelf.includeDormantChip": "Including released games",
+    "shelf.includeDormantLabel": "Include released games",
     "shelf.updateStatus": "Update status",
     "shelf.restoreBeforeCredits": "Restore this game before marking credits rolled",
     "shelf.creditsRolled": "Credits rolled",
@@ -997,6 +1025,12 @@ const messages = {
     "profile.importAudit.title": "Recent import audit",
     "profile.importAudit.row": "Row {index}",
     "profile.importAudit.pending": "pending",
+    "profile.importAudit.imagesTitle": "Uploaded images",
+    "profile.importAudit.imageLabel": "Imported image {index}",
+    "profile.importAudit.openImage": "View imported image {index}",
+    "profile.importAudit.closeImage": "Close image",
+    "profile.importAudit.previousImage": "Previous image",
+    "profile.importAudit.nextImage": "Next image",
     "profile.photoImport.label": "Photo import",
     "profile.photoImport.title": "Read games from screenshots",
     "profile.photoImport.description":
@@ -1035,15 +1069,17 @@ const messages = {
     "game.coverAlt": "Cover art for {name}",
     "game.entryLabel": "Catalog entry",
     "game.relationship": "Your relationship with this game",
-    "game.ownershipFormat": "Ownership format",
-    "game.digitalOrUnspecified": "Digital or unspecified",
+    "game.ownershipFormat": "Format",
+    "game.digital": "Digital",
     "game.placeOnShelf": "Place on shelf",
     "game.recordedPlaytime": "Recorded playtime",
-    "game.usualCredits": "Usual credits",
-    "game.creditsAround":
-      "Most players see credits around {value}.",
     "game.creditsRolled":
       "Credits rolled {date}. This is separate from achievement collecting.",
+    "game.creditsMarker": "Credits achievement",
+    "game.storyAchievementWatched":
+      "The achievement “{name}” ({provider}) counts as credits rolled.",
+    "game.storyTrophyWatched":
+      "The trophy “{name}” ({provider}) counts as credits rolled.",
     "game.achievementSignals":
       "Some achievement signals are on the record, but credits are not marked yet.",
     "game.stillCurious":
@@ -1201,6 +1237,8 @@ const messages = {
 
     "profileAction.needSteamLogin": "Sign in before syncing Steam.",
     "profileAction.steamSyncFailed": "Steam sync did not complete.",
+    "profileAction.steamApiUnavailable":
+      "Your library could not be updated because of a technical issue on the site. Please contact support; you do not need to change your Steam account.",
     "profileAction.needIntegrationsLogin":
       "Sign in before changing integrations.",
     "profileAction.disconnectInvalid":
@@ -1366,6 +1404,14 @@ const messages = {
     "auth.dialog.privacy": "Política de Privacidade",
     "auth.dialog.or": "ou",
     "auth.dialog.google": "Continuar com Google",
+    "auth.feedback.contact": "Entrar em contato com o suporte",
+    "auth.feedback.prompt":
+      "Conte o que aconteceu e vamos adicionar o relato ao quadro de feedback com esta referência de erro.",
+    "auth.feedback.placeholder":
+      "O que você estava tentando fazer quando o login com Google falhou?",
+    "auth.feedback.submit": "Enviar relato",
+    "auth.feedback.sent": "Relato enviado ao suporte. Obrigado.",
+    "auth.feedback.invalid": "Descreva o que aconteceu usando pelo menos 10 caracteres.",
     "auth.dialog.registrationClosed":
       "Novos registros estão fechados. Se você ainda não tem conta, solicite acesso pelo cadastro de beta tester.",
     "auth.dialog.requestBeta": "Solicitar acesso beta",
@@ -1383,7 +1429,7 @@ const messages = {
     "auth.error.invalidEmailOrPassword":
       "Use um e-mail válido e uma senha com pelo menos 8 caracteres.",
     "auth.error.noPasswordAccount":
-      "Não existe uma conta filazo com senha para esse e-mail.",
+      "Não existe uma conta filazo com senha para esse e-mail. Se você criou a conta com Google, use Continuar com Google.",
     "auth.error.emailPasswordMismatch": "E-mail ou senha não conferem.",
     "auth.error.displayNameLength":
       "Escolha um nome de perfil com 2 a 48 caracteres.",
@@ -1397,6 +1443,14 @@ const messages = {
     "auth.error.sessionExpired": "Sua sessão expirou. Entre novamente.",
     "auth.error.googleRegistrationClosed":
       "Novos registros estão fechados. Entre pelo cadastro de beta tester.",
+    "auth.error.googleMissingCode":
+      "O Google não retornou um código de autorização. Tente entrar novamente.",
+    "auth.error.googleStateInvalid":
+      "O login com Google expirou ou não pôde ser verificado. Tente entrar novamente.",
+    "auth.error.googleCallbackFailed":
+      "Não foi possível finalizar o login com Google. Tente novamente. Se continuar falhando, envie esta referência: {reference}.",
+    "auth.error.googleStartFailed":
+      "Não foi possível iniciar o login com Google. Tente novamente. Se continuar falhando, envie esta referência: {reference}.",
     "auth.error.steamRegistrationClosed":
       "Novos registros estão fechados. Solicite acesso pelo cadastro beta antes de conectar Steam.",
     "auth.error.xboxRegistrationClosed":
@@ -1700,11 +1754,16 @@ const messages = {
     "admin.feedback.kicker": "Triagem",
     "admin.feedback.title": "Quadro de feedback",
     "admin.feedback.body":
-      "Melhorias e bugs enviados por pessoas logadas. Mova os cartões entre as colunas conforme a triagem.",
+      "Melhorias e bugs enviados por pessoas, incluindo relatos enviados antes do login. Mova os cartões entre as colunas conforme a triagem.",
     "admin.feedback.empty": "Nada por aqui.",
     "admin.feedback.updated": "Feedback atualizado.",
     "admin.feedback.moveTo": "Mover para {status}",
     "admin.feedback.error.invalid": "Não foi possível atualizar esse feedback.",
+    "admin.feedback.anonymous": "Relato anônimo",
+    "admin.feedback.emailFailed":
+      "O feedback foi movido, mas não foi possível enviar o e-mail de aviso.",
+    "admin.feedback.emailSkipped":
+      "O feedback foi movido, mas as notificações por e-mail não estão configuradas.",
     "feedback.kicker": "Feedback",
     "feedback.title": "Ajude a moldar o filazo",
     "feedback.body":
@@ -1754,6 +1813,9 @@ const messages = {
     "profile.sources.disconnected": "Desconectada",
     "profile.sources.notSynced": "Ainda sem sincronizar",
     "profile.sources.synced": "Sincronizada em {date}",
+    "profile.sources.configurationNeeded": "Configuração do serviço necessária",
+    "profile.sources.syncFailed": "Falha na sincronização",
+    "profile.sources.steamApiUnavailable": "Falha técnica no site",
     "profile.sources.tokenGuide": "Como obter o token",
     "profile.sources.tokenStep1":
       "1. Entre na PlayStation pelo navegador.",
@@ -1769,6 +1831,9 @@ const messages = {
     "profile.sources.steamPrivacyNotice":
       "Sua biblioteca e os detalhes de jogos precisam estar públicos na Steam. Bibliotecas privadas não retornam jogos durante a sincronização.",
     "profile.sources.steamPrivacyAction": "Revisar privacidade na Steam",
+    "profile.sources.steamApiErrorNotice":
+      "Não foi possível atualizar sua biblioteca por um problema técnico na integração da filazo com a Steam. Você não precisa alterar sua conta nem a privacidade na Steam. Entre em contato com o suporte do site.",
+    "profile.sources.contactSupport": "Entrar em contato com o suporte",
     "profile.sources.refreshSteam": "Atualizar Steam",
     "profile.sources.refreshing": "Atualizando...",
     "profile.sources.steamPending":
@@ -1783,6 +1848,7 @@ const messages = {
     "profile.sources.technicalStatus": "Status técnico",
     "profile.sources.steamReady": "pronto",
     "profile.sources.steamMissingKey": "sem chave",
+    "profile.sources.steamUnavailable": "indisponível",
     "profile.sources.igdbMissingKeys": "sem chaves",
     "profile.sources.connectedSecurely": "Token conectado e armazenado com segurança.",
     "profile.sources.npsso": "Token NPSSO",
@@ -1961,8 +2027,8 @@ const messages = {
     "profile.shelf.gameCount": "{count} jogos",
     "profile.shelf.gameCountOne": "1 jogo",
     "shelf.unknownPlatform": "Plataforma desconhecida",
-    "shelf.includeDormantChip": "Incluindo largados e não iniciados",
-    "shelf.includeDormantLabel": "Incluir jogos largados e não iniciados",
+    "shelf.includeDormantChip": "Incluindo jogos largados",
+    "shelf.includeDormantLabel": "Incluir jogos largados",
     "shelf.updateStatus": "Atualizar status",
     "shelf.restoreBeforeCredits": "Restaure este jogo antes de marcar créditos concluídos",
     "shelf.creditsRolled": "Créditos concluídos",
@@ -2278,6 +2344,12 @@ const messages = {
     "profile.importAudit.title": "Auditoria recente de importação",
     "profile.importAudit.row": "Linha {index}",
     "profile.importAudit.pending": "pendente",
+    "profile.importAudit.imagesTitle": "Imagens enviadas",
+    "profile.importAudit.imageLabel": "Imagem importada {index}",
+    "profile.importAudit.openImage": "Ver imagem importada {index}",
+    "profile.importAudit.closeImage": "Fechar imagem",
+    "profile.importAudit.previousImage": "Imagem anterior",
+    "profile.importAudit.nextImage": "Próxima imagem",
     "profile.photoImport.label": "Importação por foto",
     "profile.photoImport.title": "Ler jogos de screenshots",
     "profile.photoImport.description":
@@ -2315,13 +2387,10 @@ const messages = {
     "game.breadcrumb": "Navegação",
     "game.entryLabel": "Entrada do catálogo",
     "game.relationship": "Sua relação com este jogo",
-    "game.ownershipFormat": "Formato da posse",
-    "game.digitalOrUnspecified": "Digital ou não informado",
+    "game.ownershipFormat": "Formato",
+    "game.digital": "Digital",
     "game.placeOnShelf": "Lugar na estante",
     "game.recordedPlaytime": "Tempo de jogo registrado",
-    "game.usualCredits": "Créditos habituais",
-    "game.creditsAround":
-      "A maioria das pessoas vê os créditos em torno de {value}.",
     "game.achievementSignals":
       "Alguns sinais de conquista estão registrados, mas os créditos ainda não foram marcados.",
     "game.stillCurious":
@@ -2358,6 +2427,11 @@ const messages = {
     "game.coverAlt": "Capa de {name}",
     "game.creditsRolled":
       "Créditos concluídos em {date}. Isso é separado da coleta de conquistas.",
+    "game.creditsMarker": "Conquista dos créditos",
+    "game.storyAchievementWatched":
+      "A conquista “{name}” ({provider}) vale como créditos concluídos.",
+    "game.storyTrophyWatched":
+      "O troféu “{name}” ({provider}) vale como créditos concluídos.",
     "game.entryCountOne": "1 entrada",
     "game.entryCountMany": "{count} entradas",
     "game.reception.beloved": "muito querido",
@@ -2484,6 +2558,8 @@ const messages = {
       "Entre antes de sincronizar a Steam.",
     "profileAction.steamSyncFailed":
       "A sincronização da Steam não terminou.",
+    "profileAction.steamApiUnavailable":
+      "Não foi possível atualizar sua biblioteca por um problema técnico do site. Entre em contato com o suporte; você não precisa alterar sua conta Steam.",
     "profileAction.needIntegrationsLogin":
       "Entre antes de alterar as integrações.",
     "profileAction.disconnectInvalid":
@@ -2574,7 +2650,7 @@ const messages = {
     "assistantAction.profileFailed":
       "A geração do perfil de jogador não terminou.",
     "profile.sources.syncing": "Sincronizando...",
-    "profile.sources.reconnectNeeded": "Reconectar necessario",
+    "profile.sources.reconnectNeeded": "Reconectar necessário",
   },
 } satisfies Record<string, Record<string, string>>;
 

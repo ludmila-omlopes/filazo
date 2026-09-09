@@ -22,6 +22,8 @@ A calm, personal game library. Filazo gathers games from multiple sources into o
 
 Beta application intake is stored in `BetaSettings`. Admins can open or close applications, while the activity view uses `User.lastActiveAt` to summarize approved testers as active or inactive. The top beta banner follows the application setting and directs current testers to Discord or `/feedback`.
 
+Feedback from signed-in users is attached to their account; authentication failure reports may be submitted anonymously so a person can contact support before a session is established.
+
 ## Requirements
 
 - Node.js 22.5 or newer (CI uses Node 26)

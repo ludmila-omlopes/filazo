@@ -3,7 +3,10 @@
 import { useEffect, useId, useState } from "react";
 import { Eye, EyeOff, Lock, Mail, X } from "lucide-react";
 import Link from "next/link";
-import { emailAuthAction } from "@/app/login/actions";
+import {
+  emailAuthAction,
+  submitAuthFailureFeedbackAction,
+} from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "./locale-provider";
 
@@ -15,6 +18,9 @@ type ButtonSize = "default" | "sm" | "lg";
 export function AuthDialog({
   defaultOpen = false,
   error,
+  authFailureReference,
+  feedbackSent = false,
+  feedbackError,
   showTrigger = true,
   triggerClassName,
   triggerLabel = "Sign in",
@@ -23,6 +29,9 @@ export function AuthDialog({
 }: {
   defaultOpen?: boolean;
   error?: string;
+  authFailureReference?: string;
+  feedbackSent?: boolean;
+  feedbackError?: string;
   showTrigger?: boolean;
   triggerClassName?: string;
   triggerLabel?: string;
@@ -32,6 +41,7 @@ export function AuthDialog({
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [mode] = useState<AuthMode>("signin");
   const [showPassword, setShowPassword] = useState(false);
+  const [showContactForm, setShowContactForm] = useState(false);
   const titleId = useId();
   const t = useTranslations();
 
@@ -102,6 +112,66 @@ export function AuthDialog({
               <div className="mb-5 rounded-inner border border-clay/50 bg-clay/15 px-4 py-3 text-sm font-semibold text-cream">
                 {error}
               </div>
+            ) : null}
+
+            {feedbackSent ? (
+              <div className="mb-5 rounded-inner border border-sage/50 bg-sage/15 px-4 py-3 text-sm font-semibold text-cream">
+                {t("auth.feedback.sent")}
+              </div>
+            ) : null}
+
+            {feedbackError ? (
+              <div className="mb-5 rounded-inner border border-clay/50 bg-clay/15 px-4 py-3 text-sm font-semibold text-cream">
+                {feedbackError}
+              </div>
+            ) : null}
+
+            {authFailureReference ? (
+              showContactForm ? (
+                <form
+                  action={submitAuthFailureFeedbackAction}
+                  className="mb-5 grid gap-3 rounded-inner border border-cream/10 bg-cream/6 p-4"
+                >
+                  <p className="text-sm leading-relaxed text-cream/78">
+                    {t("auth.feedback.prompt")}
+                  </p>
+                  <input
+                    name="reference"
+                    type="hidden"
+                    value={authFailureReference}
+                  />
+                  <textarea
+                    className="min-h-24 rounded-inner border border-cream/8 bg-cream/8 px-3 py-2 text-sm text-cream placeholder:text-cream/38 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow"
+                    minLength={10}
+                    maxLength={2000}
+                    name="details"
+                    placeholder={t("auth.feedback.placeholder")}
+                    required
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button type="submit" size="sm">
+                      {t("auth.feedback.submit")}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowContactForm(false)}
+                    >
+                      {t("common.cancel")}
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <Button
+                  className="mb-5 w-full"
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setShowContactForm(true)}
+                >
+                  {t("auth.feedback.contact")}
+                </Button>
+              )
             ) : null}
 
             <div className="mb-5 rounded-inner border border-cream/10 bg-cream/6 p-4 text-sm leading-relaxed text-cream/78">

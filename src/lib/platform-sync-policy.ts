@@ -142,40 +142,49 @@ export function classifyPlatformSyncError(error: unknown): {
 } {
   const message = sanitizePlatformSyncError(error);
   const normalized = message.toLowerCase();
+  const explicitCode = getExplicitPlatformSyncErrorCode(error);
 
-  let code: PlatformSyncErrorCode = "INTERNAL";
+  let code: PlatformSyncErrorCode = explicitCode ?? "INTERNAL";
   if (
-    normalized.includes("abort") ||
-    normalized.includes("timed out") ||
-    normalized.includes("timeout")
+    !explicitCode &&
+    (normalized.includes("abort") ||
+      normalized.includes("timed out") ||
+      normalized.includes("timeout"))
   ) {
     code = "TIMEOUT";
-  } else if (normalized.includes("429") || normalized.includes("rate limit")) {
+  } else if (
+    !explicitCode &&
+    (normalized.includes("429") || normalized.includes("rate limit"))
+  ) {
     code = "RATE_LIMIT";
   } else if (
-    normalized.includes("api key is required") ||
-    normalized.includes("client_id") ||
-    normalized.includes("client secret") ||
-    normalized.includes("not configured")
+    !explicitCode &&
+    (normalized.includes("api key is required") ||
+      normalized.includes("steam_api_key is required") ||
+      normalized.includes("client_id") ||
+      normalized.includes("client secret") ||
+      normalized.includes("not configured"))
   ) {
     code = "CONFIGURATION";
   } else if (
-    normalized.includes("token expired") ||
-    normalized.includes("connect xbox again") ||
-    normalized.includes("401") ||
-    normalized.includes("403") ||
-    normalized.includes("unauthorized") ||
-    normalized.includes("forbidden")
+    !explicitCode &&
+    (normalized.includes("token expired") ||
+      normalized.includes("connect xbox again") ||
+      normalized.includes("401") ||
+      normalized.includes("403") ||
+      normalized.includes("unauthorized") ||
+      normalized.includes("forbidden"))
   ) {
     code = "AUTH";
   } else if (
-    normalized.includes("fetch") ||
-    normalized.includes("network") ||
-    normalized.includes("econn") ||
-    normalized.includes("enotfound")
+    !explicitCode &&
+    (normalized.includes("fetch") ||
+      normalized.includes("network") ||
+      normalized.includes("econn") ||
+      normalized.includes("enotfound"))
   ) {
     code = "NETWORK";
-  } else if (/\b[45]\d\d\b/.test(normalized)) {
+  } else if (!explicitCode && /\b[45]\d\d\b/.test(normalized)) {
     code = "PROVIDER";
   }
 
@@ -191,6 +200,25 @@ export function classifyPlatformSyncError(error: unknown): {
   const retryAfterMs = getRetryAfterMs(error) ?? retryAfterFromMessage;
 
   return { code, message, retryAfterMs };
+}
+
+function getExplicitPlatformSyncErrorCode(error: unknown) {
+  if (!error || typeof error !== "object") return null;
+  const code = (error as { platformSyncErrorCode?: unknown })
+    .platformSyncErrorCode;
+  const supportedCodes: PlatformSyncErrorCode[] = [
+    "ACCOUNT_MISSING",
+    "AUTH",
+    "CONFIGURATION",
+    "INTERNAL",
+    "NETWORK",
+    "PROVIDER",
+    "RATE_LIMIT",
+    "TIMEOUT",
+  ];
+  return supportedCodes.includes(code as PlatformSyncErrorCode)
+    ? (code as PlatformSyncErrorCode)
+    : null;
 }
 
 function getRetryAfterMs(error: unknown) {

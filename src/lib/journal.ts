@@ -810,6 +810,12 @@ export async function importPhotoCatalogForUser({
   let skippedCount = 0;
   let failedCount = 0;
   let rowIndex = 0;
+  const sourceImages: Array<{
+    fileName: string;
+    mimeType: string;
+    sizeBytes: number;
+    url: string;
+  }> = [];
 
   try {
     for (const file of usableFiles) {
@@ -855,6 +861,12 @@ export async function importPhotoCatalogForUser({
       }
 
       const upload = await saveUpload(file, "imports", "image");
+      sourceImages.push({
+        fileName: upload.fileName,
+        mimeType: upload.mimeType,
+        sizeBytes: upload.sizeBytes,
+        url: upload.url,
+      });
       const candidates = await extractPhotoCandidates(file, userId, aiSettings);
       if (!candidates.length) {
         skippedCount += 1;
@@ -962,6 +974,7 @@ export async function importPhotoCatalogForUser({
           skippedCount,
           failedCount,
           totalRows: rowIndex,
+          sourceImages,
         } as Prisma.InputJsonValue,
       },
     });
@@ -983,6 +996,7 @@ export async function importPhotoCatalogForUser({
             error instanceof Error
               ? error.message
               : messages.importFailed,
+          sourceImages,
         } as Prisma.InputJsonValue,
       },
     });
