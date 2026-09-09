@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { FeedbackType } from "@prisma/client";
-import { submitFeedbackAction } from "./actions";
+import {
+  submitFeedbackAction,
+  submitFeedbackCommentAction,
+} from "./actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,16 +11,21 @@ import { Notice } from "@/components/ui/notice";
 import {
   FEEDBACK_STATUS_LABEL_KEYS,
   FEEDBACK_TYPE_LABEL_KEYS,
+  isFeedbackClosed,
 } from "@/lib/feedback";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
+import { isAdminEmail } from "@/lib/beta-access";
 import { createPageMetadata } from "@/lib/site-metadata";
 
 type FeedbackSearchParams = Promise<{
   error?: string;
   sent?: string;
+  commentSent?: string;
+  commentEmailFailed?: string;
+  commentEmailSkipped?: string;
 }>;
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -42,6 +50,14 @@ export default async function FeedbackPage({
   const submissions = userId
     ? await prisma.feedback.findMany({
         where: { userId },
+        include: {
+          comments: {
+            include: {
+              author: { select: { displayName: true, email: true } },
+            },
+            orderBy: { createdAt: "asc" },
+          },
+        },
         orderBy: { createdAt: "desc" },
         take: 20,
       })
@@ -51,6 +67,15 @@ export default async function FeedbackPage({
     <main id="main-content" className="mx-auto grid w-full max-w-[860px] gap-8">
       {query.error ? <Notice tone="error">{query.error}</Notice> : null}
       {query.sent ? <Notice tone="success">{t("feedback.sent")}</Notice> : null}
+      {query.commentSent ? (
+        <Notice tone="success">{t("feedback.comment.sent")}</Notice>
+      ) : null}
+      {query.commentEmailFailed ? (
+        <Notice tone="warning">{t("feedback.comment.emailFailed")}</Notice>
+      ) : null}
+      {query.commentEmailSkipped ? (
+        <Notice tone="warning">{t("feedback.comment.emailSkipped")}</Notice>
+      ) : null}
 
       <section className="grid gap-3">
         <p className="text-kicker font-bold uppercase text-ink-soft">
@@ -168,6 +193,68 @@ export default async function FeedbackPage({
                       <p className="text-xs font-semibold text-ink-soft">
                         {item.createdAt.toLocaleDateString(locale)}
                       </p>
+
+                      {item.comments.length ? (
+                        <div className="grid gap-3 border-t border-edge pt-3">
+                          <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">
+                            {t("feedback.conversation.title")}
+                          </p>
+                          {item.comments.map((comment) => (
+                            <div
+                              className="grid gap-1 rounded-inner border border-edge bg-canvas px-3 py-2 text-sm"
+                              key={comment.id}
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <p className="font-semibold">
+                                  {isAdminEmail(comment.author.email)
+                                    ? t("feedback.conversation.support")
+                                    : t("feedback.conversation.you")}
+                                </p>
+                                <p className="text-xs text-ink-soft">
+                                  {comment.createdAt.toLocaleDateString(locale)}
+                                </p>
+                              </div>
+                              <p className="whitespace-pre-wrap leading-relaxed text-ink-soft">
+                                {comment.body}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {!isFeedbackClosed(item.status) ? (
+                        <form
+                          action={submitFeedbackCommentAction}
+                          className="grid gap-2 border-t border-edge pt-3"
+                        >
+                          <input
+                            name="feedbackId"
+                            type="hidden"
+                            value={item.id}
+                          />
+                          <label className="grid gap-2">
+                            <span className="text-sm font-bold text-ink">
+                              {t("feedback.conversation.replyLabel")}
+                            </span>
+                            <textarea
+                              className="min-h-20 rounded-inner border border-edge bg-canvas px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow"
+                              maxLength={2000}
+                              name="body"
+                              placeholder={t(
+                                "feedback.conversation.replyPlaceholder",
+                              )}
+                              required
+                            />
+                          </label>
+                          <Button className="w-fit" size="sm" type="submit">
+                            {t("feedback.conversation.reply")}
+                          </Button>
+                        </form>
+                      ) : (
+                        <p className="border-t border-edge pt-3 text-sm font-semibold text-ink-soft">
+                          {t("feedback.conversation.closed")}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -20,3 +20,7 @@ export const FEEDBACK_TYPE_LABEL_KEYS: Record<FeedbackType, TranslationKey> = {
   [FeedbackType.IMPROVEMENT]: "feedback.type.improvement",
   [FeedbackType.BUG]: "feedback.type.bug",
 };
+
+export function isFeedbackClosed(status: FeedbackStatus) {
+  return status === FeedbackStatus.DONE || status === FeedbackStatus.DECLINED;
+}

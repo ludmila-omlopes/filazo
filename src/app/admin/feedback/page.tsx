@@ -1,5 +1,8 @@
 import { FeedbackStatus, FeedbackType } from "@prisma/client";
-import { updateFeedbackStatusAction } from "../actions";
+import {
+  addFeedbackCommentAction,
+  updateFeedbackStatusAction,
+} from "../actions";
 import { AdminNav } from "../admin-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +12,7 @@ import {
   FEEDBACK_STATUS_LABEL_KEYS,
   FEEDBACK_STATUS_ORDER,
   FEEDBACK_TYPE_LABEL_KEYS,
+  isFeedbackClosed,
 } from "@/lib/feedback";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
@@ -20,6 +24,9 @@ type AdminFeedbackSearchParams = Promise<{
   updated?: string;
   emailFailed?: string;
   emailSkipped?: string;
+  commentAdded?: string;
+  commentEmailFailed?: string;
+  commentEmailSkipped?: string;
 }>;
 
 export default async function AdminFeedbackPage({
@@ -50,6 +57,12 @@ export default async function AdminFeedbackPage({
       user: {
         select: { displayName: true, email: true },
       },
+      comments: {
+        include: {
+          author: { select: { displayName: true, email: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -70,6 +83,15 @@ export default async function AdminFeedbackPage({
       ) : null}
       {query.emailSkipped ? (
         <Notice tone="warning">{t("admin.feedback.emailSkipped")}</Notice>
+      ) : null}
+      {query.commentAdded ? (
+        <Notice tone="success">{t("admin.feedback.commentAdded")}</Notice>
+      ) : null}
+      {query.commentEmailFailed ? (
+        <Notice tone="warning">{t("admin.feedback.commentEmailFailed")}</Notice>
+      ) : null}
+      {query.commentEmailSkipped ? (
+        <Notice tone="warning">{t("admin.feedback.commentEmailSkipped")}</Notice>
       ) : null}
 
       <section className="grid gap-4">
@@ -122,6 +144,61 @@ export default async function AdminFeedbackPage({
                     {item.user?.displayName ?? t("admin.feedback.anonymous")}
                     {item.user?.email ? ` · ${item.user.email}` : ""}
                   </p>
+
+                  {item.comments.length ? (
+                    <div className="grid gap-2 rounded-inner border border-edge bg-surface p-3">
+                      <p className="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">
+                        {t("feedback.conversation.title")}
+                      </p>
+                      {item.comments.map((comment) => (
+                        <div
+                          className="grid gap-1 border-t border-edge pt-2 text-sm first:border-t-0 first:pt-0"
+                          key={comment.id}
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="font-semibold">
+                              {isAdminEmail(comment.author.email)
+                                ? t("feedback.conversation.support")
+                                : comment.author.displayName ??
+                                  t("feedback.conversation.you")}
+                            </p>
+                            <p className="text-xs text-ink-soft">
+                              {comment.createdAt.toLocaleDateString(locale)}
+                            </p>
+                          </div>
+                          <p className="whitespace-pre-wrap leading-relaxed text-ink-soft">
+                            {comment.body}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {!isFeedbackClosed(item.status) ? (
+                    <form
+                      action={addFeedbackCommentAction}
+                      className="grid gap-2 border-t border-edge pt-3"
+                    >
+                      <input name="feedbackId" type="hidden" value={item.id} />
+                      <label className="grid gap-2">
+                        <span className="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">
+                          {t("feedback.conversation.replyLabel")}
+                        </span>
+                        <textarea
+                          className="min-h-20 rounded-inner border border-edge bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow"
+                          maxLength={2000}
+                          name="body"
+                          placeholder={t(
+                            "feedback.conversation.replyPlaceholder",
+                          )}
+                          required
+                        />
+                      </label>
+                      <Button className="w-fit" size="sm" type="submit">
+                        {t("feedback.conversation.reply")}
+                      </Button>
+                    </form>
+                  ) : null}
 
                   <form
                     action={updateFeedbackStatusAction}

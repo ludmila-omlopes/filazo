@@ -213,3 +213,72 @@ export async function sendFeedbackStatusEmail(input: {
 
   return { sent: true, id: result.data.id } as const;
 }
+
+export async function sendFeedbackCommentEmail(input: {
+  to: string;
+  recipientName: string;
+  title: string;
+  body: string;
+  authorLabel: string;
+  recipientPath: "/feedback" | "/admin/feedback";
+}) {
+  const config = getEmailConfig();
+  if (!config) {
+    console.warn(
+      "Feedback comment email skipped because RESEND_API_KEY or BETA_APPROVAL_FROM_EMAIL is missing.",
+    );
+    return { sent: false, reason: "not-configured" } as const;
+  }
+
+  const feedbackUrl = `${getBaseUrl()}${input.recipientPath}`;
+  const greeting = input.recipientName.trim() || "there";
+  const safeGreeting = escapeHtml(greeting);
+  const safeTitle = escapeHtml(input.title);
+  const safeBody = escapeHtml(input.body).replaceAll("\n", "<br />");
+  const safeAuthorLabel = escapeHtml(input.authorLabel);
+  const safeFeedbackUrl = escapeHtml(feedbackUrl);
+  const message = {
+    subject: `New reply on your filazo feedback: ${input.title}`,
+    text: [
+      `Hi ${greeting},`,
+      "",
+      `${input.authorLabel} replied to “${input.title}”:`,
+      input.body,
+      "",
+      `Open the conversation: ${feedbackUrl}`,
+      "",
+      "filazo",
+    ].join("\n"),
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+        <p>Hi ${safeGreeting},</p>
+        <p><strong>${safeAuthorLabel}</strong> replied to <strong>“${safeTitle}”</strong>:</p>
+        <p>${safeBody}</p>
+        <p><a href="${safeFeedbackUrl}">Open the conversation</a></p>
+        <p>filazo</p>
+      </div>
+    `,
+  };
+
+  const resend = new Resend(config.apiKey);
+  const result = await resend.emails.send({
+    from: config.from,
+    to: input.to,
+    replyTo: config.replyTo,
+    subject: message.subject,
+    text: message.text,
+    html: message.html,
+  });
+
+  if (result.error) {
+    throw new Error(
+      `Resend rejected feedback comment email: ${result.error.message}`,
+    );
+  }
+
+  if (!result.data?.id) {
+    throw new Error("Resend did not return a message id.");
+  }
+
+  return { sent: true, id: result.data.id } as const;
+}
