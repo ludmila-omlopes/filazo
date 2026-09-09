@@ -61,10 +61,15 @@ AUTH_SECRET="a-long-random-secret"
 | Xbox account sync | `XBOX_CLIENT_ID`, `XBOX_CLIENT_SECRET` |
 | Game metadata | `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` |
 | Approval email | `RESEND_API_KEY`, `BETA_APPROVAL_FROM_EMAIL` |
+| Feedback conversations | Uses the approval email configuration to notify users and support about replies |
 | AI features | `OPENAI_API_KEY` or `OPENROUTER_KEY` |
 | Private journal media | a private Vercel Blob store and `BLOB_READ_WRITE_TOKEN` |
 
 PlayStation sync exchanges a user-provided NPSSO for encrypted tokens and discards the NPSSO. CSV imports do not need provider credentials. Missing optional credentials disable only the relevant feature; catalog imports and sync continue where possible.
+
+Feedback cards include a two-way comment thread for identified users. The user can reply while the card is open; moving it to `DONE` or `DECLINED` closes the conversation. Run `npm run db:init` after deploying schema changes so the `FeedbackComment` table is available.
+
+The board statuses are `NEW`, `IN_REVIEW`, `WAITING`, `DONE`, and `DECLINED`. `WAITING` (Aguardando) keeps the conversation open and sends the same status-change notification as other moves. Apply the `20260909180000_add_feedback_waiting_status` migration or the existing `npm run db:init` schema bootstrap before using it.
 
 ## Scripts
 

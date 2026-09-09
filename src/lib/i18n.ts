@@ -455,6 +455,15 @@ const messages = {
       "The feedback moved, but its notification email could not be sent.",
     "admin.feedback.emailSkipped":
       "The feedback moved, but email notifications are not configured.",
+    "admin.feedback.commentAdded": "Reply added to the feedback thread.",
+    "admin.feedback.commentEmailFailed":
+      "Reply added, but its notification email could not be sent.",
+    "admin.feedback.commentEmailSkipped":
+      "Reply added, but email notifications are not configured.",
+    "admin.feedback.error.commentInvalid":
+      "Write a reply before sending it.",
+    "admin.feedback.error.commentClosed":
+      "This feedback is closed. Reopen it before replying.",
     "feedback.kicker": "Feedback",
     "feedback.title": "Help shape filazo",
     "feedback.body":
@@ -471,12 +480,30 @@ const messages = {
     "feedback.submit": "Send feedback",
     "feedback.sent": "Feedback sent. Thank you!",
     "feedback.error.invalid": "Please review the form fields and try again.",
+    "feedback.error.commentInvalid": "Write a reply before sending it.",
+    "feedback.error.commentClosed":
+      "This feedback is closed. Contact support if you need to reopen it.",
     "feedback.mine.title": "Your submissions",
     "feedback.mine.empty": "You haven't sent feedback yet.",
     "feedback.status.new": "New",
     "feedback.status.inReview": "In review",
+    "feedback.status.waiting": "Waiting",
     "feedback.status.done": "Done",
     "feedback.status.declined": "Declined",
+    "feedback.comment.sent": "Your reply was sent.",
+    "feedback.comment.emailFailed":
+      "Your reply was saved, but the team notification email could not be sent.",
+    "feedback.comment.emailSkipped":
+      "Your reply was saved, but email notifications are not configured.",
+    "feedback.conversation.title": "Conversation",
+    "feedback.conversation.support": "filazo support",
+    "feedback.conversation.you": "You",
+    "feedback.conversation.replyLabel": "Reply",
+    "feedback.conversation.replyPlaceholder":
+      "Add context or answer the team's question",
+    "feedback.conversation.reply": "Send reply",
+    "feedback.conversation.closed":
+      "This conversation is closed. Contact support if you need to reopen it.",
 
     "profile.addGames.label": "Add games",
     "profile.addGames.title": "Bring another shelf in",
@@ -1797,6 +1824,15 @@ const messages = {
       "O feedback foi movido, mas não foi possível enviar o e-mail de aviso.",
     "admin.feedback.emailSkipped":
       "O feedback foi movido, mas as notificações por e-mail não estão configuradas.",
+    "admin.feedback.commentAdded": "Resposta adicionada à conversa.",
+    "admin.feedback.commentEmailFailed":
+      "A resposta foi adicionada, mas não foi possível enviar o e-mail de aviso.",
+    "admin.feedback.commentEmailSkipped":
+      "A resposta foi adicionada, mas as notificações por e-mail não estão configuradas.",
+    "admin.feedback.error.commentInvalid":
+      "Escreva uma resposta antes de enviar.",
+    "admin.feedback.error.commentClosed":
+      "Este feedback está fechado. Reabra-o antes de responder.",
     "feedback.kicker": "Feedback",
     "feedback.title": "Ajude a moldar o filazo",
     "feedback.body":
@@ -1814,12 +1850,30 @@ const messages = {
     "feedback.sent": "Feedback enviado. Obrigado!",
     "feedback.error.invalid":
       "Revise os campos do formulário e tente novamente.",
+    "feedback.error.commentInvalid": "Escreva uma resposta antes de enviar.",
+    "feedback.error.commentClosed":
+      "Este feedback está fechado. Fale com o suporte se precisar reabri-lo.",
     "feedback.mine.title": "Seus envios",
     "feedback.mine.empty": "Você ainda não enviou feedback.",
     "feedback.status.new": "Novo",
     "feedback.status.inReview": "Em análise",
+    "feedback.status.waiting": "Aguardando",
     "feedback.status.done": "Feito",
     "feedback.status.declined": "Recusado",
+    "feedback.comment.sent": "Sua resposta foi enviada.",
+    "feedback.comment.emailFailed":
+      "Sua resposta foi salva, mas não foi possível enviar o e-mail ao time.",
+    "feedback.comment.emailSkipped":
+      "Sua resposta foi salva, mas as notificações por e-mail não estão configuradas.",
+    "feedback.conversation.title": "Conversa",
+    "feedback.conversation.support": "suporte filazo",
+    "feedback.conversation.you": "Você",
+    "feedback.conversation.replyLabel": "Responder",
+    "feedback.conversation.replyPlaceholder":
+      "Adicione contexto ou responda à pergunta do time",
+    "feedback.conversation.reply": "Enviar resposta",
+    "feedback.conversation.closed":
+      "Esta conversa foi encerrada. Fale com o suporte se precisar reabri-la.",
 
     "profile.addGames.label": "Adicionar jogos",
     "profile.addGames.title": "Traga outra estante",

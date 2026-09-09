@@ -21,8 +21,10 @@ import {
 } from "@/lib/beta-submissions";
 import {
   sendBetaApprovalEmail,
+  sendFeedbackCommentEmail,
   sendFeedbackStatusEmail,
 } from "@/lib/email";
+import { isFeedbackClosed } from "@/lib/feedback";
 import { prisma } from "@/lib/prisma";
 import { getRequestTranslator } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
@@ -36,6 +38,11 @@ const reviewSchema = z.object({
 const feedbackStatusSchema = z.object({
   feedbackId: z.string().min(1),
   status: z.nativeEnum(FeedbackStatus),
+});
+
+const feedbackCommentSchema = z.object({
+  feedbackId: z.string().min(1),
+  body: z.string().trim().min(1).max(2000),
 });
 
 const betaSubmissionsSchema = z.object({
@@ -264,6 +271,70 @@ export async function updateFeedbackStatusAction(formData: FormData) {
   }
 
   revalidatePath("/admin");
+  revalidatePath("/admin/feedback");
+  revalidatePath("/feedback");
+  redirect(`/admin/feedback?${redirectParams.toString()}`);
+}
+
+export async function addFeedbackCommentAction(formData: FormData) {
+  const { t } = await getRequestTranslator();
+  const admin = await requireAdmin();
+  const parsed = feedbackCommentSchema.safeParse({
+    feedbackId: formData.get("feedbackId"),
+    body: formData.get("body"),
+  });
+
+  if (!parsed.success) {
+    redirect(
+      `/admin/feedback?error=${encodeURIComponent(
+        t("admin.feedback.error.commentInvalid"),
+      )}`,
+    );
+  }
+
+  const feedback = await prisma.feedback.findUnique({
+    where: { id: parsed.data.feedbackId },
+    include: { user: { select: { email: true, displayName: true } } },
+  });
+
+  if (!feedback || isFeedbackClosed(feedback.status)) {
+    redirect(
+      `/admin/feedback?error=${encodeURIComponent(
+        t("admin.feedback.error.commentClosed"),
+      )}`,
+    );
+  }
+
+  await prisma.feedbackComment.create({
+    data: {
+      feedbackId: feedback.id,
+      authorUserId: admin.id,
+      body: parsed.data.body,
+    },
+  });
+
+  const redirectParams = new URLSearchParams({ commentAdded: "1" });
+  if (feedback.user?.email) {
+    try {
+      const result = await sendFeedbackCommentEmail({
+        to: feedback.user.email,
+        recipientName:
+          feedback.user.displayName ?? feedback.user.email.split("@")[0],
+        title: feedback.title,
+        body: parsed.data.body,
+        authorLabel: "filazo support",
+        recipientPath: "/feedback",
+      });
+      if (!result.sent) redirectParams.set("emailSkipped", "1");
+    } catch (error) {
+      redirectParams.set("emailFailed", "1");
+      console.error("Failed to send feedback comment email.", {
+        feedbackId: feedback.id,
+        error,
+      });
+    }
+  }
+
   revalidatePath("/admin/feedback");
   revalidatePath("/feedback");
   redirect(`/admin/feedback?${redirectParams.toString()}`);
