@@ -64,6 +64,7 @@ function getProviderLabel(provider: ExternalProvider) {
     STEAM: "Steam",
     PLAYSTATION: "PlayStation",
     XBOX: "Xbox",
+    GOG: "GOG",
     IGDB: "Metadata",
     HLTB: "HowLongToBeat",
     METACRITIC: "Metacritic",

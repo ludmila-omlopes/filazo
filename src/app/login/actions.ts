@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { FeedbackType } from "@prisma/client";
 import {
   hashPassword,
   normalizeEmail,
@@ -23,6 +24,11 @@ const emailAuthSchema = z.object({
   password: z.string().min(8).max(128),
   confirmPassword: z.string().max(128).optional(),
   terms: z.string().optional(),
+});
+
+const authFailureFeedbackSchema = z.object({
+  reference: z.string().uuid(),
+  details: z.string().trim().min(10).max(2000),
 });
 
 function redirectWithAuthError(message: string): never {
@@ -121,4 +127,30 @@ export async function emailAuthAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/profile");
   redirect("/profile?login=created");
+}
+
+export async function submitAuthFailureFeedbackAction(formData: FormData) {
+  const parsed = authFailureFeedbackSchema.safeParse({
+    reference: formData.get("reference"),
+    details: formData.get("details"),
+  });
+
+  if (!parsed.success) {
+    const reference = String(formData.get("reference") ?? "");
+    const suffix = /^[0-9a-f-]{36}$/i.test(reference)
+      ? `&ref=${encodeURIComponent(reference)}`
+      : "";
+    redirect(`/login?auth=1&feedback=invalid${suffix}`);
+  }
+
+  await prisma.feedback.create({
+    data: {
+      type: FeedbackType.BUG,
+      title: "Google sign-in failed",
+      details: `${parsed.data.details}\n\nSupport reference: ${parsed.data.reference}`,
+    },
+  });
+
+  revalidatePath("/admin/feedback");
+  redirect("/login?auth=1&feedback=sent");
 }

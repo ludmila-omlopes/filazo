@@ -98,6 +98,14 @@ const messages = {
     "auth.dialog.privacy": "Privacy Policy",
     "auth.dialog.or": "or",
     "auth.dialog.google": "Continue with Google",
+    "auth.feedback.contact": "Contact site support",
+    "auth.feedback.prompt":
+      "Tell us what happened and we will add it to the feedback board with this error reference.",
+    "auth.feedback.placeholder":
+      "What were you trying to do when Google sign-in failed?",
+    "auth.feedback.submit": "Send report",
+    "auth.feedback.sent": "Report sent to site support. Thank you.",
+    "auth.feedback.invalid": "Please describe what happened in at least 10 characters.",
     "auth.dialog.registrationClosed":
       "Public registrations are closed. If you do not have an account yet, request access through the beta tester signup.",
     "auth.dialog.requestBeta": "Request beta access",
@@ -115,7 +123,7 @@ const messages = {
     "auth.error.invalidEmailOrPassword":
       "Use a valid email and a password with at least 8 characters.",
     "auth.error.noPasswordAccount":
-      "No filazo password account exists for that email.",
+      "No filazo password account exists for that email. If you created the account with Google, use Continue with Google.",
     "auth.error.emailPasswordMismatch": "Email or password did not match.",
     "auth.error.displayNameLength":
       "Choose a profile name with 2 to 48 characters.",
@@ -129,6 +137,14 @@ const messages = {
     "auth.error.sessionExpired": "Session expired. Sign in again.",
     "auth.error.googleRegistrationClosed":
       "Public registrations are closed. Use the beta tester signup.",
+    "auth.error.googleMissingCode":
+      "Google did not return an authorization code. Try signing in again.",
+    "auth.error.googleStateInvalid":
+      "Google sign-in expired or could not be verified. Try signing in again.",
+    "auth.error.googleCallbackFailed":
+      "Could not finish Google sign-in. Try again. If it keeps failing, share reference {reference} with us.",
+    "auth.error.googleStartFailed":
+      "Could not start Google sign-in. Try again. If it keeps failing, share reference {reference} with us.",
     "auth.error.steamRegistrationClosed":
       "Public registrations are closed. Request beta access before connecting Steam.",
     "auth.error.xboxRegistrationClosed":
@@ -429,11 +445,16 @@ const messages = {
     "admin.feedback.kicker": "Triage",
     "admin.feedback.title": "Feedback board",
     "admin.feedback.body":
-      "Improvements and bug reports from signed-in users. Move cards across columns as you triage.",
+      "Improvements and bug reports from users, including reports sent before sign-in. Move cards across columns as you triage.",
     "admin.feedback.empty": "Nothing here.",
     "admin.feedback.updated": "Feedback updated.",
     "admin.feedback.moveTo": "Move to {status}",
     "admin.feedback.error.invalid": "Could not update this feedback item.",
+    "admin.feedback.anonymous": "Anonymous report",
+    "admin.feedback.emailFailed":
+      "The feedback moved, but its notification email could not be sent.",
+    "admin.feedback.emailSkipped":
+      "The feedback moved, but email notifications are not configured.",
     "feedback.kicker": "Feedback",
     "feedback.title": "Help shape filazo",
     "feedback.body":
@@ -1416,6 +1437,14 @@ const messages = {
     "auth.dialog.privacy": "Política de Privacidade",
     "auth.dialog.or": "ou",
     "auth.dialog.google": "Continuar com Google",
+    "auth.feedback.contact": "Entrar em contato com o suporte",
+    "auth.feedback.prompt":
+      "Conte o que aconteceu e vamos adicionar o relato ao quadro de feedback com esta referência de erro.",
+    "auth.feedback.placeholder":
+      "O que você estava tentando fazer quando o login com Google falhou?",
+    "auth.feedback.submit": "Enviar relato",
+    "auth.feedback.sent": "Relato enviado ao suporte. Obrigado.",
+    "auth.feedback.invalid": "Descreva o que aconteceu usando pelo menos 10 caracteres.",
     "auth.dialog.registrationClosed":
       "Novos registros estão fechados. Se você ainda não tem conta, solicite acesso pelo cadastro de beta tester.",
     "auth.dialog.requestBeta": "Solicitar acesso beta",
@@ -1433,7 +1462,7 @@ const messages = {
     "auth.error.invalidEmailOrPassword":
       "Use um e-mail válido e uma senha com pelo menos 8 caracteres.",
     "auth.error.noPasswordAccount":
-      "Não existe uma conta filazo com senha para esse e-mail.",
+      "Não existe uma conta filazo com senha para esse e-mail. Se você criou a conta com Google, use Continuar com Google.",
     "auth.error.emailPasswordMismatch": "E-mail ou senha não conferem.",
     "auth.error.displayNameLength":
       "Escolha um nome de perfil com 2 a 48 caracteres.",
@@ -1447,6 +1476,14 @@ const messages = {
     "auth.error.sessionExpired": "Sua sessão expirou. Entre novamente.",
     "auth.error.googleRegistrationClosed":
       "Novos registros estão fechados. Entre pelo cadastro de beta tester.",
+    "auth.error.googleMissingCode":
+      "O Google não retornou um código de autorização. Tente entrar novamente.",
+    "auth.error.googleStateInvalid":
+      "O login com Google expirou ou não pôde ser verificado. Tente entrar novamente.",
+    "auth.error.googleCallbackFailed":
+      "Não foi possível finalizar o login com Google. Tente novamente. Se continuar falhando, envie esta referência: {reference}.",
+    "auth.error.googleStartFailed":
+      "Não foi possível iniciar o login com Google. Tente novamente. Se continuar falhando, envie esta referência: {reference}.",
     "auth.error.steamRegistrationClosed":
       "Novos registros estão fechados. Solicite acesso pelo cadastro beta antes de conectar Steam.",
     "auth.error.xboxRegistrationClosed":
@@ -1750,11 +1787,16 @@ const messages = {
     "admin.feedback.kicker": "Triagem",
     "admin.feedback.title": "Quadro de feedback",
     "admin.feedback.body":
-      "Melhorias e bugs enviados por pessoas logadas. Mova os cartões entre as colunas conforme a triagem.",
+      "Melhorias e bugs enviados por pessoas, incluindo relatos enviados antes do login. Mova os cartões entre as colunas conforme a triagem.",
     "admin.feedback.empty": "Nada por aqui.",
     "admin.feedback.updated": "Feedback atualizado.",
     "admin.feedback.moveTo": "Mover para {status}",
     "admin.feedback.error.invalid": "Não foi possível atualizar esse feedback.",
+    "admin.feedback.anonymous": "Relato anônimo",
+    "admin.feedback.emailFailed":
+      "O feedback foi movido, mas não foi possível enviar o e-mail de aviso.",
+    "admin.feedback.emailSkipped":
+      "O feedback foi movido, mas as notificações por e-mail não estão configuradas.",
     "feedback.kicker": "Feedback",
     "feedback.title": "Ajude a moldar o filazo",
     "feedback.body":

@@ -6,6 +6,8 @@ import {
   createBrowserRequiredUrl,
   isGoogleOAuthBlockedUserAgent,
 } from "@/lib/oauth-browser";
+import { getRequestTranslator } from "@/lib/request-locale";
+import { reportAuthFailure } from "@/lib/auth-errors";
 
 export const GOOGLE_OAUTH_STATE_COOKIE = "filazo-google-oauth-state";
 export const GOOGLE_OAUTH_NONCE_COOKIE = "filazo-google-oauth-nonce";
@@ -23,6 +25,7 @@ function setOAuthCookie(name: string, value: string) {
 }
 
 export async function GET(request: Request) {
+  const requestId = crypto.randomUUID();
   try {
     const requestUrl = new URL(request.url);
     const returnPath = "/login?auth=1";
@@ -44,11 +47,22 @@ export async function GET(request: Request) {
 
     return NextResponse.redirect(authUrl);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Could not start Google login.";
+    reportAuthFailure(error, {
+      provider: "google",
+      route: "/api/auth/google",
+      stage: "start-auth",
+      requestId,
+    });
+    const { t } = await getRequestTranslator();
+    const message = t("auth.error.googleStartFailed", {
+      reference: requestId.slice(0, 8),
+    });
 
     return NextResponse.redirect(
-      new URL(`/login?auth=1&error=${encodeURIComponent(message)}`, request.url),
+      new URL(
+        `/login?auth=1&error=${encodeURIComponent(message)}&ref=${encodeURIComponent(requestId)}`,
+        request.url,
+      ),
     );
   }
 }

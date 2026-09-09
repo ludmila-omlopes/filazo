@@ -13,6 +13,8 @@ type LoginSearchParams = Promise<{
   auth?: string;
   error?: string;
   expired?: string;
+  feedback?: string;
+  ref?: string;
 }>;
 
 export default async function LoginPage({
@@ -55,10 +57,21 @@ export default async function LoginPage({
     query.error ??
     (query.expired ? t("auth.error.sessionExpired") : sessionError) ??
     undefined;
+  const authFailureReference =
+    query.ref && /^[0-9a-f-]{36}$/i.test(query.ref) ? query.ref : undefined;
+  const feedbackError =
+    query.feedback === "invalid" ? t("auth.feedback.invalid") : undefined;
 
   return (
     <main id="main-content" className="mx-auto grid w-full max-w-[980px] gap-8">
-      <AuthDialog defaultOpen error={error} showTrigger={false} />
+      <AuthDialog
+        authFailureReference={authFailureReference}
+        defaultOpen
+        error={error}
+        feedbackSent={query.feedback === "sent"}
+        feedbackError={feedbackError}
+        showTrigger={false}
+      />
 
       <section className="relative min-h-[520px] overflow-hidden rounded-card border border-edge bg-dusk-deep p-8 text-cream shadow-float max-md:p-5">
         <div
@@ -77,7 +90,10 @@ export default async function LoginPage({
           </p>
           <div>
             <AuthDialog
+              authFailureReference={authFailureReference}
               error={error}
+              feedbackSent={query.feedback === "sent"}
+              feedbackError={feedbackError}
               triggerClassName="min-h-12 bg-cream px-7 text-base text-dusk-deep hover:bg-glow"
               triggerLabel={t("login.open")}
               triggerSize="lg"

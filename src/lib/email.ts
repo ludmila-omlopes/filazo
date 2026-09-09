@@ -16,7 +16,7 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#39;");
 }
 
-function getApprovalEmailConfig() {
+function getEmailConfig() {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.BETA_APPROVAL_FROM_EMAIL?.trim();
   const replyTo = process.env.BETA_APPROVAL_REPLY_TO?.trim();
@@ -93,7 +93,7 @@ export async function sendBetaApprovalEmail(input: {
   to: string;
   recipientName: string;
 }) {
-  const config = getApprovalEmailConfig();
+  const config = getEmailConfig();
   if (!config) {
     console.warn(
       "Beta approval email skipped because RESEND_API_KEY or BETA_APPROVAL_FROM_EMAIL is missing.",
@@ -130,4 +130,86 @@ export async function sendBetaApprovalEmail(input: {
     sent: true,
     id: result.data.id,
   } as const;
+}
+
+const FEEDBACK_STATUS_LABELS = {
+  NEW: "New",
+  IN_REVIEW: "In review",
+  DONE: "Done",
+  DECLINED: "Declined",
+} as const;
+
+function buildFeedbackStatusEmail({
+  recipientName,
+  status,
+  title,
+}: {
+  recipientName: string;
+  status: keyof typeof FEEDBACK_STATUS_LABELS;
+  title: string;
+}) {
+  const feedbackUrl = `${getBaseUrl()}/feedback`;
+  const greeting = recipientName.trim() || "there";
+  const label = FEEDBACK_STATUS_LABELS[status];
+  const safeGreeting = escapeHtml(greeting);
+  const safeTitle = escapeHtml(title);
+  const safeFeedbackUrl = escapeHtml(feedbackUrl);
+
+  return {
+    subject: `Your filazo feedback was moved to ${label}`,
+    text: [
+      `Hi ${greeting},`,
+      "",
+      `Your feedback “${title}” is now marked as: ${label}.`,
+      `You can review your submissions here: ${feedbackUrl}`,
+      "",
+      "filazo",
+    ].join("\n"),
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111827;">
+        <p>Hi ${safeGreeting},</p>
+        <p>Your feedback <strong>“${safeTitle}”</strong> is now marked as: <strong>${label}</strong>.</p>
+        <p><a href="${safeFeedbackUrl}">Review your feedback submissions</a></p>
+        <p>filazo</p>
+      </div>
+    `,
+  };
+}
+
+export async function sendFeedbackStatusEmail(input: {
+  to: string;
+  recipientName: string;
+  status: keyof typeof FEEDBACK_STATUS_LABELS;
+  title: string;
+}) {
+  const config = getEmailConfig();
+  if (!config) {
+    console.warn(
+      "Feedback status email skipped because RESEND_API_KEY or BETA_APPROVAL_FROM_EMAIL is missing.",
+    );
+    return { sent: false, reason: "not-configured" } as const;
+  }
+
+  const resend = new Resend(config.apiKey);
+  const message = buildFeedbackStatusEmail(input);
+  const result = await resend.emails.send({
+    from: config.from,
+    to: input.to,
+    replyTo: config.replyTo,
+    subject: message.subject,
+    text: message.text,
+    html: message.html,
+  });
+
+  if (result.error) {
+    throw new Error(
+      `Resend rejected feedback status email: ${result.error.message}`,
+    );
+  }
+
+  if (!result.data?.id) {
+    throw new Error("Resend did not return a message id.");
+  }
+
+  return { sent: true, id: result.data.id } as const;
 }
