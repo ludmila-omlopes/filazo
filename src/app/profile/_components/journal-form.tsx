@@ -21,8 +21,12 @@ type UploadedJournalMedia = {
 };
 
 function getFile(formData: FormData, name: string) {
-  const value = formData.get(name);
-  return value instanceof File && value.size > 0 ? value : null;
+  return (
+    formData
+      .getAll(name)
+      .find((value): value is File => value instanceof File && value.size > 0) ??
+    null
+  );
 }
 
 async function removeUpload(uploaded: UploadedJournalMedia) {

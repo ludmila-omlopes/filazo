@@ -11,6 +11,7 @@ const AUDIO_EXTENSIONS: Record<string, string> = {
   "audio/webm": ".webm",
   "audio/mpeg": ".mp3",
   "audio/mp4": ".m4a",
+  "audio/x-m4a": ".m4a",
   "audio/wav": ".wav",
   "audio/x-wav": ".wav",
   "audio/ogg": ".ogg",

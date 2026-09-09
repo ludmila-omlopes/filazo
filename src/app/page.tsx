@@ -255,8 +255,8 @@ export default async function Home() {
         ) : null}
 
         <div className="relative z-10 flex min-h-[540px] items-center px-4 py-12 max-md:py-8">
-          <div className="max-w-[620px]">
-            <h1 className="text-display font-normal leading-[1.03] text-ink">
+          <div className="w-full min-w-0 max-w-[calc(100vw-4rem)] md:max-w-[620px]">
+            <h1 className="break-words text-display font-normal leading-[1.03] text-ink">
               {t("landing.title").split("\n")[0]},
               <br />
               {t("landing.title").split("\n")[1]}

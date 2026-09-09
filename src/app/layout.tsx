@@ -61,6 +61,11 @@ export const metadata: Metadata = {
   ],
   creator: SITE_NAME,
   publisher: SITE_NAME,
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: SITE_NAME,
+  },
   alternates: {
     canonical: "/",
   },
@@ -92,6 +97,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f5f0" },
+    { media: "(prefers-color-scheme: dark)", color: "#211f36" },
+  ],
 };
 
 /**

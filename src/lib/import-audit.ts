@@ -17,16 +17,12 @@ function readSourceImage(value: unknown): ImportSourceImage | null {
   const record = asRecord(value);
   const url = record?.url ?? record?.sourceImageUrl;
 
-  if (
-    typeof url !== "string" ||
-    !url.startsWith("/uploads/imports/")
-  ) {
+  if (typeof url !== "string" || !url.startsWith("/uploads/imports/")) {
     return null;
   }
 
   return {
-    fileName:
-      typeof record?.fileName === "string" ? record.fileName : null,
+    fileName: typeof record?.fileName === "string" ? record.fileName : null,
     url,
   };
 }

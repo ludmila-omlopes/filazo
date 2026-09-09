@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ImageIcon, Mic, PenLine } from "lucide-react";
+import { Camera, ChevronDown, ImageIcon, Mic, PenLine } from "lucide-react";
 import { JournalSubmitButton } from "./journal-submit-button";
 import { useTranslations } from "@/components/locale-provider";
 import { VoiceMemoryInput } from "@/components/voice-memory-input";
@@ -155,11 +155,24 @@ export function JournalComposer({
             <div className="grid gap-3 border-t border-edge p-4 max-sm:p-3 sm:grid-cols-2">
               <label className="grid gap-2">
                 <span className="text-sm font-semibold">
-                  {t("journal.screenshot")}
+                  {t("journal.imageFromDevice")}
                 </span>
                 <input
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   className="w-full text-sm file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sage-soft file:px-4 file:py-2 file:font-semibold file:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                  name="image"
+                  type="file"
+                />
+              </label>
+              <label className="grid gap-2 sm:hidden">
+                <span className="inline-flex items-center gap-2 text-sm font-semibold">
+                  <Camera aria-hidden="true" className="h-4 w-4" />
+                  {t("journal.takePhoto")}
+                </span>
+                <input
+                  accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
+                  className="w-full text-sm file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sky-soft file:px-4 file:py-2 file:font-semibold file:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
                   name="image"
                   type="file"
                 />
