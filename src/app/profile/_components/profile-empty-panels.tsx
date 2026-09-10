@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AuthDialog } from "@/components/auth-dialog";
 import { ControllerIllustration } from "@/components/illustrations";
 import { Button } from "@/components/ui/button";
-import { getDatabaseErrorMessage } from "@/lib/database-errors";
+import { getBetaDiscordInviteUrl } from "@/lib/beta-community";
 import { createTranslator, type Locale } from "@/lib/i18n";
 
 export function SignedOutPanel({ locale }: { locale: Locale }) {
@@ -35,13 +35,12 @@ export function SignedOutPanel({ locale }: { locale: Locale }) {
 }
 
 export function ProfileErrorPanel({
-  error,
   locale,
 }: {
-  error: unknown;
   locale: Locale;
 }) {
   const t = createTranslator(locale);
+  const supportUrl = getBetaDiscordInviteUrl();
   return (
     <main id="main-content" className="mx-auto w-full max-w-[760px]">
       <section className="panel bg-clay-soft p-10 text-center">
@@ -50,14 +49,19 @@ export function ProfileErrorPanel({
           {t("profile.error.title")}
         </h1>
         <p className="mx-auto max-w-[44ch] leading-relaxed text-ink-soft">
-          {t("profile.error.body", {
-            message: getDatabaseErrorMessage(error),
-          })}
+          {t("profile.error.body")}
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3.5">
-          <Button asChild>
-            <Link href="/">{t("common.backHome")}</Link>
-          </Button>
+          <form action="/profile" method="get">
+            <Button type="submit">{t("profile.error.retry")}</Button>
+          </form>
+          {supportUrl ? (
+            <Button asChild variant="secondary">
+              <a href={supportUrl} target="_blank" rel="noreferrer">
+                {t("auth.feedback.contact")}
+              </a>
+            </Button>
+          ) : null}
         </div>
       </section>
     </main>

@@ -156,7 +156,7 @@ const messages = {
     "auth.error.youtubeCallbackFailed": "Could not finish beta sign-in.",
 
     "landing.notice.database":
-      "{message} This environment needs a reachable PostgreSQL database before catalog features can load.",
+      "Part of the site is temporarily unavailable. Please try again later or contact site support.",
     "landing.kicker": "Calm library for large game collections",
     "landing.title": "Your game backlog\ndoesn't need to be stressful.",
     "landing.body":
@@ -305,10 +305,11 @@ const messages = {
     "profile.signedOut.title": "Connect an account to begin.",
     "profile.signedOut.body":
       "Sign in first, then connect Steam, PlayStation, Xbox, or start with a CSV-only local profile. Start wherever feels easiest.",
-    "profile.error.label": "Database unavailable",
+    "profile.error.label": "Temporary site issue",
     "profile.error.title": "Your library can't load right now.",
     "profile.error.body":
-      "{message} This environment needs a reachable PostgreSQL database before catalog features can load.",
+      "We are having a technical problem with the site. No changes to your account are needed. Please try again later or contact site support.",
+    "profile.error.retry": "Try again",
 
     "profile.greeting.morning":
       "Good morning. The catalog is ready when you are.",
@@ -1572,7 +1573,7 @@ const messages = {
       "Não foi possível finalizar o login beta.",
 
     "landing.notice.database":
-      "{message} Este ambiente precisa de um banco PostgreSQL acessível antes de carregar os recursos de catálogo.",
+      "Parte do site está temporariamente indisponível. Tente novamente mais tarde ou entre em contato com o suporte do site.",
     "landing.kicker": "Biblioteca calma para coleções grandes de jogos",
     "landing.title": "Seu backlog de jogos\nnão precisa ser estressante.",
     "landing.body":
@@ -1721,10 +1722,11 @@ const messages = {
     "profile.signedOut.title": "Conecte uma conta para começar.",
     "profile.signedOut.body":
       "Entre primeiro, depois conecte Steam, PlayStation, Xbox ou comece com um perfil local só de CSV. Comece pelo caminho mais fácil.",
-    "profile.error.label": "Banco indisponível",
+    "profile.error.label": "Instabilidade no site",
     "profile.error.title": "Sua biblioteca não pode carregar agora.",
     "profile.error.body":
-      "{message} Este ambiente precisa de um banco PostgreSQL acessível antes de carregar os recursos de catálogo.",
+      "Estamos com um problema técnico no site. Você não precisa alterar sua conta. Tente novamente mais tarde ou entre em contato com o suporte do site.",
+    "profile.error.retry": "Tentar novamente",
 
     "profile.greeting.morning":
       "Bom dia. O catálogo fica pronto quando você quiser.",

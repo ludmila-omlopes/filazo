@@ -36,7 +36,7 @@ function redirectWithAuthError(message: string): never {
 }
 
 export async function emailAuthAction(formData: FormData) {
-  const { t } = await getRequestTranslator();
+  const { t, locale } = await getRequestTranslator();
   const existingUserId = await getSessionUserId();
   if (existingUserId) {
     redirect("/profile");
@@ -70,7 +70,7 @@ export async function emailAuthAction(formData: FormData) {
           operation: "email-sign-in",
           route: "/login",
         });
-        redirectWithAuthError(getDatabaseErrorMessage(error));
+        redirectWithAuthError(getDatabaseErrorMessage(error, locale));
       });
 
     if (!user?.passwordHash) {
