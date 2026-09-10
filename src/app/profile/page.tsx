@@ -70,7 +70,7 @@ export default async function ProfilePage({
       operation: "verify-profile-access",
       route: "/profile",
     });
-    return <ProfileErrorPanel error={error} locale={locale} />;
+    return <ProfileErrorPanel locale={locale} />;
   }
 
   if (!sessionUser) {
@@ -105,7 +105,7 @@ export default async function ProfilePage({
       operation: "load-profile",
       route: "/profile",
     });
-    return <ProfileErrorPanel error={error} locale={locale} />;
+    return <ProfileErrorPanel locale={locale} />;
   }
 
   if (!profile) {

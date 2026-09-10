@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { Prisma } from "@prisma/client";
 import {
   isUniqueConstraintViolation,
+  getDatabaseErrorMessage,
   reportDatabaseError,
 } from "./database-errors.ts";
 
@@ -56,7 +57,7 @@ test("reports handled database errors with safe operational context", () => {
     },
     extra: {
       userMessage:
-        "Database schema is not initialized. Run the database setup before using catalog features.",
+        "We are having a technical problem with the site. No changes to your account are needed. Please try again later or contact site support.",
     },
   });
 });
@@ -107,4 +108,15 @@ test("rejects other errors", () => {
     clientVersion: "0.0.0",
   });
   assert.equal(isUniqueConstraintViolation(error), false);
+});
+
+test("all database failures show localized support copy without setup instructions", () => {
+  for (const code of ["P1001", "P2021", "P2022", "P2024", "UNKNOWN"]) {
+    const error = Object.assign(new Error("private postgresql://user:secret@host/db DATABASE_URL"), { code });
+    for (const locale of ["en", "pt-BR"] as const) {
+      const message = getDatabaseErrorMessage(error, locale);
+      assert.doesNotMatch(message, /postgres|DATABASE_URL|schema|npm|secret|P2022/i);
+      assert.match(message, locale === "en" ? /site support/ : /suporte do site/);
+    }
+  }
 });

@@ -85,6 +85,7 @@ The board statuses are `NEW`, `IN_REVIEW`, `WAITING`, `DONE`, and `DECLINED`. `W
 | `npm run build` | Create a production build |
 | `npm run db:init` | Validate `DATABASE_URL` and apply the Prisma schema |
 | `npm run db:generate` | Generate Prisma Client |
+| `npm run db:check` | Read-only compatibility check for all client tables, columns and enum values |
 
 Before opening a pull request, run:
 
@@ -119,7 +120,11 @@ Read [`AGENTS.md`](./AGENTS.md) before changing catalog resolution, provider int
 
 ## Deployment
 
-Deploy on Vercel or another host capable of reaching PostgreSQL. Set at least `APP_URL`, `AUTH_SECRET`, and `DATABASE_URL`, then apply the schema with `npm run db:init`.
+Deploy on Vercel or another host capable of reaching PostgreSQL. Set at least `APP_URL`, `AUTH_SECRET`, and `DATABASE_URL`. Apply reviewed schema changes **before** deploying the code that uses them (`npm run db:init` is available for schema bootstrap).
+
+`npm run build` generates Prisma Client and runs `db:check` before Next.js builds. A missing table, column, enum value, or unreachable database fails the deployment so an incompatible build cannot replace the live version. Vercel builds also fail if `DATABASE_URL` is missing. Offline local/CI builds may skip the database check when no URL is configured; CI separately exercises it against isolated PostgreSQL. Build overrides must retain this prebuild step. This check is read-only and does not apply migrations or guarantee protection against outages after deployment.
+
+For the game-structure release, apply `prisma/migrations/20260910180000_game_completion_structure/migration.sql` and `prisma/migrations/20260910181000_complete_provider_enums/migration.sql` before deploying. These scripts only add missing columns/types/enum values, preserve existing records, and can be rerun safely. User-facing database errors are localized site-failure messages; technical diagnostics stay in monitoring. The profile fallback offers retry and the configured Discord support link, which does not depend on database access.
 
 Runtime exceptions are reported to the `emada/filazo` Sentry project. Handled database failures are tagged with their route, operation, and Prisma error code without attaching user data or HTTP request bodies. Connect the official Sentry integration in Vercel so production builds can upload source maps without committing `SENTRY_AUTH_TOKEN`.
 
