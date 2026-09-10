@@ -46,6 +46,8 @@ import {
 } from "@/lib/profile-games";
 import { getSessionUserId } from "@/lib/session";
 
+export const maxDuration = 60;
+
 export default async function ProfilePage({
   searchParams,
 }: PageProps<"/profile"> & { searchParams: ProfileSearchParams }) {

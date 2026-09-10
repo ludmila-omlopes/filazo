@@ -555,8 +555,11 @@ const messages = {
     "profile.sources.contactSupport": "Contact site support",
     "profile.sources.refreshSteam": "Refresh Steam",
     "profile.sources.refreshing": "Refreshing...",
-    "profile.sources.steamPending":
-      "Steam is refreshing your library. Keep this page open.",
+    "profile.sources.steamBackground":
+      "Your Steam library is updating in the background. You can leave this page and keep using Filazo.",
+    "profile.sources.steamRetrying":
+      "The update was interrupted. We will retry automatically from the last saved game. You can leave this page.",
+    "profile.sources.steamProgress": "{processed} of {total} games processed.",
     "profile.sources.connectSteam": "Connect Steam",
     "profile.sources.playstationTitle": "PlayStation library",
     "profile.sources.playstationBody":
@@ -1923,8 +1926,11 @@ const messages = {
     "profile.sources.contactSupport": "Entrar em contato com o suporte",
     "profile.sources.refreshSteam": "Atualizar Steam",
     "profile.sources.refreshing": "Atualizando...",
-    "profile.sources.steamPending":
-      "A Steam está atualizando sua biblioteca. Deixe esta página aberta.",
+    "profile.sources.steamBackground":
+      "Sua biblioteca Steam está sendo atualizada em segundo plano. Você pode sair desta página e continuar usando a filazo.",
+    "profile.sources.steamRetrying":
+      "A atualização foi interrompida. Vamos tentar novamente a partir do último jogo salvo. Você pode sair desta página.",
+    "profile.sources.steamProgress": "{processed} de {total} jogos processados.",
     "profile.sources.connectSteam": "Conectar Steam",
     "profile.sources.playstationTitle": "Biblioteca PlayStation",
     "profile.sources.playstationBody":

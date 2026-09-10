@@ -179,7 +179,7 @@ export const metacriticAdapter: CatalogReviewScoreAdapter = {
       }
 
       const appId = await searchSteamAppId(title, controller.signal);
-      return appId ? fetchSteamMetacritic(appId, controller.signal) : null;
+      return appId ? await fetchSteamMetacritic(appId, controller.signal) : null;
     } catch {
       return null;
     } finally {

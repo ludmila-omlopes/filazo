@@ -2,6 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
+      "path": "/api/internal/steam-sync-worker",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/internal/game-metadata-worker",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/internal/platform-sync",
       "schedule": "0 * * * *"
     }

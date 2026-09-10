@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/prisma";
 import { getUserProfileSyncData } from "@/lib/user-profile-sync";
 import {
-  mapSteamOwnedGames,
+  mapSteamOwnedGamesResponse,
   type SteamOwnedGame,
 } from "@/lib/steam-library";
 import { uniqueSlug } from "@/lib/utils";
@@ -33,6 +33,7 @@ type SteamPlayerSummaryResponse = {
 type SteamOwnedGamesResponse = {
   response?: {
     games?: SteamOwnedGame[];
+    game_count?: number;
   };
 };
 
@@ -153,7 +154,7 @@ async function fetchSteamOwnedGames(
   }
 
   const data = (await response.json()) as SteamOwnedGamesResponse;
-  return mapSteamOwnedGames(data.response?.games ?? []);
+  return mapSteamOwnedGamesResponse(data);
 }
 
 export async function fetchSteamAchievementCompletion(

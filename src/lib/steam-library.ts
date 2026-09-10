@@ -7,6 +7,18 @@ export type SteamOwnedGame = {
   rtime_last_played?: number;
 };
 
+export function mapSteamOwnedGamesResponse(data: {
+  response?: { games?: SteamOwnedGame[]; game_count?: number };
+}) {
+  if (!data.response || (!data.response.games && data.response.game_count !== 0)) {
+    throw new Error("Steam library is unavailable. Check that game details are public.");
+  }
+  if (data.response.game_count !== undefined && data.response.game_count !== (data.response.games?.length ?? 0)) {
+    throw new Error("Steam returned an incomplete library. Please retry synchronization.");
+  }
+  return mapSteamOwnedGames(data.response.games ?? []);
+}
+
 function parseSteamLastPlayedAt(value: number | undefined) {
   if (!value || !Number.isFinite(value)) {
     return null;
@@ -17,10 +29,9 @@ function parseSteamLastPlayedAt(value: number | undefined) {
 
 export function mapSteamOwnedGames(games: SteamOwnedGame[]) {
   return games
-    .filter((game) => game.name)
     .map((game) => ({
       providerGameId: String(game.appid),
-      title: game.name ?? `Steam App ${game.appid}`,
+      title: game.name?.trim() || `Steam App ${game.appid}`,
       platformName: "Steam",
       playtimeMinutes: game.playtime_forever ?? 0,
       lastPlayedAt: parseSteamLastPlayedAt(game.rtime_last_played),

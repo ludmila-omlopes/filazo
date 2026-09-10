@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname localhost --port 3001",
+    "dev": "node scripts/dev.mjs",
     "postinstall": "prisma generate",
     "prebuild": "prisma generate",
     "build": "next build",
@@ -12,6 +12,7 @@
     "qa:mobile": "node scripts/mobile-browser-qa.mjs",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --experimental-strip-types --test",
+    "test:steam-sync": "node scripts/qa/run-steam-sync-check.mjs",
     "db:generate": "prisma generate",
     "db:init": "node scripts/init-db.mjs",
     "db:migrate": "node scripts/init-db.mjs",
@@ -53,6 +54,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   }
 }
