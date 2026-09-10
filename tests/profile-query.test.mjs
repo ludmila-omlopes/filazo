@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ExternalProvider, UserGameStatus } from "@prisma/client";
+import { ExternalProvider, GameCompletionModel, UserGameStatus } from "@prisma/client";
 import {
   filterEntries,
   UNKNOWN_PLATFORM_FILTER,
@@ -83,6 +83,42 @@ test("profile platform filter uses user entry platform/provider context", () => 
       signalEntryIds: null,
     }).map((entry) => entry.game.name),
     ["Unknown Platform Game"],
+  );
+});
+
+test("profile structure filter is opt-in and separates ongoing games", () => {
+  const entries = [
+    createEntry("Campaign", {
+      game: { name: "Campaign", completionModel: GameCompletionModel.CAMPAIGN },
+    }),
+    createEntry("Ongoing", {
+      game: { name: "Ongoing", gameModes: ["Multiplayer"] },
+    }),
+  ];
+
+  assert.equal(
+    filterEntries({
+      activePlatform: null,
+      activeStatus: null,
+      activeCompletionModel: null,
+      entries,
+      includeDormant: false,
+      queryText: "",
+      signalEntryIds: null,
+    }).length,
+    2,
+  );
+  assert.deepEqual(
+    filterEntries({
+      activePlatform: null,
+      activeStatus: null,
+      activeCompletionModel: GameCompletionModel.ONGOING,
+      entries,
+      includeDormant: false,
+      queryText: "",
+      signalEntryIds: null,
+    }).map((entry) => entry.game.name),
+    ["Ongoing"],
   );
 });
 

@@ -14,6 +14,7 @@ type IgdbGameRecord = {
   aggregated_rating_count?: number | null;
   url?: string | null;
   genres?: Array<{ name: string }>;
+  game_modes?: Array<{ name: string }>;
   platforms?: Array<{ name: string }>;
   cover?: { url?: string | null };
   screenshots?: Array<{ url?: string | null }>;
@@ -196,6 +197,7 @@ function mapIgdbGame(game: IgdbGameRecord): EnrichedGameMetadata {
     aggregatedRating: game.aggregated_rating ?? null,
     totalRatingCount: game.aggregated_rating_count ?? null,
     genres: game.genres?.map((genre) => genre.name) ?? [],
+    gameModes: game.game_modes?.map((mode) => mode.name) ?? [],
     platforms: game.platforms?.map((platform) => platform.name) ?? [],
     screenshots:
       game.screenshots
@@ -440,7 +442,7 @@ async function queryIgdbGames(query: string, limit: number, signal?: AbortSignal
   }
 
   const body = [
-    "fields name,slug,summary,first_release_date,aggregated_rating,aggregated_rating_count,cover.url,genres.name,platforms.name,screenshots.url,artworks.url,websites.url;",
+    "fields name,slug,summary,first_release_date,aggregated_rating,aggregated_rating_count,cover.url,genres.name,game_modes.name,platforms.name,screenshots.url,artworks.url,websites.url;",
     `search "${query.replace(/"/g, '\\"')}";`,
     `limit ${limit};`,
     "where version_parent = null;",
@@ -471,7 +473,7 @@ async function fetchIgdbGameById(igdbId: number) {
   }
 
   const body = [
-    "fields name,slug,summary,first_release_date,aggregated_rating,aggregated_rating_count,cover.url,genres.name,platforms.name,screenshots.url,artworks.url,websites.url;",
+    "fields name,slug,summary,first_release_date,aggregated_rating,aggregated_rating_count,cover.url,genres.name,game_modes.name,platforms.name,screenshots.url,artworks.url,websites.url;",
     `where id = ${igdbId};`,
     "limit 1;",
   ].join(" ");

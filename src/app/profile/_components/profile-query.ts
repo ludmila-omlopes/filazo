@@ -1,4 +1,5 @@
-import { AssistantSignalType, UserGameStatus } from "@prisma/client";
+import { AssistantSignalType, GameCompletionModel, UserGameStatus } from "@prisma/client";
+import { getEffectiveGameCompletionModel } from "../../../lib/game-completion-model.ts";
 import { createTranslator, type Locale } from "../../../lib/i18n.ts";
 import type { ProfileEntry, ProfileTab, StatusMessage } from "./profile-types";
 
@@ -14,6 +15,7 @@ export type ProfileSearchParams = Promise<{
   status?: string;
   viewAs?: string;
   platform?: string;
+  structure?: string;
   includeDormant?: string;
   q?: string;
   month?: string;
@@ -60,6 +62,14 @@ export function parseAssistantSignal(value: string | undefined) {
 export function parseActiveStatus(value: string | undefined) {
   return Object.values(UserGameStatus).includes(value as UserGameStatus)
     ? (value as UserGameStatus)
+    : null;
+}
+
+export const COMPLETION_MODEL_FILTERS = Object.values(GameCompletionModel);
+
+export function parseActiveCompletionModel(value: string | undefined) {
+  return Object.values(GameCompletionModel).includes(value as GameCompletionModel)
+    ? (value as GameCompletionModel)
     : null;
 }
 
@@ -333,6 +343,7 @@ export function isDormantEntry(entry: ProfileEntry) {
 
 export function filterEntries({
   activePlatform,
+  activeCompletionModel,
   activeStatus,
   entries,
   includeDormant,
@@ -340,6 +351,7 @@ export function filterEntries({
   signalEntryIds,
 }: {
   activePlatform: string | null;
+  activeCompletionModel: GameCompletionModel | null;
   activeStatus: string | null;
   entries: ProfileEntry[];
   includeDormant: boolean;
@@ -358,6 +370,13 @@ export function filterEntries({
     }
 
     if (activeStatus && entry.status !== activeStatus) {
+      return false;
+    }
+
+    if (
+      activeCompletionModel &&
+      getEffectiveGameCompletionModel(entry.game) !== activeCompletionModel
+    ) {
       return false;
     }
 

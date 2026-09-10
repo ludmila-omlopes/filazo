@@ -89,6 +89,25 @@ test("short HLTB remaining time can make a game finishable soon", () => {
   );
 });
 
+test("ongoing games do not create completion-pressure insights", () => {
+  const insights = scoreBacklogEntries([
+    createEntry({
+      name: "Live Service",
+      gameModes: ["Multiplayer"],
+      hltbMainStoryMinutes: 600,
+      hltbMainExtraMinutes: 900,
+      playtimeMinutes: 700,
+      lastPlayedAt: "2026-04-01",
+    }),
+  ], now);
+
+  assert.ok(
+    !insights.some((insight) =>
+      [AssistantSignalType.FINISHABLE_SOON, AssistantSignalType.LIKELY_FINISHED].includes(insight.signalType),
+    ),
+  );
+});
+
 test("finished history can make a related short game worth finishing before release", () => {
   const insights = scoreBacklogEntries([
     createEntry({
@@ -213,6 +232,7 @@ function createEntry({
   isFavorite = false,
   activeBacklog = true,
   genres = [],
+  gameModes = [],
   igdbId = null,
   upcomingReleases = null,
   hltbMainStoryMinutes = null,
@@ -234,6 +254,7 @@ function createEntry({
       name,
       igdbId,
       genres,
+      gameModes,
       platforms: [],
       aggregatedRating: null,
       hltbMainStoryMinutes,

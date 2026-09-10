@@ -1,6 +1,7 @@
 import {
   EntrySource,
   ExternalProvider,
+  GameCompletionModelSource,
   ImportJobStatus,
   ImportRowStatus,
   type ExternalAccount,
@@ -31,6 +32,9 @@ import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
 import { syncXboxLibraryForAccount as fetchXboxLibraryForAccount } from "@/lib/xbox";
 import type { CsvColumnMapping } from "@/lib/csv-import-mapping";
 import { getBacklogEstimate } from "@/lib/play-planning";
+import {
+  inferGameCompletionModel,
+} from "@/lib/game-completion-model";
 import {
   getSyncedEntryProgressData,
   getSyncedPlaytimeData,
@@ -212,6 +216,10 @@ function metadataToGameCreateInput(
   metadata?: Awaited<ReturnType<typeof igdbAdapter.searchBestMatch>> | null,
 ): Prisma.GameCreateInput {
   const slugBase = metadata?.slug ?? slugify(title);
+  const completion = inferGameCompletionModel({
+    genres: metadata?.genres,
+    gameModes: metadata?.gameModes,
+  });
 
   return {
     slug: metadata?.igdbId
@@ -226,7 +234,13 @@ function metadataToGameCreateInput(
     aggregatedRating: metadata?.aggregatedRating ?? null,
     totalRatingCount: metadata?.totalRatingCount ?? null,
     genres: metadata?.genres ?? [],
+    gameModes: metadata?.gameModes ?? [],
     platforms: metadata?.platforms ?? [],
+    completionModel: completion.model,
+    completionModelSource:
+      completion.model === "UNKNOWN" ? undefined : GameCompletionModelSource.RULES,
+    completionModelConfidence: completion.confidence,
+    completionModelCheckedAt: new Date(),
     screenshots: metadata?.screenshots ?? [],
     websites: metadata?.websites ?? [],
     metadataSource: metadata ? ExternalProvider.IGDB : null,
@@ -244,7 +258,7 @@ async function applyMetadataToExistingGame(
     return prisma.game.findUniqueOrThrow({ where: { id: gameId } });
   }
 
-  return prisma.game.update({
+  const game = await prisma.game.update({
     where: { id: gameId },
     data: {
       name: metadata.name,
@@ -256,12 +270,36 @@ async function applyMetadataToExistingGame(
       aggregatedRating: metadata.aggregatedRating ?? undefined,
       totalRatingCount: metadata.totalRatingCount ?? undefined,
       genres: metadata.genres ?? [],
+      gameModes: metadata.gameModes ?? [],
       platforms: metadata.platforms ?? [],
       screenshots: metadata.screenshots ?? [],
       websites: metadata.websites ?? [],
       metadataSource: ExternalProvider.IGDB,
       igdbId: metadata.igdbId,
       igdbSlug: metadata.slug ?? undefined,
+    },
+  });
+
+  const completion = inferGameCompletionModel({
+    genres: game.genres,
+    gameModes: game.gameModes,
+    hltbMainStoryMinutes: game.hltbMainStoryMinutes,
+  });
+  return prisma.game.update({
+    where: { id: game.id },
+    data: {
+      completionModel:
+        game.completionModelSource === GameCompletionModelSource.MANUAL
+          ? undefined
+          : completion.model,
+      completionModelSource:
+        game.completionModelSource === GameCompletionModelSource.MANUAL
+          ? undefined
+          : completion.model === "UNKNOWN"
+            ? null
+            : GameCompletionModelSource.RULES,
+      completionModelConfidence: completion.confidence,
+      completionModelCheckedAt: new Date(),
     },
   });
 }
@@ -306,6 +344,24 @@ async function applyCompletionTimesToGame(
       rawData: completionTimes.rawData as Prisma.InputJsonValue | undefined,
     },
   });
+
+  const completion = inferGameCompletionModel({
+    genres: game.genres,
+    gameModes: game.gameModes,
+    hltbMainStoryMinutes: game.hltbMainStoryMinutes,
+  });
+  if (game.completionModelSource !== GameCompletionModelSource.MANUAL) {
+    return prisma.game.update({
+      where: { id: game.id },
+      data: {
+        completionModel: completion.model,
+        completionModelSource:
+          completion.model === "UNKNOWN" ? null : GameCompletionModelSource.RULES,
+        completionModelConfidence: completion.confidence,
+        completionModelCheckedAt: new Date(),
+      },
+    });
+  }
 
   return game;
 }

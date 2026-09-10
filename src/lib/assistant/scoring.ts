@@ -5,6 +5,7 @@ import {
   ExternalProvider,
   UserGameStatus,
 } from "@prisma/client";
+import { isOngoingGame } from "../game-completion-model.ts";
 import { estimateRemainingTime, isEntryFinished } from "../time-estimates.ts";
 import { normalizeTitle } from "../utils.ts";
 import { isEntryRecommendable } from "./eligibility.ts";
@@ -32,7 +33,9 @@ export type AssistantGame = {
   igdbId?: number | null;
   summary?: string | null;
   genres?: unknown;
+  gameModes?: unknown;
   platforms?: unknown;
+  completionModel?: string | null;
   metadataSource?: ExternalProvider | null;
   aggregatedRating?: number | null;
   hltbMainStoryMinutes?: number | null;
@@ -43,6 +46,7 @@ export type AssistantGame = {
   providerLinks?: Array<{
     provider: ExternalProvider;
     hasStoreUrl: boolean;
+    hasStoryAchievement?: boolean;
   }>;
 };
 
@@ -481,6 +485,9 @@ function getStalePlayingInsight(entry: AssistantEntry, now: Date): AssistantInsi
 }
 
 function getFinishableSoonInsight(entry: AssistantEntry): AssistantInsight | null {
+  if (isOngoingGame(entry.game)) {
+    return null;
+  }
   const completion = entry.completionPercent ?? 0;
   const remainingTime = estimateRemainingTime(entry);
   const isShortFinish =
@@ -529,6 +536,9 @@ function getFinishableSoonInsight(entry: AssistantEntry): AssistantInsight | nul
 }
 
 function getLikelyFinishedInsight(entry: AssistantEntry, now: Date): AssistantInsight | null {
+  if (isOngoingGame(entry.game)) {
+    return null;
+  }
   const mainStoryMinutes = entry.game.hltbMainStoryMinutes ?? 0;
   const playtime = entry.playtimeMinutes ?? 0;
   const lastPlayedDays = daysSince(entry.lastPlayedAt, now);
@@ -605,6 +615,9 @@ function getReleaseAwareInsight(
   entry: AssistantEntry,
   contexts: UpcomingReleaseContext[],
 ): AssistantInsight | null {
+  if (isOngoingGame(entry.game)) {
+    return null;
+  }
   if (
     entry.status === UserGameStatus.WISHLIST ||
     entry.activeBacklog === false
