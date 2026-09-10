@@ -1,4 +1,5 @@
 import type { SyncedLibraryGame } from "./providers/contracts.ts";
+import { formatPlatformNames } from "./platform-names.ts";
 
 export type XboxTitleHistoryItem = {
   titleId?: number | string;
@@ -99,11 +100,7 @@ export function mapPlatform(value: unknown) {
     return "Xbox";
   }
 
-  if (value.toLowerCase().includes("windows")) {
-    return "Xbox / Windows";
-  }
-
-  return value;
+  return formatPlatformNames(value) || "Xbox";
 }
 
 export function pickTitleHubImage(title: XboxTitleHubItem) {
@@ -137,7 +134,7 @@ export function mergeXboxTitles(
       providerGameId: providerGameIds[0] ?? `titleId:${titleId}`,
       providerGameIds,
       title: title.name,
-      platformName: title.devices?.length ? title.devices.join(", ") : "Xbox",
+      platformName: formatPlatformNames(title.devices?.join(", ")) || "Xbox",
       completionPercent: calculateCompletionPercent({
         currentGamerscore: title.achievement?.currentGamerscore ?? null,
         earnedAchievements: title.achievement?.currentAchievements ?? null,

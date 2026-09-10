@@ -1,6 +1,7 @@
 import {
   EntrySource,
   ExternalProvider,
+  GameCompletionModelSource,
   ImportJobStatus,
   ImportRowStatus,
   type ExternalAccount,
@@ -31,6 +32,10 @@ import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
 import { syncXboxLibraryForAccount as fetchXboxLibraryForAccount } from "@/lib/xbox";
 import type { CsvColumnMapping } from "@/lib/csv-import-mapping";
 import { getBacklogEstimate } from "@/lib/play-planning";
+import {
+  inferGameCompletionModel,
+} from "@/lib/game-completion-model";
+import { refreshGameCompletionModel } from "@/lib/game-completion-refresh";
 import {
   getSyncedEntryProgressData,
   getSyncedPlaytimeData,
@@ -212,6 +217,10 @@ function metadataToGameCreateInput(
   metadata?: Awaited<ReturnType<typeof igdbAdapter.searchBestMatch>> | null,
 ): Prisma.GameCreateInput {
   const slugBase = metadata?.slug ?? slugify(title);
+  const completion = inferGameCompletionModel({
+    genres: metadata?.genres,
+    gameModes: metadata?.gameModes,
+  });
 
   return {
     slug: metadata?.igdbId
@@ -226,7 +235,13 @@ function metadataToGameCreateInput(
     aggregatedRating: metadata?.aggregatedRating ?? null,
     totalRatingCount: metadata?.totalRatingCount ?? null,
     genres: metadata?.genres ?? [],
+    gameModes: metadata?.gameModes ?? [],
     platforms: metadata?.platforms ?? [],
+    completionModel: completion.model,
+    completionModelSource:
+      completion.model === "UNKNOWN" ? undefined : GameCompletionModelSource.RULES,
+    completionModelConfidence: completion.confidence,
+    completionModelCheckedAt: new Date(),
     screenshots: metadata?.screenshots ?? [],
     websites: metadata?.websites ?? [],
     metadataSource: metadata ? ExternalProvider.IGDB : null,
@@ -244,7 +259,7 @@ async function applyMetadataToExistingGame(
     return prisma.game.findUniqueOrThrow({ where: { id: gameId } });
   }
 
-  return prisma.game.update({
+  const game = await prisma.game.update({
     where: { id: gameId },
     data: {
       name: metadata.name,
@@ -256,6 +271,7 @@ async function applyMetadataToExistingGame(
       aggregatedRating: metadata.aggregatedRating ?? undefined,
       totalRatingCount: metadata.totalRatingCount ?? undefined,
       genres: metadata.genres ?? [],
+      gameModes: metadata.gameModes ?? [],
       platforms: metadata.platforms ?? [],
       screenshots: metadata.screenshots ?? [],
       websites: metadata.websites ?? [],
@@ -264,6 +280,8 @@ async function applyMetadataToExistingGame(
       igdbSlug: metadata.slug ?? undefined,
     },
   });
+
+  return refreshGameCompletionModel(prisma, game.id);
 }
 
 async function applyCompletionTimesToGame(
@@ -307,7 +325,7 @@ async function applyCompletionTimesToGame(
     },
   });
 
-  return game;
+  return refreshGameCompletionModel(prisma, game.id);
 }
 
 async function applyReviewScoreToGame(
@@ -1430,9 +1448,12 @@ export async function getProfileData(
       { status: { not: UserGameStatus.WISHLIST } },
     ],
   } satisfies Prisma.UserGameEntryWhereInput;
+  const profileGameQuery = {
+    include: { providerLinks: { select: { storyAchievementId: true } } },
+  } satisfies Prisma.GameDefaultArgs;
   const gameEntriesQuery = {
     include: {
-      game: true,
+      game: profileGameQuery,
     },
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
     ...(shouldLoadFullGameEntries
@@ -1460,7 +1481,7 @@ export async function getProfileData(
           media: true,
           userGameEntry: {
             include: {
-              game: true,
+              game: profileGameQuery,
             },
           },
         },
@@ -1497,7 +1518,7 @@ export async function getProfileData(
         currentPlayingSlot: { not: null },
       },
       include: {
-        game: true,
+        game: profileGameQuery,
       },
       orderBy: [{ currentPlayingSlot: "asc" }, { updatedAt: "desc" }],
     }),
@@ -1509,7 +1530,7 @@ export async function getProfileData(
         finishedAt: null,
       },
       include: {
-        game: true,
+        game: profileGameQuery,
       },
       orderBy: [{ playingNextSlot: "asc" }, { updatedAt: "desc" }],
       take: 3,

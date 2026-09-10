@@ -90,6 +90,20 @@ enum AssistantSignalType {
   UPCOMING_RELEASE_WATCH
 }
 
+enum GameCompletionModel {
+  UNKNOWN
+  CAMPAIGN
+  ONGOING
+  HYBRID
+}
+
+enum GameCompletionModelSource {
+  METADATA
+  RULES
+  MANUAL
+  AI
+}
+
 enum BetaTesterStatus {
   DRAFT
   PENDING
@@ -224,7 +238,12 @@ model Game {
   aggregatedRating          Float?
   totalRatingCount          Int?
   genres                    Json?
+  gameModes                 Json?
   platforms                 Json?
+  completionModel           GameCompletionModel @default(UNKNOWN)
+  completionModelSource     GameCompletionModelSource?
+  completionModelConfidence Int?
+  completionModelCheckedAt  DateTime?
   screenshots               Json?
   websites                  Json?
   metadataSource            ExternalProvider?

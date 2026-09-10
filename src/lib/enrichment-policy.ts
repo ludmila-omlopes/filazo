@@ -4,6 +4,7 @@ type GameEnrichmentFields = {
   coverUrl: string | null;
   heroUrl: string | null;
   igdbCheckedAt: Date | null;
+  gameModes?: unknown;
   hltbMainStoryMinutes: number | null;
   hltbMainExtraMinutes: number | null;
   hltbCompletionistMinutes: number | null;
@@ -34,7 +35,9 @@ export function shouldSearchIgdb(
     return false;
   }
 
-  return !game.igdbId || !game.summary || !game.coverUrl || !game.heroUrl;
+  // null/absent means this field has never been fetched. An empty array is
+  // a valid provider response and must not create an endless refresh loop.
+  return !game.igdbId || !game.summary || !game.coverUrl || !game.heroUrl || !Array.isArray(game.gameModes);
 }
 
 export function shouldSearchHltb(

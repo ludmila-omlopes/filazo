@@ -16,7 +16,10 @@ A calm, personal game library. Filazo gathers games from multiple sources into o
 - Imports generic, PlayStation, and Xbox CSV exports; photo import is available when AI is configured.
 - Enriches titles with optional IGDB, HowLongToBeat, and Steam-provided Metacritic metadata.
 - Offers game pages, journals, reviews, completion tracking, play-next suggestions, and an optional AI assistant.
+- Classifies games as campaign, ongoing, hybrid, or unknown; the profile structure filter is opt-in and starts inactive.
 - Supports English and Brazilian Portuguese.
+
+Game structure uses main-story estimates and story-completion trophies as campaign evidence; solo or cooperative play alone does not establish a campaign. Automatic classifications are recalculated from current evidence, while manual choices retain their value and provenance. Existing titles with missing game modes become eligible for metadata enrichment on library sync or a game-page visit, respecting the seven-day retry interval. An empty modes response is considered fetched and does not trigger repeated searches. Apply the current schema with `npm run db:init` before deploying this feature.
 
 > **Catalog rule:** `Game` is the shared canonical record. `GameProviderLink` maps a provider's IDs to it, and `UserGameEntry` stores a person's ownership, progress, and status. New integrations must use this resolution flow.
 

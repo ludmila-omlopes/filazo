@@ -119,7 +119,10 @@ export function toAssistantEntry(
       igdbId: entry.game.igdbId,
       summary: entry.game.summary,
       genres: entry.game.genres,
+      gameModes: entry.game.gameModes,
       platforms: entry.game.platforms,
+      completionModel: entry.game.completionModel,
+      completionModelSource: entry.game.completionModelSource,
       metadataSource: entry.game.metadataSource,
       aggregatedRating: entry.game.aggregatedRating,
       hltbMainStoryMinutes: entry.game.hltbMainStoryMinutes,
@@ -130,6 +133,7 @@ export function toAssistantEntry(
       providerLinks: entry.game.providerLinks.map((link) => ({
         provider: link.provider,
         hasStoreUrl: Boolean(link.storeUrl),
+        hasStoryAchievement: Boolean(link.storyAchievementId),
       })),
     },
   };

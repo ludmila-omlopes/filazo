@@ -7,6 +7,7 @@ import {
 import { getTitleTrophies, getUserTrophiesEarnedForTitle } from "psn-api";
 import { getPlayStationAuthorizationForAccount } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
+import { refreshGameCompletionModel } from "@/lib/game-completion-refresh";
 import { getOpenAiConfig } from "@/lib/openai";
 import { runWithAiBudget } from "./ai-budget.ts";
 import { estimateTokensFromValue } from "./ai-estimates.ts";
@@ -164,6 +165,7 @@ async function resolveStoryAchievementForLink(
   aiSettings: AiSettingsValues,
 ): Promise<StoryAchievementResolution> {
   if (isStoryCacheFresh(link)) {
+    await refreshGameCompletionModel(prisma, link.gameId);
     if (link.storyAchievementId) {
       return {
         id: link.storyAchievementId,
@@ -213,6 +215,7 @@ async function resolveStoryAchievementForLink(
       storyAchievementCheckedAt: new Date(),
     },
   });
+  await refreshGameCompletionModel(prisma, link.gameId);
 
   return pick ? { id: pick.id, name: pick.name, source } : null;
 }
