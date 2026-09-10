@@ -112,6 +112,17 @@ test("identifies PlayStation non-game categories", () => {
 test("formats comma-separated PlayStation platforms", () => {
   assert.equal(
     formatPlayStationPlatform("PS4,PS5"),
-    "PlayStation PS4, PlayStation PS5",
+    "PS4, PS5",
   );
+});
+
+test("merging platform lists removes duplicates from purchases, trophies and play history", () => {
+  const base = { providerGameId: "titleId:bundle", title: "Cross-generation game" };
+  const [game] = mergePlayStationSyncedGames(
+    [{ ...base, platformName: "PlayStation PS5" }],
+    [{ ...base, platformName: "PlayStation PS4, PlayStation PS5" }],
+    [{ ...base, platformName: "PS5, PlayStation, ps4" }],
+  );
+  assert.equal(game.platformName, "PS5, PS4");
+  assert.equal(mergePlayStationSyncedGames([game], [game], [game])[0].platformName, "PS5, PS4");
 });

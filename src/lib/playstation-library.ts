@@ -1,6 +1,7 @@
 import type { PurchasedGame, TrophyTitle } from "psn-api";
 import type { SyncedLibraryGame } from "./providers/contracts.ts";
 import { normalizeTitle } from "./utils.ts";
+import { formatPlatformNames } from "./platform-names.ts";
 
 export type PlayStationPlayedGame = {
   titleId: string;
@@ -100,34 +101,11 @@ export function getPlayStationPlayedPlatformName(
 }
 
 export function normalizePlayStationPlatformName(value: string) {
-  const normalized = value.trim().toUpperCase();
-
-  if (normalized === "PS5") {
-    return "PlayStation PS5";
-  }
-
-  if (normalized === "PS4") {
-    return "PlayStation PS4";
-  }
-
-  if (normalized === "PSPC") {
-    return "PlayStation PC";
-  }
-
-  if (normalized === "PSVR2") {
-    return "PlayStation VR2";
-  }
-
-  return value.trim();
+  return formatPlatformNames(value);
 }
 
 export function formatPlayStationPlatform(value: string) {
-  return uniqueValues(
-    value
-      .split(",")
-      .map((platform) => normalizePlayStationPlatformName(platform))
-      .filter(Boolean),
-  ).join(", ");
+  return formatPlatformNames(value);
 }
 
 export function createConceptStoreUrl(conceptId: string | null | undefined) {
@@ -285,6 +263,7 @@ export function mergePlayStationSyncedGames(
     if (!existing) {
       const nextGame = {
         ...game,
+        platformName: formatPlatformNames(game.platformName) || undefined,
         providerGameIds: providerIds,
         rawData: {
           playStationSyncSources: [game.rawData],
@@ -309,10 +288,10 @@ export function mergePlayStationSyncedGames(
       ) ??
       providerIds.find((providerId) => providerId.startsWith("titleId:")) ??
       existing.providerGameId;
-    existing.platformName = uniqueValues([
+    existing.platformName = formatPlatformNames([
       existing.platformName,
       game.platformName,
-    ]).join(", ");
+    ].filter(Boolean).join(", ")) || undefined;
     existing.storeUrl = existing.storeUrl ?? game.storeUrl ?? null;
     existing.completionPercent =
       existing.completionPercent ?? game.completionPercent ?? null;

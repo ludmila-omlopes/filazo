@@ -46,6 +46,7 @@ import {
   sortProfileGameEntries,
 } from "@/lib/profile-games";
 import { getSessionUserId } from "@/lib/session";
+import { formatPlatformNames } from "@/lib/platform-names";
 
 export const maxDuration = 60;
 
@@ -120,7 +121,7 @@ export default async function ProfilePage({
 
   const activeSignal = parseAssistantSignal(query.signal);
   const activeStatus = parseActiveStatus(query.status);
-  const activePlatform = query.platform?.trim() || null;
+  const activePlatform = formatPlatformNames(query.platform) || null;
   const activeCompletionModel = parseActiveCompletionModel(query.structure);
   const activeJournalEntryId = query.entryId?.trim() || null;
   const includeDormant = query.includeDormant === "1";

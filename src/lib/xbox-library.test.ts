@@ -64,7 +64,7 @@ test("merges Xbox title hub and achievement history records", () => {
   assert.equal(games.length, 3);
   const merged = games.find((game) => game.providerGameId === "titleId:101")!;
   assert.equal(merged.title, "Title Hub Name");
-  assert.equal(merged.platformName, "Xbox Series");
+  assert.equal(merged.platformName, "Xbox Series X/S");
   assert.equal(merged.completionPercent, 42);
   assert.equal(merged.lastPlayedAt?.toISOString(), lastPlayed);
   assert.deepEqual(merged.providerGameIds, [
@@ -75,11 +75,11 @@ test("merges Xbox title hub and achievement history records", () => {
   ]);
   assert.equal(
     games.find((game) => game.title === "History Only")?.platformName,
-    "Durango",
+    "Xbox One",
   );
   assert.equal(
     games.find((game) => game.title === "Windows Game")?.platformName,
-    "Xbox / Windows",
+    "PC",
   );
 });
 

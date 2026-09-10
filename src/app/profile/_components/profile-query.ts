@@ -1,5 +1,6 @@
 import { AssistantSignalType, GameCompletionModel, UserGameStatus } from "@prisma/client";
 import { getEffectiveGameCompletionModel } from "../../../lib/game-completion-model.ts";
+import { normalizePlatformNames } from "../../../lib/platform-names.ts";
 import { createTranslator, type Locale } from "../../../lib/i18n.ts";
 import type { ProfileEntry, ProfileTab, StatusMessage } from "./profile-types";
 
@@ -313,25 +314,40 @@ export function getStatusMessage(
   return null;
 }
 
-export function getUserPlatformLabel(entry: ProfileEntry) {
-  const platformName = entry.platformName?.trim();
-  if (platformName) {
-    return platformName;
+export function getUserPlatformLabels(entry: ProfileEntry) {
+  const platforms = normalizePlatformNames(entry.platformName);
+  if (platforms.length) {
+    return platforms;
   }
 
   if (entry.provider === "STEAM") {
-    return "Steam";
+    return ["Steam"];
   }
 
   if (entry.provider === "PLAYSTATION") {
-    return "PlayStation";
+    return ["PlayStation"];
   }
 
   if (entry.provider === "XBOX") {
-    return "Xbox";
+    return ["Xbox"];
   }
 
-  return null;
+  return [];
+}
+
+export function getUserPlatformLabel(entry: ProfileEntry) {
+  return getUserPlatformLabels(entry).join(", ") || null;
+}
+
+export function getPlatformFilterOptions(entries: ProfileEntry[]) {
+  return [...new Set(entries.flatMap((entry) => {
+    const labels = getUserPlatformLabels(entry);
+    return labels.length ? labels : [UNKNOWN_PLATFORM_FILTER];
+  }))].sort((left, right) => {
+    if (left === UNKNOWN_PLATFORM_FILTER) return 1;
+    if (right === UNKNOWN_PLATFORM_FILTER) return -1;
+    return left.localeCompare(right, "en", { numeric: true });
+  });
 }
 
 export function isDormantEntry(entry: ProfileEntry) {
@@ -359,6 +375,7 @@ export function filterEntries({
   signalEntryIds: Set<string> | null;
 }) {
   const normalizedQuery = queryText.trim().toLowerCase();
+  const selectedPlatforms = normalizePlatformNames(activePlatform);
 
   return entries.filter((entry) => {
     if (signalEntryIds && !signalEntryIds.has(entry.id)) {
@@ -381,12 +398,12 @@ export function filterEntries({
     }
 
     if (activePlatform) {
-      const platformLabel = getUserPlatformLabel(entry);
+      const platformLabels = getUserPlatformLabels(entry);
       if (activePlatform === UNKNOWN_PLATFORM_FILTER) {
-        if (platformLabel) {
+        if (platformLabels.length) {
           return false;
         }
-      } else if (platformLabel !== activePlatform) {
+      } else if (!selectedPlatforms.some((platform) => platformLabels.includes(platform))) {
         return false;
       }
     }
@@ -395,7 +412,7 @@ export function filterEntries({
       return true;
     }
 
-    return [entry.game.name, getUserPlatformLabel(entry)]
+    return [entry.game.name, entry.platformName, ...getUserPlatformLabels(entry)]
       .filter(Boolean)
       .some((value) => value!.toLowerCase().includes(normalizedQuery));
   });

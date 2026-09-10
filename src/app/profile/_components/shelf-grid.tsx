@@ -16,6 +16,7 @@ import { PhysicalMediaButton } from "./physical-media-button";
 import { markDroppedAction, markFinishedAction } from "../actions";
 import {
   COMPLETION_MODEL_FILTERS,
+  getPlatformFilterOptions,
   getUserPlatformLabel,
   UNKNOWN_PLATFORM_FILTER,
 } from "./profile-query";
@@ -169,7 +170,7 @@ function ShelfCard({
         <GameCard
           game={entry.game}
           isPhysicalCopy={entry.isPhysicalCopy}
-          platformName={entry.platformName}
+          platformName={getUserPlatformLabel(entry)}
           playtimeMinutes={entry.playtimeMinutes}
           completionPercent={entry.completionPercent}
           status={status}
@@ -207,7 +208,7 @@ function ShelfCard({
       <GameCard
         game={entry.game}
         isPhysicalCopy={entry.isPhysicalCopy}
-        platformName={entry.platformName}
+        platformName={getUserPlatformLabel(entry)}
         playtimeMinutes={entry.playtimeMinutes}
         completionPercent={entry.completionPercent}
         status={status}
@@ -254,13 +255,7 @@ export function ShelfGrid({
 }) {
   const t = createTranslator(locale);
   const statuses = Array.from(new Set(allEntries.map((entry) => entry.status)));
-  const platforms = Array.from(
-    new Set(
-      allEntries.map(
-        (entry) => getUserPlatformLabel(entry) ?? UNKNOWN_PLATFORM_FILTER,
-      ),
-    ),
-  ).slice(0, 10);
+  const platforms = getPlatformFilterOptions(allEntries);
   const {
     activePlatform,
     activeCompletionModel,
