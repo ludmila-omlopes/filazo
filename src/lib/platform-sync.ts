@@ -18,6 +18,7 @@ import {
 } from "@/lib/platform-sync-policy";
 import { prisma } from "@/lib/prisma";
 import { steamSyncQueue } from "@/lib/steam-sync-queue";
+import { getSyncWorkerScope } from "@/lib/steam-sync-state";
 
 const SCHEDULER_STATE_ID = "platform-sync";
 const LEASE_BUFFER_MS = 5 * 60 * 1000;
@@ -97,6 +98,7 @@ async function recordSkippedRun({
         provider: account.provider,
         trigger,
         status: PlatformSyncRunStatus.SKIPPED,
+        workerScope: getSyncWorkerScope(),
         startedAt: now,
         finishedAt: now,
         attempt: account.syncFailureCount + 1,
@@ -181,6 +183,7 @@ async function acquireAccountLease({
         provider: lockedAccount.provider,
         trigger,
         status: PlatformSyncRunStatus.RUNNING,
+        workerScope: getSyncWorkerScope(),
         startedAt: now,
         leaseExpiresAt,
         attempt: lockedAccount.syncFailureCount + 1,

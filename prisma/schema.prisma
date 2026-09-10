@@ -164,6 +164,7 @@ model ExternalAccount {
   gameEntries       UserGameEntry[]
   userGameProviderLinks UserGameProviderLink[]
   platformSyncRuns  PlatformSyncRun[]
+  syncIncidentMembers SyncIncidentMember[]
 
   @@unique([provider, providerAccountId])
   @@index([userId, provider])
@@ -190,6 +191,7 @@ model PlatformSyncRun {
   totalCount        Int?
   workerToken       String?
   nextAttemptAt     DateTime              @default(now())
+  lastProgressAt    DateTime?
   createdAt         DateTime              @default(now())
   updatedAt         DateTime              @updatedAt
   externalAccount   ExternalAccount       @relation(fields: [externalAccountId], references: [id], onDelete: Cascade)
@@ -205,6 +207,7 @@ model PlatformSyncSchedulerState {
   leaseToken      String?
   leaseExpiresAt  DateTime?
   lastTriggeredAt DateTime?
+  scanCursor      String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
@@ -566,6 +569,7 @@ model Feedback {
   updatedAt DateTime       @updatedAt
   user      User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
   comments  FeedbackComment[]
+  syncIncident SyncIncident?
 
   @@index([status, createdAt])
   @@index([userId, createdAt])
@@ -574,15 +578,57 @@ model Feedback {
 model FeedbackComment {
   id           String   @id @default(cuid())
   feedbackId   String
-  authorUserId String
+  authorUserId String?
+  isSystem     Boolean  @default(false)
   body         String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   feedback     Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
-  author       User     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  author       User?    @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
 
   @@index([feedbackId, createdAt])
   @@index([authorUserId, createdAt])
+}
+
+model SyncIncident {
+  id                 String   @id @default(cuid())
+  key                String
+  activeKey          String?  @unique
+  provider           ExternalProvider
+  feedbackId         String   @unique
+  recoveredAt        DateTime?
+  emailSentAt        DateTime?
+  emailAttempts      Int      @default(0)
+  emailNextAttemptAt DateTime @default(now())
+  emailLastError     String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  feedback           Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  members            SyncIncidentMember[]
+
+  @@index([key, createdAt])
+  @@index([emailSentAt, emailNextAttemptAt])
+}
+
+// Keep incident history when source accounts are disconnected or old runs expire.
+// These snapshots are only available through administrator-authorized pages.
+model SyncIncidentMember {
+  incidentId        String
+  externalAccountId String
+  accountId         String?
+  runId             String
+  userLabel         String
+  state             String
+  errorCode         String?
+  progress          Int?
+  totalCount        Int?
+  updatedAt         DateTime @updatedAt
+  incident          SyncIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  account           ExternalAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@id([incidentId, externalAccountId])
+  @@index([externalAccountId])
+  @@index([accountId])
 }
 
 model ImportJob {

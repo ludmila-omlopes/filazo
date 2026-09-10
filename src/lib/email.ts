@@ -2,6 +2,37 @@
 
 import { Resend } from "resend";
 import { getBetaDiscordInviteUrl } from "@/lib/beta-community";
+import { ADMIN_EMAIL } from "@/lib/beta-access";
+
+export async function sendSyncIncidentEmail(input: {
+  id: string;
+  feedbackId: string;
+  provider: string;
+}) {
+  const config = getEmailConfig();
+  if (!config) return { sent: false, reason: "not-configured" } as const;
+  const feedbackUrl = `${getBaseUrl()}/admin/feedback#feedback-${input.feedbackId}`;
+  // Stable content and key allow retrying an uncertain response safely.
+  const text = `Foi aberto um incidente de sincronização ${input.provider} na filazo.\n\nConsulte as pessoas afetadas, o erro e o progresso no chamado:\n${feedbackUrl}\n\nA recuperação será registrada no mesmo chamado. O fechamento é manual.`;
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
+      "Idempotency-Key": `sync-incident-${input.id}`,
+    },
+    signal: AbortSignal.timeout(8_000),
+    body: JSON.stringify({
+      from: config.from, to: ADMIN_EMAIL, reply_to: config.replyTo,
+      subject: `filazo: incidente de sincronização ${input.provider}`,
+      text,
+    }),
+  });
+  if (!response.ok) throw new Error("Sync incident email delivery failed.");
+  const result = await response.json() as { id?: string };
+  if (!result.id) throw new Error("Sync incident email receipt missing.");
+  return { sent: true, id: result.id } as const;
+}
 
 function getBaseUrl() {
   return (process.env.APP_URL || "http://localhost:3001").replace(/\/+$/, "");

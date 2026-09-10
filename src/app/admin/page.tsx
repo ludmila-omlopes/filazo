@@ -79,6 +79,11 @@ export default async function AdminPage({
 
   const areas = [
     {
+      href: "/admin/sync",
+      titleKey: "admin.nav.sync",
+      bodyKey: "admin.sync.description",
+    },
+    {
       href: "/admin/beta",
       titleKey: "admin.nav.beta",
       bodyKey: "admin.overview.beta.body",

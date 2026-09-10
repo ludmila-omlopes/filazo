@@ -54,6 +54,7 @@ export default async function AdminFeedbackPage({
 
   const feedbackItems = await prisma.feedback.findMany({
     include: {
+      syncIncident: { select: { id: true, recoveredAt: true } },
       user: {
         select: { displayName: true, email: true },
       },
@@ -117,6 +118,7 @@ export default async function AdminFeedbackPage({
             {column.items.length ? (
               column.items.map((item) => (
                 <article
+                  id={`feedback-${item.id}`}
                   className="grid gap-3 rounded-inner border border-edge bg-canvas p-4"
                   key={item.id}
                 >
@@ -141,7 +143,7 @@ export default async function AdminFeedbackPage({
                   </div>
 
                   <p className="truncate text-xs font-semibold text-ink-soft">
-                    {item.user?.displayName ?? t("admin.feedback.anonymous")}
+                    {item.syncIncident ? t("feedback.conversation.system") : item.user?.displayName ?? t("admin.feedback.anonymous")}
                     {item.user?.email ? ` · ${item.user.email}` : ""}
                   </p>
 
@@ -157,9 +159,9 @@ export default async function AdminFeedbackPage({
                         >
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="font-semibold">
-                              {isAdminEmail(comment.author.email)
+                              {comment.isSystem ? t("feedback.conversation.system") : isAdminEmail(comment.author?.email)
                                 ? t("feedback.conversation.support")
-                                : comment.author.displayName ??
+                                : comment.author?.displayName ??
                                   t("feedback.conversation.you")}
                             </p>
                             <p className="text-xs text-ink-soft">

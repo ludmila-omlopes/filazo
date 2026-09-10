@@ -46,3 +46,4 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:steam-sync
+      - run: npm run test:sync-monitor
