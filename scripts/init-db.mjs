@@ -19,7 +19,7 @@ if (databaseUrl.startsWith("file:")) {
   process.exit(1);
 }
 
-// Includes PlatformSyncRun checkpoints and GameMetadataJob. This is schema
+// Includes PlatformSyncRun checkpoints, UserGameProviderLink and GameMetadataJob. This is schema
 // bootstrap only: workers require a normally generated Prisma client too.
 const result = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
   cwd: process.cwd(),

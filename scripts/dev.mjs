@@ -2,14 +2,22 @@ import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import nextEnv from "@next/env";
 
+const inheritedEnv = { ...process.env };
 nextEnv.loadEnvConfig(process.cwd(), true);
 // Local workers need the same private credential as the Next process. Never
 // write a generated secret to disk or expose it to browser code.
-process.env.CRON_SECRET ||= randomBytes(32).toString("hex");
+const cronSecret = process.env.CRON_SECRET?.trim() || randomBytes(32).toString("hex");
 const server = spawn(process.execPath, [
   "node_modules/next/dist/bin/next", "dev", "--hostname", "localhost", "--port", "3001",
   ...process.argv.slice(2),
-], { stdio: "inherit", env: process.env, windowsHide: true });
+], {
+  stdio: "inherit",
+  // Let Next load and reload application credentials from .env files itself.
+  // Passing loadEnvConfig's whole result pins those values in process.env,
+  // which takes precedence even after Next detects an edited .env file.
+  env: { ...inheritedEnv, CRON_SECRET: cronSecret },
+  windowsHide: true,
+});
 const controller = new AbortController();
 const timers = new Set();
 
@@ -17,7 +25,7 @@ async function pollWorker(path) {
   if (controller.signal.aborted) return;
   try {
     const response = await fetch(`http://localhost:3001/api/internal/${path}`, {
-      headers: { Authorization: `Bearer ${process.env.CRON_SECRET}` },
+      headers: { Authorization: `Bearer ${cronSecret}` },
       signal: AbortSignal.any([controller.signal, AbortSignal.timeout(60_000)]),
     });
     if (!response.ok) console.warn(`Local ${path} returned ${response.status}.`);
