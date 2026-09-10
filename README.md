@@ -132,6 +132,16 @@ Automated daily provider sync is disabled by default. To enable it, set `PLATFOR
 
 Run `npm run test:steam-sync` with a PostgreSQL `DATABASE_URL` to verify queue concurrency, interruption/recovery, canonical matching, retries and libraries larger than one batch. The harness creates a uniquely named isolated schema and removes it afterwards; it uses fake provider responses and does not import into real users' libraries or contact Steam/metadata services.
 
+### Sync incident monitoring
+
+Apply `prisma/migrations/20260910140000_sync_incident_monitoring/migration.sql` once to existing databases before deploying the monitor (or use `npm run db:init` for a fresh/current schema). Generate the Prisma client normally afterwards. This adds incident membership, email delivery state, real progress timestamps and system feedback comments; it preserves existing feedback and library data.
+
+The authenticated `/api/internal/sync-monitor` cron runs every minute independently of the import workers and `PLATFORM_SYNC_ENABLED`. It only processes production runs and does nothing in development or preview. A terminal failure or 15 minutes without progress opens an admin-only BUG card in `/admin/feedback`; intentional provider backoff is respected. Steam application credential failures are grouped across users. The scan uses a persistent cursor and a lease, so larger account sets are covered over successive bounded invocations. On other hosts, schedule this endpoint with the same `Authorization: Bearer <CRON_SECRET>` header.
+
+Each incident sends an email to `ADMIN_EMAIL` using the existing `RESEND_API_KEY`, `BETA_APPROVAL_FROM_EMAIL`, `BETA_APPROVAL_REPLY_TO` and `APP_URL` settings. Delivery state is persisted, retries use backoff and a stable provider idempotency key, and ordinary progress does not send more email. If email is missing or unavailable, the card still exists and `/admin/sync` shows the delivery failure. System comments record changed errors, retries, recovery and disconnection. Recovery leaves the card open until an admin closes it; closing acknowledges that run, while a new failed run can open a new incident.
+
+The protected `/admin/sync` page shows affected users, progress, errors, recovered incidents awaiting closure and recent production runs. It refreshes every 30 seconds while visible and warns if the monitor has not completed a scan recently. Run `npm run test:sync-monitor` for isolated PostgreSQL checks covering concurrent scans, grouping, email retries, recovery, closure, recurrence, disconnects and stalled work. All email deliveries are simulated. The PostgreSQL test harness uses Neon's direct hostname for schema isolation, since schema DDL needs session continuity; see [Neon connection pooling](https://neon.com/docs/connect/connection-pooling).
+
 ## Localization and product direction
 
 The interface ships in English and `pt-BR`. The locale is stored in the `filazo-locale` cookie; routes are not locale-prefixed.

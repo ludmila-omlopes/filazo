@@ -206,7 +206,7 @@ export default async function FeedbackPage({
                             >
                               <div className="flex flex-wrap items-center justify-between gap-2">
                                 <p className="font-semibold">
-                                  {isAdminEmail(comment.author.email)
+                                  {comment.isSystem ? t("feedback.conversation.system") : isAdminEmail(comment.author?.email)
                                     ? t("feedback.conversation.support")
                                     : t("feedback.conversation.you")}
                                 </p>

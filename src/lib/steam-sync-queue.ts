@@ -127,7 +127,7 @@ export function createSteamSyncQueue({
             avatarUrl: profile.avatarUrl, profileUrl: profile.profileUrl,
           } });
           await tx.platformSyncRun.update({ where: { id: run.id }, data: {
-            snapshot: snapshot as Prisma.InputJsonValue, totalCount: games.length,
+            snapshot: snapshot as Prisma.InputJsonValue, totalCount: games.length, lastProgressAt: new Date(),
           } });
         });
       }
@@ -145,6 +145,7 @@ export function createSteamSyncQueue({
           }, tx);
           await tx.platformSyncRun.update({ where: { id: run.id }, data: {
             cursor: cursor + 1, syncedCount: cursor + 1, attempt: 0, errorCode: null, errorMessage: null,
+            lastProgressAt: new Date(),
           } });
         }, { timeout: 20_000, maxWait: 5_000 });
         cursor++;
