@@ -26,14 +26,44 @@ test("classifies multiplayer-only and MMO games as ongoing", () => {
 
 test("keeps games with campaign and service evidence as hybrid", () => {
   assert.equal(
-    inferGameCompletionModel({ gameModes: ["Single player", "Multiplayer"], genres: ["Sports"] }).model,
+    inferGameCompletionModel({ gameModes: ["Single player", "Multiplayer"], genres: ["Sports"], hltbMainStoryMinutes: 600 }).model,
     GameCompletionModel.HYBRID,
   );
 });
 
-test("stored model wins over inferred unknown data", () => {
+test("manual model wins over automatic evidence, including manual unknown", () => {
   assert.equal(
-    getEffectiveGameCompletionModel({ completionModel: GameCompletionModel.CAMPAIGN, gameModes: ["Multiplayer"] }),
+    getEffectiveGameCompletionModel({ completionModel: GameCompletionModel.CAMPAIGN, completionModelSource: "MANUAL", gameModes: ["Multiplayer"] }),
     GameCompletionModel.CAMPAIGN,
   );
+  assert.equal(
+    getEffectiveGameCompletionModel({ completionModel: "UNKNOWN", completionModelSource: "MANUAL", hltbMainStoryMinutes: 600 }),
+    GameCompletionModel.UNKNOWN,
+  );
+});
+
+test("cooperative campaigns retain their main-story evidence", () => {
+  for (const mode of ["Co-operative", "Multiplayer", "Split screen"]) {
+    assert.equal(
+      inferGameCompletionModel({ gameModes: [mode], hltbMainStoryMinutes: 600 }).model,
+      GameCompletionModel.CAMPAIGN,
+    );
+  }
+});
+
+test("solo play alone is not evidence of a finite campaign", () => {
+  assert.equal(inferGameCompletionModel({ gameModes: ["Single player"], genres: ["Pinball"] }).model, GameCompletionModel.ONGOING);
+  assert.equal(inferGameCompletionModel({ gameModes: ["Single player"] }).model, GameCompletionModel.UNKNOWN);
+  assert.equal(inferGameCompletionModel({ gameModes: ["Co-operative"] }).model, GameCompletionModel.UNKNOWN);
+});
+
+test("automatic models are recalculated when a story marker is discovered", () => {
+  const game = { completionModel: "ONGOING", completionModelSource: "RULES", gameModes: ["Multiplayer"] };
+  assert.equal(getEffectiveGameCompletionModel(game), GameCompletionModel.ONGOING);
+  assert.equal(getEffectiveGameCompletionModel({ ...game, providerLinks: [{ storyAchievementId: "credits" }] }), GameCompletionModel.CAMPAIGN);
+  assert.equal(getEffectiveGameCompletionModel({ ...game, gameModes: ["Massively Multiplayer Online"], providerLinks: [{ hasStoryAchievement: true }] }), GameCompletionModel.HYBRID);
+});
+
+test("old automatic solo classifications are not retained without story evidence", () => {
+  assert.equal(getEffectiveGameCompletionModel({ completionModel: "CAMPAIGN", completionModelSource: "RULES", gameModes: ["Single player"] }), GameCompletionModel.UNKNOWN);
 });

@@ -122,6 +122,7 @@ export function toAssistantEntry(
       gameModes: entry.game.gameModes,
       platforms: entry.game.platforms,
       completionModel: entry.game.completionModel,
+      completionModelSource: entry.game.completionModelSource,
       metadataSource: entry.game.metadataSource,
       aggregatedRating: entry.game.aggregatedRating,
       hltbMainStoryMinutes: entry.game.hltbMainStoryMinutes,

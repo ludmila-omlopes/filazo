@@ -35,6 +35,7 @@ import { getBacklogEstimate } from "@/lib/play-planning";
 import {
   inferGameCompletionModel,
 } from "@/lib/game-completion-model";
+import { refreshGameCompletionModel } from "@/lib/game-completion-refresh";
 import {
   getSyncedEntryProgressData,
   getSyncedPlaytimeData,
@@ -280,28 +281,7 @@ async function applyMetadataToExistingGame(
     },
   });
 
-  const completion = inferGameCompletionModel({
-    genres: game.genres,
-    gameModes: game.gameModes,
-    hltbMainStoryMinutes: game.hltbMainStoryMinutes,
-  });
-  return prisma.game.update({
-    where: { id: game.id },
-    data: {
-      completionModel:
-        game.completionModelSource === GameCompletionModelSource.MANUAL
-          ? undefined
-          : completion.model,
-      completionModelSource:
-        game.completionModelSource === GameCompletionModelSource.MANUAL
-          ? undefined
-          : completion.model === "UNKNOWN"
-            ? null
-            : GameCompletionModelSource.RULES,
-      completionModelConfidence: completion.confidence,
-      completionModelCheckedAt: new Date(),
-    },
-  });
+  return refreshGameCompletionModel(prisma, game.id);
 }
 
 async function applyCompletionTimesToGame(
@@ -345,25 +325,7 @@ async function applyCompletionTimesToGame(
     },
   });
 
-  const completion = inferGameCompletionModel({
-    genres: game.genres,
-    gameModes: game.gameModes,
-    hltbMainStoryMinutes: game.hltbMainStoryMinutes,
-  });
-  if (game.completionModelSource !== GameCompletionModelSource.MANUAL) {
-    return prisma.game.update({
-      where: { id: game.id },
-      data: {
-        completionModel: completion.model,
-        completionModelSource:
-          completion.model === "UNKNOWN" ? null : GameCompletionModelSource.RULES,
-        completionModelConfidence: completion.confidence,
-        completionModelCheckedAt: new Date(),
-      },
-    });
-  }
-
-  return game;
+  return refreshGameCompletionModel(prisma, game.id);
 }
 
 async function applyReviewScoreToGame(
@@ -1486,9 +1448,12 @@ export async function getProfileData(
       { status: { not: UserGameStatus.WISHLIST } },
     ],
   } satisfies Prisma.UserGameEntryWhereInput;
+  const profileGameQuery = {
+    include: { providerLinks: { select: { storyAchievementId: true } } },
+  } satisfies Prisma.GameDefaultArgs;
   const gameEntriesQuery = {
     include: {
-      game: true,
+      game: profileGameQuery,
     },
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
     ...(shouldLoadFullGameEntries
@@ -1516,7 +1481,7 @@ export async function getProfileData(
           media: true,
           userGameEntry: {
             include: {
-              game: true,
+              game: profileGameQuery,
             },
           },
         },
@@ -1553,7 +1518,7 @@ export async function getProfileData(
         currentPlayingSlot: { not: null },
       },
       include: {
-        game: true,
+        game: profileGameQuery,
       },
       orderBy: [{ currentPlayingSlot: "asc" }, { updatedAt: "desc" }],
     }),
@@ -1565,7 +1530,7 @@ export async function getProfileData(
         finishedAt: null,
       },
       include: {
-        game: true,
+        game: profileGameQuery,
       },
       orderBy: [{ playingNextSlot: "asc" }, { updatedAt: "desc" }],
       take: 3,

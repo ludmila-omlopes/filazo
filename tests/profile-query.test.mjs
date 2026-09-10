@@ -89,7 +89,7 @@ test("profile platform filter uses user entry platform/provider context", () => 
 test("profile structure filter is opt-in and separates ongoing games", () => {
   const entries = [
     createEntry("Campaign", {
-      game: { name: "Campaign", completionModel: GameCompletionModel.CAMPAIGN },
+      game: { name: "Campaign", completionModel: GameCompletionModel.CAMPAIGN, hltbMainStoryMinutes: 600 },
     }),
     createEntry("Ongoing", {
       game: { name: "Ongoing", gameModes: ["Multiplayer"] },
@@ -120,6 +120,17 @@ test("profile structure filter is opt-in and separates ongoing games", () => {
     }).map((entry) => entry.game.name),
     ["Ongoing"],
   );
+});
+
+test("profile filter uses new story evidence but preserves manual classification", () => {
+  const storyGame = { completionModel: "ONGOING", completionModelSource: "RULES", gameModes: ["Multiplayer"], providerLinks: [{ storyAchievementId: "credits" }] };
+  const entries = [
+    createEntry("Story found", { game: { name: "Story found", ...storyGame } }),
+    createEntry("Manual", { game: { name: "Manual", ...storyGame, completionModelSource: "MANUAL" } }),
+  ];
+  const options = { activePlatform: null, activeStatus: null, entries, includeDormant: false, queryText: "", signalEntryIds: null };
+  assert.deepEqual(filterEntries({ ...options, activeCompletionModel: "CAMPAIGN" }).map((entry) => entry.id), ["Story found"]);
+  assert.deepEqual(filterEntries({ ...options, activeCompletionModel: "ONGOING" }).map((entry) => entry.id), ["Manual"]);
 });
 
 function createEntry(name, overrides = {}) {

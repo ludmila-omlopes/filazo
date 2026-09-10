@@ -7,6 +7,7 @@ type ProviderLinkLike = {
 
 export type GameCompletionSignals = {
   completionModel?: GameCompletionModel | string | null;
+  completionModelSource?: string | null;
   gameModes?: unknown;
   genres?: unknown;
   hltbMainStoryMinutes?: number | null;
@@ -40,22 +41,18 @@ export function inferGameCompletionModel(signals: GameCompletionSignals) {
     ),
   );
   const hasStoryEstimate = Number(signals.hltbMainStoryMinutes ?? 0) > 0;
-  const hasSinglePlayer = modes.some((mode) =>
-    ["single player", "single-player", "singleplayer"].includes(mode),
-  );
   const hasStrongOngoingMode = modes.some((mode) =>
     ["massively multiplayer online", "mmo", "battle royale", "moba"].includes(mode),
   );
   const hasMultiplayer = modes.some((mode) =>
-    ["multiplayer", "co-operative", "co-op", "cooperative", "split screen"].includes(mode),
+    ["multiplayer"].includes(mode),
   );
   const hasOngoingGenre = genres.some((genre) =>
     ["moba", "sports", "sport", "quiz/trivia", "pinball", "card & board game", "arcade"].includes(genre),
   );
-  const campaignEvidence =
-    hasStoryMarker ||
-    hasSinglePlayer ||
-    (hasStoryEstimate && !hasStrongOngoingMode && !hasOngoingGenre && !hasMultiplayer);
+  // Player count does not establish whether a game has a finite campaign.
+  // In particular, co-op must not invalidate a main-story estimate.
+  const campaignEvidence = hasStoryMarker || hasStoryEstimate;
   const ongoingEvidence = hasStrongOngoingMode || hasOngoingGenre || (hasMultiplayer && !campaignEvidence);
 
   let model: GameCompletionModel = GameCompletionModel.UNKNOWN;
@@ -70,7 +67,7 @@ export function inferGameCompletionModel(signals: GameCompletionSignals) {
 }
 
 export function getEffectiveGameCompletionModel(signals: GameCompletionSignals) {
-  if (isStoredModel(signals.completionModel) && signals.completionModel !== GameCompletionModel.UNKNOWN) {
+  if (signals.completionModelSource === "MANUAL" && isStoredModel(signals.completionModel)) {
     return signals.completionModel;
   }
   return inferGameCompletionModel(signals).model;

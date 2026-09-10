@@ -36,6 +36,7 @@ export type AssistantGame = {
   gameModes?: unknown;
   platforms?: unknown;
   completionModel?: string | null;
+  completionModelSource?: string | null;
   metadataSource?: ExternalProvider | null;
   aggregatedRating?: number | null;
   hltbMainStoryMinutes?: number | null;
