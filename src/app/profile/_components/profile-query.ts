@@ -27,6 +27,8 @@ export type ProfileSearchParams = Promise<{
   playstationSynced?: string;
   xbox?: string;
   xboxSynced?: string;
+  gog?: string;
+  gogSynced?: string;
   assistant?: string;
   playerProfile?: string;
   currentPlaying?: string;
@@ -167,6 +169,13 @@ export function getStatusMessage(
     };
   }
 
+  if (query.gogSynced) {
+    return {
+      tone: "success",
+      message: t("statusMessage.gogRefreshed", { count: query.gogSynced }),
+    };
+  }
+
   if (query.finishedDetected) {
     return {
       tone: "success",
@@ -271,7 +280,8 @@ export function getStatusMessage(
   if (
     query.connected ||
     query.playstation === "connected" ||
-    query.xbox === "connected"
+    query.xbox === "connected" ||
+    query.gog === "connected"
   ) {
     return {
       tone: "success",
@@ -319,6 +329,10 @@ export function getUserPlatformLabel(entry: ProfileEntry) {
 
   if (entry.provider === "XBOX") {
     return "Xbox";
+  }
+
+  if (entry.provider === "GOG") {
+    return "GOG";
   }
 
   return null;

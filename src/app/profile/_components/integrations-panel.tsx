@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import type { AiSettingsValues } from "@/lib/ai-settings";
 import { hasIgdbConfig } from "@/lib/igdb";
+import { isGogConfigured } from "@/lib/gog";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import {
   getImportSourceImages,
@@ -21,6 +22,7 @@ import { isXboxConfigured } from "@/lib/xbox";
 import { cn, formatDate, formatNumber } from "@/lib/utils";
 import {
   connectPlayStationAction,
+  connectGogAction,
   detectFinishedGamesAction,
   disconnectProviderAction,
   importCsvAction,
@@ -29,6 +31,7 @@ import {
   syncSteamLibraryAction,
   syncUserReviewsAction,
   syncXboxLibraryAction,
+  syncGogLibraryAction,
 } from "../actions";
 import { ImportImageGallery } from "./import-image-gallery";
 import { ManualGameLookupPanel } from "./manual-game-lookup-panel";
@@ -37,12 +40,14 @@ import type { ProfileData } from "./profile-types";
 type ProviderAccount =
   | ProfileData["steamAccount"]
   | ProfileData["playStationAccount"]
-  | ProfileData["xboxAccount"];
+  | ProfileData["xboxAccount"]
+  | ProfileData["gogAccount"];
 
 type SourceProvider =
   | typeof ExternalProvider.STEAM
   | typeof ExternalProvider.PLAYSTATION
-  | typeof ExternalProvider.XBOX;
+  | typeof ExternalProvider.XBOX
+  | typeof ExternalProvider.GOG;
 
 function isSourceSyncing(account: ProviderAccount) {
   if (account?.provider === ExternalProvider.STEAM) {
@@ -170,6 +175,7 @@ const providerLogoSrc: Record<SourceProvider, string> = {
   [ExternalProvider.STEAM]: "/brand/steam-logo.png",
   [ExternalProvider.PLAYSTATION]: "/brand/playstation-logo.png",
   [ExternalProvider.XBOX]: "/brand/xbox-logo.svg",
+  [ExternalProvider.GOG]: "/brand/gog-logo.svg",
 };
 
 function ProviderLogo({ provider }: { provider: SourceProvider }) {
@@ -608,6 +614,7 @@ export function IntegrationsPanel({
   );
   const playStationSyncing = isSourceSyncing(profile.playStationAccount);
   const xboxSyncing = isSourceSyncing(profile.xboxAccount);
+  const gogSyncing = isSourceSyncing(profile.gogAccount);
 
   return (
     <section className="panel bg-sky-soft/55">
@@ -796,6 +803,80 @@ export function IntegrationsPanel({
               })}
             </p>
           </details>
+        </ProviderRow>
+
+        <ProviderRow
+          account={profile.gogAccount}
+          eyebrow="GOG"
+          locale={locale}
+          provider={ExternalProvider.GOG}
+          title={t("profile.sources.gogTitle")}
+          description={t("profile.sources.gogBody")}
+          actions={
+            profile.gogAccount ? (
+              <SyncActionForm
+                action={syncGogLibraryAction}
+                buttonLabel={t("profile.sources.refreshGog")}
+                externallyPending={gogSyncing}
+                pendingLabel={t("profile.sources.refreshing")}
+                pendingNotice={t("profile.sources.gogPending")}
+              />
+            ) : isGogConfigured() ? (
+              <Button asChild>
+                <a href="/api/auth/gog" rel="noreferrer" target="_blank">
+                  {t("profile.sources.openGogLogin")}
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                </a>
+              </Button>
+            ) : (
+              <Button disabled variant="ghost">
+                {t("profile.sources.gogUnavailable")}
+              </Button>
+            )
+          }
+        >
+          {profile.gogAccount ? (
+            <div className="rounded-inner border border-sand/70 bg-sand-soft px-4 py-3 text-sm leading-relaxed text-ink-soft">
+              {t("profile.sources.gogExperimentalNotice")}
+            </div>
+          ) : isGogConfigured() ? (
+            <form action={connectGogAction} className="grid gap-4 pt-1">
+              <div className="rounded-inner border border-edge bg-canvas/70 p-4 text-sm leading-relaxed text-ink-soft">
+                <p className="font-semibold text-ink">
+                  {t("profile.sources.gogGuideTitle")}
+                </p>
+                <ol className="mt-3 grid gap-2">
+                  <li>{t("profile.sources.gogStep1")}</li>
+                  <li>{t("profile.sources.gogStep2")}</li>
+                  <li>{t("profile.sources.gogStep3")}</li>
+                </ol>
+              </div>
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold">
+                  {t("profile.sources.gogRedirectUrl")}
+                </span>
+                <input
+                  autoComplete="off"
+                  className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                  name="redirectUrl"
+                  placeholder={t("profile.sources.gogRedirectPlaceholder")}
+                  required
+                  type="url"
+                />
+              </label>
+              <Button type="submit">{t("profile.sources.connectGog")}</Button>
+              <p className="text-xs leading-relaxed text-ink-soft">
+                {t("profile.sources.gogSensitiveUrlNotice")}
+              </p>
+            </form>
+          ) : (
+            <details className="text-sm text-ink-soft">
+              <summary className="cursor-pointer font-semibold text-ink">
+                {t("profile.sources.technicalStatus")}
+              </summary>
+              <p className="mt-2">{t("profile.sources.gogMissingConfig")}</p>
+            </details>
+          )}
         </ProviderRow>
 
         <CompletionStatusRow locale={locale} profile={profile} />

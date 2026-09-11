@@ -28,6 +28,7 @@ export const PLATFORM_SYNC_PROVIDERS = [
   ExternalProvider.STEAM,
   ExternalProvider.PLAYSTATION,
   ExternalProvider.XBOX,
+  ExternalProvider.GOG,
 ] as const;
 
 export type PlatformSyncProvider = (typeof PLATFORM_SYNC_PROVIDERS)[number];
@@ -70,7 +71,8 @@ function getEnabledProviders() {
     if (provider === ExternalProvider.PLAYSTATION) {
       return policy.playStationEnabled;
     }
-    return policy.xboxEnabled;
+    if (provider === ExternalProvider.XBOX) return policy.xboxEnabled;
+    return policy.gogEnabled;
   });
 }
 

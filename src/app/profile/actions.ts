@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import {
@@ -16,6 +17,11 @@ import {
 } from "@/lib/catalog";
 import { parseCsvColumnMappingJson } from "@/lib/csv-import-mapping";
 import { getIgdbGameById } from "@/lib/igdb";
+import {
+  connectGogAccountForUser,
+  GOG_OAUTH_STATE_COOKIE,
+  parseGogRedirectUrl,
+} from "@/lib/gog";
 import { journalUploadPayloadSchema } from "@/lib/journal-media";
 import { recomputeRuleInsightsForUser } from "@/lib/assistant/insight-maintenance";
 import { createTranslator } from "@/lib/i18n";
@@ -214,7 +220,12 @@ const disconnectProviderSchema = z.enum([
   ExternalProvider.STEAM,
   ExternalProvider.PLAYSTATION,
   ExternalProvider.XBOX,
+  ExternalProvider.GOG,
 ]);
+
+const gogConnectSchema = z.object({
+  redirectUrl: z.string().trim().url().max(4096),
+});
 
 function getProviderQueryValue(provider: ExternalProvider) {
   return provider.toLowerCase();
@@ -1209,6 +1220,80 @@ export async function syncXboxLibraryAction() {
   revalidatePath("/profile");
   revalidatePath("/");
   redirect(`/profile?tab=integrations&xboxSynced=${syncedCount}`);
+}
+
+export async function connectGogAction(formData: FormData) {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect(
+      `/login?error=${encodeURIComponent(t("profileAction.needGogLogin"))}`,
+    );
+  }
+
+  const parsed = gogConnectSchema.safeParse({
+    redirectUrl: formData.get("redirectUrl"),
+  });
+  if (!parsed.success) {
+    redirect(
+      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.invalidGogRedirectUrl"))}`,
+    );
+  }
+
+  const cookieStore = await cookies();
+  const expectedState = cookieStore.get(GOG_OAUTH_STATE_COOKIE)?.value ?? "";
+  cookieStore.delete(GOG_OAUTH_STATE_COOKIE);
+
+  try {
+    const code = parseGogRedirectUrl(parsed.data.redirectUrl, expectedState);
+    await connectGogAccountForUser({ code, userId });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : t("profileAction.gogConnectFailed");
+    redirect(
+      `/profile?tab=integrations&error=${encodeURIComponent(message)}`,
+    );
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect("/profile?tab=integrations&gog=connected");
+}
+
+export async function syncGogLibraryAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect(
+      `/login?error=${encodeURIComponent(t("profileAction.needGogSyncLogin"))}`,
+    );
+  }
+
+  let result: Awaited<ReturnType<typeof runManualPlatformSync>>;
+  try {
+    result = await runManualPlatformSync({
+      userId,
+      provider: ExternalProvider.GOG,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : t("profileAction.gogSyncFailed");
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
+  }
+  if (result.kind !== "succeeded") {
+    if (result.kind === "skipped" && result.reason === "locked") {
+      redirect("/profile?tab=integrations&syncPending=1");
+    }
+    redirect(
+      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.gogSyncFailed"))}`,
+    );
+  }
+
+  revalidatePath("/profile");
+  revalidatePath("/");
+  redirect(`/profile?tab=integrations&gogSynced=${result.syncedCount}`);
 }
 
 export async function syncUserReviewsAction() {

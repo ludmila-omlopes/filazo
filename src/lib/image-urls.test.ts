@@ -14,6 +14,10 @@ test("allows local images and configured provider artwork", () => {
     isAllowedImageUrl("https://images.igdb.com/igdb/image/upload/t_cover_big/game.jpg"),
     true,
   );
+  assert.equal(
+    isAllowedImageUrl("https://images-2.gog.com/example_glx_logo.jpg"),
+    true,
+  );
 });
 
 test("rejects unknown hosts, protocols, malformed values, and unmatched paths", () => {

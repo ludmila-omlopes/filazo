@@ -59,13 +59,14 @@ AUTH_SECRET="a-long-random-secret"
 | Steam owned-library sync | `STEAM_API_KEY` (Steam sign-in itself uses OpenID) |
 | Google sign-in and beta applications | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | Xbox account sync | `XBOX_CLIENT_ID`, `XBOX_CLIENT_SECRET` |
+| Experimental GOG browser sync | `GOG_CLIENT_ID`, `GOG_CLIENT_SECRET`, optionally `GOG_REDIRECT_URI` |
 | Game metadata | `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` |
 | Approval email | `RESEND_API_KEY`, `BETA_APPROVAL_FROM_EMAIL` |
 | Feedback conversations | Uses the approval email configuration to notify users and support about replies |
 | AI features | `OPENAI_API_KEY` or `OPENROUTER_KEY` |
 | Private journal media | a private Vercel Blob store and `BLOB_READ_WRITE_TOKEN` |
 
-PlayStation sync exchanges a user-provided NPSSO for encrypted tokens and discards the NPSSO. CSV imports do not need provider credentials. Missing optional credentials disable only the relevant feature; catalog imports and sync continue where possible.
+PlayStation sync exchanges a user-provided NPSSO for encrypted tokens and discards the NPSSO. GOG opens the login on GOG's site, validates a short-lived `state`, accepts the final redirect URL pasted by the user, and stores only encrypted OAuth tokens. The GOG integration uses undocumented Galaxy endpoints, imports only games owned directly on GOG, and can break if those endpoints change. CSV imports do not need provider credentials. Missing optional credentials disable only the relevant feature; catalog imports and sync continue where possible.
 
 Feedback cards include a two-way comment thread for identified users. The user can reply while the card is open; moving it to `DONE` or `DECLINED` closes the conversation. Run `npm run db:init` after deploying schema changes so the `FeedbackComment` table is available.
 
@@ -106,6 +107,7 @@ src/
   lib/steam.ts         Steam OpenID and Web API integration
   lib/playstation.ts   PlayStation token and library integration
   lib/xbox.ts          Microsoft/Xbox OAuth and sync
+  lib/gog.ts           experimental GOG browser OAuth and owned-library sync
   lib/igdb.ts          optional metadata enrichment
 prisma/schema.prisma   data model
 prisma/migrations/     migration history
@@ -122,13 +124,13 @@ Runtime exceptions are reported to the `emada/filazo` Sentry project. Handled da
 
 Steam imports run in the background. The Sources action saves a `PlatformSyncRun` and returns immediately; users can navigate away or close the tab. A server worker stores the Steam response once and commits canonical resolution, ownership and the cursor together for each game. Runs use bounded batches with expiring leases, automatic backoff and recovery after a process restart. Duplicate clicks reuse the active run. After repeated failures, a manual retry resumes the saved snapshot in a new audit run. Disconnecting the Steam account cancels its queued work. Optional metadata is enriched separately through `GameMetadataJob`.
 
-Before deploying this change, apply `prisma/migrations/20260909190000_background_steam_sync/migration.sql` and `prisma/migrations/20260910124000_steam_user_game_provider_links/migration.sql` to existing databases (or run `npm run db:init` when bootstrapping the current schema), and generate the Prisma client normally. The second migration creates the existing `UserGameProviderLink` model on databases that did not receive it through `db push`; it is safe to apply if the table already exists. Stop local Next processes before regenerating the client on Windows. Do not generate an engine-free client for a direct PostgreSQL URL.
+Before deploying this change, apply `prisma/migrations/20260909190000_background_steam_sync/migration.sql`, `prisma/migrations/20260910124000_steam_user_game_provider_links/migration.sql`, and `prisma/migrations/20260910170000_add_gog_browser_sync/migration.sql` to existing databases (or run `npm run db:init` when bootstrapping the current schema), and generate the Prisma client normally. The provider-link migration creates the existing `UserGameProviderLink` model on databases that did not receive it through `db push`; it is safe to apply if the table already exists. Stop local Next processes before regenerating the client on Windows. Do not generate an engine-free client for a direct PostgreSQL URL.
 
 Production requires `CRON_SECRET` and the minute schedules in `vercel.json` for `/api/internal/steam-sync-worker` and `/api/internal/game-metadata-worker`. Both endpoints require `Authorization: Bearer <CRON_SECRET>` and must be invoked by server infrastructure, even with no open browsers. They continue accepted manual imports when `PLATFORM_SYNC_ENABLED=false`. The initial batch also runs through Next.js `after`; cron handles subsequent batches and recovery. On hosts without Vercel Cron, configure an equivalent authenticated minute scheduler. Worker leases last 90 seconds; interrupted work becomes eligible after expiry. Deployments use `VERCEL_ENV` (or `NODE_ENV` outside Vercel) to separate development, preview and production workers; use separate databases per environment as usual. Preview deployments require their own scheduler for sustained imports, because Vercel Cron runs only in production.
 
 `npm run dev` starts the app and independent local worker polling; queued jobs resume when the dev server restarts. It generates a private temporary cron secret if one is not configured. Production uses the configured secret. The account timeout setting applies to PlayStation and Xbox; Steam uses checkpointed execution windows instead of a timeout for the whole library.
 
-Automated daily provider sync is disabled by default. To enable it, set `PLATFORM_SYNC_ENABLED=true` and verify `/api/internal/platform-sync`, which enqueues Steam work and retains the existing PlayStation/Xbox flow. Do not expose the cron secret in URLs, client code, logs, or monitoring labels. The complete sync settings are documented in [`.env.example`](./.env.example) and [`vercel.json`](./vercel.json).
+Automated daily provider sync is disabled by default. To enable it, set `PLATFORM_SYNC_ENABLED=true` and verify `/api/internal/platform-sync`, which enqueues Steam work and retains the existing PlayStation/Xbox flow. GOG scheduling is separately opt-in with `PLATFORM_SYNC_GOG_ENABLED=true` because it depends on undocumented endpoints. Do not expose the cron secret in URLs, client code, logs, or monitoring labels. The complete sync settings are documented in [`.env.example`](./.env.example) and [`vercel.json`](./vercel.json).
 
 Run `npm run test:steam-sync` with a PostgreSQL `DATABASE_URL` to verify queue concurrency, interruption/recovery, canonical matching, retries and libraries larger than one batch. The harness creates a uniquely named isolated schema and removes it afterwards; it uses fake provider responses and does not import into real users' libraries or contact Steam/metadata services.
 

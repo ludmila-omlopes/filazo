@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { getAuthSecret } from "@/lib/auth-secret";
+import { getAuthSecret } from "./auth-secret.ts";
 
 export type EncryptedSecret = {
   ciphertext: string;

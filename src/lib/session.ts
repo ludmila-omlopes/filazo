@@ -12,6 +12,7 @@ const PLATFORM_SYNC_PROVIDERS = [
   ExternalProvider.STEAM,
   ExternalProvider.PLAYSTATION,
   ExternalProvider.XBOX,
+  ExternalProvider.GOG,
 ];
 
 function getSessionSecret() {

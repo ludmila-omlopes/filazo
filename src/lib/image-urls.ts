@@ -35,6 +35,31 @@ export const remoteImagePatterns: RemoteImagePattern[] = [
     hostname: "store-images.s-microsoft.com",
     pathname: "/**",
   },
+  {
+    protocol: "https",
+    hostname: "images.gog.com",
+    pathname: "/**",
+  },
+  {
+    protocol: "https",
+    hostname: "images-1.gog.com",
+    pathname: "/**",
+  },
+  {
+    protocol: "https",
+    hostname: "images-2.gog.com",
+    pathname: "/**",
+  },
+  {
+    protocol: "https",
+    hostname: "images-3.gog.com",
+    pathname: "/**",
+  },
+  {
+    protocol: "https",
+    hostname: "images-4.gog.com",
+    pathname: "/**",
+  },
 ];
 
 function matchesPathname(pathname: string, pattern: string) {

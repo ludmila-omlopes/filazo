@@ -623,6 +623,30 @@ const messages = {
     "profile.sources.xboxPending": "Xbox is refreshing your library.",
     "profile.sources.connectXbox": "Connect Xbox",
     "profile.sources.xboxUnavailable": "Xbox unavailable",
+    "profile.sources.gogTitle": "GOG library",
+    "profile.sources.gogBody":
+      "Bring in games owned directly on GOG. Libraries connected to Galaxy from other stores are not included.",
+    "profile.sources.refreshGog": "Refresh GOG",
+    "profile.sources.gogPending": "GOG is refreshing your library.",
+    "profile.sources.openGogLogin": "Open GOG login",
+    "profile.sources.gogUnavailable": "GOG unavailable",
+    "profile.sources.gogGuideTitle": "Finish the browser connection",
+    "profile.sources.gogStep1":
+      "1. Open GOG login in a new tab and sign in only on GOG's website.",
+    "profile.sources.gogStep2":
+      "2. After GOG says the login succeeded, copy the complete URL from the address bar.",
+    "profile.sources.gogStep3":
+      "3. Return here, paste that URL below, and connect.",
+    "profile.sources.gogRedirectUrl": "Final GOG URL",
+    "profile.sources.gogRedirectPlaceholder":
+      "https://embed.gog.com/on_login_success?...",
+    "profile.sources.connectGog": "Connect GOG",
+    "profile.sources.gogSensitiveUrlNotice":
+      "This URL contains a short-lived authorization code. Do not share it or paste it anywhere else.",
+    "profile.sources.gogExperimentalNotice":
+      "This connection uses GOG's undocumented Galaxy endpoints and may need repair if GOG changes them. Your password never passes through Filazo.",
+    "profile.sources.gogMissingConfig":
+      "GOG OAuth credentials are not configured on this site.",
     "profile.sources.oauthReady": "ready",
     "profile.sources.oauthMissing": "missing client ID",
     "profile.sources.csvNotice":
@@ -1293,6 +1317,7 @@ const messages = {
     "statusMessage.playstationRefreshed":
       "PlayStation refreshed. {count} games updated.",
     "statusMessage.xboxRefreshed": "Xbox refreshed. {count} games updated.",
+    "statusMessage.gogRefreshed": "GOG refreshed. {count} games updated.",
     "statusMessage.finishedCheck":
       "Finished-game check looked at {scanned} entries and found {count} finished games.",
     "statusMessage.csvImported":
@@ -1348,6 +1373,12 @@ const messages = {
       "PlayStation sync did not complete.",
     "profileAction.needXboxSyncLogin": "Sign in before syncing Xbox.",
     "profileAction.xboxSyncFailed": "Xbox sync did not complete.",
+    "profileAction.needGogLogin": "Sign in before connecting GOG.",
+    "profileAction.invalidGogRedirectUrl":
+      "Paste the complete URL returned by GOG.",
+    "profileAction.gogConnectFailed": "Could not connect GOG.",
+    "profileAction.needGogSyncLogin": "Sign in before syncing GOG.",
+    "profileAction.gogSyncFailed": "GOG sync did not complete.",
     "profileAction.needCsvLogin": "Sign in before importing CSV data.",
     "profileAction.invalidCsv": "Please upload a valid CSV file.",
     "profileAction.needTitleMapping":
@@ -2033,6 +2064,30 @@ const messages = {
     "profile.sources.xboxPending": "O Xbox está atualizando sua biblioteca.",
     "profile.sources.connectXbox": "Conectar Xbox",
     "profile.sources.xboxUnavailable": "Xbox indisponível",
+    "profile.sources.gogTitle": "Biblioteca GOG",
+    "profile.sources.gogBody":
+      "Traga os jogos comprados diretamente na GOG. Bibliotecas de outras lojas conectadas ao Galaxy não entram.",
+    "profile.sources.refreshGog": "Atualizar GOG",
+    "profile.sources.gogPending": "A GOG está atualizando sua biblioteca.",
+    "profile.sources.openGogLogin": "Abrir login da GOG",
+    "profile.sources.gogUnavailable": "GOG indisponível",
+    "profile.sources.gogGuideTitle": "Concluir a conexão pelo navegador",
+    "profile.sources.gogStep1":
+      "1. Abra o login da GOG em outra aba e entre somente no site da GOG.",
+    "profile.sources.gogStep2":
+      "2. Quando a GOG informar que o login deu certo, copie a URL completa da barra de endereço.",
+    "profile.sources.gogStep3":
+      "3. Volte aqui, cole a URL abaixo e conecte.",
+    "profile.sources.gogRedirectUrl": "URL final da GOG",
+    "profile.sources.gogRedirectPlaceholder":
+      "https://embed.gog.com/on_login_success?...",
+    "profile.sources.connectGog": "Conectar GOG",
+    "profile.sources.gogSensitiveUrlNotice":
+      "Essa URL contém um código de autorização temporário. Não compartilhe nem cole em outro lugar.",
+    "profile.sources.gogExperimentalNotice":
+      "Esta conexão usa endpoints não documentados do Galaxy e pode precisar de ajustes se a GOG os alterar. Sua senha nunca passa pela filazo.",
+    "profile.sources.gogMissingConfig":
+      "As credenciais OAuth da GOG não estão configuradas neste site.",
     "profile.sources.oauthReady": "pronto",
     "profile.sources.oauthMissing": "sem client ID",
     "profile.sources.csvNotice":
@@ -2705,6 +2760,7 @@ const messages = {
     "statusMessage.playstationRefreshed":
       "PlayStation atualizada. {count} jogos mudaram.",
     "statusMessage.xboxRefreshed": "Xbox atualizado. {count} jogos mudaram.",
+    "statusMessage.gogRefreshed": "GOG atualizada. {count} jogos mudaram.",
     "statusMessage.finishedCheck":
       "A verificação de jogos terminados analisou {scanned} entradas e encontrou {count} jogos terminados.",
     "statusMessage.csvImported":
@@ -2764,6 +2820,13 @@ const messages = {
       "Entre antes de sincronizar o Xbox.",
     "profileAction.xboxSyncFailed":
       "A sincronização do Xbox não terminou.",
+    "profileAction.needGogLogin": "Entre antes de conectar a GOG.",
+    "profileAction.invalidGogRedirectUrl":
+      "Cole a URL completa retornada pela GOG.",
+    "profileAction.gogConnectFailed": "Não foi possível conectar a GOG.",
+    "profileAction.needGogSyncLogin": "Entre antes de sincronizar a GOG.",
+    "profileAction.gogSyncFailed":
+      "A sincronização da GOG não terminou.",
     "profileAction.needCsvLogin":
       "Entre antes de importar dados em CSV.",
     "profileAction.invalidCsv": "Envie um arquivo CSV válido.",

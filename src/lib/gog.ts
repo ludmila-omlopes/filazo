@@ -3,17 +3,17 @@ import {
   type ExternalAccount,
   type Prisma,
 } from "@prisma/client";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "./prisma.ts";
 import type {
   ProviderProfile,
   SyncedLibraryGame,
-} from "@/lib/providers/contracts";
+} from "./providers/contracts.ts";
 import {
   decryptSecret,
   encryptSecret,
   isEncryptedSecret,
   type EncryptedSecret,
-} from "@/lib/secret-crypto";
+} from "./secret-crypto.ts";
 
 const GOG_AUTH_URL = "https://auth.gog.com/auth";
 const GOG_TOKEN_URL = "https://auth.gog.com/token";
@@ -21,6 +21,7 @@ const GOG_EMBED_URL = "https://embed.gog.com";
 const GOG_DEFAULT_REDIRECT_URI =
   "https://embed.gog.com/on_login_success?origin=client";
 const GOG_MAX_LIBRARY_PAGES = 100;
+export const GOG_OAUTH_STATE_COOKIE = "filazo-gog-oauth-state";
 
 type GogTokenResponse = {
   access_token: string;
@@ -63,7 +64,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function createGogError(
   message: string,
-  code: "AUTH" | "CONFIGURATION" | "PROVIDER",
+  code: "AUTH" | "CONFIGURATION" | "PROVIDER" | "RATE_LIMIT",
 ) {
   return Object.assign(new Error(message), { platformSyncErrorCode: code });
 }
@@ -124,6 +125,11 @@ export function parseGogRedirectUrl(
   ) {
     throw createGogError("The pasted URL was not returned by GOG.", "AUTH");
   }
+  for (const [key, expectedValue] of expectedUrl.searchParams) {
+    if (returnedUrl.searchParams.get(key) !== expectedValue) {
+      throw createGogError("The pasted URL was not returned by GOG.", "AUTH");
+    }
+  }
 
   const code = returnedUrl.searchParams.get("code")?.trim();
   const state = returnedUrl.searchParams.get("state")?.trim();
@@ -157,11 +163,22 @@ async function requestGogJson(
   });
 
   if (!response.ok) {
-    const code =
-      response.status === 401 || response.status === 403
-        ? "AUTH"
-        : response.status === 400
-          ? "CONFIGURATION"
+    let providerError: string | null = null;
+    try {
+      const body = (await response.clone().json()) as unknown;
+      providerError =
+        isRecord(body) && typeof body.error === "string" ? body.error : null;
+    } catch {
+      providerError = null;
+    }
+    const code = response.status === 429
+      ? "RATE_LIMIT"
+      : providerError === "invalid_client"
+        ? "CONFIGURATION"
+        : response.status === 400 ||
+            response.status === 401 ||
+            response.status === 403
+          ? "AUTH"
           : "PROVIDER";
     throw createGogError(
       `${options.errorMessage} (${response.status}).`,
@@ -174,7 +191,9 @@ async function requestGogJson(
   } catch {
     throw createGogError(
       `${options.errorMessage}: GOG returned an invalid response.`,
-      "PROVIDER",
+      response.headers.get("content-type")?.includes("text/html")
+        ? "AUTH"
+        : "PROVIDER",
     );
   }
 }
@@ -436,6 +455,9 @@ export async function connectGogAccountForUser({
       avatarUrl: profile.avatarUrl ?? undefined,
       profileUrl: profile.profileUrl ?? undefined,
       metadata: metadata as Prisma.InputJsonValue,
+      lastSyncErrorCode: null,
+      nextSyncAt: new Date(),
+      syncFailureCount: 0,
     },
     create: {
       userId,
@@ -446,6 +468,7 @@ export async function connectGogAccountForUser({
       avatarUrl: profile.avatarUrl ?? undefined,
       profileUrl: profile.profileUrl ?? undefined,
       metadata: metadata as Prisma.InputJsonValue,
+      nextSyncAt: new Date(),
     },
   });
 }

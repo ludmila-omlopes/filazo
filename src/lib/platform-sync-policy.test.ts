@@ -7,12 +7,30 @@ import {
   PLATFORM_SYNC_MAX_BACKOFF_MS,
   classifyPlatformSyncError,
   getNextAutomaticSyncAt,
+  getPlatformSyncPolicy,
   getRetryDelayMs,
   isAccountDueForScheduledSync,
   sanitizePlatformSyncError,
 } from "./platform-sync-policy.ts";
 
 const NOW = new Date("2026-07-13T12:00:00.000Z");
+
+test("GOG scheduled sync is opt-in", () => {
+  assert.equal(
+    getPlatformSyncPolicy({
+      ...process.env,
+      PLATFORM_SYNC_GOG_ENABLED: undefined,
+    }).gogEnabled,
+    false,
+  );
+  assert.equal(
+    getPlatformSyncPolicy({
+      ...process.env,
+      PLATFORM_SYNC_GOG_ENABLED: "true",
+    }).gogEnabled,
+    true,
+  );
+});
 
 test("scheduled eligibility respects nextSyncAt and the 24-hour window", () => {
   assert.equal(
