@@ -67,6 +67,7 @@ AUTH_SECRET="a-long-random-secret"
 | Approval email | `RESEND_API_KEY`, `BETA_APPROVAL_FROM_EMAIL` |
 | Feedback conversations | Uses the approval email configuration to notify users and support about replies |
 | AI features | `OPENAI_API_KEY` or `OPENROUTER_KEY` |
+| Store prices and preorders | Same AI credentials/model; OpenRouter web plugin (Exa) or OpenAI Responses `web_search` support required |
 | Private journal media | a private Vercel Blob store and `BLOB_READ_WRITE_TOKEN` |
 
 PlayStation sync exchanges a user-provided NPSSO for encrypted tokens and discards the NPSSO. GOG opens the login on GOG's site, validates a short-lived `state`, accepts the final redirect URL pasted by the user, and stores only encrypted OAuth tokens. The GOG integration uses undocumented Galaxy endpoints, imports only games owned directly on GOG, and can break if those endpoints change. CSV imports do not need provider credentials. Missing optional credentials disable only the relevant feature; catalog imports and sync continue where possible.
@@ -74,6 +75,18 @@ PlayStation sync exchanges a user-provided NPSSO for encrypted tokens and discar
 Feedback cards include a two-way comment thread for identified users. The user can reply while the card is open; moving it to `DONE` or `DECLINED` closes the conversation. Run `npm run db:init` after deploying schema changes so the `FeedbackComment` table is available.
 
 The board statuses are `NEW`, `IN_REVIEW`, `WAITING`, `DONE`, and `DECLINED`. `WAITING` (Aguardando) keeps the conversation open and sends the same status-change notification as other moves. Apply the `20260909180000_add_feedback_waiting_status` migration or the existing `npm run db:init` schema bootstrap before using it.
+
+### Store and preorder search
+
+In the purchase decision form, enter/select a title, choose a store region, then use **Find stores and prices**. AI searches the live web across all platforms for direct store listings, including preorders and physical copies. The form's platform field does not filter store searches; each result identifies its own platform and edition alongside its source link, availability and lookup time. Only explicitly sourced prices in the selected region's currency can be copied into the price field. Announced/wishlist-only pages are distinguished from confirmed preorders; missing prices remain unconfirmed. Changing title or region clears previous results and cancels the browser request; changing the form's platform keeps the store results visible.
+
+This uses the existing provider configuration (`OPENROUTER_KEY` takes precedence, `OPENAI_MODEL` selects the model, and `AI_PROVIDER_BASE_URL` / `OPENAI_BASE_URL` retain their existing behavior). Each lookup runs five independent searches: PlayStation, Xbox/Microsoft, PC stores, Nintendo, and retailers/publishers. This prevents one store's search ranking from crowding out other platforms. Each group verifies up to three discovered pages independently. Known PlayStation and Xbox product paths are localized to the requested region while preserving the discovered product identifier, so an American search result can lead to verification of the Brazilian product page.
+
+Custom gateways must forward web-search tools and source citations. After discovery, AI rechecks readable store page text to identify delivery terms, availability and prices; unrelated titles, upgrades, account access and gift-card promotions are excluded. Server-side retrieval is restricted to the known storefront domains in `src/lib/assistant/marketplace-search.ts`, including redirects. A discovered listing that cannot be read or verified remains as an unconfirmed link with no price. Failure in one group preserves the other groups' results, and the UI discloses incomplete searches. If all searches fail, the API returns a retryable error.
+
+API access requires a signed-in user and runs under the assistant-summary enable switch and daily AI spend budget, recorded as `assistant_marketplace`. Each lookup reserves up to ten model calls, 120,000 input / 40,000 output tokens plus $0.05 for search tools; this is a conservative estimate, not exact provider billing. There is no database migration or catalog mutation. Search results are not exhaustive, and final prices and availability must be confirmed at the store.
+
+Provider references: [OpenAI web search](https://developers.openai.com/api/docs/guides/tools-web-search), [OpenRouter web search](https://openrouter.ai/docs/guides/features/plugins/web-search).
 
 ## Scripts
 
