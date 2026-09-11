@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   Check,
   ListPlus,
+  MoreHorizontal,
   Search,
   ShoppingBag,
   X,
@@ -20,12 +21,13 @@ import {
 import { GameCard } from "@/components/game-card";
 import { SafeImage } from "@/components/safe-image";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/section-header";
 import { readStringList } from "@/lib/game-metadata";
 import { createTranslator, type Locale } from "@/lib/i18n";
-import { formatNumber, formatTimeEstimate } from "@/lib/utils";
+import { formatTimeEstimate } from "@/lib/utils";
 import {
   addPlayingNextGameAction,
   clearPlayingNextSelectionAction,
@@ -136,7 +138,8 @@ function PlayingNextSlot({
   if (!entry) {
     return (
       <button
-        className="grid min-h-[220px] gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-5 text-left shadow-rest outline-none transition-colors duration-200 hover:bg-canvas/75 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        className="grid min-h-[160px] content-start gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-4 text-left outline-none transition-colors duration-200 hover:bg-canvas/75 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        disabled={isBusy}
         onClick={onOpenPicker}
         type="button"
       >
@@ -164,20 +167,7 @@ function PlayingNextSlot({
   }
 
   return (
-    <div className="group relative h-full rounded-card">
-      <Button
-        aria-label={t("profile.playingNext.remove", {
-          name: entry.game.name,
-        })}
-        className="absolute right-3 top-3 z-10"
-        disabled={isBusy}
-        onClick={handleRemove}
-        size="icon-xs"
-        type="button"
-        variant="ghost"
-      >
-        <X className="h-3.5 w-3.5" />
-      </Button>
+    <div className="group grid min-w-0 content-start gap-2">
       <GameCard
         className="h-full transition-colors group-hover:border-sage"
         completionPercent={entry.completionPercent}
@@ -201,6 +191,18 @@ function PlayingNextSlot({
         statusVariant="none"
         variant="slot"
       />
+      <Button
+        aria-label={t("profile.playingNext.remove", { name: entry.game.name })}
+        className="justify-self-end"
+        disabled={isBusy}
+        onClick={handleRemove}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        <X className="h-3.5 w-3.5" />
+        {t("profile.currentPlaying.removeFromView")}
+      </Button>
     </div>
   );
 }
@@ -412,26 +414,24 @@ export function PlayingNextPanel({
   }
 
   return (
-    <section className="panel bg-surface">
+    <section className="panel min-w-0 max-sm:p-4">
       <SectionHeader
+        inlineAside
         aside={
-          <div className="flex flex-wrap items-center justify-end gap-2 max-lg:justify-start">
-            <div className="pill">
-              {t("profile.playingNext.inQueue", {
-                count: formatNumber(profile.playingNextEntries.length, locale),
-              })}
-            </div>
+          <div>
             {profile.playingNextEntries.length ? (
-              <Button
-                disabled={isBusy}
-                onClick={() => {
-                  void clearSelections();
-                }}
-                type="button"
-                variant="ghost"
-              >
-                {t("profile.playingNext.clearTop")}
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button aria-label={t("profile.playingNext.options")} disabled={isBusy} size="icon-sm" type="button" variant="ghost">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem disabled={isBusy} onSelect={() => { void clearSelections(); }}>
+                    <X />{t("profile.playingNext.clearTop")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
           </div>
         }
@@ -440,7 +440,7 @@ export function PlayingNextPanel({
       />
 
       {profile.playingNextEntries.length ? (
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4">
           {PLAYING_NEXT_SLOTS.map((slot) => {
             const entry = queuedEntriesBySlot.get(slot) ?? null;
 
@@ -475,7 +475,9 @@ export function PlayingNextPanel({
       )}
 
       {warnings.length ? (
-        <div className="mt-4 grid gap-3">
+        <details className="mt-5 border-t border-edge pt-4 text-sm text-ink-soft">
+          <summary className="cursor-pointer font-semibold">{t("profile.playingNext.selectionNotes")}</summary>
+          <div className="mt-3 grid gap-3">
           {warnings.map((warning) => (
             <Notice
               icon={<AlertTriangle className="h-4 w-4" aria-hidden />}
@@ -485,7 +487,8 @@ export function PlayingNextPanel({
               {warning}
             </Notice>
           ))}
-        </div>
+          </div>
+        </details>
       ) : null}
 
       {message && !activeSlot ? (

@@ -48,7 +48,7 @@ export default async function AdminActivityPage() {
   const inactiveCount = testerActivity.length - activeCount;
 
   const format = (date: Date) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(date);
-  return <main id="main-content" className="mx-auto grid w-full max-w-[1180px] gap-7">
+  return <main id="main-content" className="mx-auto grid w-full max-w-page gap-7">
     <header>
       <AdminNav current="/admin/activity" locale={locale} />
       <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-ink-soft">{t("admin.activity.kicker")}</p>

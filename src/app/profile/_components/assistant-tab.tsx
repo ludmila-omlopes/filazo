@@ -1,4 +1,5 @@
 import { BacklogDiagnosis } from "@/components/assistant/backlog-diagnosis";
+import { GuideSections } from "@/components/assistant/guide-sections";
 import { BuyDecisionForm } from "@/components/assistant/buy-decision-form";
 import { LibraryChat } from "@/components/assistant/library-chat";
 import { PlayNextPanel } from "@/components/assistant/play-next-panel";
@@ -54,7 +55,7 @@ export function PlayerProfileTab({
   profile: ProfileData;
 }) {
   return (
-    <section className="grid gap-5 rounded-card border border-edge bg-dusk-lavender-soft p-6 shadow-rest">
+    <div className="min-w-0">
       <PlayerProfilePanel
         action={generatePlayerProfileAction}
         aiConfigured={
@@ -65,9 +66,10 @@ export function PlayerProfileTab({
           profile.ownedEntries.length + profile.wishlistEntries.length > 0
         }
         locale={locale}
+        games={profile.user.gameEntries.map((entry) => entry.game)}
         profile={playerProfile}
       />
-    </section>
+    </div>
   );
 }
 
@@ -84,11 +86,11 @@ export function AssistantTab({
   }
 
   return (
-    <>
-      <section className="flex items-center justify-between gap-4 rounded-card border border-edge bg-dusk-lavender-soft px-6 py-5 shadow-rest max-md:flex-col max-md:items-start">
+    <div className="grid min-w-0 gap-6">
+      <section className="flex items-start justify-between gap-4 rounded-card border border-edge bg-dusk-lavender-soft px-6 py-5 shadow-rest max-md:flex-col max-sm:px-4">
         <div>
-          <p className="section-label !mb-1">{t("assistant.tab.label")}</p>
-          <p className="text-sm font-semibold leading-snug">
+          <h2 className="mb-2 text-page-title leading-tight">{t("assistant.tab.label")}</h2>
+          <p className="max-w-[60ch] text-sm leading-relaxed text-ink-soft">
             {t("assistant.tab.refreshHelp")}
           </p>
           <details className="mt-3 text-xs font-semibold text-ink-soft">
@@ -131,22 +133,34 @@ export function AssistantTab({
         />
       </section>
 
-      <LibraryChat
-        aiConfigured={
-          assistant.aiUsage.openAiConfigured &&
-          assistant.aiUsage.assistantChatEnabled
-        }
+      <GuideSections
+        label={t("assistant.tab.label")}
+        sections={[
+          {
+            id: "suggestions",
+            label: t("assistant.tab.suggestions"),
+            content: <>
+              <PlayNextPanel assistant={assistant} locale={locale} />
+              <BacklogDiagnosis assistant={assistant} locale={locale} />
+            </>,
+          },
+          {
+            id: "chat",
+            label: t("assistant.tab.chat"),
+            content: <div className="w-full max-w-[64rem]">
+              <LibraryChat aiConfigured={assistant.aiUsage.openAiConfigured && assistant.aiUsage.assistantChatEnabled} />
+            </div>,
+          },
+          {
+            id: "buy",
+            label: t("assistant.tab.buy"),
+            content: <section className="panel w-full max-w-[64rem] max-sm:p-4">
+              <SectionHeader eyebrow={t("assistant.buy.eyebrow")} title={t("assistant.buy.title")} />
+              <BuyDecisionForm />
+            </section>,
+          },
+        ]}
       />
-      <BacklogDiagnosis assistant={assistant} locale={locale} />
-      <PlayNextPanel assistant={assistant} locale={locale} />
-
-      <section className="panel">
-        <SectionHeader
-          eyebrow={t("assistant.buy.eyebrow")}
-          title={t("assistant.buy.title")}
-        />
-        <BuyDecisionForm />
-      </section>
-    </>
+    </div>
   );
 }

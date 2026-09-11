@@ -1,6 +1,6 @@
 import type { AssistantProfileData } from "@/lib/assistant/queries";
 import { GameFrictionCard } from "@/components/assistant/game-friction-card";
-import { GameCard } from "@/components/game-card";
+import { GuideGameCard } from "@/components/assistant/guide-game-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import { createTranslator, type Locale } from "@/lib/i18n";
@@ -16,16 +16,8 @@ function RecommendationCard({
   recommendation: PlayNextRecommendation;
 }) {
   const t = createTranslator(locale);
-  const genres = [
-    recommendation.primaryGenre,
-    recommendation.expectedEffort,
-    recommendation.moodFit,
-  ].filter((item): item is string => Boolean(item));
-
   return (
-    <GameCard
-      chips={genres}
-      completionPercent={recommendation.entry.completionPercent}
+    <GuideGameCard
       description={recommendation.reason}
       eyebrow={t("assistant.playNext.suggested")}
       game={recommendation.entry.game}
@@ -34,7 +26,6 @@ function RecommendationCard({
       platformName={recommendation.entry.platformName}
       playtimeMinutes={recommendation.entry.playtimeMinutes}
       status={recommendation.entry.status}
-      variant="slot"
     />
   );
 }
@@ -60,8 +51,8 @@ export function PlayNextPanel({
     .slice(0, 3);
 
   return (
-    <section className="grid grid-cols-2 gap-6 max-lg:grid-cols-1">
-      <article className="panel">
+    <section className="grid min-w-0 items-start gap-6 min-[1440px]:grid-cols-2">
+      <article className="panel min-w-0 max-sm:p-4">
         <SectionHeader
           eyebrow={t("assistant.playNext.eyebrow")}
           title={t("assistant.playNext.title")}
@@ -83,7 +74,7 @@ export function PlayNextPanel({
         )}
       </article>
 
-      <article className="panel">
+      <article className="panel min-w-0 max-sm:p-4">
         <SectionHeader
           eyebrow={t("assistant.release.eyebrow")}
           title={t("assistant.release.title")}

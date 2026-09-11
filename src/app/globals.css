@@ -5,6 +5,8 @@
 
 /* Filazo design tokens: calm catalog, printed labels, low pressure. */
 @theme {
+  /* Shared width for the app, navigation and loading states. */
+  --container-page: 112rem;
   --color-canvas: #f7f5f0;
   --color-surface: #fffdf8;
   --color-ink: #343542;
@@ -261,6 +263,19 @@
 }
 
 @layer components {
+  /* Add shelf columns as the content area grows, including beside the rail. */
+  .library-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .library-grid {
+      grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    }
+  }
+
   .catalog-status-actions {
     display: none;
   }

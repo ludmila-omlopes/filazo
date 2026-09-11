@@ -314,7 +314,7 @@ export default function DevComponentsPage() {
   }
 
   return (
-    <main id="main-content" className="mx-auto grid w-full max-w-[1180px] gap-8 pb-12">
+    <main id="main-content" className="mx-auto grid w-full max-w-page gap-8 pb-12">
       <ComponentShowcase label="Day" />
       <div data-theme="night">
         <ComponentShowcase label="Night" />

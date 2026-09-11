@@ -1,5 +1,5 @@
 import type { AssistantProfileData } from "@/lib/assistant/queries";
-import { GameCard } from "@/components/game-card";
+import { GuideGameCard } from "@/components/assistant/guide-game-card";
 import { getAssistantSignalDisplayLabel } from "@/lib/copy";
 import type { Locale } from "@/lib/i18n";
 
@@ -17,37 +17,6 @@ function readReasons(reasons: Insight["reasons"]) {
     : [];
 }
 
-function readGenres(genres: Insight["userGameEntry"]["game"]["genres"]) {
-  if (!genres) {
-    return [];
-  }
-
-  if (typeof genres === "string") {
-    try {
-      return readGenres(JSON.parse(genres));
-    } catch {
-      return [genres];
-    }
-  }
-
-  if (!Array.isArray(genres)) {
-    return [];
-  }
-
-  return genres
-    .map((genre) => {
-      if (typeof genre === "string") {
-        return genre;
-      }
-      if (genre && typeof genre === "object" && "name" in genre) {
-        return String((genre as { name?: unknown }).name ?? "");
-      }
-      return "";
-    })
-    .filter(Boolean)
-    .slice(0, 4);
-}
-
 export function GameFrictionCard({
   insight,
   locale,
@@ -56,16 +25,13 @@ export function GameFrictionCard({
   locale: Locale;
 }) {
   const reasons = readReasons(insight.reasons);
-  const genres = readGenres(insight.userGameEntry.game.genres);
   const description = [
     reasons.join(" "),
     insight.suggestedAction,
   ].filter(Boolean).join(" ");
 
   return (
-    <GameCard
-      chips={genres}
-      completionPercent={insight.userGameEntry.completionPercent}
+    <GuideGameCard
       description={description}
       eyebrow={getAssistantSignalDisplayLabel(insight.signalType, locale)}
       game={insight.userGameEntry.game}
@@ -74,7 +40,6 @@ export function GameFrictionCard({
       platformName={insight.userGameEntry.platformName}
       playtimeMinutes={insight.userGameEntry.playtimeMinutes}
       status={insight.userGameEntry.status}
-      variant="slot"
     />
   );
 }

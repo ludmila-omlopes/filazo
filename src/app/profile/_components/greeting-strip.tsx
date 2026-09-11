@@ -28,7 +28,7 @@ export function GreetingStrip({
   const t = createTranslator(locale);
 
   return (
-    <section className="panel bg-sky-soft/70">
+    <section className="rounded-card border border-edge bg-sky-soft/40 p-6 max-sm:p-4">
       <div className="flex flex-wrap items-start justify-between gap-5">
         <div>
           <p className="section-label">{t("profile.greeting.label")}</p>
@@ -47,9 +47,6 @@ export function GreetingStrip({
           </Button>
           <Button asChild variant="ghost">
             <Link href="/profile?tab=games">{t("profile.greeting.browseShelf")}</Link>
-          </Button>
-          <Button asChild variant="ghost">
-            <Link href="/profile?tab=integrations">{t("common.addGames")}</Link>
           </Button>
         </div>
       </div>

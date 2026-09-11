@@ -180,7 +180,7 @@ export default async function TonightPage({
       : null;
 
   return (
-    <main id="main-content" className="mx-auto w-full max-w-[1100px] pb-12">
+    <main id="main-content" className="mx-auto w-full max-w-page pb-12">
       <TonightRoom
         alternatives={[]}
         currentMood={mood}

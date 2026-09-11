@@ -10,6 +10,8 @@ export type ProfileSearchParams = Promise<{
   tab?: string;
   step?: string;
   entryId?: string;
+  journalMode?: string;
+  editPageId?: string;
   view?: string;
   sort?: string;
   signal?: string;

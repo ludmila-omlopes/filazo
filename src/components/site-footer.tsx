@@ -5,7 +5,7 @@ export function SiteFooter({ locale }: { locale: Locale }) {
   const t = createTranslator(locale);
 
   return (
-    <footer className="mx-auto mt-16 w-full max-w-[1100px] border-t border-edge py-8 text-sm text-ink-soft">
+    <footer className="mx-auto mt-16 w-full max-w-page border-t border-edge py-8 text-sm text-ink-soft">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Link href="/" className="group inline-flex items-baseline gap-2">
           <span className="font-display text-lg font-medium text-ink">

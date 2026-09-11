@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AssistantSignalType } from "@prisma/client";
 import type { AssistantProfileData } from "@/lib/assistant/queries";
-import { SectionHeader } from "@/components/ui/section-header";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { getAssistantSignalDisplayLabel } from "@/lib/copy";
 import { formatNumber } from "@/lib/utils";
@@ -32,32 +31,33 @@ export function BacklogDiagnosis({
   ] as const;
 
   return (
-    <section className="panel">
-      <SectionHeader
-        eyebrow={t("assistant.diagnosis.eyebrow")}
-        title={t("assistant.diagnosis.title")}
-        aside={
-          <div className="pill">
+    <details className="rounded-card border border-edge bg-surface/60 p-5 max-sm:p-4">
+      <summary className="cursor-pointer rounded-inner text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-sage">
+        {t("assistant.diagnosis.eyebrow")}
+      </summary>
+      <div className="mt-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg">{t("assistant.diagnosis.title")}</h3>
+          <p className="text-xs text-ink-soft">
             {assistant.latestRun
               ? t("assistant.diagnosis.lastRun", {
                   date: assistant.latestRun.createdAt.toLocaleDateString(locale),
                 })
               : t("assistant.diagnosis.notRefreshed")}
-          </div>
-        }
-      />
+          </p>
+        </div>
 
-      <div className="grid grid-cols-6 gap-3 max-lg:grid-cols-3 max-sm:grid-cols-2">
+      <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
         {items.map(([label, signal]) => (
           <Link
-            className="rounded-inner border border-edge bg-canvas p-4 text-center transition-[background-color,box-shadow] hover:bg-sage-soft hover:shadow-rest focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-soft motion-safe:transition-[transform,background-color,box-shadow] motion-safe:hover:-translate-y-0.5"
+            className="flex items-center justify-between gap-3 rounded-inner border border-edge bg-canvas p-3 transition-colors hover:bg-sage-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-soft"
             href={`/profile?tab=games&view=list&signal=${signal}`}
             key={signal}
           >
-            <strong className="block font-display text-2xl font-medium">
+            <strong className="order-2 text-sm font-medium tabular-nums">
               {formatNumber(counts.get(signal) ?? 0)}
             </strong>
-            <span className="mt-1.5 block text-caption font-bold text-ink-soft">
+            <span className="text-sm text-ink-soft">
               {label}
             </span>
           </Link>
@@ -77,6 +77,7 @@ export function BacklogDiagnosis({
           ),
         })}
       </p>
-    </section>
+      </div>
+    </details>
   );
 }

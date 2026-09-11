@@ -38,10 +38,12 @@ function formatDuration(seconds: number) {
 }
 
 export function VoiceMemoryInput({
+  active = true,
   framed = true,
   maxRecordingSeconds = DEFAULT_MAX_RECORDING_SECONDS,
   showIntro = true,
 }: {
+  active?: boolean;
   framed?: boolean;
   maxRecordingSeconds?: number;
   showIntro?: boolean;
@@ -49,6 +51,7 @@ export function VoiceMemoryInput({
   const t = useTranslations();
   const recordingLimitSeconds = Math.max(1, Math.floor(maxRecordingSeconds));
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const activeRef = useRef(active);
   const rootRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -69,6 +72,14 @@ export function VoiceMemoryInput({
   const [hasCheckedRecordingSupport, setHasCheckedRecordingSupport] =
     useState(false);
   const [supportsRecording, setSupportsRecording] = useState(false);
+
+  useEffect(() => {
+    activeRef.current = active;
+    if (!active && recorderRef.current?.state === "recording") {
+      recorderRef.current.stop();
+    }
+    return () => { activeRef.current = false; };
+  }, [active]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -279,6 +290,10 @@ export function VoiceMemoryInput({
       clearRecording();
       setError("");
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (!activeRef.current) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       const mimeType = getRecorderMimeType();
       const recorder = new MediaRecorder(
         stream,
@@ -301,6 +316,7 @@ export function VoiceMemoryInput({
       });
 
       recorder.addEventListener("stop", () => {
+        setIsRecording(false);
         const recordingType = recorder.mimeType || mimeType || "audio/webm";
         const blob = new Blob(chunksRef.current, { type: recordingType });
         if (blob.size === 0) {

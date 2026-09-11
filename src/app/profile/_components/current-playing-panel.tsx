@@ -284,7 +284,7 @@ function CurrentPlayingSlot({
   if (!entry) {
     return (
       <button
-        className="grid min-h-[280px] gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-5 text-left shadow-rest outline-none transition-colors duration-200 hover:bg-canvas/75 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        className="grid min-h-[180px] gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-5 text-left shadow-rest outline-none transition-colors duration-200 hover:bg-canvas/75 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
         disabled={isSaving}
         onClick={onOpenPicker}
         type="button"
@@ -312,7 +312,7 @@ function CurrentPlayingSlot({
 
   return (
     <div
-      className={animated ? "grid gap-3 animate-current-playing-place" : "grid gap-3"}
+      className={animated ? "grid min-w-0 content-start gap-2 animate-current-playing-place" : "grid min-w-0 content-start gap-2"}
       draggable
       onDragEnd={onDragEnd}
       title={t("profile.currentPlaying.dragOut")}
@@ -336,7 +336,7 @@ function CurrentPlayingSlot({
           size="sm"
           variant="secondary"
         >
-          <Link href={`/profile?tab=journal&entryId=${entry.id}`}>
+          <Link href={`/profile?tab=journal&journalMode=write&entryId=${entry.id}`}>
             <BookOpen className="h-4 w-4" />
             {t("profile.currentPlaying.diaryPage")}
           </Link>
@@ -1119,27 +1119,24 @@ export function CurrentPlayingPanel({
   }
 
   return (
-    <section className="panel bg-sage-soft/40" ref={panelRef}>
+    <section className="panel min-w-0 max-sm:p-4" ref={panelRef}>
       <SectionHeader
+        inlineAside
         aside={
-          <div className="flex flex-wrap items-center justify-end gap-2 max-lg:justify-start">
-            <div className="pill">
-              {t("profile.currentPlaying.inView", {
-                count: formatNumber(selectedEntriesBySlot.size, locale),
-                capacity: formatNumber(currentPlayingSlotCount, locale),
-              })}
-            </div>
+          <div>
             {selectedEntriesBySlot.size ? (
-              <Button
-                disabled={isBusy}
-                onClick={() => {
-                  void clearSelections();
-                }}
-                type="button"
-                variant="ghost"
-              >
-                {t("profile.currentPlaying.clearTop")}
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button aria-label={t("profile.currentPlaying.options")} disabled={isBusy} size="icon-sm" type="button" variant="ghost">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem disabled={isBusy} onSelect={() => { void clearSelections(); }}>
+                    <X />{t("profile.currentPlaying.clearTop")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
           </div>
         }
@@ -1149,21 +1146,22 @@ export function CurrentPlayingPanel({
 
       {selectedEntriesBySlot.size ? (
         <div className="grid gap-5">
-          {sharedGenre ? (
-            <Notice tone="info">
-              {t(
-                sharedGenre.count === selectedEntriesBySlot.size
-                  ? "profile.currentPlaying.similarGenre.all"
-                  : "profile.currentPlaying.similarGenre.some",
-                {
-                  count: formatNumber(sharedGenre.count, locale),
-                  genre: sharedGenre.name,
-                },
-              )}
+          {selectedEntriesBySlot.size > INITIAL_CURRENT_PLAYING_SLOT_COUNT ? (
+            <Notice
+              tone="warning"
+              className="border-l-4 border-l-sand-strong"
+              icon={<Sparkles aria-hidden className="h-5 w-5" />}
+            >
+              <p className="text-base font-semibold text-ink">
+                {t("profile.currentPlaying.focusReminderTitle")}
+              </p>
+              <p className="mt-1 max-w-[70ch] font-normal text-ink-soft">
+                {t("profile.currentPlaying.focusReminderBody")}
+              </p>
             </Notice>
           ) : null}
           <div
-            className="grid gap-4 lg:grid-cols-3"
+            className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4"
             ref={currentPlayingAreaRef}
           >
             {currentPlayingSlots.map((slot) => (
@@ -1268,6 +1266,20 @@ export function CurrentPlayingPanel({
           <Plus className="h-4 w-4" />
           {t("profile.currentPlaying.addAnother")}
         </Button>
+      ) : null}
+
+      {sharedGenre ? (
+        <details className="mt-5 border-t border-edge pt-4 text-sm text-ink-soft">
+          <summary className="cursor-pointer font-semibold">{t("profile.currentPlaying.selectionNotes")}</summary>
+          <p className="mt-3 max-w-[65ch] leading-relaxed">
+            {t(sharedGenre.count === selectedEntriesBySlot.size
+              ? "profile.currentPlaying.similarGenre.all"
+              : "profile.currentPlaying.similarGenre.some", {
+              count: formatNumber(sharedGenre.count, locale),
+              genre: sharedGenre.name,
+            })}
+          </p>
+        </details>
       ) : null}
 
       {celebration ? (

@@ -590,7 +590,7 @@ export function ShelfGrid({
               className={cn(
                 gamesView === "list"
                   ? "grid gap-3"
-                  : "grid grid-cols-5 gap-4 max-lg:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2",
+                  : "library-grid",
               )}
             >
               {visibleEntries.map((entry) => (

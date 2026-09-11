@@ -801,7 +801,7 @@ export default async function AdminAiPage({
   const aiSettings = await getAiSettings();
 
   return (
-    <main id="main-content" className="mx-auto grid w-full max-w-[1100px] gap-8">
+    <main id="main-content" className="mx-auto grid w-full max-w-page gap-8">
       {query.error ? <Notice tone="error">{query.error}</Notice> : null}
       {query.aiSettings ? (
         <Notice tone="success">{t("admin.ai.saved")}</Notice>

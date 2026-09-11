@@ -116,7 +116,7 @@ export default async function AdminPage({
   }>;
 
   return (
-    <main id="main-content" className="mx-auto grid w-full max-w-[1100px] gap-8">
+    <main id="main-content" className="mx-auto grid w-full max-w-page gap-8">
       {query.error ? <Notice tone="error">{query.error}</Notice> : null}
 
       <section className="grid gap-4">
