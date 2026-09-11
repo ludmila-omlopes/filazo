@@ -40,7 +40,7 @@ export default async function LoginPage({
         operation: "verify-login-session",
         route: "/login",
       });
-      sessionError = getDatabaseErrorMessage(error);
+      sessionError = getDatabaseErrorMessage(error, locale);
     }
 
     if (hasSessionUser) {

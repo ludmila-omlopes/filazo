@@ -30,6 +30,7 @@ export type EnrichedGameMetadata = {
   aggregatedRating?: number | null;
   totalRatingCount?: number | null;
   genres?: string[];
+  gameModes?: string[];
   platforms?: string[];
   screenshots?: string[];
   websites?: string[];

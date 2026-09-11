@@ -1,4 +1,6 @@
-import { AssistantSignalType, UserGameStatus } from "@prisma/client";
+import { AssistantSignalType, GameCompletionModel, UserGameStatus } from "@prisma/client";
+import { getEffectiveGameCompletionModel } from "../../../lib/game-completion-model.ts";
+import { normalizePlatformNames } from "../../../lib/platform-names.ts";
 import { createTranslator, type Locale } from "../../../lib/i18n.ts";
 import type { ProfileEntry, ProfileTab, StatusMessage } from "./profile-types";
 
@@ -14,6 +16,7 @@ export type ProfileSearchParams = Promise<{
   status?: string;
   viewAs?: string;
   platform?: string;
+  structure?: string;
   includeDormant?: string;
   q?: string;
   month?: string;
@@ -62,6 +65,14 @@ export function parseAssistantSignal(value: string | undefined) {
 export function parseActiveStatus(value: string | undefined) {
   return Object.values(UserGameStatus).includes(value as UserGameStatus)
     ? (value as UserGameStatus)
+    : null;
+}
+
+export const COMPLETION_MODEL_FILTERS = Object.values(GameCompletionModel);
+
+export function parseActiveCompletionModel(value: string | undefined) {
+  return Object.values(GameCompletionModel).includes(value as GameCompletionModel)
+    ? (value as GameCompletionModel)
     : null;
 }
 
@@ -313,29 +324,44 @@ export function getStatusMessage(
   return null;
 }
 
-export function getUserPlatformLabel(entry: ProfileEntry) {
-  const platformName = entry.platformName?.trim();
-  if (platformName) {
-    return platformName;
+export function getUserPlatformLabels(entry: ProfileEntry) {
+  const platforms = normalizePlatformNames(entry.platformName);
+  if (platforms.length) {
+    return platforms;
   }
 
   if (entry.provider === "STEAM") {
-    return "Steam";
+    return ["Steam"];
   }
 
   if (entry.provider === "PLAYSTATION") {
-    return "PlayStation";
+    return ["PlayStation"];
   }
 
   if (entry.provider === "XBOX") {
-    return "Xbox";
+    return ["Xbox"];
   }
 
   if (entry.provider === "GOG") {
-    return "GOG";
+    return ["GOG"];
   }
 
-  return null;
+  return [];
+}
+
+export function getUserPlatformLabel(entry: ProfileEntry) {
+  return getUserPlatformLabels(entry).join(", ") || null;
+}
+
+export function getPlatformFilterOptions(entries: ProfileEntry[]) {
+  return [...new Set(entries.flatMap((entry) => {
+    const labels = getUserPlatformLabels(entry);
+    return labels.length ? labels : [UNKNOWN_PLATFORM_FILTER];
+  }))].sort((left, right) => {
+    if (left === UNKNOWN_PLATFORM_FILTER) return 1;
+    if (right === UNKNOWN_PLATFORM_FILTER) return -1;
+    return left.localeCompare(right, "en", { numeric: true });
+  });
 }
 
 export function isDormantEntry(entry: ProfileEntry) {
@@ -347,6 +373,7 @@ export function isDormantEntry(entry: ProfileEntry) {
 
 export function filterEntries({
   activePlatform,
+  activeCompletionModel,
   activeStatus,
   entries,
   includeDormant,
@@ -354,6 +381,7 @@ export function filterEntries({
   signalEntryIds,
 }: {
   activePlatform: string | null;
+  activeCompletionModel: GameCompletionModel | null;
   activeStatus: string | null;
   entries: ProfileEntry[];
   includeDormant: boolean;
@@ -361,6 +389,7 @@ export function filterEntries({
   signalEntryIds: Set<string> | null;
 }) {
   const normalizedQuery = queryText.trim().toLowerCase();
+  const selectedPlatforms = normalizePlatformNames(activePlatform);
 
   return entries.filter((entry) => {
     if (signalEntryIds && !signalEntryIds.has(entry.id)) {
@@ -375,13 +404,20 @@ export function filterEntries({
       return false;
     }
 
+    if (
+      activeCompletionModel &&
+      getEffectiveGameCompletionModel(entry.game) !== activeCompletionModel
+    ) {
+      return false;
+    }
+
     if (activePlatform) {
-      const platformLabel = getUserPlatformLabel(entry);
+      const platformLabels = getUserPlatformLabels(entry);
       if (activePlatform === UNKNOWN_PLATFORM_FILTER) {
-        if (platformLabel) {
+        if (platformLabels.length) {
           return false;
         }
-      } else if (platformLabel !== activePlatform) {
+      } else if (!selectedPlatforms.some((platform) => platformLabels.includes(platform))) {
         return false;
       }
     }
@@ -390,7 +426,7 @@ export function filterEntries({
       return true;
     }
 
-    return [entry.game.name, getUserPlatformLabel(entry)]
+    return [entry.game.name, entry.platformName, ...getUserPlatformLabels(entry)]
       .filter(Boolean)
       .some((value) => value!.toLowerCase().includes(normalizedQuery));
   });

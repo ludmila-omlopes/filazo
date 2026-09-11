@@ -1,4 +1,4 @@
-import type { AssistantSignalType } from "@prisma/client";
+import type { AssistantSignalType, GameCompletionModel } from "@prisma/client";
 import type {
   getAssistantProfileData,
 } from "@/lib/assistant/queries";
@@ -36,6 +36,7 @@ export type ShelfFilters = {
   activeSignal: AssistantSignalType | null;
   activeStatus: string | null;
   activePlatform: string | null;
+  activeCompletionModel: GameCompletionModel | null;
   includeDormant: boolean;
   queryText: string;
 };

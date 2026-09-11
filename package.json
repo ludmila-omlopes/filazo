@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "postinstall": "prisma generate",
-    "prebuild": "prisma generate",
+    "prebuild": "prisma generate && node scripts/check-db-schema.mjs",
     "build": "next build",
     "start": "next start --hostname localhost --port 3001",
     "lint": "eslint",
@@ -15,6 +15,7 @@
     "test:steam-sync": "node scripts/qa/run-steam-sync-check.mjs",
     "test:sync-monitor": "node scripts/qa/run-steam-sync-check.mjs scripts/qa/sync-monitor-check.ts",
     "db:generate": "prisma generate",
+    "db:check": "node scripts/check-db-schema.mjs",
     "db:init": "node scripts/init-db.mjs",
     "db:migrate": "node scripts/init-db.mjs",
     "db:push": "node scripts/init-db.mjs"

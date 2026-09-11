@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SectionHeader } from "@/components/ui/section-header";
 import { catalogRowAccent } from "@/components/ui/status-badge";
 import { getAssistantSignalDisplayLabel, getStatusDisplayLabel } from "@/lib/copy";
+import { GameCompletionModel } from "@prisma/client";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import type { ProfileGameSort } from "@/lib/profile-games";
 import { cn, formatNumber } from "@/lib/utils";
@@ -14,6 +15,8 @@ import { FavoriteButton } from "./favorite-button";
 import { PhysicalMediaButton } from "./physical-media-button";
 import { markDroppedAction, markFinishedAction } from "../actions";
 import {
+  COMPLETION_MODEL_FILTERS,
+  getPlatformFilterOptions,
   getUserPlatformLabel,
   UNKNOWN_PLATFORM_FILTER,
 } from "./profile-query";
@@ -23,6 +26,7 @@ type GamesView = "grid" | "list";
 
 function makeShelfHref({
   activeSignal,
+  completionModel,
   platform,
   queryText,
   sort,
@@ -31,6 +35,7 @@ function makeShelfHref({
   includeDormant,
 }: {
   activeSignal: ShelfFilters["activeSignal"];
+  completionModel?: ShelfFilters["activeCompletionModel"];
   includeDormant: boolean;
   platform?: string | null;
   queryText?: string;
@@ -42,6 +47,10 @@ function makeShelfHref({
 
   if (activeSignal) {
     params.set("signal", activeSignal);
+  }
+
+  if (completionModel) {
+    params.set("structure", completionModel);
   }
 
   if (status) {
@@ -69,6 +78,20 @@ function getPlatformFilterLabel(value: string | null, locale: Locale) {
   }
 
   return value;
+}
+
+function getCompletionModelLabel(value: GameCompletionModel, locale: Locale) {
+  const t = createTranslator(locale);
+  switch (value) {
+    case GameCompletionModel.CAMPAIGN:
+      return t("shelf.structureCampaign");
+    case GameCompletionModel.ONGOING:
+      return t("shelf.structureOngoing");
+    case GameCompletionModel.HYBRID:
+      return t("shelf.structureHybrid");
+    default:
+      return t("shelf.structureUnknown");
+  }
 }
 
 function statusForEntry(entry: ProfileEntry) {
@@ -147,7 +170,7 @@ function ShelfCard({
         <GameCard
           game={entry.game}
           isPhysicalCopy={entry.isPhysicalCopy}
-          platformName={entry.platformName}
+          platformName={getUserPlatformLabel(entry)}
           playtimeMinutes={entry.playtimeMinutes}
           completionPercent={entry.completionPercent}
           status={status}
@@ -185,7 +208,7 @@ function ShelfCard({
       <GameCard
         game={entry.game}
         isPhysicalCopy={entry.isPhysicalCopy}
-        platformName={entry.platformName}
+        platformName={getUserPlatformLabel(entry)}
         playtimeMinutes={entry.playtimeMinutes}
         completionPercent={entry.completionPercent}
         status={status}
@@ -232,15 +255,10 @@ export function ShelfGrid({
 }) {
   const t = createTranslator(locale);
   const statuses = Array.from(new Set(allEntries.map((entry) => entry.status)));
-  const platforms = Array.from(
-    new Set(
-      allEntries.map(
-        (entry) => getUserPlatformLabel(entry) ?? UNKNOWN_PLATFORM_FILTER,
-      ),
-    ),
-  ).slice(0, 10);
+  const platforms = getPlatformFilterOptions(allEntries);
   const {
     activePlatform,
+    activeCompletionModel,
     activeSignal,
     activeStatus,
     includeDormant,
@@ -275,6 +293,9 @@ export function ShelfGrid({
             <input type="hidden" name="sort" value={gamesSort} />
             {activeSignal ? (
               <input type="hidden" name="signal" value={activeSignal} />
+            ) : null}
+            {activeCompletionModel ? (
+              <input type="hidden" name="structure" value={activeCompletionModel} />
             ) : null}
             {includeDormant ? (
               <input type="hidden" name="includeDormant" value="1" />
@@ -318,6 +339,7 @@ export function ShelfGrid({
               <Link
                 className="nav-link text-xs"
                 href={makeShelfHref({
+                  completionModel: activeCompletionModel,
                   activeSignal: null,
                   includeDormant,
                   platform: activePlatform,
@@ -332,6 +354,11 @@ export function ShelfGrid({
                 })}
               </Link>
             ) : null}
+            {activeCompletionModel ? (
+              <Chip tone="lavender">
+                {getCompletionModelLabel(activeCompletionModel, locale)}
+              </Chip>
+            ) : null}
           </div>
 
           <details className="rounded-inner border border-edge bg-canvas/60 p-4">
@@ -342,13 +369,14 @@ export function ShelfGrid({
               <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={makeShelfHref({
+                    completionModel: activeCompletionModel,
                   activeSignal,
                   includeDormant,
                   platform: activePlatform,
                   queryText,
                   sort: gamesSort,
-                    status: null,
-                    view: gamesView,
+                  status: null,
+                  view: gamesView,
                   })}
                 >
                   <Chip tone={!activeStatus ? "sage" : "neutral"}>
@@ -358,6 +386,7 @@ export function ShelfGrid({
                 {statuses.map((status) => (
                   <Link
                     href={makeShelfHref({
+                      completionModel: activeCompletionModel,
                       activeSignal,
                       includeDormant:
                         includeDormant || status === "DROPPED",
@@ -380,6 +409,7 @@ export function ShelfGrid({
                 <div className="flex flex-wrap items-center gap-2">
                   <Link
                     href={makeShelfHref({
+                      completionModel: activeCompletionModel,
                       activeSignal,
                       includeDormant,
                       queryText,
@@ -395,6 +425,7 @@ export function ShelfGrid({
                   {platforms.map((platform) => (
                     <Link
                       href={makeShelfHref({
+                        completionModel: activeCompletionModel,
                         activeSignal,
                         includeDormant,
                         platform,
@@ -413,6 +444,20 @@ export function ShelfGrid({
                 </div>
               ) : null}
 
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-ink-soft">
+                  {t("shelf.structureLabel")}
+                </span>
+                <Link href={makeShelfHref({ activeSignal, completionModel: null, includeDormant, platform: activePlatform, queryText, sort: gamesSort, status: activeStatus, view: gamesView })}>
+                  <Chip tone={!activeCompletionModel ? "lavender" : "neutral"}>{t("common.all")}</Chip>
+                </Link>
+                {COMPLETION_MODEL_FILTERS.map((model) => (
+                  <Link key={model} href={makeShelfHref({ activeSignal, completionModel: model, includeDormant, platform: activePlatform, queryText, sort: gamesSort, status: activeStatus, view: gamesView })}>
+                    <Chip tone={activeCompletionModel === model ? "lavender" : "neutral"}>{getCompletionModelLabel(model, locale)}</Chip>
+                  </Link>
+                ))}
+              </div>
+
               <form
                 action="/profile"
                 className="flex flex-wrap items-center gap-3 rounded-inner border border-edge bg-surface p-3 text-sm"
@@ -428,6 +473,9 @@ export function ShelfGrid({
                 ) : null}
                 {activePlatform ? (
                   <input type="hidden" name="platform" value={activePlatform} />
+                ) : null}
+                {activeCompletionModel ? (
+                  <input type="hidden" name="structure" value={activeCompletionModel} />
                 ) : null}
                 {queryText ? (
                   <input type="hidden" name="q" value={queryText} />
@@ -457,6 +505,7 @@ export function ShelfGrid({
                   ].map(([sort, label]) => (
                     <Link
                       href={makeShelfHref({
+                        completionModel: activeCompletionModel,
                         activeSignal,
                         includeDormant,
                         platform: activePlatform,
@@ -484,6 +533,7 @@ export function ShelfGrid({
                   ].map(([view, Icon, label]) => (
                     <Link
                       href={makeShelfHref({
+                        completionModel: activeCompletionModel,
                         activeSignal,
                         includeDormant,
                         platform: activePlatform,

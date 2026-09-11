@@ -44,6 +44,16 @@ test("HLTB search skips complete estimates regardless of attempt age", () => {
   );
 });
 
+test("legacy metadata without modes is refreshed gradually, respecting failed-attempt cooldown", () => {
+  assert.equal(shouldSearchIgdb(createGame({ gameModes: null, igdbCheckedAt: daysAgo(8) }), NOW), true);
+  assert.equal(shouldSearchIgdb(createGame({ gameModes: null, igdbCheckedAt: daysAgo(2) }), NOW), false);
+  assert.equal(shouldSearchIgdb(createGame({ gameModes: undefined }), NOW), true);
+});
+
+test("a successful empty modes response does not trigger repeated enrichment", () => {
+  assert.equal(shouldSearchIgdb(createGame({ gameModes: [], igdbCheckedAt: daysAgo(30) }), NOW), false);
+});
+
 test("HLTB search respects missing estimate attempt staleness", () => {
   assert.equal(
     shouldSearchHltb(
@@ -107,6 +117,7 @@ function createGame(
     coverUrl: "https://example.com/cover.jpg",
     heroUrl: "https://example.com/hero.jpg",
     igdbCheckedAt: null,
+    gameModes: ["Single player"],
     hltbMainStoryMinutes: 600,
     hltbMainExtraMinutes: 900,
     hltbCompletionistMinutes: 1200,

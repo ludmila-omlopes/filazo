@@ -1,5 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 import { Prisma } from "@prisma/client";
+import { createTranslator, type Locale } from "./i18n.ts";
 
 type DatabaseErrorContext = {
   operation: string;
@@ -24,43 +25,10 @@ export function isUniqueConstraintViolation(error: unknown) {
   );
 }
 
-export function getDatabaseErrorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  const prismaCode = getPrismaErrorCode(error);
-
-  if (message.includes("Environment variable not found: DATABASE_URL")) {
-    return "Database is not configured. Set DATABASE_URL to a PostgreSQL connection string.";
-  }
-
-  if (
-    message.includes("the URL must start with the protocol") ||
-    message.includes("the URL must start with protocol") ||
-    message.includes("must start with `postgresql://`") ||
-    message.includes("must start with `postgres://`") ||
-    message.includes("Error validating datasource")
-  ) {
-    return "Database URL must use PostgreSQL. Set DATABASE_URL to a postgresql:// connection string and run npm run db:init.";
-  }
-
-  if (
-    message.includes("no such table") ||
-    message.includes("does not exist in the current database") ||
-    prismaCode === "P2021" ||
-    prismaCode === "P2022"
-  ) {
-    return "Database schema is not initialized. Run the database setup before using catalog features.";
-  }
-
-  if (
-    message.includes("Can't reach database server") ||
-    message.includes("Timed out fetching a new connection") ||
-    prismaCode === "P1001" ||
-    prismaCode === "P2024"
-  ) {
-    return "Database is unavailable. Check the PostgreSQL connection and retry.";
-  }
-
-  return "Database is unavailable. Check DATABASE_URL and the PostgreSQL database setup.";
+export function getDatabaseErrorMessage(error: unknown, locale: Locale = "en") {
+  // Technical details belong exclusively in monitoring, never in product copy.
+  void error;
+  return createTranslator(locale)("profile.error.body");
 }
 
 function getPrismaErrorCode(error: unknown) {

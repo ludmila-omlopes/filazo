@@ -89,6 +89,36 @@ test("short HLTB remaining time can make a game finishable soon", () => {
   );
 });
 
+test("ongoing games do not create completion-pressure insights", () => {
+  const insights = scoreBacklogEntries([
+    createEntry({
+      name: "Live Service",
+      gameModes: ["Multiplayer"],
+      completionPercent: 90,
+      hltbMainExtraMinutes: 900,
+      playtimeMinutes: 700,
+      lastPlayedAt: "2026-04-01",
+    }),
+  ], now);
+
+  assert.ok(
+    !insights.some((insight) =>
+      [AssistantSignalType.FINISHABLE_SOON, AssistantSignalType.LIKELY_FINISHED].includes(insight.signalType),
+    ),
+  );
+});
+
+test("story discovery restores completion signals for an automatically classified ongoing game", () => {
+  const entry = createEntry({ name: "Coop campaign", gameModes: ["Multiplayer"], completionPercent: 90 });
+  entry.game.completionModel = "ONGOING";
+  entry.game.completionModelSource = "RULES";
+  assert.ok(!scoreBacklogEntries([entry], now).some((insight) => insight.signalType === AssistantSignalType.FINISHABLE_SOON));
+  entry.game.providerLinks = [{ hasStoryAchievement: true }];
+  assert.ok(scoreBacklogEntries([entry], now).some((insight) => insight.signalType === AssistantSignalType.FINISHABLE_SOON));
+  entry.game.completionModelSource = "MANUAL";
+  assert.ok(!scoreBacklogEntries([entry], now).some((insight) => insight.signalType === AssistantSignalType.FINISHABLE_SOON));
+});
+
 test("finished history can make a related short game worth finishing before release", () => {
   const insights = scoreBacklogEntries([
     createEntry({
@@ -213,6 +243,7 @@ function createEntry({
   isFavorite = false,
   activeBacklog = true,
   genres = [],
+  gameModes = [],
   igdbId = null,
   upcomingReleases = null,
   hltbMainStoryMinutes = null,
@@ -234,6 +265,7 @@ function createEntry({
       name,
       igdbId,
       genres,
+      gameModes,
       platforms: [],
       aggregatedRating: null,
       hltbMainStoryMinutes,

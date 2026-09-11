@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import nextEnv from "@next/env";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { checkDatabaseSchema } from "../database-schema-check.mjs";
 
 nextEnv.loadEnvConfig(process.cwd(), true);
 const url = new URL(process.env.DATABASE_URL);
@@ -29,6 +30,8 @@ try {
     throw new Error(`Could not initialize isolated test schema (exit ${setup.status}). ${diagnostic}`);
   }
   console.log("Created isolated PostgreSQL schema for Steam queue checks.");
+  await checkDatabaseSchema(db, Prisma.dmmf.datamodel, schema);
+  console.log("PASS deployment schema guard against isolated PostgreSQL.");
   const check = spawnSync(process.execPath, ["--import", "tsx", process.argv[2] ?? "scripts/qa/steam-sync-check.ts"], {
     env, stdio: "inherit", windowsHide: true,
   });

@@ -16,6 +16,7 @@ import {
 import { ProfileRail } from "./_components/profile-rail";
 import {
   filterEntries,
+  parseActiveCompletionModel,
   getStatusMessage,
   parseActiveStatus,
   parseActiveTab,
@@ -45,6 +46,7 @@ import {
   sortProfileGameEntries,
 } from "@/lib/profile-games";
 import { getSessionUserId } from "@/lib/session";
+import { formatPlatformNames } from "@/lib/platform-names";
 
 export const maxDuration = 60;
 
@@ -68,7 +70,7 @@ export default async function ProfilePage({
       operation: "verify-profile-access",
       route: "/profile",
     });
-    return <ProfileErrorPanel error={error} locale={locale} />;
+    return <ProfileErrorPanel locale={locale} />;
   }
 
   if (!sessionUser) {
@@ -103,7 +105,7 @@ export default async function ProfilePage({
       operation: "load-profile",
       route: "/profile",
     });
-    return <ProfileErrorPanel error={error} locale={locale} />;
+    return <ProfileErrorPanel locale={locale} />;
   }
 
   if (!profile) {
@@ -119,7 +121,8 @@ export default async function ProfilePage({
 
   const activeSignal = parseAssistantSignal(query.signal);
   const activeStatus = parseActiveStatus(query.status);
-  const activePlatform = query.platform?.trim() || null;
+  const activePlatform = formatPlatformNames(query.platform) || null;
+  const activeCompletionModel = parseActiveCompletionModel(query.structure);
   const activeJournalEntryId = query.entryId?.trim() || null;
   const includeDormant = query.includeDormant === "1";
   const queryText = query.q?.trim() ?? "";
@@ -142,6 +145,7 @@ export default async function ProfilePage({
   const visibleEntries = sortProfileGameEntries(
     filterEntries({
       activePlatform,
+      activeCompletionModel,
       activeStatus,
       entries: allEntries,
       includeDormant,
@@ -251,6 +255,7 @@ export default async function ProfilePage({
               allEntries={allEntries}
               filters={{
                 activePlatform,
+                activeCompletionModel,
                 activeSignal,
                 activeStatus,
                 includeDormant,
