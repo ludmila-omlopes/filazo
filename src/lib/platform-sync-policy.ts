@@ -70,6 +70,7 @@ export function getPlatformSyncPolicy(env = process.env) {
       true,
     ),
     xboxEnabled: isEnabled(env.PLATFORM_SYNC_XBOX_ENABLED, true),
+    gogEnabled: isEnabled(env.PLATFORM_SYNC_GOG_ENABLED),
   };
 }
 

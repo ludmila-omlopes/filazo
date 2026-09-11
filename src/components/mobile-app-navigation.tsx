@@ -3,7 +3,6 @@
 import {
   Armchair,
   BookOpen,
-  CalendarDays,
   Cable,
   LibraryBig,
   Menu,
@@ -174,12 +173,6 @@ const secondaryItems = [
     tab: "integrations" as const,
     labelKey: "profile.rail.sources" as const,
     icon: Cable,
-  },
-  {
-    href: "/profile?tab=calendar",
-    tab: "calendar" as const,
-    labelKey: "profile.rail.calendar" as const,
-    icon: CalendarDays,
   },
   {
     href: "/profile?tab=player-profile",

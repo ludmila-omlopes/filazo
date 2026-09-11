@@ -2,7 +2,6 @@ import Link from "next/link";
 import {
   Armchair,
   BookOpen,
-  CalendarDays,
   Cable,
   LibraryBig,
   SlidersHorizontal,
@@ -34,13 +33,6 @@ const railItems = [
     labelKey: "profile.rail.catalog" as const,
     hintKey: "profile.rail.catalogHint" as const,
     icon: LibraryBig,
-  },
-  {
-    tab: "calendar" as const,
-    href: "/profile?tab=calendar",
-    labelKey: "profile.rail.calendar" as const,
-    hintKey: "profile.rail.calendarHint" as const,
-    icon: CalendarDays,
   },
   {
     tab: "journal" as const,
