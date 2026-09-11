@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "@/components/locale-provider";
 import { SafeImage } from "@/components/safe-image";
 import { Button } from "@/components/ui/button";
 import type { TranslationKey } from "@/lib/i18n";
+import { MarketplaceSearchPanel } from "./marketplace-search-panel";
 
 type BuyDecision = {
   verdict: "BUY_NOW" | "WAIT_FOR_SALE" | "WISHLIST_ONLY" | "SKIP_FOR_NOW";
@@ -43,6 +44,7 @@ export function BuyDecisionForm() {
   const [title, setTitle] = useState("");
   const [platformName, setPlatformName] = useState("");
   const [priceText, setPriceText] = useState("");
+  const [priceFromStore, setPriceFromStore] = useState(false);
   const [genres, setGenres] = useState("");
   const [reasonUserWantsIt, setReasonUserWantsIt] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -110,7 +112,13 @@ export function BuyDecisionForm() {
     };
   }, [selectedGame, t, title]);
 
+  function clearStorePrice() {
+    if (priceFromStore) { setPriceText(""); setPriceFromStore(false); }
+    setDecision(null);
+  }
+
   function selectGame(result: SearchResult) {
+    clearStorePrice();
     setSelectedGame(result);
     setTitle(result.name);
     setPlatformName(result.platforms[0] ?? platformName);
@@ -163,6 +171,7 @@ export function BuyDecisionForm() {
             name="title"
             onChange={(event) => {
               const nextTitle = event.target.value;
+              clearStorePrice();
               setTitle(nextTitle);
               setSelectedGame(null);
               if (nextTitle.trim().length < 2) {
@@ -185,8 +194,8 @@ export function BuyDecisionForm() {
           <input
             className={inputClassName}
             name="priceText"
-            onChange={(event) => setPriceText(event.target.value)}
-            placeholder="$19.99"
+            onChange={(event) => { setPriceText(event.target.value); setPriceFromStore(false); setDecision(null); }}
+            placeholder={locale === "pt-BR" ? "Informe ou busque um preço" : "Enter or find a price"}
             value={priceText}
           />
         </label>
@@ -244,7 +253,7 @@ export function BuyDecisionForm() {
             className={inputClassName}
             list="buy-decision-platforms"
             name="platformName"
-            onChange={(event) => setPlatformName(event.target.value)}
+            onChange={(event) => { clearStorePrice(); setPlatformName(event.target.value); }}
             placeholder="Steam"
             value={platformName}
           />
@@ -265,6 +274,11 @@ export function BuyDecisionForm() {
           />
         </label>
       </div>
+      <MarketplaceSearchPanel
+        title={title}
+        onRegionChange={clearStorePrice}
+        onUsePrice={(price) => { setPriceText(price); setPriceFromStore(true); setDecision(null); }}
+      />
       <label className="grid gap-1.5 text-sm font-semibold">
         {t("assistant.buyDecision.reasonLabel")}
         <textarea

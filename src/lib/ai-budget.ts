@@ -16,6 +16,7 @@ export type AiBudgetFeature =
   | "assistant_chat"
   | "assistant_play_next"
   | "assistant_summary"
+  | "assistant_marketplace"
   | "photo_import"
   | "player_profile"
   | "story_completion"
@@ -128,6 +129,7 @@ function readFeature(value: unknown): AiBudgetFeature | null {
     case "assistant_chat":
     case "assistant_play_next":
     case "assistant_summary":
+    case "assistant_marketplace":
     case "photo_import":
     case "player_profile":
     case "story_completion":
@@ -204,7 +206,7 @@ export function getBudgetUsageFromRun(run: {
         config,
         inputTokens,
         outputTokens,
-      })
+      }) + Math.max(0, readNumber(estimatedUsage?.additionalCostUsd))
     : readNumber(estimatedUsage?.usd);
 
   return {
@@ -523,11 +525,12 @@ async function reserveAiBudgetOnce({
   now: Date;
   userId: string;
 }): Promise<AiBudgetReserveResult> {
+  const estimatedAdditionalCostUsd = feature === "assistant_marketplace" ? 0.05 : 0;
   const estimatedTokens = estimatedInputTokens + estimatedOutputTokens;
   const estimatedUsd = estimateAiCostUsd({
     inputTokens: estimatedInputTokens,
     outputTokens: estimatedOutputTokens,
-  });
+  }) + estimatedAdditionalCostUsd;
 
   return prisma.$transaction(
     async (tx) => {
@@ -567,6 +570,7 @@ async function reserveAiBudgetOnce({
             countedCalls,
             countedFiles,
             estimatedUsage: {
+              additionalCostUsd: estimatedAdditionalCostUsd,
               inputTokens: estimatedInputTokens,
               outputTokens: estimatedOutputTokens,
               totalTokens: estimatedTokens,

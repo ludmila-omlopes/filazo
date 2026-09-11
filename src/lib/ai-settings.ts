@@ -239,6 +239,7 @@ export function isAiFeatureEnabled(
     case "assistant_play_next":
       return settings.assistantPlayNextEnabled;
     case "assistant_summary":
+    case "assistant_marketplace":
       return settings.assistantSummaryEnabled;
     case "photo_import":
       return settings.photoImportEnabled;
