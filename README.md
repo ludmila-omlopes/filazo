@@ -27,6 +27,37 @@ Beta application intake is stored in `BetaSettings`. Admins can open or close ap
 
 Feedback from signed-in users is attached to their account; authentication failure reports may be submitted anonymously so a person can contact support before a session is established.
 
+## Account plans
+
+`User.plan` is the **manual grant**: `FREE` by default or `PRO` when granted by an admin. Paid access is stored separately in `BillingSubscription`. Effective Pro access is a manual grant OR an eligible, paid subscription in the current payment environment. Billing never overwrites manual grants. No existing feature is restricted yet; the subscription page clearly states that exclusive features are still in preparation.
+
+Admins can search accounts and grant or revoke manual Pro at `/admin/plans`. Both the page and its server action verify the signed-in admin; changing a grant does not charge the user or cancel their subscription. Stale forms cannot overwrite a concurrent grant change. The effective plan is shown on the profile Home tab. Users open `/account/billing` from the header, mobile account menu or plan link on their profile.
+
+For future exclusive features, call `requireProAccess()` from `src/lib/pro-access.ts` inside the server action or route handler before doing any protected work. It verifies the session and platform access, reads the current account from the database, and throws `ProRequiredError` (`code: PRO_REQUIRED`) for Free accounts. Handle that error with localized upgrade messaging (and HTTP 403 in an API). `hasProAccess(user)` from `src/lib/account-plans.ts` is available for rendering; hiding UI alone is not authorization. Admin and beta status do not automatically grant Pro.
+
+Before running the updated app, apply `prisma/migrations/20260911120000_add_account_plan/migration.sql` and `prisma/migrations/20260911160000_add_stripe_billing/migration.sql` through your migration workflow (once each), or run `npm run db:init` for schema bootstrap, then `npm run db:generate`. The billing migration only creates billing tables and indexes. It does not change any existing user's plan. `npm run db:check` verifies compatibility.
+
+### Stripe setup: Brazil, R$ 4.99/month
+
+The first offer is a monthly card subscription in BRL at **499 centavos**. Price, currency, interval and quantity are validated on the server; clients cannot supply them. Checkout uses Portuguese, collects a billing address, disables adaptive currency conversion, and requires confirmation of Brazilian residence and the recurring charge before proceeding. This is a customer declaration, not IP geofencing or a restriction to Brazilian-issued cards. Pix and boleto are not enabled in this version.
+
+1. Configure a Stripe account and set a **test** `STRIPE_SECRET_KEY` in your local `.env`. Keep `STRIPE_BILLING_ENABLED=false`. Never put secret keys in `NEXT_PUBLIC_*` variables.
+2. Run `npm run billing:setup`. It creates/reuses the R$ 4.99 monthly price and a dedicated customer portal configuration. Save its returned `STRIPE_PRO_MONTHLY_PRICE_ID` and `STRIPE_PORTAL_CONFIGURATION_ID` in `.env`. The script does not enable checkout or create a subscription.
+3. Run `npm run billing:listen` in a separate terminal alongside `npm run dev`. It runs the pinned official Stripe CLI through npm, forwards test notifications to port 3001, and saves `STRIPE_WEBHOOK_SECRET` directly in the ignored local `.env` without printing it. Keep the listener running during local payment tests; restart it after restarting your computer. It accepts test keys only and does not enable checkout. For a deployed endpoint, register `/api/billing/webhook` in Stripe Workbench using the API version printed by `billing:setup` (currently `2026-08-26.dahlia`).
+4. Subscribe to `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.paused`, `customer.subscription.resumed`, `invoice.paid`, `invoice.payment_failed`, and `invoice.payment_action_required`.
+5. Set `APP_URL=http://localhost:3001`, `STRIPE_BILLING_MODE=test`, and `STRIPE_BILLING_ENABLED=true` for local test checkout. Test successful payment, declined payment, additional card authentication, renewal, cancellation, and duplicate webhook delivery. Test-mode records cannot grant live-mode access.
+6. To launch, configure live credentials and the HTTPS production `APP_URL`, then run `npm run billing:setup -- --live` with the live key to create the live price/portal. Configure the live webhook and its own signing secret. Set the live IDs, `STRIPE_BILLING_MODE=live`, and enable checkout only after verifying the integration. Production requires a live key regardless of `STRIPE_BILLING_MODE`; Vercel Preview can use test mode.
+
+Required environment variables are listed in `.env.example`. Missing configuration or disabled checkout leaves the library and manual Pro grants working. Disabling checkout does not disable webhooks, payment status checks or subscription management, so existing customers can still cancel. The portal must allow payment-method updates and cancellation **at period end**, with subscription price changes disabled; the server verifies this configuration before checkout or portal access.
+
+Checkout sessions and customers use deterministic idempotency keys and a per-customer database lock, so concurrent clicks and retries after database failures reuse the same Stripe objects. Existing non-terminal subscriptions block another purchase. A signed-in customer can only open their own checkout and portal. Users whose beta access expired can still manage/cancel a paid subscription, but cannot start a new one until platform access is restored.
+
+The webhook verifies Stripe's signature against the raw body, then synchronizes the latest subscription under the same database lock. A unique event record and subscription update commit together; failures return HTTP 500 for retry. Notifications received out of order read current provider state. Only paid invoice lines for the recognized subscription item extend `paidThrough`; an active subscription without a paid invoice or a successful redirect cannot activate Pro. Unknown products and mismatched customers are never granted access. `active` and `past_due` subscriptions only retain access while the paid period remains valid; canceled, unpaid, paused, incomplete and expired subscriptions do not. There is no extra grace period after a failed renewal.
+
+On the return page, short polling waits for webhook confirmation. The authenticated **Check payment status** action reconciles provider state if a notification is delayed. `BillingCustomer` and `BillingSubscription` separate test/live data; webhook records retain only event identifiers/type/mode, not full payment payloads. Card details stay with Stripe. Refund handling is manual in Stripe for this initial release; a refund alone does not cancel a subscription, so access decisions accompanying a refund must also update/cancel the subscription. No automatic refund workflow is implemented.
+
+References: [Stripe subscriptions](https://docs.stripe.com/billing/subscriptions/webhooks), [webhook handling](https://docs.stripe.com/webhooks), [customer portal](https://docs.stripe.com/customer-management).
+
 ## Requirements
 
 - Node.js 22.5 or newer (CI uses Node 26)
@@ -68,6 +99,7 @@ AUTH_SECRET="a-long-random-secret"
 | Feedback conversations | Uses the approval email configuration to notify users and support about replies |
 | AI features | `OPENAI_API_KEY` or `OPENROUTER_KEY` |
 | Store prices and preorders | Same AI credentials/model; OpenRouter web plugin (Exa) or OpenAI Responses `web_search` support required |
+| Library chat web search | Uses the configured OpenAI or OpenRouter key and model; no separate search key required |
 | Private journal media | a private Vercel Blob store and `BLOB_READ_WRITE_TOKEN` |
 
 PlayStation sync exchanges a user-provided NPSSO for encrypted tokens and discards the NPSSO. GOG opens the login on GOG's site, validates a short-lived `state`, accepts the final redirect URL pasted by the user, and stores only encrypted OAuth tokens. The GOG integration uses undocumented Galaxy endpoints, imports only games owned directly on GOG, and can break if those endpoints change. CSV imports do not need provider credentials. Missing optional credentials disable only the relevant feature; catalog imports and sync continue where possible.
@@ -79,6 +111,16 @@ The board statuses are `NEW`, `IN_REVIEW`, `WAITING`, `DONE`, and `DECLINED`. `W
 ### Game page localization
 
 Game detail pages separate public information, your experience, and community activity. For signed-in users viewing Portuguese, the synopsis is translated using the configured AI provider, the assistant-summary enable switch/output limit, and the existing daily spend budget. Successful translations are cached per user in `AssistantRun` with status `GAME_SUMMARY_TRANSLATED`, keyed by canonical game ID, locale, and a hash of the original synopsis. Updated source text invalidates the cache. `Game.summary` stays unchanged. Missing credentials, disabled AI, exhausted budget, or incomplete output show a localized fallback with the original English synopsis. Personal notes and imported reviews retain their original language. No database migration or new environment variable is required.
+
+### Library chat web search
+
+Ask the library chat to search the internet for game announcements, unfamiliar titles, or current information. It calls `search_web` only when needed, then shows clickable provider-supplied sources alongside the answer. Searches receive a short public query, without attaching the chat history or library. Search results do not add or modify catalog games.
+
+OpenRouter uses its [web plugin](https://openrouter.ai/docs/guides/features/plugins/web-search) with the Exa engine and up to five results. Direct OpenAI uses [Responses web search](https://developers.openai.com/api/docs/guides/tools-web-search) with the configured model, which must support that tool. Other compatible gateways keep library chat but return a clear search-unavailable result. Provider failures, timeouts, and missing citations do not become uncited claims of a successful search.
+
+Each reply allows one search, with a 25-second search timeout and at most 1,600 search output tokens. Search tokens count toward the existing daily chat allowance. A separate budget reservation includes an estimated USD 0.01 search fee plus model token estimates; this is an application estimate, not an exact provider bill. Failed requests retain the reservation as other AI failures do. The chat reserves its last step for a written answer, with at least two steps even if the admin setting is one.
+
+Before a search, the app reserves 5,600 tokens (4,000 estimated input plus 1,600 output). If the remaining rolling daily chat allowance or spending allowance cannot cover the reservation, the search is not sent. The chat displays the specific quota reason instead of reporting a web outage, and records `webSearchBudgetReason` in the chat budget output for diagnosis. Actual provider token usage replaces the search estimate after a successful call.
 
 ### Store and preorder search
 

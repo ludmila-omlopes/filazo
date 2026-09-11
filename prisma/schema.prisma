@@ -124,7 +124,14 @@ enum FeedbackStatus {
   DECLINED
 }
 
+enum AccountPlan {
+  FREE
+  PRO
+}
+
 model User {
+  // Manual Pro grant. Paid access is derived independently from BillingSubscription.
+  plan                     AccountPlan             @default(FREE)
   id                       String                  @id @default(cuid())
   displayName              String?
   email                    String?                 @unique
@@ -151,8 +158,50 @@ model User {
   reviewedBetaApplications BetaTesterApplication[] @relation("BetaReviewer")
   feedbackSubmissions      Feedback[]
   feedbackComments         FeedbackComment[]
+  billingCustomers         BillingCustomer[]
+  billingSubscriptions     BillingSubscription[]
 
   @@index([lastActiveAt])
+}
+
+model BillingCustomer {
+  id                  String   @id @default(cuid())
+  userId              String
+  livemode            Boolean
+  stripeCustomerId    String?  @unique
+  checkoutSessionId   String?
+  checkoutPriceId     String?
+  checkoutAttempt     Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptions       BillingSubscription[]
+
+  @@unique([userId, livemode])
+}
+
+model BillingSubscription {
+  id                  String   @id
+  userId              String
+  customerId          String
+  livemode            Boolean
+  status              String
+  priceId             String
+  currentPeriodEnd    DateTime
+  paidThrough         DateTime?
+  cancelAtPeriodEnd   Boolean  @default(false)
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer            BillingCustomer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([userId, livemode])
+}
+
+model BillingWebhookEvent {
+  id          String   @id
+  type        String
+  livemode    Boolean
+  processedAt DateTime @default(now())
 }
 
 model ExternalAccount {

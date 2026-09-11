@@ -8,6 +8,7 @@ import Markdown from "react-markdown";
 import { useTranslations } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getWebSearchStatusKey, webSearchResultSchema } from "@/lib/assistant/web-search";
 
 const STARTER_PROMPT_KEYS = [
   "libraryChat.prompt.shortSession",
@@ -114,6 +115,37 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
                             key={index}
                           >
                             <Markdown>{part.text}</Markdown>
+                          </div>
+                        );
+                      }
+
+                      if (part.type === "tool-search_web") {
+                        const output = "output" in part
+                          ? webSearchResultSchema.safeParse(part.output)
+                          : null;
+                        const pending = "state" in part && (
+                          part.state === "input-streaming" || part.state === "input-available"
+                        );
+                        return (
+                          <div className="my-2 grid gap-1.5 text-xs text-ink-soft" key={index}>
+                            {output?.success && output.data.status === "ok" ? (
+                              <details>
+                                <summary className="cursor-pointer">{t("libraryChat.webSources")}</summary>
+                                <ul className="mt-1.5 grid gap-1">
+                                {output.data.sources.map((source) => (
+                                  <li key={source.url}>
+                                    <a className="break-words underline underline-offset-2" href={source.url} target="_blank" rel="noopener noreferrer">
+                                      {source.title}
+                                    </a>
+                                  </li>
+                                ))}
+                                </ul>
+                              </details>
+                            ) : (
+                              <span aria-live="polite" role="status">
+                                {t(pending ? "libraryChat.webSearching" : getWebSearchStatusKey(output?.success ? output.data : undefined))}
+                              </span>
+                            )}
                           </div>
                         );
                       }

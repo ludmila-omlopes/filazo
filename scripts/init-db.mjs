@@ -19,10 +19,10 @@ if (databaseUrl.startsWith("file:")) {
   process.exit(1);
 }
 
-// Includes sync checkpoints/incidents, system feedback comments, provider links and metadata jobs. This is schema
+// Includes account plans (existing/new users default to FREE), sync checkpoints/incidents, system feedback comments, provider links and metadata jobs. This is schema
 // bootstrap only: workers require a normally generated Prisma client too.
 // Deployments separately run db:check before building; this bootstrap also
-// includes Game completion structure and the current provider enum values.
+// includes Game completion structure, Stripe billing tables, and the current provider enum values.
 const result = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
   cwd: process.cwd(),
   env: process.env,

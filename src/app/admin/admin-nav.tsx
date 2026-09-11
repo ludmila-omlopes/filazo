@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { href: "/admin/sync", key: "admin.nav.sync" },
   { href: "/admin/ai", key: "admin.nav.ai" },
   { href: "/admin/activity", key: "admin.nav.activity" },
+  { href: "/admin/plans", key: "admin.nav.plans" },
 ] satisfies Array<{ href: string; key: TranslationKey }>;
 
 export function AdminNav({
