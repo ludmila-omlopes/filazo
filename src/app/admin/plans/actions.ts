@@ -41,6 +41,7 @@ export async function updateAccountPlanAction(formData: FormData) {
 
   revalidatePath("/admin/plans");
   revalidatePath("/profile");
+  revalidatePath("/account/billing");
   params.set("status", changed ? "saved" : "conflict");
   redirect(`/admin/plans?${params}`);
 }

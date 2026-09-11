@@ -1613,6 +1613,7 @@ export async function getProfileData(
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
+      billingSubscriptions: true,
       externalAccounts: {
         orderBy: { createdAt: "asc" },
         include: { platformSyncRuns: {

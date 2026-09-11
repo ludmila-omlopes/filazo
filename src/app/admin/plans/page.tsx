@@ -8,6 +8,7 @@ import { createTranslator, type TranslationKey } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
+import { hasProAccess } from "@/lib/account-plans";
 
 const statusKeys: Record<string, TranslationKey> = {
   saved: "admin.plans.saved",
@@ -36,7 +37,7 @@ export default async function AccountPlansPage({ searchParams }: {
       { email: { contains: search, mode: "insensitive" } },
       { displayName: { contains: search, mode: "insensitive" } },
     ] },
-    select: { id: true, displayName: true, email: true, plan: true },
+    select: { id: true, displayName: true, email: true, plan: true, billingSubscriptions: true },
     orderBy: [{ displayName: "asc" }, { id: "asc" }],
     take: 20,
   }) : [];
@@ -66,7 +67,7 @@ export default async function AccountPlansPage({ searchParams }: {
               <div className="min-w-0">
                 <h2 className="break-words font-semibold">{user.displayName ?? t("admin.noName")}</h2>
                 <p className="break-all text-sm text-ink-soft">{user.email ?? t("admin.noEmail")}</p>
-                <p className="mt-2 text-sm">{t("account.plan.label")}: {t(user.plan === "PRO" ? "account.plan.pro" : "account.plan.free")}</p>
+                <p className="mt-2 text-sm">{t("account.plan.label")}: {t(hasProAccess(user) ? "account.plan.pro" : "account.plan.free")}</p>
               </div>
               <form action={updateAccountPlanAction} className="flex flex-wrap items-end gap-3">
                 <input type="hidden" name="userId" value={user.id} />

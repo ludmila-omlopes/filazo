@@ -216,6 +216,7 @@ export default async function RootLayout({
                 <ThemeToggle mode={mode} />
                 {navigationUser ? (
                   <div className="inline-flex items-center gap-3">
+                    <Link href="/account/billing" className="nav-link text-sm">{t("billing.title")}</Link>
                     <span className="max-w-[16ch] truncate text-sm font-semibold">
                       {navigationUser.displayName ?? t("common.player")}
                     </span>
@@ -234,7 +235,10 @@ export default async function RootLayout({
                 <MobileAccountMenu
                   accountAction={
                     navigationUser ? (
-                      <SignOutForm label={t("auth.signOut")} />
+                      <div className="grid gap-3">
+                        <Link href="/account/billing" className="nav-link py-2 text-sm">{t("billing.title")}</Link>
+                        <SignOutForm label={t("auth.signOut")} />
+                      </div>
                     ) : (
                       <AuthDialog
                         triggerLabel={t("auth.trigger.signIn")}

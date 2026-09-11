@@ -42,7 +42,7 @@ export async function getSessionUserWithBeta(userId: string | null) {
 
   return prisma.user.findUnique({
     where: { id: userId },
-    include: { betaApplication: true },
+    include: { betaApplication: true, billingSubscriptions: true },
   });
 }
 

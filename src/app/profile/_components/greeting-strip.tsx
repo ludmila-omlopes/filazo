@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { createTranslator, type Locale } from "@/lib/i18n";
+import { hasProAccess } from "@/lib/account-plans";
 import type { ProfileData } from "./profile-types";
 
 function getGreetingLine(locale: Locale) {
@@ -36,7 +37,9 @@ export function GreetingStrip({
             {profile.user.displayName ?? t("common.player")}
           </h2>
           <p className="mt-2 text-sm font-semibold text-ink-soft">
-            {t("account.plan.label")}: {t(profile.user.plan === "PRO" ? "account.plan.pro" : "account.plan.free")}
+            <Link href="/account/billing" className="underline underline-offset-4">
+              {t("account.plan.label")}: {t(hasProAccess(profile.user) ? "account.plan.pro" : "account.plan.free")}
+            </Link>
           </p>
           <p className="mt-2 max-w-[52ch] leading-relaxed text-ink-soft">
             {t("profile.greeting.body", {
