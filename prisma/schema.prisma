@@ -124,7 +124,13 @@ enum FeedbackStatus {
   DECLINED
 }
 
+enum AccountPlan {
+  FREE
+  PRO
+}
+
 model User {
+  plan                     AccountPlan             @default(FREE)
   id                       String                  @id @default(cuid())
   displayName              String?
   email                    String?                 @unique

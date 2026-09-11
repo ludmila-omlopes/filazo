@@ -88,6 +88,23 @@ test("AI budget spend limit fails before reservation", () => {
   assert.equal(result?.reason, "USER_DAILY_SPEND_LIMIT");
 });
 
+test("web search fees remain counted when actual token usage replaces estimates", () => {
+  const inputSummary = {
+    kind: "ai_budget", feature: "assistant_chat", countedCalls: 0, countedFiles: 0,
+    estimatedUsage: { inputTokens: 4000, outputTokens: 1600, totalTokens: 5600, usd: 0.012, additionalCostUsd: 0.01 },
+  };
+  const outputSummary = { output: { inputTokens: 100, outputTokens: 50, totalTokens: 150 } };
+  const result = getBudgetUsageFromRun({ inputSummary, outputSummary });
+  const tokensOnly = getBudgetUsageFromRun({
+    inputSummary: { ...inputSummary, estimatedUsage: { ...inputSummary.estimatedUsage, additionalCostUsd: 0 } },
+    outputSummary,
+  });
+  assert.equal(result.tokens, 150);
+  assert.equal(result.calls, 0);
+  assert.ok(Math.abs(result.usd - tokensOnly.usd - 0.01) < 1e-10);
+  assert.equal(getBudgetUsageFromRun({ inputSummary, outputSummary: {} }).usd, 0.012);
+});
+
 test("AI budget token and call limits include pending reservation estimates", () => {
   const chatResult = getAiBudgetLimitFailure({
     countedCalls: 1,

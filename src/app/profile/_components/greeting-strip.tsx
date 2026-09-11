@@ -35,6 +35,9 @@ export function GreetingStrip({
           <h2 className="text-page-title leading-tight">
             {profile.user.displayName ?? t("common.player")}
           </h2>
+          <p className="mt-2 text-sm font-semibold text-ink-soft">
+            {t("account.plan.label")}: {t(profile.user.plan === "PRO" ? "account.plan.pro" : "account.plan.free")}
+          </p>
           <p className="mt-2 max-w-[52ch] leading-relaxed text-ink-soft">
             {t("profile.greeting.body", {
               greeting: getGreetingLine(locale),

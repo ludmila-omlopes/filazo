@@ -505,6 +505,7 @@ export function getAiBudgetLimitFailure({
 }
 
 async function reserveAiBudgetOnce({
+  estimatedAdditionalCostUsd,
   countedCalls,
   countedFiles,
   estimatedInputTokens,
@@ -515,6 +516,7 @@ async function reserveAiBudgetOnce({
   now,
   userId,
 }: {
+  estimatedAdditionalCostUsd: number;
   countedCalls: number;
   countedFiles: number;
   estimatedInputTokens: number;
@@ -525,12 +527,11 @@ async function reserveAiBudgetOnce({
   now: Date;
   userId: string;
 }): Promise<AiBudgetReserveResult> {
-  const estimatedAdditionalCostUsd = feature === "assistant_marketplace" ? 0.05 : 0;
   const estimatedTokens = estimatedInputTokens + estimatedOutputTokens;
   const estimatedUsd = estimateAiCostUsd({
     inputTokens: estimatedInputTokens,
     outputTokens: estimatedOutputTokens,
-  }) + estimatedAdditionalCostUsd;
+  }) + estimatedAdditionalCostUsd + (feature === "assistant_marketplace" ? 0.05 : 0);
 
   return prisma.$transaction(
     async (tx) => {
@@ -570,7 +571,7 @@ async function reserveAiBudgetOnce({
             countedCalls,
             countedFiles,
             estimatedUsage: {
-              additionalCostUsd: estimatedAdditionalCostUsd,
+              additionalCostUsd: estimatedAdditionalCostUsd + (feature === "assistant_marketplace" ? 0.05 : 0),
               inputTokens: estimatedInputTokens,
               outputTokens: estimatedOutputTokens,
               totalTokens: estimatedTokens,
@@ -615,6 +616,7 @@ async function reserveAiBudgetOnce({
 }
 
 export async function reserveAiBudget({
+  estimatedAdditionalCostUsd = 0,
   countedCalls = 1,
   countedFiles = 0,
   estimatedInputTokens,
@@ -625,6 +627,7 @@ export async function reserveAiBudget({
   now = new Date(),
   userId,
 }: {
+  estimatedAdditionalCostUsd?: number;
   countedCalls?: number;
   countedFiles?: number;
   estimatedInputTokens?: number;
@@ -635,6 +638,9 @@ export async function reserveAiBudget({
   now?: Date;
   userId: string;
 }) {
+  if (!Number.isFinite(estimatedAdditionalCostUsd) || estimatedAdditionalCostUsd < 0) {
+    throw new Error("Additional AI cost must be a finite non-negative amount.");
+  }
   const config = getAiEstimateConfig();
   const normalizedInputTokens = Math.max(
     0,
@@ -650,6 +656,7 @@ export async function reserveAiBudget({
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       return await reserveAiBudgetOnce({
+        estimatedAdditionalCostUsd,
         countedCalls: normalizedCalls,
         countedFiles: normalizedFiles,
         estimatedInputTokens: normalizedInputTokens,

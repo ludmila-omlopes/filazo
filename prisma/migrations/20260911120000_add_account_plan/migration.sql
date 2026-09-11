@@ -1,0 +1,3 @@
+CREATE TYPE "AccountPlan" AS ENUM ('FREE', 'PRO');
+
+ALTER TABLE "User" ADD COLUMN "plan" "AccountPlan" NOT NULL DEFAULT 'FREE';

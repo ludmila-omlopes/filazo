@@ -27,6 +27,16 @@ Beta application intake is stored in `BetaSettings`. Admins can open or close ap
 
 Feedback from signed-in users is attached to their account; authentication failure reports may be submitted anonymously so a person can contact support before a session is established.
 
+## Account plans
+
+`User.plan` identifies the account as `FREE` (the default for existing and new users) or `PRO` (the paid tier). The login methods, canonical catalog, and beta access rules are shared by both plans. No existing features are restricted yet, and payment checkout, prices, subscription renewal, and billing webhooks are not implemented.
+
+Admins can search accounts and manually grant or revoke Pro at `/admin/plans`. Both the page and its server action verify the signed-in admin; changing a plan does not charge the user. Stale forms cannot overwrite a concurrent plan change. The current plan is shown on the profile Home tab in English or Portuguese.
+
+For future exclusive features, call `requireProAccess()` from `src/lib/pro-access.ts` inside the server action or route handler before doing any protected work. It verifies the session and platform access, reads the current account from the database, and throws `ProRequiredError` (`code: PRO_REQUIRED`) for Free accounts. Handle that error with localized upgrade messaging (and HTTP 403 in an API). `hasProAccess(user)` from `src/lib/account-plans.ts` is available for rendering; hiding UI alone is not authorization. Admin and beta status do not automatically grant Pro.
+
+Before running the updated app, apply `prisma/migrations/20260911120000_add_account_plan/migration.sql` through your migration workflow, or run `npm run db:init` for schema bootstrap, then `npm run db:generate`. No additional environment variables are required. Future billing integration must change the plan only after trusted server-side payment verification.
+
 ## Requirements
 
 - Node.js 22.5 or newer (CI uses Node 26)
@@ -68,6 +78,7 @@ AUTH_SECRET="a-long-random-secret"
 | Feedback conversations | Uses the approval email configuration to notify users and support about replies |
 | AI features | `OPENAI_API_KEY` or `OPENROUTER_KEY` |
 | Store prices and preorders | Same AI credentials/model; OpenRouter web plugin (Exa) or OpenAI Responses `web_search` support required |
+| Library chat web search | Uses the configured OpenAI or OpenRouter key and model; no separate search key required |
 | Private journal media | a private Vercel Blob store and `BLOB_READ_WRITE_TOKEN` |
 
 PlayStation sync exchanges a user-provided NPSSO for encrypted tokens and discards the NPSSO. GOG opens the login on GOG's site, validates a short-lived `state`, accepts the final redirect URL pasted by the user, and stores only encrypted OAuth tokens. The GOG integration uses undocumented Galaxy endpoints, imports only games owned directly on GOG, and can break if those endpoints change. CSV imports do not need provider credentials. Missing optional credentials disable only the relevant feature; catalog imports and sync continue where possible.
@@ -79,6 +90,16 @@ The board statuses are `NEW`, `IN_REVIEW`, `WAITING`, `DONE`, and `DECLINED`. `W
 ### Game page localization
 
 Game detail pages separate public information, your experience, and community activity. For signed-in users viewing Portuguese, the synopsis is translated using the configured AI provider, the assistant-summary enable switch/output limit, and the existing daily spend budget. Successful translations are cached per user in `AssistantRun` with status `GAME_SUMMARY_TRANSLATED`, keyed by canonical game ID, locale, and a hash of the original synopsis. Updated source text invalidates the cache. `Game.summary` stays unchanged. Missing credentials, disabled AI, exhausted budget, or incomplete output show a localized fallback with the original English synopsis. Personal notes and imported reviews retain their original language. No database migration or new environment variable is required.
+
+### Library chat web search
+
+Ask the library chat to search the internet for game announcements, unfamiliar titles, or current information. It calls `search_web` only when needed, then shows clickable provider-supplied sources alongside the answer. Searches receive a short public query, without attaching the chat history or library. Search results do not add or modify catalog games.
+
+OpenRouter uses its [web plugin](https://openrouter.ai/docs/guides/features/plugins/web-search) with the Exa engine and up to five results. Direct OpenAI uses [Responses web search](https://developers.openai.com/api/docs/guides/tools-web-search) with the configured model, which must support that tool. Other compatible gateways keep library chat but return a clear search-unavailable result. Provider failures, timeouts, and missing citations do not become uncited claims of a successful search.
+
+Each reply allows one search, with a 25-second search timeout and at most 1,600 search output tokens. Search tokens count toward the existing daily chat allowance. A separate budget reservation includes an estimated USD 0.01 search fee plus model token estimates; this is an application estimate, not an exact provider bill. Failed requests retain the reservation as other AI failures do. The chat reserves its last step for a written answer, with at least two steps even if the admin setting is one.
+
+Before a search, the app reserves 5,600 tokens (4,000 estimated input plus 1,600 output). If the remaining rolling daily chat allowance or spending allowance cannot cover the reservation, the search is not sent. The chat displays the specific quota reason instead of reporting a web outage, and records `webSearchBudgetReason` in the chat budget output for diagnosis. Actual provider token usage replaces the search estimate after a successful call.
 
 ### Store and preorder search
 
