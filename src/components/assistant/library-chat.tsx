@@ -49,7 +49,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
   }
 
   return (
-    <section className="panel">
+    <section className="panel min-w-0 max-sm:p-4">
       <div className="mb-6">
         <span className="section-label">{t("libraryChat.label")}</span>
         <h2 className="text-section-title leading-snug">
@@ -99,7 +99,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
                 {messages.map((message) => (
                   <div
                     className={cn(
-                      "max-w-[85%] rounded-inner px-4 py-2.5 text-sm leading-relaxed shadow-rest",
+                      "min-w-0 max-w-[min(85%,65ch)] break-words rounded-inner px-4 py-2.5 text-sm leading-relaxed shadow-rest",
                       message.role === "user"
                         ? "justify-self-end bg-sage-soft"
                         : "justify-self-start bg-surface",

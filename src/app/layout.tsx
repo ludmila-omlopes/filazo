@@ -175,7 +175,7 @@ export default async function RootLayout({
             <a href="#main-content">{t("common.skipToContent")}</a>
           </Button>
 
-          <div className="app-shell min-h-screen pb-6 pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))] max-md:pb-4 max-md:pl-[max(1rem,env(safe-area-inset-left))] max-md:pr-[max(1rem,env(safe-area-inset-right))]">
+          <div className="app-shell min-h-screen pb-6 pl-[max(clamp(1.5rem,2.5vw,3rem),env(safe-area-inset-left))] pr-[max(clamp(1.5rem,2.5vw,3rem),env(safe-area-inset-right))] max-md:pb-4 max-md:pl-[max(1rem,env(safe-area-inset-left))] max-md:pr-[max(1rem,env(safe-area-inset-right))]">
             <SiteHeaderFrame>
               <Link
                 href={homeHref}

@@ -52,7 +52,7 @@ export default async function AdminSyncPage({ searchParams }: {
   const label = (state: string) => stateKeys[state] ? t(stateKeys[state]) : state;
   const staleMonitor = !monitor?.lastTriggeredAt || now.getTime() - monitor.lastTriggeredAt.getTime() > 5 * 60_000;
   return (
-    <main id="main-content" className="mx-auto grid w-full max-w-[1280px] gap-8">
+    <main id="main-content" className="mx-auto grid w-full max-w-page gap-8">
       <SyncMonitorRefresh />
       <section className="grid gap-4">
         <AdminNav current="/admin/sync" locale={locale} />

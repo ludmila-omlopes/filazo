@@ -241,7 +241,7 @@ export default async function Home() {
   return (
     <main
       id="main-content"
-      className="mx-auto grid w-full max-w-[1100px] gap-24 overflow-visible pb-20 max-md:gap-16"
+      className="mx-auto grid w-full max-w-page gap-24 overflow-visible pb-20 max-md:gap-16"
     >
       {databaseNotice ? <Notice tone="error">{databaseNotice}</Notice> : null}
 
@@ -337,7 +337,7 @@ export default async function Home() {
         </div>
 
         {showcaseGames.length ? (
-          <div className="grid grid-cols-4 gap-4 max-lg:grid-cols-3 max-md:grid-cols-2">
+          <div className="library-grid">
             {showcaseGames.map((game) => (
               <GameCard
                 className={GLASS_CARD}

@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <main
       id="main-content"
-      className="mx-auto grid w-full max-w-[1180px] grid-cols-[260px_minmax(0,1fr)] gap-8 max-lg:grid-cols-1"
+      className="mx-auto grid w-full max-w-page grid-cols-[260px_minmax(0,1fr)] gap-8 max-lg:grid-cols-1"
     >
       <aside className="grid gap-4">
         <Skeleton className="h-40 rounded-card" />

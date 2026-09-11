@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "@/components/locale-provider";
 
 type ScreenshotLightboxProps = {
   screenshots: string[];
@@ -12,6 +13,7 @@ export function ScreenshotLightbox({
   screenshots,
   gameName,
 }: ScreenshotLightboxProps) {
+  const t = useTranslations();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const isOpen = openIndex !== null;
 
@@ -66,10 +68,10 @@ export function ScreenshotLightbox({
             key={screenshot}
             onClick={() => setOpenIndex(index)}
             type="button"
-            aria-label={`View screenshot ${index + 1} of ${gameName} fullscreen`}
+            aria-label={t("game.viewScreenshot", { index: index + 1, name: gameName })}
           >
             <img
-              alt={`Screenshot ${index + 1} of ${gameName}`}
+              alt={t("game.screenshotAlt", { index: index + 1, name: gameName })}
               src={screenshot}
               className="w-full h-full object-cover motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-105"
             />
@@ -105,14 +107,14 @@ export function ScreenshotLightbox({
           }}
           role="dialog"
           aria-modal="true"
-          aria-label={`Screenshot ${openIndex! + 1} of ${gameName}`}
+          aria-label={t("game.screenshotAlt", { index: openIndex! + 1, name: gameName })}
         >
           {/* Close button */}
           <button
             className="absolute top-5 right-5 z-10 w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 grid place-items-center text-white hover:bg-white/20 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
             onClick={close}
             type="button"
-            aria-label="Close lightbox"
+            aria-label={t("common.close")}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -136,7 +138,7 @@ export function ScreenshotLightbox({
               className="absolute left-4 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 grid place-items-center text-white hover:bg-white/20 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white max-sm:left-2 max-sm:w-9 max-sm:h-9"
               onClick={() => goTo("prev")}
               type="button"
-              aria-label="Previous screenshot"
+              aria-label={t("game.previousScreenshot")}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -161,7 +163,7 @@ export function ScreenshotLightbox({
               className="absolute right-4 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white/10 border-2 border-white/20 grid place-items-center text-white hover:bg-white/20 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white max-sm:right-2 max-sm:w-9 max-sm:h-9"
               onClick={() => goTo("next")}
               type="button"
-              aria-label="Next screenshot"
+              aria-label={t("game.nextScreenshot")}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -183,7 +185,7 @@ export function ScreenshotLightbox({
           {/* Image container */}
           <div className="relative max-w-[90vw] max-h-[85vh] flex items-center justify-center">
             <img
-              alt={`Screenshot ${openIndex! + 1} of ${gameName}`}
+              alt={t("game.screenshotAlt", { index: openIndex! + 1, name: gameName })}
               src={screenshots[openIndex!]}
               className="max-w-full max-h-[85vh] object-contain rounded-[12px] shadow-float motion-safe:animate-[scale-in_200ms_ease-out]"
             />

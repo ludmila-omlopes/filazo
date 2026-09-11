@@ -2,7 +2,7 @@ import { GameCardSkeleton, Skeleton } from "@/components/ui/skeleton";
 
 export default function Loading() {
   return (
-    <main id="main-content" className="mx-auto w-full max-w-[1100px] pb-12">
+    <main id="main-content" className="mx-auto w-full max-w-page pb-12">
       <section className="rounded-card border border-edge bg-dusk-deep p-8 shadow-float">
         <div className="mx-auto grid max-w-[640px] gap-8">
           <Skeleton className="mx-auto h-12 w-4/5 bg-cream/15" />

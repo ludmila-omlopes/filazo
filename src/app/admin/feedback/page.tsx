@@ -74,7 +74,7 @@ export default async function AdminFeedbackPage({
   }));
 
   return (
-    <main id="main-content" className="mx-auto grid w-full max-w-[1280px] gap-8">
+    <main id="main-content" className="mx-auto grid w-full max-w-page gap-8">
       {query.error ? <Notice tone="error">{query.error}</Notice> : null}
       {query.updated ? (
         <Notice tone="success">{t("admin.feedback.updated")}</Notice>

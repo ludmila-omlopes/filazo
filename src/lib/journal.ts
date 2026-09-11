@@ -418,6 +418,36 @@ export async function deleteJournalEntryForUser({
   return { slug: entry.game.slug };
 }
 
+export async function updateJournalEntryForUser({
+  userId, userGameEntryId, journalEntryId, title, body, occurredAt,
+}: {
+  userId: string;
+  userGameEntryId: string;
+  journalEntryId: string;
+  title: string | null;
+  body: string | null;
+  occurredAt: Date | null;
+}) {
+  const where = { id: journalEntryId, userId, userGameEntryId };
+  const entry = await prisma.gameJournalEntry.findFirst({
+    where,
+    select: {
+      audioTranscript: true,
+      media: { select: { id: true } },
+      game: { select: { slug: true } },
+    },
+  });
+  if (!entry || (!title && !body && !entry.audioTranscript && !entry.media.length)) {
+    throw new Error("Diary page unavailable or empty.");
+  }
+  const result = await prisma.gameJournalEntry.updateMany({
+    where,
+    data: { title, body, ...(occurredAt ? { occurredAt } : {}) },
+  });
+  if (result.count !== 1) throw new Error("Diary page unavailable.");
+  return entry.game.slug;
+}
+
 export async function createJournalEntryForUser({
   audioUpload,
   body,

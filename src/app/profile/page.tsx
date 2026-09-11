@@ -162,7 +162,7 @@ export default async function ProfilePage({
   return (
     <main
       id="main-content"
-      className="mx-auto grid w-full max-w-[1180px] grid-cols-[260px_minmax(0,1fr)] items-start gap-8 max-lg:grid-cols-1"
+      className="mx-auto grid w-full max-w-page grid-cols-[260px_minmax(0,1fr)] items-start gap-8 max-lg:grid-cols-1"
     >
       <ProfileRail
         activeTab={activeTab}
@@ -194,15 +194,17 @@ export default async function ProfilePage({
 
         <div inert={isReadOnlyPreview}>
           {activeTab === "overview" ? (
-            <>
+            <div className="grid min-w-0 gap-6">
               <GreetingStrip locale={locale} profile={profile} />
-              <CurrentPlayingPanel
-                locale={locale}
-                playerProfile={playerProfile}
-                profile={profile}
-              />
-              <PlayingNextPanel locale={locale} profile={profile} />
-            </>
+              <div className="grid min-w-0 items-start gap-6">
+                <CurrentPlayingPanel
+                  locale={locale}
+                  playerProfile={playerProfile}
+                  profile={profile}
+                />
+                <PlayingNextPanel locale={locale} profile={profile} />
+              </div>
+            </div>
           ) : null}
 
           {activeTab === "playerProfile" ? (
@@ -233,6 +235,9 @@ export default async function ProfilePage({
           {activeTab === "journal" ? (
             <JournalTab
               activeEntryId={activeJournalEntryId}
+              mode={query.journalMode === "write" ? "write" : "read"}
+              editPageId={query.editPageId}
+              queryText={queryText}
               aiSettings={aiSettings}
               locale={locale}
               profile={profile}

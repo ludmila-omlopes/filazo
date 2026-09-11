@@ -26,7 +26,7 @@ export async function generateMetadata({
   return createPageMetadata({
     title: game.name,
     description:
-      game.summary ?? t("game.metadataFallback", { name: game.name }),
+      (locale === "en" ? game.summary : null) ?? t("game.metadataFallback", { name: game.name }),
     path: `/games/${game.slug}`,
   });
 }

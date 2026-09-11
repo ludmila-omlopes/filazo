@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * Calm section intro: small eyebrow label, a quiet display heading, and an
@@ -9,14 +10,17 @@ export function SectionHeader({
   title,
   description,
   aside,
+  inlineAside = false,
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   aside?: ReactNode;
+  /** Keep a compact action, such as an icon menu, beside the heading on mobile. */
+  inlineAside?: boolean;
 }) {
   return (
-    <div className="mb-6 flex items-end justify-between gap-4 max-lg:flex-col max-lg:items-start">
+    <div className={cn("mb-6 flex justify-between gap-4", inlineAside ? "items-start" : "items-end max-lg:flex-col max-lg:items-start")}>
       <div className="min-w-0">
         {eyebrow ? <span className="section-label">{eyebrow}</span> : null}
         <h2 className="text-section-title leading-snug">{title}</h2>
@@ -26,7 +30,7 @@ export function SectionHeader({
           </p>
         ) : null}
       </div>
-      {aside ? <div className="flex-none max-lg:w-full">{aside}</div> : null}
+      {aside ? <div className={cn("flex-none", !inlineAside && "max-lg:w-full")}>{aside}</div> : null}
     </div>
   );
 }

@@ -76,6 +76,10 @@ Feedback cards include a two-way comment thread for identified users. The user c
 
 The board statuses are `NEW`, `IN_REVIEW`, `WAITING`, `DONE`, and `DECLINED`. `WAITING` (Aguardando) keeps the conversation open and sends the same status-change notification as other moves. Apply the `20260909180000_add_feedback_waiting_status` migration or the existing `npm run db:init` schema bootstrap before using it.
 
+### Game page localization
+
+Game detail pages separate public information, your experience, and community activity. For signed-in users viewing Portuguese, the synopsis is translated using the configured AI provider, the assistant-summary enable switch/output limit, and the existing daily spend budget. Successful translations are cached per user in `AssistantRun` with status `GAME_SUMMARY_TRANSLATED`, keyed by canonical game ID, locale, and a hash of the original synopsis. Updated source text invalidates the cache. `Game.summary` stays unchanged. Missing credentials, disabled AI, exhausted budget, or incomplete output show a localized fallback with the original English synopsis. Personal notes and imported reviews retain their original language. No database migration or new environment variable is required.
+
 ### Store and preorder search
 
 In the purchase decision form, enter/select a title, choose a store region, then use **Find stores and prices**. AI searches the live web across all platforms for direct store listings, including preorders and physical copies. The form's platform field does not filter store searches; each result identifies its own platform and edition alongside its source link, availability and lookup time. Only explicitly sourced prices in the selected region's currency can be copied into the price field. Announced/wishlist-only pages are distinguished from confirmed preorders; missing prices remain unconfirmed. Changing title or region clears previous results and cancels the browser request; changing the form's platform keeps the store results visible.

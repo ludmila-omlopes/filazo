@@ -45,7 +45,7 @@ export function GameCardSkeleton({ compact = false }: { compact?: boolean }) {
 
 export function LibraryGridSkeleton() {
   return (
-    <div className="grid grid-cols-5 gap-4 max-lg:grid-cols-4 max-md:grid-cols-3 max-sm:grid-cols-2">
+    <div className="library-grid">
       {Array.from({ length: 10 }).map((_, index) => (
         <GameCardSkeleton key={index} />
       ))}

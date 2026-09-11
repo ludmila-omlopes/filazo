@@ -14,6 +14,7 @@ const gameCardVariants = cva(
       variant: {
         shelf: "p-3.5",
         row: "p-2.5",
+        focus: "grid grid-cols-[80px_minmax(0,1fr)] items-start gap-4 p-4",
         slot:
           "p-4 hover:border-glow night:hover:border-glow night:hover:shadow-[0_16px_36px_color-mix(in_srgb,var(--color-glow)_16%,transparent)]",
       },
@@ -140,7 +141,11 @@ function Cover({
           sizes={
             isRow
               ? "48px"
-              : "(max-width: 640px) 45vw, (max-width: 1024px) 25vw, 220px"
+              : variant === "focus"
+                ? "80px"
+              : variant === "slot"
+                ? "(max-width: 639px) calc(100vw - 100px), (max-width: 1023px) 45vw, 320px"
+                : "(max-width: 639px) 45vw, (max-width: 1023px) 30vw, 220px"
           }
           src={game.coverUrl}
         />
@@ -253,12 +258,14 @@ export function GameCard({
     ) : (
       <>
         <Cover game={game} variant={resolvedVariant} />
-        <div className="mt-3 grid gap-2 text-left">
+        <div className={cn("grid min-w-0 gap-2 text-left", resolvedVariant !== "focus" && "mt-3")}>
           {eyebrow ? <p className="section-label !mb-0">{eyebrow}</p> : null}
           <h3
             className={cn(
-              "line-clamp-2 font-display font-medium leading-tight",
-              resolvedVariant === "slot" ? "text-xl" : "text-base",
+              "font-display font-medium leading-tight",
+              resolvedVariant !== "focus" && "line-clamp-2",
+              resolvedVariant === "focus" && "break-words",
+              resolvedVariant === "slot" ? "text-xl" : resolvedVariant === "focus" ? "text-lg" : "text-base",
               // Reserve two lines so cards keep a uniform height whether the title
               // wraps to one line or two.
               resolvedVariant === "shelf" && "min-h-[2.5rem]",
@@ -271,7 +278,7 @@ export function GameCard({
             <>
               {/* Fixed-height metadata line so slot cards stay uniform whether or
                   not platform/playtime is present. */}
-              <div className="flex h-6 items-center">
+              <div className={cn("flex items-center", resolvedVariant !== "focus" && "h-6")}>
                 <Metadata
                   isPhysicalCopy={isPhysicalCopy}
                   locale={locale}
@@ -279,7 +286,7 @@ export function GameCard({
                   playtimeLabel={playtimeLabel}
                 />
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 empty:hidden">
                 <StatusDisplay
                   locale={locale}
                   status={displayStatus}

@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <main
       id="main-content"
-      className="mx-auto grid w-full max-w-[1100px] gap-8 pb-20"
+      className="mx-auto grid w-full max-w-page gap-8 pb-20"
     >
       <section className="rounded-card border border-edge bg-surface p-8 shadow-soft">
         <div className="grid grid-cols-[1fr_280px] gap-8 max-lg:grid-cols-1">
