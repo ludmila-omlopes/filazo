@@ -189,6 +189,13 @@ export function getStatusMessage(
     };
   }
 
+  if (query.gog === "connected") {
+    return {
+      tone: "success",
+      message: t("statusMessage.gogConnected"),
+    };
+  }
+
   if (query.finishedDetected) {
     return {
       tone: "success",

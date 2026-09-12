@@ -62,7 +62,7 @@ AUTH_SECRET="a-long-random-secret"
 | Steam owned-library sync | `STEAM_API_KEY` (Steam sign-in itself uses OpenID) |
 | Google sign-in and beta applications | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | Xbox account sync | `XBOX_CLIENT_ID`, `XBOX_CLIENT_SECRET` |
-| Experimental GOG browser sync | `GOG_CLIENT_ID`, `GOG_CLIENT_SECRET`, optionally `GOG_REDIRECT_URI` |
+| GOG owned-library sync | Public GOG profile and games; no provider credentials required |
 | Game metadata | `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` |
 | Approval email | `RESEND_API_KEY`, `BETA_APPROVAL_FROM_EMAIL` |
 | Feedback conversations | Uses the approval email configuration to notify users and support about replies |
@@ -70,7 +70,7 @@ AUTH_SECRET="a-long-random-secret"
 | Store prices and preorders | Same AI credentials/model; OpenRouter web plugin (Exa) or OpenAI Responses `web_search` support required |
 | Private journal media | a private Vercel Blob store and `BLOB_READ_WRITE_TOKEN` |
 
-PlayStation sync exchanges a user-provided NPSSO for encrypted tokens and discards the NPSSO. GOG opens the login on GOG's site, validates a short-lived `state`, accepts the final redirect URL pasted by the user, and stores only encrypted OAuth tokens. The GOG integration uses undocumented Galaxy endpoints, imports only games owned directly on GOG, and can break if those endpoints change. CSV imports do not need provider credentials. Missing optional credentials disable only the relevant feature; catalog imports and sync continue where possible.
+PlayStation sync exchanges a user-provided NPSSO for encrypted tokens and discards the NPSSO. GOG verifies account ownership through a short-lived code placed in the user's public profile bio, then stores the immutable Galaxy user ID rather than a password, cookie, or OAuth token. Profile and game privacy must remain public for scheduled syncs. The integration reads GOG's public profile endpoints, imports only games owned directly on GOG, and can require maintenance if those endpoints change. CSV imports do not need provider credentials. Missing optional credentials disable only the relevant feature; catalog imports and sync continue where possible.
 
 Feedback cards include a two-way comment thread for identified users. The user can reply while the card is open; moving it to `DONE` or `DECLINED` closes the conversation. Run `npm run db:init` after deploying schema changes so the `FeedbackComment` table is available.
 
@@ -128,7 +128,7 @@ src/
   lib/steam.ts         Steam OpenID and Web API integration
   lib/playstation.ts   PlayStation token and library integration
   lib/xbox.ts          Microsoft/Xbox OAuth and sync
-  lib/gog.ts           experimental GOG browser OAuth and owned-library sync
+  lib/gog.ts           GOG public-profile verification and owned-library sync
   lib/igdb.ts          optional metadata enrichment
 prisma/schema.prisma   data model
 prisma/migrations/     migration history

@@ -1,61 +1,77 @@
+import { randomBytes } from "node:crypto";
 import {
   ExternalProvider,
   type ExternalAccount,
   type Prisma,
 } from "@prisma/client";
+import { jwtVerify, SignJWT } from "jose";
+import { getAuthSecret } from "./auth-secret.ts";
 import { prisma } from "./prisma.ts";
 import type {
   ProviderProfile,
   SyncedLibraryGame,
 } from "./providers/contracts.ts";
-import {
-  decryptSecret,
-  encryptSecret,
-  isEncryptedSecret,
-  type EncryptedSecret,
-} from "./secret-crypto.ts";
 
-const GOG_AUTH_URL = "https://auth.gog.com/auth";
-const GOG_TOKEN_URL = "https://auth.gog.com/token";
-const GOG_EMBED_URL = "https://embed.gog.com";
-const GOG_DEFAULT_REDIRECT_URI =
-  "https://embed.gog.com/on_login_success?origin=client";
+const GOG_BASE_URL = "https://www.gog.com";
+const GOG_PROFILE_CHALLENGE_AUDIENCE = "gog-profile-verification";
+const GOG_PROFILE_CHALLENGE_ISSUER = "filazo";
+const GOG_PROFILE_CHALLENGE_SECONDS = 15 * 60;
+const GOG_REQUEST_TIMEOUT_MS = 15_000;
 const GOG_MAX_LIBRARY_PAGES = 100;
-export const GOG_OAUTH_STATE_COOKIE = "filazo-gog-oauth-state";
+const GOG_USERNAME_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
+const GOG_VERIFICATION_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
-type GogTokenResponse = {
-  access_token: string;
-  expires_in: number;
-  refresh_token?: string;
-  scope?: string;
-  token_type?: string;
+export const GOG_PROFILE_CHALLENGE_COOKIE =
+  "filazo-gog-profile-challenge";
+
+export type GogVerificationChallenge = {
+  code: string;
+  expiresAt: Date;
+  username: string;
 };
 
-type GogAuthMetadata = {
-  accessToken?: EncryptedSecret;
-  accessTokenExpiresAt?: string;
-  refreshToken?: EncryptedSecret;
-  scope?: string;
-  tokenType?: string;
-};
+export type GogProfileErrorCode =
+  | "ACCOUNT_IN_USE"
+  | "CHALLENGE_INVALID"
+  | "CODE_NOT_FOUND"
+  | "GAMES_PRIVATE"
+  | "PROFILE_INVALID"
+  | "PROFILE_NOT_FOUND"
+  | "PROFILE_PRIVATE";
 
 type GogAccountMetadata = {
-  auth?: GogAuthMetadata;
   connectedAt?: string;
-  lastTokenRefreshAt?: string;
   profile?: ProviderProfile;
-  syncMode?: "owned-library";
+  syncMode?: "public-profile";
+  verificationMethod?: "profile-bio";
+  verifiedAt?: string;
 };
 
-type GogProduct = Record<string, unknown> & {
+type GogPublicProfileUser = Record<string, unknown> & {
+  avatar?: string;
+  avatars?: Record<string, unknown>;
+  created_date?: string;
+  stats?: Record<string, unknown>;
+  userId?: string | number;
+  username?: string;
+};
+
+type GogPublicProfilePreferences = Record<string, unknown> & {
+  bio?: string;
+  privacy?: Record<string, unknown>;
+};
+
+type GogPublicGame = Record<string, unknown> & {
+  achievementSupport?: boolean;
   id?: string | number;
   image?: string;
-  images?: Record<string, unknown>;
-  isGame?: boolean;
-  isMovie?: boolean;
-  slug?: string;
   title?: string;
   url?: string;
+};
+
+type GogPublicGameItem = Record<string, unknown> & {
+  game?: GogPublicGame;
+  stats?: Record<string, unknown> | unknown[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -64,412 +80,500 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function createGogError(
   message: string,
-  code: "AUTH" | "CONFIGURATION" | "PROVIDER" | "RATE_LIMIT",
+  platformSyncErrorCode:
+    | "AUTH"
+    | "NETWORK"
+    | "PROVIDER"
+    | "RATE_LIMIT"
+    | "TIMEOUT",
+  gogProfileErrorCode?: GogProfileErrorCode,
 ) {
-  return Object.assign(new Error(message), { platformSyncErrorCode: code });
+  return Object.assign(new Error(message), {
+    gogProfileErrorCode,
+    platformSyncErrorCode,
+  });
 }
 
-function getGogConfig() {
-  const clientId = process.env.GOG_CLIENT_ID?.trim();
-  const clientSecret = process.env.GOG_CLIENT_SECRET?.trim();
-  const redirectUri =
-    process.env.GOG_REDIRECT_URI?.trim() || GOG_DEFAULT_REDIRECT_URI;
+export function getGogProfileErrorCode(error: unknown) {
+  if (!isRecord(error)) return null;
+  const code = error.gogProfileErrorCode;
+  const supportedCodes: GogProfileErrorCode[] = [
+    "ACCOUNT_IN_USE",
+    "CHALLENGE_INVALID",
+    "CODE_NOT_FOUND",
+    "GAMES_PRIVATE",
+    "PROFILE_INVALID",
+    "PROFILE_NOT_FOUND",
+    "PROFILE_PRIVATE",
+  ];
+  return supportedCodes.includes(code as GogProfileErrorCode)
+    ? (code as GogProfileErrorCode)
+    : null;
+}
 
-  if (!clientId || !clientSecret) {
+function getChallengeSecret() {
+  return new TextEncoder().encode(getAuthSecret());
+}
+
+function createVerificationCode() {
+  const random = randomBytes(8);
+  let suffix = "";
+  for (let index = 0; index < 8; index += 1) {
+    suffix += GOG_VERIFICATION_ALPHABET[
+      random[index] % GOG_VERIFICATION_ALPHABET.length
+    ];
+  }
+  return `FLZ-${suffix}`;
+}
+
+export function normalizeGogUsername(value: string) {
+  let username = value.trim();
+  if (!username) {
     throw createGogError(
-      "GOG browser login is not configured for this site.",
-      "CONFIGURATION",
+      "Enter your current GOG username.",
+      "AUTH",
+      "PROFILE_INVALID",
     );
   }
 
-  return { clientId, clientSecret, redirectUri };
-}
-
-export function isGogConfigured() {
-  return Boolean(
-    process.env.GOG_CLIENT_ID?.trim() &&
-      process.env.GOG_CLIENT_SECRET?.trim(),
-  );
-}
-
-export function createGogAuthUrl(state: string) {
-  const { clientId, redirectUri } = getGogConfig();
-  const url = new URL(GOG_AUTH_URL);
-  url.searchParams.set("client_id", clientId);
-  url.searchParams.set("redirect_uri", redirectUri);
-  url.searchParams.set("response_type", "code");
-  url.searchParams.set("layout", "client2");
-  url.searchParams.set("brand", "gog");
-  url.searchParams.set("state", state);
-  return url;
-}
-
-export function parseGogRedirectUrl(
-  value: string,
-  expectedState: string,
-  redirectUri = process.env.GOG_REDIRECT_URI?.trim() || GOG_DEFAULT_REDIRECT_URI,
-) {
-  let returnedUrl: URL;
-  let expectedUrl: URL;
-  try {
-    returnedUrl = new URL(value.trim());
-    expectedUrl = new URL(redirectUri);
-  } catch {
-    throw createGogError("Paste the complete URL returned by GOG.", "AUTH");
-  }
-
-  if (
-    returnedUrl.protocol !== "https:" ||
-    returnedUrl.origin !== expectedUrl.origin ||
-    returnedUrl.pathname !== expectedUrl.pathname
-  ) {
-    throw createGogError("The pasted URL was not returned by GOG.", "AUTH");
-  }
-  for (const [key, expectedValue] of expectedUrl.searchParams) {
-    if (returnedUrl.searchParams.get(key) !== expectedValue) {
-      throw createGogError("The pasted URL was not returned by GOG.", "AUTH");
+  if (/^https?:\/\//i.test(username)) {
+    let url: URL;
+    try {
+      url = new URL(username);
+    } catch {
+      throw createGogError(
+        "Enter a valid GOG username or profile URL.",
+        "AUTH",
+        "PROFILE_INVALID",
+      );
+    }
+    if (
+      url.protocol !== "https:" ||
+      !["gog.com", "www.gog.com"].includes(url.hostname.toLowerCase())
+    ) {
+      throw createGogError(
+        "The profile URL must belong to gog.com.",
+        "AUTH",
+        "PROFILE_INVALID",
+      );
+    }
+    const match = url.pathname.match(/^\/(?:[a-z]{2}\/)?u\/([^/]+)\/?$/i);
+    if (!match) {
+      throw createGogError(
+        "Enter a GOG profile URL such as https://www.gog.com/u/username.",
+        "AUTH",
+        "PROFILE_INVALID",
+      );
+    }
+    try {
+      username = decodeURIComponent(match[1]);
+    } catch {
+      throw createGogError(
+        "The GOG profile URL contains an invalid username.",
+        "AUTH",
+        "PROFILE_INVALID",
+      );
     }
   }
 
-  const code = returnedUrl.searchParams.get("code")?.trim();
-  const state = returnedUrl.searchParams.get("state")?.trim();
-  if (!code) {
-    throw createGogError("GOG did not return an authorization code.", "AUTH");
+  username = username.replace(/^@/, "").trim();
+  if (!GOG_USERNAME_PATTERN.test(username)) {
+    throw createGogError(
+      "Enter a valid GOG username using letters, numbers, dots, dashes, or underscores.",
+      "AUTH",
+      "PROFILE_INVALID",
+    );
   }
-  if (!state || !expectedState || state !== expectedState) {
-    throw createGogError("GOG sign-in state could not be verified.", "AUTH");
-  }
-
-  return code;
+  return username;
 }
 
-async function requestGogJson(
+export async function createGogVerificationChallenge({
+  now = new Date(),
+  userId,
+  username,
+}: {
+  now?: Date;
+  userId: string;
+  username: string;
+}) {
+  const normalizedUsername = normalizeGogUsername(username);
+  const code = createVerificationCode();
+  const expiresAt = new Date(
+    now.getTime() + GOG_PROFILE_CHALLENGE_SECONDS * 1000,
+  );
+  const token = await new SignJWT({ code, username: normalizedUsername })
+    .setProtectedHeader({ alg: "HS256" })
+    .setAudience(GOG_PROFILE_CHALLENGE_AUDIENCE)
+    .setIssuer(GOG_PROFILE_CHALLENGE_ISSUER)
+    .setSubject(userId)
+    .setIssuedAt(Math.floor(now.getTime() / 1000))
+    .setExpirationTime(Math.floor(expiresAt.getTime() / 1000))
+    .sign(getChallengeSecret());
+
+  return {
+    challenge: { code, expiresAt, username: normalizedUsername },
+    maxAge: GOG_PROFILE_CHALLENGE_SECONDS,
+    token,
+  };
+}
+
+export async function readGogVerificationChallenge({
+  now = new Date(),
+  token,
+  userId,
+}: {
+  now?: Date;
+  token: string | null | undefined;
+  userId: string;
+}): Promise<GogVerificationChallenge | null> {
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, getChallengeSecret(), {
+      audience: GOG_PROFILE_CHALLENGE_AUDIENCE,
+      currentDate: now,
+      issuer: GOG_PROFILE_CHALLENGE_ISSUER,
+      subject: userId,
+    });
+    const code = typeof payload.code === "string" ? payload.code : "";
+    const username =
+      typeof payload.username === "string" ? payload.username : "";
+    if (!/^FLZ-[2-9A-HJ-NP-Z]{8}$/.test(code)) return null;
+    const normalizedUsername = normalizeGogUsername(username);
+    if (typeof payload.exp !== "number") return null;
+    return {
+      code,
+      expiresAt: new Date(payload.exp * 1000),
+      username: normalizedUsername,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function getRequestSignal(signal?: AbortSignal) {
+  return signal ?? AbortSignal.timeout(GOG_REQUEST_TIMEOUT_MS);
+}
+
+async function requestGog(
   url: URL | string,
   options: {
-    accessToken?: string;
+    accept: string;
     errorMessage: string;
     signal?: AbortSignal;
   },
 ) {
-  const response = await fetch(url, {
-    cache: "no-store",
-    headers: {
-      Accept: "application/json",
-      ...(options.accessToken
-        ? { Authorization: `Bearer ${options.accessToken}` }
-        : {}),
-    },
-    signal: options.signal,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      cache: "no-store",
+      headers: {
+        Accept: options.accept,
+        "User-Agent":
+          "filazo/1.0 (+https://github.com/ludmila-omlopes/filazo)",
+      },
+      signal: getRequestSignal(options.signal),
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.name === "AbortError" || error.name === "TimeoutError")
+    ) {
+      throw createGogError(`${options.errorMessage}: request timed out.`, "TIMEOUT");
+    }
+    throw createGogError(
+      `${options.errorMessage}: network request failed.`,
+      "NETWORK",
+    );
+  }
 
   if (!response.ok) {
-    let providerError: string | null = null;
-    try {
-      const body = (await response.clone().json()) as unknown;
-      providerError =
-        isRecord(body) && typeof body.error === "string" ? body.error : null;
-    } catch {
-      providerError = null;
-    }
-    const code = response.status === 429
-      ? "RATE_LIMIT"
-      : providerError === "invalid_client"
-        ? "CONFIGURATION"
-        : response.status === 400 ||
-            response.status === 401 ||
-            response.status === 403
-          ? "AUTH"
-          : "PROVIDER";
+    const profileCode =
+      response.status === 404 ? "PROFILE_NOT_FOUND" : undefined;
     throw createGogError(
       `${options.errorMessage} (${response.status}).`,
-      code,
+      response.status === 429
+        ? "RATE_LIMIT"
+        : response.status === 401 ||
+            response.status === 403 ||
+            response.status === 404
+          ? "AUTH"
+          : "PROVIDER",
+      profileCode,
     );
   }
+  return response;
+}
 
-  try {
-    return (await response.json()) as unknown;
-  } catch {
+function extractAssignedJson(html: string, property: string) {
+  const marker = `window.profilesData.${property}`;
+  const markerIndex = html.indexOf(marker);
+  if (markerIndex < 0) return null;
+  const assignmentIndex = html.indexOf("=", markerIndex + marker.length);
+  if (assignmentIndex < 0) return null;
+  let start = assignmentIndex + 1;
+  while (/\s/.test(html[start] ?? "")) start += 1;
+  if (html.startsWith("null", start)) return null;
+  if (html[start] !== "{" && html[start] !== "[") return null;
+
+  const opening = html[start];
+  const closing = opening === "{" ? "}" : "]";
+  let depth = 0;
+  let escaped = false;
+  let inString = false;
+  for (let index = start; index < html.length; index += 1) {
+    const character = html[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') {
+      inString = true;
+      continue;
+    }
+    if (character === opening) depth += 1;
+    if (character === closing) depth -= 1;
+    if (depth === 0) {
+      try {
+        return JSON.parse(html.slice(start, index + 1)) as unknown;
+      } catch {
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+export function parseGogProfileDocument(html: string) {
+  const user = extractAssignedJson(html, "profileUser");
+  const preferences = extractAssignedJson(html, "profileUserPreferences");
+  if (!isRecord(user)) {
     throw createGogError(
-      `${options.errorMessage}: GOG returned an invalid response.`,
-      response.headers.get("content-type")?.includes("text/html")
-        ? "AUTH"
-        : "PROVIDER",
+      "GOG did not return a public profile.",
+      "AUTH",
+      "PROFILE_PRIVATE",
     );
   }
-}
-
-function parseTokenResponse(value: unknown): GogTokenResponse {
-  if (
-    !isRecord(value) ||
-    typeof value.access_token !== "string" ||
-    typeof value.expires_in !== "number"
-  ) {
-    throw createGogError("GOG returned invalid OAuth tokens.", "AUTH");
+  if (!isRecord(preferences)) {
+    throw createGogError(
+      "Make your GOG profile public before verifying it.",
+      "AUTH",
+      "PROFILE_PRIVATE",
+    );
   }
 
   return {
-    access_token: value.access_token,
-    expires_in: value.expires_in,
-    refresh_token:
-      typeof value.refresh_token === "string" ? value.refresh_token : undefined,
-    scope: typeof value.scope === "string" ? value.scope : undefined,
-    token_type:
-      typeof value.token_type === "string" ? value.token_type : undefined,
+    preferences: preferences as GogPublicProfilePreferences,
+    user: user as GogPublicProfileUser,
   };
 }
 
-async function requestGogToken(
-  input:
-    | { code: string; grantType: "authorization_code" }
-    | { grantType: "refresh_token"; refreshToken: string },
-  signal?: AbortSignal,
-) {
-  const { clientId, clientSecret, redirectUri } = getGogConfig();
-  const url = new URL(GOG_TOKEN_URL);
-  url.searchParams.set("client_id", clientId);
-  url.searchParams.set("client_secret", clientSecret);
-  url.searchParams.set("grant_type", input.grantType);
-  if (input.grantType === "authorization_code") {
-    url.searchParams.set("code", input.code);
-    url.searchParams.set("redirect_uri", redirectUri);
-  } else {
-    url.searchParams.set("refresh_token", input.refreshToken);
-  }
-
-  return parseTokenResponse(
-    await requestGogJson(url, {
-      errorMessage: "Could not exchange credentials with GOG",
-      signal,
-    }),
-  );
-}
-
-function createAuthMetadata(
-  tokens: GogTokenResponse,
-  fallbackRefreshToken?: EncryptedSecret,
-  now = new Date(),
-): GogAuthMetadata {
+function getGogProfilePrivacy(preferences: GogPublicProfilePreferences) {
+  const privacy = isRecord(preferences.privacy) ? preferences.privacy : {};
   return {
-    accessToken: encryptSecret(tokens.access_token),
-    accessTokenExpiresAt: new Date(
-      now.getTime() + tokens.expires_in * 1000,
-    ).toISOString(),
-    refreshToken: tokens.refresh_token
-      ? encryptSecret(tokens.refresh_token)
-      : fallbackRefreshToken,
-    scope: tokens.scope,
-    tokenType: tokens.token_type,
+    games: typeof privacy.games === "string" ? privacy.games : null,
+    profile: typeof privacy.profile === "string" ? privacy.profile : null,
   };
 }
 
-function parseGogMetadata(
-  value: Prisma.JsonValue | null,
-): GogAccountMetadata {
-  if (!isRecord(value)) return {};
-  const auth = isRecord(value.auth) ? value.auth : {};
-
-  return {
-    auth: {
-      accessToken: isEncryptedSecret(auth.accessToken)
-        ? auth.accessToken
-        : undefined,
-      accessTokenExpiresAt:
-        typeof auth.accessTokenExpiresAt === "string"
-          ? auth.accessTokenExpiresAt
-          : undefined,
-      refreshToken: isEncryptedSecret(auth.refreshToken)
-        ? auth.refreshToken
-        : undefined,
-      scope: typeof auth.scope === "string" ? auth.scope : undefined,
-      tokenType:
-        typeof auth.tokenType === "string" ? auth.tokenType : undefined,
-    },
-    connectedAt:
-      typeof value.connectedAt === "string" ? value.connectedAt : undefined,
-    lastTokenRefreshAt:
-      typeof value.lastTokenRefreshAt === "string"
-        ? value.lastTokenRefreshAt
-        : undefined,
-    profile: isRecord(value.profile)
-      ? (value.profile as GogAccountMetadata["profile"])
-      : undefined,
-    syncMode: value.syncMode === "owned-library" ? value.syncMode : undefined,
-  };
-}
-
-function isFutureDate(value: string | undefined, skewMs = 60_000) {
-  if (!value) return false;
-  const timestamp = new Date(value).getTime();
-  return Number.isFinite(timestamp) && timestamp > Date.now() + skewMs;
-}
-
-function getAvatarUrl(value: Record<string, unknown>) {
-  const avatar = isRecord(value.avatar) ? value.avatar : null;
-  const avatars = isRecord(value.avatars) ? value.avatars : null;
+function getAvatarUrl(value: GogPublicProfileUser) {
+  const avatars = isRecord(value.avatars) ? value.avatars : {};
   const candidate =
-    avatar?.medium_2x ??
-    avatar?.medium ??
-    avatars?.medium_2x ??
-    avatars?.medium2x ??
-    avatars?.medium;
+    avatars.medium_2x ?? avatars.medium2x ?? avatars.medium ?? value.avatar;
   return typeof candidate === "string" ? candidate : null;
 }
 
-async function fetchGogProfile(
-  accessToken: string,
-  signal?: AbortSignal,
-): Promise<ProviderProfile> {
-  const value = await requestGogJson(`${GOG_EMBED_URL}/userData.json`, {
-    accessToken,
-    errorMessage: "Could not load the GOG profile",
-    signal,
-  });
-  if (!isRecord(value) || value.isLoggedIn === false) {
-    throw createGogError("GOG did not return a signed-in profile.", "AUTH");
-  }
-
-  const accountId = value.userId ?? value.galaxyUserId;
+function mapPublicProfileToProviderProfile(
+  user: GogPublicProfileUser,
+): ProviderProfile {
+  const accountId = user.userId;
+  const username =
+    typeof user.username === "string" ? user.username.trim() : "";
   if (
     (typeof accountId !== "string" && typeof accountId !== "number") ||
-    !String(accountId).trim()
+    !String(accountId).trim() ||
+    !username
   ) {
-    throw createGogError("GOG did not return an account identifier.", "AUTH");
+    throw createGogError(
+      "GOG returned an invalid public profile.",
+      "PROVIDER",
+      "PROFILE_INVALID",
+    );
   }
-  const username =
-    typeof value.username === "string" ? value.username : undefined;
-
+  const stats = isRecord(user.stats) ? user.stats : {};
   return {
     providerAccountId: String(accountId),
     username,
-    displayName: username ?? `GOG ${String(accountId).slice(-4)}`,
-    avatarUrl: getAvatarUrl(value),
-    profileUrl: username
-      ? `https://www.gog.com/u/${encodeURIComponent(username)}`
-      : null,
+    displayName: username,
+    avatarUrl: getAvatarUrl(user),
+    profileUrl: `${GOG_BASE_URL}/u/${encodeURIComponent(username)}`,
     metadata: {
-      country: typeof value.country === "string" ? value.country : undefined,
-      preferredLanguage: isRecord(value.preferredLanguage)
-        ? value.preferredLanguage
-        : undefined,
+      gamesOwned: stats.games_owned ?? undefined,
+      userSince:
+        typeof user.created_date === "string" ? user.created_date : undefined,
     },
   };
 }
 
-async function getAuthorizationForAccount(
-  account: ExternalAccount,
+async function fetchGogPublicProfile(
+  username: string,
   signal?: AbortSignal,
 ) {
-  const metadata = parseGogMetadata(account.metadata);
-  if (
-    metadata.auth?.accessToken &&
-    isFutureDate(metadata.auth.accessTokenExpiresAt)
-  ) {
-    return {
-      accessToken: decryptSecret(metadata.auth.accessToken),
-      metadata,
-    };
-  }
-
-  if (!metadata.auth?.refreshToken) {
+  const normalizedUsername = normalizeGogUsername(username);
+  const response = await requestGog(
+    `${GOG_BASE_URL}/u/${encodeURIComponent(normalizedUsername)}`,
+    {
+      accept: "text/html,application/xhtml+xml",
+      errorMessage: "Could not load the GOG public profile",
+      signal,
+    },
+  );
+  const { preferences, user } = parseGogProfileDocument(
+    await response.text(),
+  );
+  const privacy = getGogProfilePrivacy(preferences);
+  if (privacy.profile !== "public") {
     throw createGogError(
-      "GOG token expired. Connect GOG again in Sources.",
+      "Make your GOG profile public before connecting it.",
       "AUTH",
+      "PROFILE_PRIVATE",
     );
   }
-
-  const tokens = await requestGogToken(
-    {
-      grantType: "refresh_token",
-      refreshToken: decryptSecret(metadata.auth.refreshToken),
-    },
-    signal,
-  );
-  const nextMetadata: GogAccountMetadata = {
-    ...metadata,
-    auth: createAuthMetadata(tokens, metadata.auth.refreshToken),
-    lastTokenRefreshAt: new Date().toISOString(),
+  return {
+    bio: typeof preferences.bio === "string" ? preferences.bio : "",
+    privacy,
+    profile: mapPublicProfileToProviderProfile(user),
   };
-  await prisma.externalAccount.update({
-    where: { id: account.id },
-    data: { metadata: nextMetadata as Prisma.InputJsonValue },
-  });
-
-  return { accessToken: tokens.access_token, metadata: nextMetadata };
 }
 
-export async function connectGogAccountForUser({
+async function fetchCurrentGogUsername(
+  providerAccountId: string,
+  signal?: AbortSignal,
+) {
+  const response = await requestGog(
+    `${GOG_BASE_URL}/users/${encodeURIComponent(providerAccountId)}/info`,
+    {
+      accept: "application/json",
+      errorMessage: "Could not resolve the current GOG username",
+      signal,
+    },
+  );
+  let value: unknown;
+  try {
+    value = await response.json();
+  } catch {
+    throw createGogError("GOG returned invalid public user data.", "PROVIDER");
+  }
+  const username =
+    isRecord(value) && typeof value.username === "string"
+      ? value.username.trim()
+      : "";
+  const galaxyUserId = isRecord(value)
+    ? value.galaxyUserId ?? value.id
+    : null;
+  if (!username || String(galaxyUserId ?? "") !== providerAccountId) {
+    throw createGogError("GOG returned a mismatched public account.", "AUTH");
+  }
+  return username;
+}
+
+export async function connectGogPublicProfileForUser({
   code,
   userId,
+  username,
 }: {
   code: string;
   userId: string;
+  username: string;
 }) {
-  const tokens = await requestGogToken({
-    code,
-    grantType: "authorization_code",
-  });
-  const profile = await fetchGogProfile(tokens.access_token);
-  const [user, connectedAccount] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId } }),
-    prisma.externalAccount.findUnique({
+  const publicProfile = await fetchGogPublicProfile(username);
+  if (publicProfile.privacy.games !== "public") {
+    throw createGogError(
+      "Make your GOG game library public before connecting it.",
+      "AUTH",
+      "GAMES_PRIVATE",
+    );
+  }
+  if (!publicProfile.bio.includes(code)) {
+    throw createGogError(
+      "The verification code is not visible in the GOG profile bio yet.",
+      "AUTH",
+      "CODE_NOT_FOUND",
+    );
+  }
+
+  const profile = publicProfile.profile;
+  const now = new Date();
+  const metadata: GogAccountMetadata = {
+    connectedAt: now.toISOString(),
+    profile,
+    syncMode: "public-profile",
+    verificationMethod: "profile-bio",
+    verifiedAt: now.toISOString(),
+  };
+
+  return prisma.$transaction(async (transaction) => {
+    await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`gog-account:${profile.providerAccountId}`}, 0))`;
+    const [user, connectedAccount] = await Promise.all([
+      transaction.user.findUnique({ where: { id: userId } }),
+      transaction.externalAccount.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider: ExternalProvider.GOG,
+            providerAccountId: profile.providerAccountId,
+          },
+        },
+        select: { userId: true },
+      }),
+    ]);
+    if (!user) throw new Error("Sign in before connecting GOG.");
+    if (connectedAccount && connectedAccount.userId !== userId) {
+      throw createGogError(
+        "This GOG profile is already connected to another user.",
+        "AUTH",
+        "ACCOUNT_IN_USE",
+      );
+    }
+
+    await transaction.user.update({
+      where: { id: userId },
+      data: {
+        displayName: user.displayName ?? profile.displayName ?? undefined,
+        avatarUrl: user.avatarUrl ?? profile.avatarUrl ?? undefined,
+      },
+    });
+
+    return transaction.externalAccount.upsert({
       where: {
         provider_providerAccountId: {
           provider: ExternalProvider.GOG,
           providerAccountId: profile.providerAccountId,
         },
       },
-      select: { userId: true },
-    }),
-  ]);
-  if (!user) throw new Error("Sign in before connecting GOG.");
-  if (connectedAccount && connectedAccount.userId !== userId) {
-    throw new Error("This GOG account is already connected to another user.");
-  }
-
-  const metadata: GogAccountMetadata = {
-    auth: createAuthMetadata(tokens),
-    connectedAt: new Date().toISOString(),
-    profile,
-    syncMode: "owned-library",
-  };
-
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      displayName: user.displayName ?? profile.displayName ?? undefined,
-      avatarUrl: user.avatarUrl ?? profile.avatarUrl ?? undefined,
-    },
-  });
-
-  return prisma.externalAccount.upsert({
-    where: {
-      provider_providerAccountId: {
+      update: {
+        userId,
+        username: profile.username ?? undefined,
+        displayName: profile.displayName ?? undefined,
+        avatarUrl: profile.avatarUrl ?? undefined,
+        profileUrl: profile.profileUrl ?? undefined,
+        metadata: metadata as Prisma.InputJsonValue,
+        lastSyncErrorCode: null,
+        nextSyncAt: now,
+        syncFailureCount: 0,
+      },
+      create: {
+        userId,
         provider: ExternalProvider.GOG,
         providerAccountId: profile.providerAccountId,
+        username: profile.username ?? undefined,
+        displayName: profile.displayName ?? undefined,
+        avatarUrl: profile.avatarUrl ?? undefined,
+        profileUrl: profile.profileUrl ?? undefined,
+        metadata: metadata as Prisma.InputJsonValue,
+        nextSyncAt: now,
       },
-    },
-    update: {
-      userId,
-      username: profile.username ?? undefined,
-      displayName: profile.displayName ?? undefined,
-      avatarUrl: profile.avatarUrl ?? undefined,
-      profileUrl: profile.profileUrl ?? undefined,
-      metadata: metadata as Prisma.InputJsonValue,
-      lastSyncErrorCode: null,
-      nextSyncAt: new Date(),
-      syncFailureCount: 0,
-    },
-    create: {
-      userId,
-      provider: ExternalProvider.GOG,
-      providerAccountId: profile.providerAccountId,
-      username: profile.username ?? undefined,
-      displayName: profile.displayName ?? undefined,
-      avatarUrl: profile.avatarUrl ?? undefined,
-      profileUrl: profile.profileUrl ?? undefined,
-      metadata: metadata as Prisma.InputJsonValue,
-      nextSyncAt: new Date(),
-    },
+    });
   });
 }
 
@@ -479,97 +583,122 @@ function normalizeGogImageUrl(value: unknown) {
   return value.startsWith("https://") ? value : null;
 }
 
-function getProductGameType(product: GogProduct) {
-  const gameType = product.game_type ?? product.gameType;
-  return typeof gameType === "string" ? gameType.toLowerCase() : null;
+function parseOptionalDate(value: unknown) {
+  if (typeof value !== "string" || !value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-export function mapGogProductToSyncedGame(
-  product: GogProduct,
+export function mapGogPublicGameToSyncedGame(
+  item: GogPublicGameItem,
+  providerAccountId: string,
 ): SyncedLibraryGame | null {
+  const game = isRecord(item.game) ? (item.game as GogPublicGame) : null;
   const providerGameId =
-    typeof product.id === "number" || typeof product.id === "string"
-      ? String(product.id).trim()
+    typeof game?.id === "number" || typeof game?.id === "string"
+      ? String(game.id).trim()
       : "";
-  const title = typeof product.title === "string" ? product.title.trim() : "";
-  const gameType = getProductGameType(product);
-  if (
-    !providerGameId ||
-    !title ||
-    product.isMovie === true ||
-    product.isGame === false ||
-    (gameType !== null && gameType !== "game")
-  ) {
-    return null;
-  }
+  const title = typeof game?.title === "string" ? game.title.trim() : "";
+  if (!game || !providerGameId || !title) return null;
 
-  const slug = typeof product.slug === "string" ? product.slug.trim() : "";
   const relativeUrl =
-    typeof product.url === "string" && product.url.startsWith("/")
-      ? product.url
+    typeof game.url === "string" && game.url.startsWith("/")
+      ? game.url
       : null;
-  const storeUrl = relativeUrl
-    ? new URL(relativeUrl, "https://www.gog.com").toString()
-    : slug
-      ? `https://www.gog.com/game/${encodeURIComponent(slug)}`
-      : null;
-  const images = isRecord(product.images) ? product.images : {};
+  const stats =
+    isRecord(item.stats) && isRecord(item.stats[providerAccountId])
+      ? item.stats[providerAccountId]
+      : {};
+  const playtime =
+    typeof stats.playtime === "number" ? stats.playtime : Number.NaN;
+  const achievementsPercentage =
+    typeof stats.achievementsPercentage === "number"
+      ? stats.achievementsPercentage
+      : Number.NaN;
+  const image = normalizeGogImageUrl(game.image);
 
   return {
     providerGameId,
     title,
     platformName: "GOG",
-    storeUrl,
+    playtimeMinutes:
+      Number.isFinite(playtime) && playtime >= 0 ? Math.round(playtime) : null,
+    lastPlayedAt: parseOptionalDate(stats.lastSession),
+    completionPercent:
+      Number.isFinite(achievementsPercentage) &&
+      achievementsPercentage >= 0 &&
+      achievementsPercentage <= 100
+        ? Math.round(achievementsPercentage)
+        : null,
+    storeUrl: relativeUrl
+      ? new URL(relativeUrl, GOG_BASE_URL).toString()
+      : null,
     rawData: {
-      gameType,
-      image: normalizeGogImageUrl(product.image),
-      images: {
-        background: normalizeGogImageUrl(images.background),
-        logo: normalizeGogImageUrl(images.logo),
-        logo2x: normalizeGogImageUrl(images.logo2x),
-      },
-      slug: slug || null,
-      worksOn: isRecord(product.worksOn)
-        ? product.worksOn
-        : isRecord(product.content_system_compatibility)
-          ? product.content_system_compatibility
-          : undefined,
+      achievementSupport: game.achievementSupport === true,
+      image,
+      images: { background: null, logo: image, logo2x: image },
+      source: "public-profile",
     },
   };
 }
 
-async function fetchGogOwnedLibrary(
-  accessToken: string,
+async function fetchGogPublicLibrary(
+  profile: ProviderProfile,
   signal?: AbortSignal,
 ) {
+  if (!profile.username) {
+    throw createGogError("The connected GOG profile has no username.", "AUTH");
+  }
   const games: SyncedLibraryGame[] = [];
   let page = 1;
   let totalPages = 1;
 
   while (page <= totalPages && page <= GOG_MAX_LIBRARY_PAGES) {
-    const url = new URL(`${GOG_EMBED_URL}/account/getFilteredProducts`);
-    url.searchParams.set("mediaType", "1");
-    url.searchParams.set("sortBy", "title");
+    const url = new URL(
+      `/u/${encodeURIComponent(profile.username)}/games/stats`,
+      GOG_BASE_URL,
+    );
+    url.searchParams.set("sort", "alphabetically");
+    url.searchParams.set("order", "asc");
     url.searchParams.set("page", String(page));
-    const value = await requestGogJson(url, {
-      accessToken,
-      errorMessage: "Could not load the GOG library",
+    const response = await requestGog(url, {
+      accept: "application/hal+json,application/json",
+      errorMessage: "Could not load the public GOG library",
       signal,
     });
-    if (!isRecord(value) || !Array.isArray(value.products)) {
+    let value: unknown;
+    try {
+      value = await response.json();
+    } catch {
       throw createGogError(
-        "GOG returned an unexpected library response.",
+        "GOG returned invalid public library data.",
         "PROVIDER",
       );
     }
-
-    for (const candidate of value.products) {
-      if (!isRecord(candidate)) continue;
-      const game = mapGogProductToSyncedGame(candidate);
-      if (game) games.push(game);
+    const embedded =
+      isRecord(value) && isRecord(value._embedded)
+        ? value._embedded
+        : null;
+    if (!embedded || !Array.isArray(embedded.items)) {
+      throw createGogError(
+        "Make your GOG game library public before synchronizing it.",
+        "AUTH",
+        "GAMES_PRIVATE",
+      );
     }
 
-    const returnedTotalPages = Number(value.totalPages);
+    for (const candidate of embedded.items) {
+      if (!isRecord(candidate)) continue;
+      const syncedGame = mapGogPublicGameToSyncedGame(
+        candidate,
+        profile.providerAccountId,
+      );
+      if (syncedGame) games.push(syncedGame);
+    }
+
+    const returnedTotalPages = isRecord(value)
+      ? Number(value.pages)
+      : Number.NaN;
     if (!Number.isInteger(returnedTotalPages) || returnedTotalPages < 0) {
       throw createGogError(
         "GOG returned invalid library pagination.",
@@ -581,7 +710,10 @@ async function fetchGogOwnedLibrary(
   }
 
   if (totalPages > GOG_MAX_LIBRARY_PAGES) {
-    throw createGogError("The GOG library exceeded the safe page limit.", "PROVIDER");
+    throw createGogError(
+      "The public GOG library exceeded the safe page limit.",
+      "PROVIDER",
+    );
   }
   return games;
 }
@@ -590,34 +722,60 @@ export async function syncGogLibraryForAccount(
   account: ExternalAccount,
   options: { signal?: AbortSignal } = {},
 ) {
-  const { accessToken, metadata } = await getAuthorizationForAccount(
-    account,
+  const username = await fetchCurrentGogUsername(
+    account.providerAccountId,
     options.signal,
   );
-  const [profile, games] = await Promise.all([
-    fetchGogProfile(accessToken, options.signal),
-    fetchGogOwnedLibrary(accessToken, options.signal),
-  ]);
-  const nextMetadata: GogAccountMetadata = {
-    ...metadata,
-    profile,
-    syncMode: "owned-library",
+  const publicProfile = await fetchGogPublicProfile(username, options.signal);
+  if (publicProfile.profile.providerAccountId !== account.providerAccountId) {
+    throw createGogError(
+      "The public GOG profile no longer matches this account.",
+      "AUTH",
+    );
+  }
+  if (publicProfile.privacy.games !== "public") {
+    throw createGogError(
+      "Make your GOG game library public before synchronizing it.",
+      "AUTH",
+      "GAMES_PRIVATE",
+    );
+  }
+  const games = await fetchGogPublicLibrary(
+    publicProfile.profile,
+    options.signal,
+  );
+  const metadata: GogAccountMetadata = {
+    connectedAt:
+      isRecord(account.metadata) &&
+      typeof account.metadata.connectedAt === "string"
+        ? account.metadata.connectedAt
+        : undefined,
+    profile: publicProfile.profile,
+    syncMode: "public-profile",
+    verificationMethod: "profile-bio",
+    verifiedAt:
+      isRecord(account.metadata) &&
+      typeof account.metadata.verifiedAt === "string"
+        ? account.metadata.verifiedAt
+        : undefined,
   };
   await prisma.externalAccount.update({
     where: { id: account.id },
     data: {
-      username: profile.username ?? undefined,
-      displayName: profile.displayName ?? undefined,
-      avatarUrl: profile.avatarUrl ?? undefined,
-      profileUrl: profile.profileUrl ?? undefined,
-      metadata: nextMetadata as Prisma.InputJsonValue,
+      username: publicProfile.profile.username ?? undefined,
+      displayName: publicProfile.profile.displayName ?? undefined,
+      avatarUrl: publicProfile.profile.avatarUrl ?? undefined,
+      profileUrl: publicProfile.profile.profileUrl ?? undefined,
+      metadata: metadata as Prisma.InputJsonValue,
     },
   });
 
-  return { games, profile };
+  return { games, profile: publicProfile.profile };
 }
 
-export function getGogArtworkFallback(rawData: Record<string, unknown> | undefined) {
+export function getGogArtworkFallback(
+  rawData: Record<string, unknown> | undefined,
+) {
   if (!rawData) return null;
   const images = isRecord(rawData.images) ? rawData.images : {};
   const coverUrl =

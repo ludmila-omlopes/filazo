@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { AssistantTab, PlayerProfileTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
 import { BacklogEstimate } from "./_components/backlog-estimate";
@@ -47,6 +48,10 @@ import {
 } from "@/lib/profile-games";
 import { getSessionUserId } from "@/lib/session";
 import { formatPlatformNames } from "@/lib/platform-names";
+import {
+  GOG_PROFILE_CHALLENGE_COOKIE,
+  readGogVerificationChallenge,
+} from "@/lib/gog";
 
 export const maxDuration = 60;
 
@@ -95,6 +100,12 @@ export default async function ProfilePage({
   const profileUserId = viewAsUserId ?? userId;
   const activeTab = parseActiveTab(query.tab);
   const setupStep = parseSetupStep(query.step);
+  const gogChallenge = !isReadOnlyPreview && activeTab === "integrations"
+    ? await readGogVerificationChallenge({
+        token: (await cookies()).get(GOG_PROFILE_CHALLENGE_COOKIE)?.value,
+        userId,
+      })
+    : null;
 
   let profile: Awaited<ReturnType<typeof getProfileData>>;
   try {
@@ -223,6 +234,7 @@ export default async function ProfilePage({
           {activeTab === "integrations" ? (
             <IntegrationsPanel
               aiSettings={aiSettings}
+              gogChallenge={gogChallenge}
               locale={locale}
               profile={profile}
             />

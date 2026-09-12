@@ -18,9 +18,11 @@ import {
 import { parseCsvColumnMappingJson } from "@/lib/csv-import-mapping";
 import { getIgdbGameById } from "@/lib/igdb";
 import {
-  connectGogAccountForUser,
-  GOG_OAUTH_STATE_COOKIE,
-  parseGogRedirectUrl,
+  connectGogPublicProfileForUser,
+  createGogVerificationChallenge,
+  getGogProfileErrorCode,
+  GOG_PROFILE_CHALLENGE_COOKIE,
+  readGogVerificationChallenge,
 } from "@/lib/gog";
 import { journalUploadPayloadSchema } from "@/lib/journal-media";
 import { recomputeRuleInsightsForUser } from "@/lib/assistant/insight-maintenance";
@@ -223,8 +225,8 @@ const disconnectProviderSchema = z.enum([
   ExternalProvider.GOG,
 ]);
 
-const gogConnectSchema = z.object({
-  redirectUrl: z.string().trim().url().max(4096),
+const gogVerificationSchema = z.object({
+  username: z.string().trim().min(1).max(256),
 });
 
 function getProviderQueryValue(provider: ExternalProvider) {
@@ -1222,7 +1224,7 @@ export async function syncXboxLibraryAction() {
   redirect(`/profile?tab=integrations&xboxSynced=${syncedCount}`);
 }
 
-export async function connectGogAction(formData: FormData) {
+export async function startGogProfileVerificationAction(formData: FormData) {
   const locale = await getRequestLocale();
   const t = createTranslator(locale);
   const userId = await getSessionUserId();
@@ -1232,30 +1234,103 @@ export async function connectGogAction(formData: FormData) {
     );
   }
 
-  const parsed = gogConnectSchema.safeParse({
-    redirectUrl: formData.get("redirectUrl"),
+  const parsed = gogVerificationSchema.safeParse({
+    username: formData.get("username"),
   });
   if (!parsed.success) {
     redirect(
-      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.invalidGogRedirectUrl"))}`,
+      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.invalidGogUsername"))}`,
     );
   }
 
-  const cookieStore = await cookies();
-  const expectedState = cookieStore.get(GOG_OAUTH_STATE_COOKIE)?.value ?? "";
-  cookieStore.delete(GOG_OAUTH_STATE_COOKIE);
-
   try {
-    const code = parseGogRedirectUrl(parsed.data.redirectUrl, expectedState);
-    await connectGogAccountForUser({ code, userId });
+    const challenge = await createGogVerificationChallenge({
+      userId,
+      username: parsed.data.username,
+    });
+    const cookieStore = await cookies();
+    cookieStore.set(GOG_PROFILE_CHALLENGE_COOKIE, challenge.token, {
+      httpOnly: true,
+      maxAge: challenge.maxAge,
+      path: "/",
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : t("profileAction.gogConnectFailed");
+    const message = getGogProfileErrorCode(error) === "PROFILE_INVALID"
+      ? t("profileAction.invalidGogUsername")
+      : t("profileAction.gogConnectFailed");
     redirect(
       `/profile?tab=integrations&error=${encodeURIComponent(message)}`,
     );
   }
 
+  redirect("/profile?tab=integrations&gog=verification-pending");
+}
+
+export async function cancelGogProfileVerificationAction() {
+  const cookieStore = await cookies();
+  cookieStore.delete(GOG_PROFILE_CHALLENGE_COOKIE);
+  redirect("/profile?tab=integrations");
+}
+
+function getGogVerificationErrorMessage(
+  error: unknown,
+  t: ReturnType<typeof createTranslator>,
+) {
+  switch (getGogProfileErrorCode(error)) {
+    case "ACCOUNT_IN_USE":
+      return t("profileAction.gogAccountInUse");
+    case "CODE_NOT_FOUND":
+      return t("profileAction.gogCodeNotFound");
+    case "GAMES_PRIVATE":
+      return t("profileAction.gogGamesPrivate");
+    case "PROFILE_INVALID":
+      return t("profileAction.invalidGogUsername");
+    case "PROFILE_NOT_FOUND":
+      return t("profileAction.gogProfileNotFound");
+    case "PROFILE_PRIVATE":
+      return t("profileAction.gogProfilePrivate");
+    default:
+      return t("profileAction.gogConnectFailed");
+  }
+}
+
+export async function verifyGogProfileAction() {
+  const locale = await getRequestLocale();
+  const t = createTranslator(locale);
+  const userId = await getSessionUserId();
+  if (!userId) {
+    redirect(
+      `/login?error=${encodeURIComponent(t("profileAction.needGogLogin"))}`,
+    );
+  }
+
+  const cookieStore = await cookies();
+  const challenge = await readGogVerificationChallenge({
+    token: cookieStore.get(GOG_PROFILE_CHALLENGE_COOKIE)?.value,
+    userId,
+  });
+  if (!challenge) {
+    cookieStore.delete(GOG_PROFILE_CHALLENGE_COOKIE);
+    redirect(
+      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.gogChallengeExpired"))}`,
+    );
+  }
+
+  try {
+    await connectGogPublicProfileForUser({
+      code: challenge.code,
+      userId,
+      username: challenge.username,
+    });
+  } catch (error) {
+    redirect(
+      `/profile?tab=integrations&error=${encodeURIComponent(getGogVerificationErrorMessage(error, t))}`,
+    );
+  }
+
+  cookieStore.delete(GOG_PROFILE_CHALLENGE_COOKIE);
   revalidatePath("/profile");
   revalidatePath("/");
   redirect("/profile?tab=integrations&gog=connected");

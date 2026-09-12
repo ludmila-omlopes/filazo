@@ -626,28 +626,31 @@ const messages = {
     "profile.sources.xboxUnavailable": "Xbox unavailable",
     "profile.sources.gogTitle": "GOG library",
     "profile.sources.gogBody":
-      "Bring in games owned directly on GOG. Libraries connected to Galaxy from other stores are not included.",
+      "Connect a public GOG profile and bring in games owned directly on GOG. Libraries linked to Galaxy from other stores are not included.",
     "profile.sources.refreshGog": "Refresh GOG",
     "profile.sources.gogPending": "GOG is refreshing your library.",
-    "profile.sources.openGogLogin": "Open GOG login",
-    "profile.sources.gogUnavailable": "GOG unavailable",
-    "profile.sources.gogGuideTitle": "Finish the browser connection",
+    "profile.sources.gogGuideTitle": "Add the code to your GOG bio",
     "profile.sources.gogStep1":
-      "1. Open GOG login in a new tab and sign in only on GOG's website.",
+      "1. Open your GOG profile settings and paste the code anywhere in your bio.",
     "profile.sources.gogStep2":
-      "2. After GOG says the login succeeded, copy the complete URL from the address bar.",
+      "2. Make both your profile and games public, then save the changes.",
     "profile.sources.gogStep3":
-      "3. Return here, paste that URL below, and connect.",
-    "profile.sources.gogRedirectUrl": "Final GOG URL",
-    "profile.sources.gogRedirectPlaceholder":
-      "https://embed.gog.com/on_login_success?...",
-    "profile.sources.connectGog": "Connect GOG",
-    "profile.sources.gogSensitiveUrlNotice":
-      "This URL contains a short-lived authorization code. Do not share it or paste it anywhere else.",
-    "profile.sources.gogExperimentalNotice":
-      "This connection uses GOG's undocumented Galaxy endpoints and may need repair if GOG changes them. Your password never passes through Filazo.",
-    "profile.sources.gogMissingConfig":
-      "GOG OAuth credentials are not configured on this site.",
+      "3. Return here and verify. You can remove the code from your bio afterward.",
+    "profile.sources.gogUsername": "Current GOG username",
+    "profile.sources.gogUsernamePlaceholder": "username or GOG profile URL",
+    "profile.sources.gogVerificationCode": "Verification code",
+    "profile.sources.copyGogCode": "Copy code",
+    "profile.sources.gogCodeCopied": "Copied",
+    "profile.sources.gogCodeExpiryNotice":
+      "The code expires after 15 minutes. Select it to copy, and do not share it with anyone else.",
+    "profile.sources.startGogVerification": "Generate verification code",
+    "profile.sources.verifyGogProfile": "Verify profile",
+    "profile.sources.restartGogVerification": "Start over",
+    "profile.sources.openGogProfile": "Open GOG profile",
+    "profile.sources.gogPublicNotice":
+      "Filazo verifies ownership through a temporary code in your public GOG bio. Your profile and games must be public for sync; no password or session token is collected.",
+    "profile.sources.gogConnectedNotice":
+      "Connected through your public GOG profile. Keep your games visible so automatic refreshes can read the library.",
     "profile.sources.oauthReady": "ready",
     "profile.sources.oauthMissing": "missing client ID",
     "profile.sources.csvNotice":
@@ -1401,6 +1404,7 @@ const messages = {
       "PlayStation refreshed. {count} games updated.",
     "statusMessage.xboxRefreshed": "Xbox refreshed. {count} games updated.",
     "statusMessage.gogRefreshed": "GOG refreshed. {count} games updated.",
+    "statusMessage.gogConnected": "GOG profile connected.",
     "statusMessage.finishedCheck":
       "Finished-game check looked at {scanned} entries and found {count} finished games.",
     "statusMessage.csvImported":
@@ -1457,8 +1461,19 @@ const messages = {
     "profileAction.needXboxSyncLogin": "Sign in before syncing Xbox.",
     "profileAction.xboxSyncFailed": "Xbox sync did not complete.",
     "profileAction.needGogLogin": "Sign in before connecting GOG.",
-    "profileAction.invalidGogRedirectUrl":
-      "Paste the complete URL returned by GOG.",
+    "profileAction.invalidGogUsername":
+      "Enter a valid GOG username or profile URL.",
+    "profileAction.gogChallengeExpired":
+      "The GOG verification code expired. Generate a new one.",
+    "profileAction.gogProfileNotFound": "That GOG profile was not found.",
+    "profileAction.gogProfilePrivate":
+      "Make your GOG profile public before verifying it.",
+    "profileAction.gogGamesPrivate":
+      "Make your GOG games public before verifying or syncing.",
+    "profileAction.gogCodeNotFound":
+      "The code is not visible in your GOG bio yet. Save the profile and try again.",
+    "profileAction.gogAccountInUse":
+      "That GOG profile is already connected to another Filazo account.",
     "profileAction.gogConnectFailed": "Could not connect GOG.",
     "profileAction.needGogSyncLogin": "Sign in before syncing GOG.",
     "profileAction.gogSyncFailed": "GOG sync did not complete.",
@@ -2150,28 +2165,31 @@ const messages = {
     "profile.sources.xboxUnavailable": "Xbox indisponível",
     "profile.sources.gogTitle": "Biblioteca GOG",
     "profile.sources.gogBody":
-      "Traga os jogos comprados diretamente na GOG. Bibliotecas de outras lojas conectadas ao Galaxy não entram.",
+      "Conecte um perfil público da GOG e traga os jogos comprados diretamente na loja. Bibliotecas de outras lojas vinculadas ao Galaxy não entram.",
     "profile.sources.refreshGog": "Atualizar GOG",
     "profile.sources.gogPending": "A GOG está atualizando sua biblioteca.",
-    "profile.sources.openGogLogin": "Abrir login da GOG",
-    "profile.sources.gogUnavailable": "GOG indisponível",
-    "profile.sources.gogGuideTitle": "Concluir a conexão pelo navegador",
+    "profile.sources.gogGuideTitle": "Adicione o código à sua bio da GOG",
     "profile.sources.gogStep1":
-      "1. Abra o login da GOG em outra aba e entre somente no site da GOG.",
+      "1. Abra as configurações do seu perfil GOG e cole o código em qualquer lugar da bio.",
     "profile.sources.gogStep2":
-      "2. Quando a GOG informar que o login deu certo, copie a URL completa da barra de endereço.",
+      "2. Deixe o perfil e os jogos públicos e salve as mudanças.",
     "profile.sources.gogStep3":
-      "3. Volte aqui, cole a URL abaixo e conecte.",
-    "profile.sources.gogRedirectUrl": "URL final da GOG",
-    "profile.sources.gogRedirectPlaceholder":
-      "https://embed.gog.com/on_login_success?...",
-    "profile.sources.connectGog": "Conectar GOG",
-    "profile.sources.gogSensitiveUrlNotice":
-      "Essa URL contém um código de autorização temporário. Não compartilhe nem cole em outro lugar.",
-    "profile.sources.gogExperimentalNotice":
-      "Esta conexão usa endpoints não documentados do Galaxy e pode precisar de ajustes se a GOG os alterar. Sua senha nunca passa pela filazo.",
-    "profile.sources.gogMissingConfig":
-      "As credenciais OAuth da GOG não estão configuradas neste site.",
+      "3. Volte aqui e verifique. Depois você pode remover o código da bio.",
+    "profile.sources.gogUsername": "Username atual da GOG",
+    "profile.sources.gogUsernamePlaceholder": "username ou URL do perfil GOG",
+    "profile.sources.gogVerificationCode": "Código de verificação",
+    "profile.sources.copyGogCode": "Copiar código",
+    "profile.sources.gogCodeCopied": "Copiado",
+    "profile.sources.gogCodeExpiryNotice":
+      "O código expira em 15 minutos. Selecione para copiar e não compartilhe com outras pessoas.",
+    "profile.sources.startGogVerification": "Gerar código de verificação",
+    "profile.sources.verifyGogProfile": "Verificar perfil",
+    "profile.sources.restartGogVerification": "Recomeçar",
+    "profile.sources.openGogProfile": "Abrir perfil na GOG",
+    "profile.sources.gogPublicNotice":
+      "A filazo confirma a conta com um código temporário na bio pública da GOG. Perfil e jogos precisam estar públicos para sincronizar; nenhuma senha ou sessão é coletada.",
+    "profile.sources.gogConnectedNotice":
+      "Conectada pelo perfil público da GOG. Mantenha os jogos visíveis para as atualizações automáticas lerem a biblioteca.",
     "profile.sources.oauthReady": "pronto",
     "profile.sources.oauthMissing": "sem client ID",
     "profile.sources.csvNotice":
@@ -2927,6 +2945,7 @@ const messages = {
       "PlayStation atualizada. {count} jogos mudaram.",
     "statusMessage.xboxRefreshed": "Xbox atualizado. {count} jogos mudaram.",
     "statusMessage.gogRefreshed": "GOG atualizada. {count} jogos mudaram.",
+    "statusMessage.gogConnected": "Perfil GOG conectado.",
     "statusMessage.finishedCheck":
       "A verificação de jogos terminados analisou {scanned} entradas e encontrou {count} jogos terminados.",
     "statusMessage.csvImported":
@@ -2987,8 +3006,19 @@ const messages = {
     "profileAction.xboxSyncFailed":
       "A sincronização do Xbox não terminou.",
     "profileAction.needGogLogin": "Entre antes de conectar a GOG.",
-    "profileAction.invalidGogRedirectUrl":
-      "Cole a URL completa retornada pela GOG.",
+    "profileAction.invalidGogUsername":
+      "Digite um username ou uma URL de perfil GOG válidos.",
+    "profileAction.gogChallengeExpired":
+      "O código de verificação da GOG expirou. Gere um novo.",
+    "profileAction.gogProfileNotFound": "Esse perfil da GOG não foi encontrado.",
+    "profileAction.gogProfilePrivate":
+      "Deixe seu perfil da GOG público antes de verificá-lo.",
+    "profileAction.gogGamesPrivate":
+      "Deixe seus jogos da GOG públicos antes de verificar ou sincronizar.",
+    "profileAction.gogCodeNotFound":
+      "O código ainda não está visível na bio da GOG. Salve o perfil e tente de novo.",
+    "profileAction.gogAccountInUse":
+      "Esse perfil da GOG já está conectado a outra conta da filazo.",
     "profileAction.gogConnectFailed": "Não foi possível conectar a GOG.",
     "profileAction.needGogSyncLogin": "Entre antes de sincronizar a GOG.",
     "profileAction.gogSyncFailed":

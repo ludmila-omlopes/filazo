@@ -42,6 +42,11 @@ export const remoteImagePatterns: RemoteImagePattern[] = [
   },
   {
     protocol: "https",
+    hostname: "images.gog-statics.com",
+    pathname: "/**",
+  },
+  {
+    protocol: "https",
     hostname: "images-1.gog.com",
     pathname: "/**",
   },

@@ -1,114 +1,131 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
-  createGogAuthUrl,
-  mapGogProductToSyncedGame,
-  parseGogRedirectUrl,
+  createGogVerificationChallenge,
+  mapGogPublicGameToSyncedGame,
+  normalizeGogUsername,
+  parseGogProfileDocument,
+  readGogVerificationChallenge,
 } from "./gog.ts";
 
-const REDIRECT_URI =
-  "https://embed.gog.com/on_login_success?origin=client";
+test("normalizes GOG usernames and public profile URLs", () => {
+  assert.equal(normalizeGogUsername("  Player.Name_10  "), "Player.Name_10");
+  assert.equal(
+    normalizeGogUsername("https://www.gog.com/en/u/Player.Name_10/"),
+    "Player.Name_10",
+  );
+  assert.throws(
+    () => normalizeGogUsername("https://example.com/u/player"),
+    /must belong to gog.com/,
+  );
+  assert.throws(() => normalizeGogUsername("player/name"), /valid GOG username/);
+});
 
-test("GOG browser login URL carries the nonce and registered redirect", () => {
-  const previousClientId = process.env.GOG_CLIENT_ID;
-  const previousClientSecret = process.env.GOG_CLIENT_SECRET;
-  const previousRedirectUri = process.env.GOG_REDIRECT_URI;
-  process.env.GOG_CLIENT_ID = "test-client";
-  process.env.GOG_CLIENT_SECRET = "test-secret";
-  process.env.GOG_REDIRECT_URI = REDIRECT_URI;
+test("GOG verification challenges are short-lived and bound to a user", async () => {
+  const previousSecret = process.env.AUTH_SECRET;
+  process.env.AUTH_SECRET = "a-test-secret-that-is-long-enough";
+  const now = new Date("2026-09-11T12:00:00.000Z");
 
   try {
-    const url = createGogAuthUrl("fresh-state");
-    assert.equal(url.origin, "https://auth.gog.com");
-    assert.equal(url.searchParams.get("client_id"), "test-client");
-    assert.equal(url.searchParams.get("redirect_uri"), REDIRECT_URI);
-    assert.equal(url.searchParams.get("state"), "fresh-state");
-    assert.equal(url.searchParams.get("response_type"), "code");
+    const created = await createGogVerificationChallenge({
+      now,
+      userId: "filazo-user-1",
+      username: "gog_player",
+    });
+    assert.match(created.challenge.code, /^FLZ-[2-9A-HJ-NP-Z]{8}$/);
+    assert.equal(created.challenge.username, "gog_player");
+    assert.equal(created.maxAge, 15 * 60);
+    assert.deepEqual(
+      await readGogVerificationChallenge({
+        now,
+        token: created.token,
+        userId: "filazo-user-1",
+      }),
+      created.challenge,
+    );
+    assert.equal(
+      await readGogVerificationChallenge({
+        now,
+        token: created.token,
+        userId: "another-user",
+      }),
+      null,
+    );
+    assert.equal(
+      await readGogVerificationChallenge({
+        now: new Date("2026-09-11T12:16:00.000Z"),
+        token: created.token,
+        userId: "filazo-user-1",
+      }),
+      null,
+    );
   } finally {
-    if (previousClientId === undefined) delete process.env.GOG_CLIENT_ID;
-    else process.env.GOG_CLIENT_ID = previousClientId;
-    if (previousClientSecret === undefined) delete process.env.GOG_CLIENT_SECRET;
-    else process.env.GOG_CLIENT_SECRET = previousClientSecret;
-    if (previousRedirectUri === undefined) delete process.env.GOG_REDIRECT_URI;
-    else process.env.GOG_REDIRECT_URI = previousRedirectUri;
+    if (previousSecret === undefined) delete process.env.AUTH_SECRET;
+    else process.env.AUTH_SECRET = previousSecret;
   }
 });
 
-test("GOG browser login accepts only the expected redirect and state", () => {
-  assert.equal(
-    parseGogRedirectUrl(
-      `${REDIRECT_URI}&code=one-time-code&state=expected-state`,
-      "expected-state",
-      REDIRECT_URI,
-    ),
-    "one-time-code",
-  );
+test("parses GOG public profile data without being confused by bio punctuation", () => {
+  const parsed = parseGogProfileDocument(`
+    <script>
+      window.profilesData.profileUser = {"userId":"12345","username":"gog_player","stats":{"games_owned":7}};
+      window.profilesData.profileUserPreferences = {"bio":"FLZ-23456789 {saved}; \\"quoted\\"","privacy":{"profile":"public","games":"public"}};
+    </script>
+  `);
 
-  assert.throws(
-    () =>
-      parseGogRedirectUrl(
-        `${REDIRECT_URI}&code=one-time-code&state=wrong-state`,
-        "expected-state",
-        REDIRECT_URI,
-      ),
-    /state could not be verified/,
-  );
-  assert.throws(
-    () =>
-      parseGogRedirectUrl(
-        "https://example.com/on_login_success?code=one-time-code&state=expected-state",
-        "expected-state",
-        REDIRECT_URI,
-      ),
-    /was not returned by GOG/,
-  );
+  assert.equal(parsed.user.userId, "12345");
+  assert.equal(parsed.user.username, "gog_player");
+  assert.equal(parsed.preferences.bio, 'FLZ-23456789 {saved}; "quoted"');
+  assert.deepEqual(parsed.preferences.privacy, {
+    games: "public",
+    profile: "public",
+  });
 });
 
-test("GOG product mapping keeps games and excludes explicit non-games", () => {
+test("maps public GOG games and the connected account's stats", () => {
   assert.deepEqual(
-    mapGogProductToSyncedGame({
-      id: 123,
-      title: "A Good Old Game",
-      slug: "a_good_old_game",
-      game_type: "game",
-      images: {
-        background: "//images.gog.com/background.jpg",
-        logo2x: "//images.gog.com/logo.jpg",
-      },
-    }),
-    {
-      providerGameId: "123",
-      title: "A Good Old Game",
-      platformName: "GOG",
-      storeUrl: "https://www.gog.com/game/a_good_old_game",
-      rawData: {
-        gameType: "game",
-        image: null,
-        images: {
-          background: "https://images.gog.com/background.jpg",
-          logo: null,
-          logo2x: "https://images.gog.com/logo.jpg",
+    mapGogPublicGameToSyncedGame(
+      {
+        game: {
+          achievementSupport: true,
+          id: "123",
+          image: "https://images.gog-statics.com/game.png",
+          title: "A Good Old Game",
+          url: "/en/game/a_good_old_game",
         },
-        slug: "a_good_old_game",
-        worksOn: undefined,
+        stats: {
+          "galaxy-user-id": {
+            achievementsPercentage: 80,
+            lastSession: "2026-09-10T20:30:00.000Z",
+            playtime: 125,
+          },
+        },
       },
+      "galaxy-user-id",
+    ),
+    {
+      completionPercent: 80,
+      lastPlayedAt: new Date("2026-09-10T20:30:00.000Z"),
+      platformName: "GOG",
+      playtimeMinutes: 125,
+      providerGameId: "123",
+      rawData: {
+        achievementSupport: true,
+        image: "https://images.gog-statics.com/game.png",
+        images: {
+          background: null,
+          logo: "https://images.gog-statics.com/game.png",
+          logo2x: "https://images.gog-statics.com/game.png",
+        },
+        source: "public-profile",
+      },
+      storeUrl: "https://www.gog.com/en/game/a_good_old_game",
+      title: "A Good Old Game",
     },
   );
 
   assert.equal(
-    mapGogProductToSyncedGame({
-      id: 456,
-      title: "Soundtrack",
-      game_type: "dlc",
-    }),
-    null,
-  );
-  assert.equal(
-    mapGogProductToSyncedGame({
-      id: 789,
-      title: "A Movie",
-      isMovie: true,
-    }),
+    mapGogPublicGameToSyncedGame({ game: { id: 456, title: "" } }, "user"),
     null,
   );
 });

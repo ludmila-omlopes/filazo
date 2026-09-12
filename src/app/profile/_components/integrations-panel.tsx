@@ -9,6 +9,7 @@ import { SyncActionForm } from "@/components/sync-action-form";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import type { AiSettingsValues } from "@/lib/ai-settings";
+import type { GogVerificationChallenge } from "@/lib/gog";
 import { hasIgdbConfig } from "@/lib/igdb";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import {
@@ -20,29 +21,36 @@ import { isSteamConfigured } from "@/lib/steam";
 import { isXboxConfigured } from "@/lib/xbox";
 import { cn, formatDate, formatNumber } from "@/lib/utils";
 import {
+  cancelGogProfileVerificationAction,
   connectPlayStationAction,
   detectFinishedGamesAction,
   disconnectProviderAction,
   importCsvAction,
   importPhotoCatalogAction,
+  startGogProfileVerificationAction,
+  syncGogLibraryAction,
   syncPlayStationLibraryAction,
   syncSteamLibraryAction,
   syncUserReviewsAction,
   syncXboxLibraryAction,
+  verifyGogProfileAction,
 } from "../actions";
 import { ImportImageGallery } from "./import-image-gallery";
+import { GogVerificationCode } from "./gog-verification-code";
 import { ManualGameLookupPanel } from "./manual-game-lookup-panel";
 import type { ProfileData } from "./profile-types";
 
 type ProviderAccount =
   | ProfileData["steamAccount"]
   | ProfileData["playStationAccount"]
-  | ProfileData["xboxAccount"];
+  | ProfileData["xboxAccount"]
+  | ProfileData["gogAccount"];
 
 type SourceProvider =
   | typeof ExternalProvider.STEAM
   | typeof ExternalProvider.PLAYSTATION
-  | typeof ExternalProvider.XBOX;
+  | typeof ExternalProvider.XBOX
+  | typeof ExternalProvider.GOG;
 
 function isSourceSyncing(account: ProviderAccount) {
   if (account?.provider === ExternalProvider.STEAM) {
@@ -170,6 +178,7 @@ const providerLogoSrc: Record<SourceProvider, string> = {
   [ExternalProvider.STEAM]: "/brand/steam-logo.png",
   [ExternalProvider.PLAYSTATION]: "/brand/playstation-logo.png",
   [ExternalProvider.XBOX]: "/brand/xbox-logo.svg",
+  [ExternalProvider.GOG]: "/brand/gog-logo.svg",
 };
 
 function ProviderLogo({ provider }: { provider: SourceProvider }) {
@@ -593,10 +602,12 @@ function ReviewSyncRow({
 
 export function IntegrationsPanel({
   aiSettings,
+  gogChallenge,
   locale,
   profile,
 }: {
   aiSettings: AiSettingsValues;
+  gogChallenge: GogVerificationChallenge | null;
   locale: Locale;
   profile: ProfileData;
 }) {
@@ -608,6 +619,7 @@ export function IntegrationsPanel({
   );
   const playStationSyncing = isSourceSyncing(profile.playStationAccount);
   const xboxSyncing = isSourceSyncing(profile.xboxAccount);
+  const gogSyncing = isSourceSyncing(profile.gogAccount);
 
   return (
     <section className="panel bg-sky-soft/55">
@@ -619,9 +631,7 @@ export function IntegrationsPanel({
           <div className="pill">
             {t("profile.sources.connectedCount", {
               count: formatNumber(
-                profile.user.externalAccounts.filter(
-                  (account) => account.provider !== ExternalProvider.GOG,
-                ).length,
+                profile.user.externalAccounts.length,
                 locale,
               ),
             })}
@@ -801,6 +811,117 @@ export function IntegrationsPanel({
               })}
             </p>
           </details>
+        </ProviderRow>
+
+        <ProviderRow
+          account={profile.gogAccount}
+          eyebrow="GOG"
+          locale={locale}
+          provider={ExternalProvider.GOG}
+          title={t("profile.sources.gogTitle")}
+          description={t("profile.sources.gogBody")}
+          actions={
+            profile.gogAccount ? (
+              <SyncActionForm
+                action={syncGogLibraryAction}
+                buttonLabel={t("profile.sources.refreshGog")}
+                externallyPending={gogSyncing}
+                pendingLabel={t("profile.sources.refreshing")}
+                pendingNotice={t("profile.sources.gogPending")}
+              />
+            ) : null
+          }
+        >
+          {profile.gogAccount ? (
+            <div className="rounded-inner border border-sage/45 bg-sage-soft px-4 py-3 text-sm leading-relaxed text-ink-soft">
+              <p>{t("profile.sources.gogConnectedNotice")}</p>
+              {profile.gogAccount.profileUrl ? (
+                <a
+                  className="mt-2 inline-flex items-center gap-1 font-semibold text-ink underline underline-offset-4"
+                  href={profile.gogAccount.profileUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  {t("profile.sources.openGogProfile")}
+                  <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                </a>
+              ) : null}
+            </div>
+          ) : gogChallenge ? (
+            <div className="grid gap-4 pt-1">
+              <div className="rounded-inner border border-sand/70 bg-sand-soft p-4 text-sm leading-relaxed text-ink-soft">
+                <p className="font-semibold text-ink">
+                  {t("profile.sources.gogGuideTitle")}
+                </p>
+                <ol className="mt-3 grid gap-2">
+                  <li>{t("profile.sources.gogStep1")}</li>
+                  <li>{t("profile.sources.gogStep2")}</li>
+                  <li>{t("profile.sources.gogStep3")}</li>
+                </ol>
+              </div>
+              <ConnectionRow label={t("profile.sources.gogUsername")}>
+                {gogChallenge.username}
+              </ConnectionRow>
+              <GogVerificationCode
+                code={gogChallenge.code}
+                copiedLabel={t("profile.sources.gogCodeCopied")}
+                copyLabel={t("profile.sources.copyGogCode")}
+                label={t("profile.sources.gogVerificationCode")}
+              />
+              <p className="text-xs leading-relaxed text-ink-soft">
+                {t("profile.sources.gogCodeExpiryNotice")}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild variant="ghost">
+                  <a
+                    href={`https://www.gog.com/u/${encodeURIComponent(gogChallenge.username)}`}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    {t("profile.sources.openGogProfile")}
+                    <ExternalLink className="h-4 w-4" aria-hidden />
+                  </a>
+                </Button>
+                <form action={verifyGogProfileAction}>
+                  <Button type="submit">
+                    {t("profile.sources.verifyGogProfile")}
+                  </Button>
+                </form>
+                <form action={cancelGogProfileVerificationAction}>
+                  <Button type="submit" variant="ghost">
+                    {t("profile.sources.restartGogVerification")}
+                  </Button>
+                </form>
+              </div>
+            </div>
+          ) : (
+            <form
+              action={startGogProfileVerificationAction}
+              className="grid gap-4 pt-1"
+            >
+              <div className="rounded-inner border border-sand/70 bg-sand-soft px-4 py-3 text-sm leading-relaxed text-ink-soft">
+                {t("profile.sources.gogPublicNotice")}
+              </div>
+              <label className="grid gap-2">
+                <span className="text-sm font-semibold">
+                  {t("profile.sources.gogUsername")}
+                </span>
+                <input
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+                  name="username"
+                  placeholder={t("profile.sources.gogUsernamePlaceholder")}
+                  required
+                  spellCheck={false}
+                  type="text"
+                />
+              </label>
+              <Button type="submit">
+                {t("profile.sources.startGogVerification")}
+              </Button>
+            </form>
+          )}
         </ProviderRow>
 
         <CompletionStatusRow locale={locale} profile={profile} />
