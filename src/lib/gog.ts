@@ -17,7 +17,6 @@ const GOG_PROFILE_CHALLENGE_AUDIENCE = "gog-profile-verification";
 const GOG_PROFILE_CHALLENGE_ISSUER = "filazo";
 const GOG_PROFILE_CHALLENGE_SECONDS = 15 * 60;
 const GOG_REQUEST_TIMEOUT_MS = 15_000;
-const GOG_MAX_LIBRARY_PAGES = 100;
 const GOG_USERNAME_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
 const GOG_VERIFICATION_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
@@ -289,7 +288,7 @@ async function requestGog(
   if (!response.ok) {
     const profileCode =
       response.status === 404 ? "PROFILE_NOT_FOUND" : undefined;
-    throw createGogError(
+    const error = createGogError(
       `${options.errorMessage} (${response.status}).`,
       response.status === 429
         ? "RATE_LIMIT"
@@ -300,6 +299,8 @@ async function requestGog(
           : "PROVIDER",
       profileCode,
     );
+    // Let the durable queue honor provider-requested retry windows.
+    throw Object.assign(error, { response: { headers: response.headers } });
   }
   return response;
 }
@@ -642,135 +643,64 @@ export function mapGogPublicGameToSyncedGame(
   };
 }
 
-async function fetchGogPublicLibrary(
-  profile: ProviderProfile,
-  signal?: AbortSignal,
-) {
-  if (!profile.username) {
-    throw createGogError("The connected GOG profile has no username.", "AUTH");
-  }
-  const games: SyncedLibraryGame[] = [];
-  let page = 1;
-  let totalPages = 1;
-
-  while (page <= totalPages && page <= GOG_MAX_LIBRARY_PAGES) {
-    const url = new URL(
-      `/u/${encodeURIComponent(profile.username)}/games/stats`,
-      GOG_BASE_URL,
-    );
-    url.searchParams.set("sort", "alphabetically");
-    url.searchParams.set("order", "asc");
-    url.searchParams.set("page", String(page));
-    const response = await requestGog(url, {
-      accept: "application/hal+json,application/json",
-      errorMessage: "Could not load the public GOG library",
-      signal,
-    });
-    let value: unknown;
-    try {
-      value = await response.json();
-    } catch {
-      throw createGogError(
-        "GOG returned invalid public library data.",
-        "PROVIDER",
-      );
-    }
-    const embedded =
-      isRecord(value) && isRecord(value._embedded)
-        ? value._embedded
-        : null;
-    if (!embedded || !Array.isArray(embedded.items)) {
-      throw createGogError(
-        "Make your GOG game library public before synchronizing it.",
-        "AUTH",
-        "GAMES_PRIVATE",
-      );
-    }
-
-    for (const candidate of embedded.items) {
-      if (!isRecord(candidate)) continue;
-      const syncedGame = mapGogPublicGameToSyncedGame(
-        candidate,
-        profile.providerAccountId,
-      );
-      if (syncedGame) games.push(syncedGame);
-    }
-
-    const returnedTotalPages = isRecord(value)
-      ? Number(value.pages)
-      : Number.NaN;
-    if (!Number.isInteger(returnedTotalPages) || returnedTotalPages < 0) {
-      throw createGogError(
-        "GOG returned invalid library pagination.",
-        "PROVIDER",
-      );
-    }
-    totalPages = returnedTotalPages;
-    page += 1;
-  }
-
-  if (totalPages > GOG_MAX_LIBRARY_PAGES) {
-    throw createGogError(
-      "The public GOG library exceeded the safe page limit.",
-      "PROVIDER",
-    );
-  }
-  return games;
-}
-
-export async function syncGogLibraryForAccount(
+// Fetch exactly one page; the durable queue owns pagination and checkpoints.
+export async function fetchGogLibraryPage(
   account: ExternalAccount,
-  options: { signal?: AbortSignal } = {},
+  page: number,
+  signal: AbortSignal,
 ) {
-  const username = await fetchCurrentGogUsername(
-    account.providerAccountId,
-    options.signal,
-  );
-  const publicProfile = await fetchGogPublicProfile(username, options.signal);
+  if (!Number.isSafeInteger(page) || page < 1) {
+    throw createGogError("Invalid GOG page number.", "PROVIDER");
+  }
+  const username = await fetchCurrentGogUsername(account.providerAccountId, signal);
+  const publicProfile = await fetchGogPublicProfile(username, signal);
   if (publicProfile.profile.providerAccountId !== account.providerAccountId) {
-    throw createGogError(
-      "The public GOG profile no longer matches this account.",
-      "AUTH",
-    );
+    throw createGogError("The public GOG profile no longer matches this account.", "AUTH");
   }
   if (publicProfile.privacy.games !== "public") {
-    throw createGogError(
-      "Make your GOG game library public before synchronizing it.",
-      "AUTH",
-      "GAMES_PRIVATE",
-    );
+    throw createGogError("Make your GOG game library public before synchronizing it.", "AUTH", "GAMES_PRIVATE");
   }
-  const games = await fetchGogPublicLibrary(
-    publicProfile.profile,
-    options.signal,
-  );
-  const metadata: GogAccountMetadata = {
-    connectedAt:
-      isRecord(account.metadata) &&
-      typeof account.metadata.connectedAt === "string"
-        ? account.metadata.connectedAt
-        : undefined,
-    profile: publicProfile.profile,
-    syncMode: "public-profile",
-    verificationMethod: "profile-bio",
-    verifiedAt:
-      isRecord(account.metadata) &&
-      typeof account.metadata.verifiedAt === "string"
-        ? account.metadata.verifiedAt
-        : undefined,
-  };
-  await prisma.externalAccount.update({
-    where: { id: account.id },
-    data: {
-      username: publicProfile.profile.username ?? undefined,
-      displayName: publicProfile.profile.displayName ?? undefined,
-      avatarUrl: publicProfile.profile.avatarUrl ?? undefined,
-      profileUrl: publicProfile.profile.profileUrl ?? undefined,
-      metadata: metadata as Prisma.InputJsonValue,
-    },
+  const url = new URL(`/u/${encodeURIComponent(username)}/games/stats`, GOG_BASE_URL);
+  url.searchParams.set("sort", "alphabetically");
+  url.searchParams.set("order", "asc");
+  url.searchParams.set("page", String(page));
+  const response = await requestGog(url, {
+    accept: "application/hal+json,application/json",
+    errorMessage: "Could not load the public GOG library",
+    signal,
   });
+  let value: unknown;
+  try {
+    value = await response.json();
+  } catch {
+    throw createGogError("GOG returned invalid public library data.", "PROVIDER");
+  }
+  const parsed = parseGogLibraryPage(value, page, account.providerAccountId);
+  return { ...parsed, profile: publicProfile.profile };
+}
 
-  return { games, profile: publicProfile.profile };
+export function parseGogLibraryPage(value: unknown, page: number, providerAccountId: string) {
+  if (!isRecord(value) || !isRecord(value._embedded) || !Array.isArray(value._embedded.items)) {
+    throw createGogError("GOG did not return a readable public library.", "PROVIDER");
+  }
+  const pages = value.pages;
+  const total = value.total;
+  if (value.page !== page || typeof pages !== "number" || !Number.isSafeInteger(pages) ||
+      pages < 0 || typeof total !== "number" || !Number.isSafeInteger(total) || total < 0 ||
+      (pages > 0 && page > pages) || (pages === 0 && (page !== 1 || total !== 0))) {
+    throw createGogError("GOG returned invalid library pagination.", "PROVIDER");
+  }
+  const games: SyncedLibraryGame[] = [];
+  for (const candidate of value._embedded.items) {
+    const game = isRecord(candidate) ? mapGogPublicGameToSyncedGame(candidate, providerAccountId) : null;
+    // Never advance a durable checkpoint past data we could not import.
+    if (!game) throw createGogError("GOG returned an invalid library game.", "PROVIDER");
+    games.push(game);
+  }
+  if ((!games.length && total > 0) || (games.length > 0 && total === 0)) {
+    throw createGogError("GOG returned an incomplete library page.", "PROVIDER");
+  }
+  return { games, nextPage: page < pages ? page + 1 : null, totalCount: total };
 }
 
 export function getGogArtworkFallback(

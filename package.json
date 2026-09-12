@@ -13,6 +13,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "node --experimental-strip-types --test",
     "test:steam-sync": "node scripts/qa/run-steam-sync-check.mjs",
+    "test:gog-sync": "node scripts/qa/run-steam-sync-check.mjs scripts/qa/gog-sync-check.ts",
     "test:sync-monitor": "node scripts/qa/run-steam-sync-check.mjs scripts/qa/sync-monitor-check.ts",
     "db:generate": "prisma generate",
     "db:check": "node scripts/check-db-schema.mjs",

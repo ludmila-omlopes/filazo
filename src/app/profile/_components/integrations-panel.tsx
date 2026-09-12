@@ -53,7 +53,7 @@ type SourceProvider =
   | typeof ExternalProvider.GOG;
 
 function isSourceSyncing(account: ProviderAccount) {
-  if (account?.provider === ExternalProvider.STEAM) {
+  if (account?.provider === ExternalProvider.STEAM || account?.provider === ExternalProvider.GOG) {
     const status = account.platformSyncRuns[0]?.status;
     if (status === "PENDING" || status === "RUNNING") return true;
   }
@@ -620,6 +620,7 @@ export function IntegrationsPanel({
   const playStationSyncing = isSourceSyncing(profile.playStationAccount);
   const xboxSyncing = isSourceSyncing(profile.xboxAccount);
   const gogSyncing = isSourceSyncing(profile.gogAccount);
+  const gogRun = profile.gogAccount?.platformSyncRuns[0];
 
   return (
     <section className="panel bg-sky-soft/55">
@@ -827,13 +828,23 @@ export function IntegrationsPanel({
                 buttonLabel={t("profile.sources.refreshGog")}
                 externallyPending={gogSyncing}
                 pendingLabel={t("profile.sources.refreshing")}
-                pendingNotice={t("profile.sources.gogPending")}
+                pendingNotice={gogRun?.errorCode
+                  ? t("profile.sources.gogRetrying")
+                  : t("profile.sources.gogPending")}
               />
             ) : null
           }
         >
           {profile.gogAccount ? (
             <div className="rounded-inner border border-sage/45 bg-sage-soft px-4 py-3 text-sm leading-relaxed text-ink-soft">
+              {gogSyncing && gogRun?.totalCount != null ? (
+                <p role="status" className="mb-2 text-xs">
+                  {t("profile.sources.steamProgress", {
+                    processed: formatNumber(gogRun.cursor, locale),
+                    total: formatNumber(gogRun.totalCount, locale),
+                  })}
+                </p>
+              ) : null}
               <p>{t("profile.sources.gogConnectedNotice")}</p>
               {profile.gogAccount.profileUrl ? (
                 <a

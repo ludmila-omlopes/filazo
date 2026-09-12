@@ -2,11 +2,17 @@ import { z } from "zod";
 
 export const steamSnapshotSchema = z.object({
   version: z.literal(1),
+  // Optional so already queued Steam snapshots remain resumable after deploy.
+  pagination: z.object({
+    offset: z.number().int().nonnegative(),
+    nextPage: z.number().int().positive().nullable(),
+  }).optional(),
   games: z.array(z.object({
     providerGameId: z.string().regex(/^\d+$/),
     title: z.string().min(1),
     platformName: z.string().nullish(),
     playtimeMinutes: z.number().nonnegative().nullish(),
+    completionPercent: z.number().min(0).max(100).nullish(),
     lastPlayedAt: z.string().datetime().nullable(),
     storeUrl: z.string().nullish(),
     rawData: z.record(z.string(), z.unknown()).optional(),

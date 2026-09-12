@@ -18,6 +18,7 @@ import {
 } from "@/lib/platform-sync-policy";
 import { prisma } from "@/lib/prisma";
 import { steamSyncQueue } from "@/lib/steam-sync-queue";
+import { gogSyncQueue } from "@/lib/gog-sync-queue";
 import { getSyncWorkerScope } from "@/lib/steam-sync-state";
 
 const SCHEDULER_STATE_ID = "platform-sync";
@@ -301,10 +302,11 @@ async function runAccountSync({
   >;
   trigger: PlatformSyncTrigger;
 }): Promise<SyncResult> {
-  if (account.provider === ExternalProvider.STEAM) {
+  if (account.provider === ExternalProvider.STEAM || account.provider === ExternalProvider.GOG) {
     const owner = await prisma.externalAccount.findUnique({ where: { id: account.id }, select: { userId: true } });
     if (!owner) return { kind: "skipped", reason: "not-connected" };
-    const queued = await steamSyncQueue.enqueue(owner.userId, trigger);
+    const queue = account.provider === ExternalProvider.GOG ? gogSyncQueue : steamSyncQueue;
+    const queued = await queue.enqueue(owner.userId, trigger);
     return queued.kind === "queued" ? queued : { kind: "skipped", reason: "not-connected" };
   }
   const lease = await acquireAccountLease({ account, trigger });

@@ -11,6 +11,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/internal/gog-sync-worker",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/internal/game-metadata-worker",
       "schedule": "* * * * *"
     },

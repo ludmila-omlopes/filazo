@@ -628,7 +628,8 @@ const messages = {
     "profile.sources.gogBody":
       "Connect a public GOG profile and bring in games owned directly on GOG. Libraries linked to Galaxy from other stores are not included.",
     "profile.sources.refreshGog": "Refresh GOG",
-    "profile.sources.gogPending": "GOG is refreshing your library.",
+    "profile.sources.gogPending": "Your GOG library is updating in the background. You can leave this page.",
+    "profile.sources.gogRetrying": "The GOG update will resume automatically from its saved progress.",
     "profile.sources.gogGuideTitle": "Add the code to your GOG bio",
     "profile.sources.gogStep1":
       "1. Open your GOG profile settings and paste the code anywhere in your bio.",
@@ -2167,7 +2168,8 @@ const messages = {
     "profile.sources.gogBody":
       "Conecte um perfil público da GOG e traga os jogos comprados diretamente na loja. Bibliotecas de outras lojas vinculadas ao Galaxy não entram.",
     "profile.sources.refreshGog": "Atualizar GOG",
-    "profile.sources.gogPending": "A GOG está atualizando sua biblioteca.",
+    "profile.sources.gogPending": "Sua biblioteca GOG está sendo atualizada em segundo plano. Você pode sair desta página.",
+    "profile.sources.gogRetrying": "A atualização da GOG será retomada automaticamente do progresso salvo.",
     "profile.sources.gogGuideTitle": "Adicione o código à sua bio da GOG",
     "profile.sources.gogStep1":
       "1. Abra as configurações do seu perfil GOG e cole o código em qualquer lugar da bio.",

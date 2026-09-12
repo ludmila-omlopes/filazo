@@ -45,6 +45,7 @@ import { getSessionUserId } from "@/lib/session";
 import { detectFinishedGamesForUser } from "@/lib/story-completion";
 import { runManualPlatformSync } from "@/lib/platform-sync";
 import { steamSyncQueue } from "@/lib/steam-sync-queue";
+import { gogSyncQueue } from "@/lib/gog-sync-queue";
 
 const importSchema = z.object({
   fileName: z.string().min(1),
@@ -1341,34 +1342,32 @@ export async function syncGogLibraryAction() {
   const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect(
-      `/login?error=${encodeURIComponent(t("profileAction.needGogSyncLogin"))}`,
-    );
+    redirect(`/login?error=${encodeURIComponent(t("profileAction.needGogSyncLogin"))}`);
   }
 
-  let result: Awaited<ReturnType<typeof runManualPlatformSync>>;
+  let result: Awaited<ReturnType<typeof gogSyncQueue.enqueue>>;
   try {
-    result = await runManualPlatformSync({
-      userId,
-      provider: ExternalProvider.GOG,
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : t("profileAction.gogSyncFailed");
-    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
+    result = await gogSyncQueue.enqueue(userId);
+  } catch {
+    console.warn("Could not enqueue GOG synchronization.");
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.gogSyncFailed"))}`);
   }
-  if (result.kind !== "succeeded") {
-    if (result.kind === "skipped" && result.reason === "locked") {
-      redirect("/profile?tab=integrations&syncPending=1");
+  if (result.kind === "not-connected") {
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.gogSyncFailed"))}`);
+  }
+  const runId = result.runId;
+  after(async () => {
+    try {
+      if (await gogSyncQueue.drain(runId)) {
+        revalidatePath("/profile");
+        revalidatePath("/");
+      }
+    } catch {
+      console.warn("GOG worker deferred to the next scheduled tick.");
     }
-    redirect(
-      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.gogSyncFailed"))}`,
-    );
-  }
-
+  });
   revalidatePath("/profile");
-  revalidatePath("/");
-  redirect(`/profile?tab=integrations&gogSynced=${result.syncedCount}`);
+  redirect(`/profile?tab=integrations`);
 }
 
 export async function syncUserReviewsAction() {

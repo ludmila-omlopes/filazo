@@ -20,7 +20,6 @@ import { igdbAdapter } from "@/lib/igdb";
 import { metacriticAdapter } from "@/lib/metacritic";
 import {
   getGogArtworkFallback,
-  syncGogLibraryForAccount as fetchGogLibraryForAccount,
 } from "@/lib/gog";
 import {
   canonicalizePlayStationGameTitle,
@@ -692,8 +691,6 @@ export async function syncPlatformLibraryForAccount(
       return syncPlayStationLibraryForAccount(account, options);
     case ExternalProvider.XBOX:
       return syncXboxLibraryForAccount(account, options);
-    case ExternalProvider.GOG:
-      return syncGogLibraryForAccount(account, options);
     default:
       throw new Error("This platform does not support library synchronization.");
   }
@@ -1102,140 +1099,119 @@ async function syncXboxLibraryForAccount(
   };
 }
 
-export async function syncGogLibraryForUser(userId: string) {
-  const gogAccount = await findPlatformAccountForUser(
-    userId,
-    ExternalProvider.GOG,
-  );
-
-  if (!gogAccount) {
-    throw new Error("Connect GOG before syncing your owned library.");
-  }
-
-  return syncPlatformLibraryForAccount(gogAccount);
-}
-
-async function syncGogLibraryForAccount(
-  gogAccount: ExternalAccount,
-  options: PlatformSyncExecutionOptions,
+export async function importGogLibraryGame(
+  gogAccount: Pick<ExternalAccount, "id" | "userId">,
+  syncedGame: import("@/lib/providers/contracts").SyncedLibraryGame,
+  prisma: Prisma.TransactionClient = defaultCatalogClient,
 ) {
   const userId = gogAccount.userId;
-  const { profile, games } = await fetchGogLibraryForAccount(
-    gogAccount,
-    options,
-  );
-  throwIfPlatformSyncAborted(options.signal);
-
-  let syncedCount = 0;
-  for (const syncedGame of games) {
-    throwIfPlatformSyncAborted(options.signal);
-    const game = await resolveCatalogGame({
-      title: syncedGame.title,
-      platformName: syncedGame.platformName,
-      provider: ExternalProvider.GOG,
-      providerGameId: syncedGame.providerGameId,
-      storeUrl: syncedGame.storeUrl,
-      rawData: syncedGame.rawData,
-      deferEnrichment: true,
-    });
-    const existingEntry = await prisma.userGameEntry.findUnique({
-      where: {
-        userId_gameId_status: {
-          userId,
-          gameId: game.id,
-          status: UserGameStatus.OWNED,
-        },
-      },
-      select: {
-        id: true,
-        provider: true,
-        rawData: true,
-        source: true,
-      },
-    });
-    const isExistingGogEntry =
-      existingEntry?.provider === ExternalProvider.GOG ||
-      existingEntry?.source === EntrySource.GOG;
-    const syncedAt = new Date();
-    await prisma.userGameEntry.upsert({
-      where: {
-        userId_gameId_status: {
-          userId,
-          gameId: game.id,
-          status: UserGameStatus.OWNED,
-        },
-      },
-      update: {
-        lastSyncedAt: syncedAt,
-        ...(isExistingGogEntry
-          ? {
-              externalAccountId: gogAccount.id,
-              platformName: syncedGame.platformName ?? undefined,
-              provider: ExternalProvider.GOG,
-              rawData: mergeSyncedRawData(
-                existingEntry?.rawData,
-                syncedGame.rawData,
-              ) as Prisma.InputJsonValue,
-              source: EntrySource.GOG,
-            }
-          : {}),
-      },
-      create: {
+  if (prisma !== defaultCatalogClient) {
+    await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`gog:${syncedGame.providerGameId}`}, 0))`;
+    await prisma.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`title:${normalizeTitle(canonicalizeGameTitle(syncedGame.title))}`}, 0))`;
+  }
+  const game = await resolveCatalogGame({
+    title: syncedGame.title,
+    platformName: syncedGame.platformName,
+    provider: ExternalProvider.GOG,
+    providerGameId: syncedGame.providerGameId,
+    storeUrl: syncedGame.storeUrl,
+    rawData: syncedGame.rawData,
+    deferEnrichment: true,
+  }, prisma);
+  const existingEntry = await prisma.userGameEntry.findUnique({
+    where: {
+      userId_gameId_status: {
         userId,
         gameId: game.id,
         status: UserGameStatus.OWNED,
-        source: EntrySource.GOG,
-        provider: ExternalProvider.GOG,
-        externalAccountId: gogAccount.id,
-        platformName: syncedGame.platformName ?? "GOG",
-        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: syncedAt,
       },
-    });
+    },
+    select: {
+      id: true,
+      provider: true,
+      rawData: true,
+      source: true,
+    },
+  });
+  const isExistingGogEntry =
+    existingEntry?.provider === ExternalProvider.GOG ||
+    existingEntry?.source === EntrySource.GOG;
+  const syncedAt = new Date();
+  await prisma.userGameEntry.upsert({
+    where: {
+      userId_gameId_status: {
+        userId,
+        gameId: game.id,
+        status: UserGameStatus.OWNED,
+      },
+    },
+    update: {
+      lastSyncedAt: syncedAt,
+      ...(isExistingGogEntry
+        ? {
+            externalAccountId: gogAccount.id,
+            platformName: syncedGame.platformName ?? undefined,
+            provider: ExternalProvider.GOG,
+            rawData: mergeSyncedRawData(
+              existingEntry?.rawData,
+              syncedGame.rawData,
+            ) as Prisma.InputJsonValue,
+            source: EntrySource.GOG,
+          }
+        : {}),
+    },
+    create: {
+      userId,
+      gameId: game.id,
+      status: UserGameStatus.OWNED,
+      source: EntrySource.GOG,
+      provider: ExternalProvider.GOG,
+      externalAccountId: gogAccount.id,
+      platformName: syncedGame.platformName ?? "GOG",
+      rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
+      lastSyncedAt: syncedAt,
+    },
+  });
 
-    await prisma.userGameProviderLink.upsert({
-      where: {
-        externalAccountId_providerGameId: {
-          externalAccountId: gogAccount.id,
-          providerGameId: syncedGame.providerGameId,
-        },
-      },
-      update: {
-        userId,
-        gameId: game.id,
-        provider: ExternalProvider.GOG,
-        platformName: syncedGame.platformName ?? "GOG",
-        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: syncedAt,
-      },
-      create: {
-        userId,
-        gameId: game.id,
+  await prisma.userGameProviderLink.upsert({
+    where: {
+      externalAccountId_providerGameId: {
         externalAccountId: gogAccount.id,
-        provider: ExternalProvider.GOG,
         providerGameId: syncedGame.providerGameId,
-        platformName: syncedGame.platformName ?? "GOG",
-        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: syncedAt,
       },
+    },
+    update: {
+      userId,
+      gameId: game.id,
+      provider: ExternalProvider.GOG,
+      platformName: syncedGame.platformName ?? "GOG",
+      rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
+      lastSyncedAt: syncedAt,
+    },
+    create: {
+      userId,
+      gameId: game.id,
+      externalAccountId: gogAccount.id,
+      provider: ExternalProvider.GOG,
+      providerGameId: syncedGame.providerGameId,
+      platformName: syncedGame.platformName ?? "GOG",
+      rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
+      lastSyncedAt: syncedAt,
+    },
+  });
+
+  // Keep the canonical OWNED row as the user's state. The child link above
+  // records GOG ownership even when that row already came from another store.
+  if (
+    shouldSearchIgdb(game) ||
+    shouldSearchHltb(game) ||
+    shouldSearchMetacritic(game)
+  ) {
+    await prisma.gameMetadataJob.createMany({
+      data: [{ gameId: game.id, workerScope: getSyncWorkerScope() }],
+      skipDuplicates: true,
     });
-
-    // Keep the canonical OWNED row as the user's state. The child link above
-    // records GOG ownership even when that row already came from another store.
-    if (
-      shouldSearchIgdb(game) ||
-      shouldSearchHltb(game) ||
-      shouldSearchMetacritic(game)
-    ) {
-      await prisma.gameMetadataJob.createMany({
-        data: [{ gameId: game.id, workerScope: getSyncWorkerScope() }],
-        skipDuplicates: true,
-      });
-    }
-    syncedCount += 1;
   }
-
-  return { profile, syncedCount };
 }
 
 function parseStatus(rawValue: unknown) {

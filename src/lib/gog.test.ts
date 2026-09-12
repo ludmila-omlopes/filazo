@@ -5,8 +5,24 @@ import {
   mapGogPublicGameToSyncedGame,
   normalizeGogUsername,
   parseGogProfileDocument,
+  parseGogLibraryPage,
   readGogVerificationChallenge,
 } from "./gog.ts";
+
+test("GOG page validation supports libraries beyond 100 pages and rejects incomplete responses", () => {
+  const fixture = {
+    page: 101, pages: 102, total: 5100,
+    _embedded: { items: [{ game: { id: 123, title: "Large library game" } }] },
+  };
+  assert.equal(parseGogLibraryPage(fixture, 101, "user").nextPage, 102);
+  assert.equal(parseGogLibraryPage({ ...fixture, page: 102 }, 102, "user").nextPage, null);
+  assert.throws(() => parseGogLibraryPage(fixture, 100, "user"), /pagination/);
+  assert.throws(() => parseGogLibraryPage({ ...fixture, _embedded: { items: [] } }, 101, "user"), /incomplete/);
+  assert.throws(() => parseGogLibraryPage({ ...fixture, _embedded: { items: [{}] } }, 101, "user"), /invalid library game/);
+  assert.deepEqual(parseGogLibraryPage({
+    page: 1, pages: 0, total: 0, _embedded: { items: [] },
+  }, 1, "user"), { games: [], nextPage: null, totalCount: 0 });
+});
 
 test("normalizes GOG usernames and public profile URLs", () => {
   assert.equal(normalizeGogUsername("  Player.Name_10  "), "Player.Name_10");
