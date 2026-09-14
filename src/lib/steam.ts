@@ -1,6 +1,6 @@
+import { linkExternalAccountForUser } from "@/lib/account-linking";
 ﻿import { ExternalProvider, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getUserProfileSyncData } from "@/lib/user-profile-sync";
 import {
   mapSteamOwnedGamesResponse,
   type SteamOwnedGame,
@@ -240,34 +240,12 @@ export async function upsertSteamAccountForUser({
 }) {
   const profile = await steamAdapter.fetchProfile(steamId);
 
-  const existingUser = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { displayName: true, avatarUrl: true },
-  });
-  await prisma.user.update({
-    where: { id: userId },
-    data: getUserProfileSyncData(existingUser, profile),
-  });
-
-  return prisma.externalAccount.upsert({
-    where: {
-      provider_providerAccountId: {
-        provider: ExternalProvider.STEAM,
-        providerAccountId: steamId,
-      },
-    },
-    update: {
-      userId,
-      username: profile.username ?? undefined,
-      displayName: profile.displayName ?? undefined,
-      avatarUrl: profile.avatarUrl ?? undefined,
-      profileUrl: profile.profileUrl ?? undefined,
-      metadata: profile.metadata as Prisma.InputJsonValue | undefined,
-    },
-    create: {
-      userId,
-      provider: ExternalProvider.STEAM,
-      providerAccountId: steamId,
+  return linkExternalAccountForUser(prisma, {
+    userId,
+    provider: ExternalProvider.STEAM,
+    providerAccountId: steamId,
+    profile,
+    data: {
       username: profile.username ?? undefined,
       displayName: profile.displayName ?? undefined,
       avatarUrl: profile.avatarUrl ?? undefined,

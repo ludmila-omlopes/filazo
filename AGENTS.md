@@ -22,6 +22,8 @@ The core architectural rule is: external providers should attach to one internal
 - Treat `Game` as the canonical game entity.
 - Treat `GameProviderLink` as the mapping layer between external provider IDs and canonical games.
 - Treat `UserGameEntry` as per-user state such as ownership, wishlist, backlog, or playtime.
+- User-triggered operations must only mutate that user's personal records. Never silently reassign provider accounts or imported reviews to another user; enforce ownership during the write, including concurrent requests.
+- Filter personal reads by the authenticated user in the database. Bound community queries and select only public fields. Keep global maintenance and cross-user aggregation out of ordinary user requests.
 - Preserve normalization logic in `src/lib/catalog.ts` and `src/lib/utils.ts` when adding providers or changing import behavior.
 - Do not introduce provider-specific shortcuts that bypass canonical game resolution.
 - Avoid creating duplicate game rows when the same game can be matched by provider ID, IGDB ID, or normalized title.

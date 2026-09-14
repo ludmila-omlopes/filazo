@@ -1,3 +1,4 @@
+import { saveImportedReview } from "@/lib/review-persistence";
 import { ExternalProvider, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
@@ -164,13 +165,14 @@ export async function syncUserReviews(userId: string): Promise<ReviewSyncResult>
 
   const entries = await prisma.userGameEntry.findMany({
     where: { userId },
-    include: {
+    select: {
+      id: true,
+      gameId: true,
       game: {
-        include: {
+        select: {
           providerLinks: {
-            where: {
-              provider: ExternalProvider.STEAM,
-            },
+            where: { provider: ExternalProvider.STEAM },
+            select: { providerGameId: true },
           },
         },
       },
@@ -190,31 +192,13 @@ export async function syncUserReviews(userId: string): Promise<ReviewSyncResult>
     }
 
     const review = await fetchSteamReview(reference);
-    await prisma.userGameReview.upsert({
-      where: {
-        provider_externalReviewId: {
-          provider: ExternalProvider.STEAM,
-          externalReviewId: `${steamAccount.providerAccountId}:${reference.appId}`,
-        },
-      },
-      update: {
-        body: review.body,
-        gameId: entry.gameId,
-        language: review.language,
-        recommended: review.recommended,
-        reviewedAt: review.reviewedAt,
-        sourceUrl: review.url,
-        updatedOnProviderAt: new Date(),
-        userGameEntryId: entry.id,
-        userId,
-        rawData: review.rawData as Prisma.InputJsonValue,
-      },
-      create: {
-        userId,
-        userGameEntryId: entry.id,
-        gameId: entry.gameId,
-        provider: ExternalProvider.STEAM,
-        externalReviewId: `${steamAccount.providerAccountId}:${reference.appId}`,
+    const saved = await saveImportedReview(prisma, {
+      userId,
+      userGameEntryId: entry.id,
+      gameId: entry.gameId,
+      provider: ExternalProvider.STEAM,
+      externalReviewId: `${steamAccount.providerAccountId}:${reference.appId}`,
+      data: {
         body: review.body,
         language: review.language,
         recommended: review.recommended,
@@ -224,7 +208,8 @@ export async function syncUserReviews(userId: string): Promise<ReviewSyncResult>
         rawData: review.rawData as Prisma.InputJsonValue,
       },
     });
-    importedCount += 1;
+    if (saved) importedCount += 1;
+    else skippedCount += 1;
   }
 
   return {

@@ -1,3 +1,4 @@
+import { linkExternalAccountForUser } from "@/lib/account-linking";
 import crypto from "node:crypto";
 import {
   exchangeAccessCodeForAuthTokens,
@@ -379,11 +380,6 @@ export async function connectPlayStationAccountForUser({
   const tokens = await exchangeNpssoForAuth(npsso);
   const authorization = { accessToken: tokens.accessToken };
   const { profile, trophySummary } = await fetchPlayStationProfile(authorization);
-  const existingUser = await prisma.user.findUnique({ where: { id: userId } });
-
-  if (!existingUser) {
-    throw new Error("Sign in before connecting PlayStation.");
-  }
 
   const metadata: PlayStationAccountMetadata = {
     auth: createAuthMetadata(tokens),
@@ -393,33 +389,12 @@ export async function connectPlayStationAccountForUser({
     trophySummary: trophySummary as unknown as Record<string, unknown>,
   };
 
-  await prisma.user.update({
-    where: { id: userId },
+  return linkExternalAccountForUser(prisma, {
+    userId,
+    provider: ExternalProvider.PLAYSTATION,
+    providerAccountId: profile.providerAccountId,
+    profile,
     data: {
-      displayName: existingUser.displayName ?? profile.displayName ?? undefined,
-      avatarUrl: existingUser.avatarUrl ?? profile.avatarUrl ?? undefined,
-    },
-  });
-
-  return prisma.externalAccount.upsert({
-    where: {
-      provider_providerAccountId: {
-        provider: ExternalProvider.PLAYSTATION,
-        providerAccountId: profile.providerAccountId,
-      },
-    },
-    update: {
-      userId,
-      username: profile.username ?? undefined,
-      displayName: profile.displayName ?? undefined,
-      avatarUrl: profile.avatarUrl ?? undefined,
-      profileUrl: profile.profileUrl ?? undefined,
-      metadata: metadata as Prisma.InputJsonValue,
-    },
-    create: {
-      userId,
-      provider: ExternalProvider.PLAYSTATION,
-      providerAccountId: profile.providerAccountId,
       username: profile.username ?? undefined,
       displayName: profile.displayName ?? undefined,
       avatarUrl: profile.avatarUrl ?? undefined,

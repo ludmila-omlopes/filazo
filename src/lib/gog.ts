@@ -1,3 +1,4 @@
+import { linkExternalAccountForUser } from "./account-linking.ts";
 import {
   ExternalProvider,
   type ExternalAccount,
@@ -409,22 +410,6 @@ export async function connectGogAccountForUser({
     grantType: "authorization_code",
   });
   const profile = await fetchGogProfile(tokens.access_token);
-  const [user, connectedAccount] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId } }),
-    prisma.externalAccount.findUnique({
-      where: {
-        provider_providerAccountId: {
-          provider: ExternalProvider.GOG,
-          providerAccountId: profile.providerAccountId,
-        },
-      },
-      select: { userId: true },
-    }),
-  ]);
-  if (!user) throw new Error("Sign in before connecting GOG.");
-  if (connectedAccount && connectedAccount.userId !== userId) {
-    throw new Error("This GOG account is already connected to another user.");
-  }
 
   const metadata: GogAccountMetadata = {
     auth: createAuthMetadata(tokens),
@@ -433,42 +418,20 @@ export async function connectGogAccountForUser({
     syncMode: "owned-library",
   };
 
-  await prisma.user.update({
-    where: { id: userId },
+  return linkExternalAccountForUser(prisma, {
+    userId,
+    provider: ExternalProvider.GOG,
+    providerAccountId: profile.providerAccountId,
+    profile,
     data: {
-      displayName: user.displayName ?? profile.displayName ?? undefined,
-      avatarUrl: user.avatarUrl ?? profile.avatarUrl ?? undefined,
-    },
-  });
-
-  return prisma.externalAccount.upsert({
-    where: {
-      provider_providerAccountId: {
-        provider: ExternalProvider.GOG,
-        providerAccountId: profile.providerAccountId,
-      },
-    },
-    update: {
-      userId,
       username: profile.username ?? undefined,
       displayName: profile.displayName ?? undefined,
       avatarUrl: profile.avatarUrl ?? undefined,
       profileUrl: profile.profileUrl ?? undefined,
       metadata: metadata as Prisma.InputJsonValue,
+      nextSyncAt: new Date(),
       lastSyncErrorCode: null,
-      nextSyncAt: new Date(),
       syncFailureCount: 0,
-    },
-    create: {
-      userId,
-      provider: ExternalProvider.GOG,
-      providerAccountId: profile.providerAccountId,
-      username: profile.username ?? undefined,
-      displayName: profile.displayName ?? undefined,
-      avatarUrl: profile.avatarUrl ?? undefined,
-      profileUrl: profile.profileUrl ?? undefined,
-      metadata: metadata as Prisma.InputJsonValue,
-      nextSyncAt: new Date(),
     },
   });
 }

@@ -1,3 +1,4 @@
+import { readGameDetail, readGameMetadata } from "@/lib/game-detail-queries";
 import {
   EntrySource,
   ExternalProvider,
@@ -35,7 +36,6 @@ import { getUserProfileSyncData } from "@/lib/user-profile-sync";
 import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
 import { syncXboxLibraryForAccount as fetchXboxLibraryForAccount } from "@/lib/xbox";
 import type { CsvColumnMapping } from "@/lib/csv-import-mapping";
-import { getBacklogEstimate } from "@/lib/play-planning";
 import {
   inferGameCompletionModel,
 } from "@/lib/game-completion-model";
@@ -1549,36 +1549,6 @@ export type ProfileDataScope =
   | "playerProfile"
   | "setup";
 
-export async function getPlayTimeBenchmark(userId: string) {
-  const entries = await prisma.userGameEntry.findMany({
-    where: {
-      userId: { not: userId },
-      activeBacklog: true,
-      abandonedAt: null,
-      finishedAt: null,
-      status: { notIn: [UserGameStatus.COMPLETED, UserGameStatus.DROPPED, UserGameStatus.WISHLIST] },
-    },
-    include: { game: true },
-  });
-  const byUser = new Map<string, typeof entries>();
-  for (const entry of entries) {
-    const userEntries = byUser.get(entry.userId) ?? [];
-    userEntries.push(entry);
-    byUser.set(entry.userId, userEntries);
-  }
-  const totals = [...byUser.values()]
-    .map((userEntries) => getBacklogEstimate(userEntries))
-    .filter((estimate) => estimate.gamesWithEstimate > 0)
-    .map((estimate) => estimate.minutes);
-
-  return {
-    averageMinutes: totals.length
-      ? Math.round(totals.reduce((sum, minutes) => sum + minutes, 0) / totals.length)
-      : null,
-    comparedUsers: totals.length,
-  };
-}
-
 export async function getProfileData(
   userId: string,
   options: { scope?: ProfileDataScope } = {},
@@ -1747,30 +1717,6 @@ export async function getProfileData(
   };
 }
 
-const gameDetailInclude = {
-  providerLinks: true,
-  userReviews: {
-    include: {
-      user: true,
-    },
-    orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }],
-  },
-  journalEntries: {
-    include: {
-      media: true,
-      user: true,
-    },
-    orderBy: {
-      occurredAt: "desc",
-    },
-  },
-  userEntries: {
-    include: {
-      user: true,
-    },
-  },
-} satisfies Prisma.GameInclude;
-
 async function enrichMissingGameDetailData(
   game: Prisma.GameGetPayload<{ include: { providerLinks: true } }>,
   propagateErrors = false,
@@ -1838,27 +1784,13 @@ async function enrichMissingGameDetailData(
   return enriched;
 }
 
-export async function getGameBySlug(slug: string) {
-  const game = await prisma.game.findUnique({
-    where: { slug },
-    include: gameDetailInclude,
-  });
-
-  if (!game) {
-    return game;
-  }
-
-  const enriched = await enrichMissingGameDetailData(game);
-  if (!enriched) {
-    return game;
-  }
-
-  return prisma.game.findUnique({
-    where: { slug },
-    include: gameDetailInclude,
-  });
+export function getGameBySlug(slug: string, userId: string | null) {
+  return readGameDetail(prisma, slug, userId);
 }
 
+export function getGameMetadataBySlug(slug: string) {
+  return readGameMetadata(prisma, slug);
+}
 
 export async function enrichCatalogGame(gameId: string) {
   const game = await prisma.game.findUnique({

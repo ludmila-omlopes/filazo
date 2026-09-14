@@ -19,7 +19,7 @@ A calm, personal game library. Filazo gathers games from multiple sources into o
 - Classifies games as campaign, ongoing, hybrid, or unknown; the profile structure filter is opt-in and starts inactive.
 - Supports English and Brazilian Portuguese.
 
-Game structure uses main-story estimates and story-completion trophies as campaign evidence; solo or cooperative play alone does not establish a campaign. Automatic classifications are recalculated from current evidence, while manual choices retain their value and provenance. Existing titles with missing game modes become eligible for metadata enrichment on library sync or a game-page visit, respecting the seven-day retry interval. An empty modes response is considered fetched and does not trigger repeated searches. Apply the current schema with `npm run db:init` before deploying this feature.
+Game structure uses main-story estimates and story-completion trophies as campaign evidence; solo or cooperative play alone does not establish a campaign. Automatic classifications are recalculated from current evidence, while manual choices retain their value and provenance. Existing titles with missing game modes become eligible for metadata enrichment on library sync and queued metadata work, respecting the seven-day retry interval. An empty modes response is considered fetched and does not trigger repeated searches. Apply the current schema with `npm run db:init` before deploying this feature.
 
 > **Catalog rule:** `Game` is the shared canonical record. `GameProviderLink` maps a provider's IDs to it, and `UserGameEntry` stores a person's ownership, progress, and status. New integrations must use this resolution flow.
 
@@ -232,3 +232,11 @@ Validate using `node scripts/qa/run-steam-sync-check.mjs scripts/qa/admin-dashbo
 The interface ships in English and `pt-BR`. The locale is stored in the `filazo-locale` cookie; routes are not locale-prefixed.
 
 Filazo is intentionally a calm catalog rather than a productivity dashboard. Preserve the canonical catalog model and the editorial, low-pressure interface when extending the product. Design tokens and voice guidance live in [`docs/`](./docs/).
+
+### User data isolation
+
+Connecting Steam, PlayStation, Xbox, or GOG never transfers an existing integration between users. Conflicting connections fail without changing either user's records; concurrent first connections are protected by the provider/account unique constraint. Imported reviews likewise retain their original owner, and conflicting reviews are skipped.
+
+Game detail reads select personal entries, reviews (up to 20), and the displayed entry's latest journal page only for the signed-in user. The community section loads at most six other users with only the public shelf fields it displays. Page metadata uses a separate, minimal query. Viewing a game does not refresh catalog metadata; imports and the scheduled metadata worker retain that responsibility. The library's time estimate uses only the viewer's library, with no live cross-user benchmark.
+
+Run `npm run test:user-isolation` against a disposable local PostgreSQL instance using `DATABASE_URL`. It creates an isolated schema, checks concurrent account linking, review ownership, anonymous and authenticated game reads, then removes the test schema. It does not call external providers. Run `npm run lint` and `npm run typecheck` as well.

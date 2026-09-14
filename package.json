@@ -14,6 +14,7 @@
     "test": "node --experimental-strip-types --test",
     "test:steam-sync": "node scripts/qa/run-steam-sync-check.mjs",
     "test:sync-monitor": "node scripts/qa/run-steam-sync-check.mjs scripts/qa/sync-monitor-check.ts",
+    "test:user-isolation": "node scripts/qa/run-steam-sync-check.mjs scripts/qa/user-isolation-check.ts",
     "db:generate": "prisma generate",
     "db:check": "node scripts/check-db-schema.mjs",
     "billing:setup": "node scripts/setup-stripe-billing.mjs",
