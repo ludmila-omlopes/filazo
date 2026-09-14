@@ -4,6 +4,7 @@ import { ExternalProvider } from "@prisma/client";
 import { getAuthSecret } from "@/lib/auth-secret";
 import { PLATFORM_SYNC_INACTIVE_WEEKLY_AFTER_MS } from "@/lib/platform-sync-policy";
 import { prisma } from "@/lib/prisma";
+import { recordDailyActivity } from "@/lib/platform-telemetry";
 
 const SESSION_COOKIE = "filazo-session";
 const SESSION_DURATION = 60 * 60 * 24 * 30;
@@ -22,6 +23,7 @@ function getSessionSecret() {
 async function touchUserActivity(userId: string) {
   try {
     const now = new Date();
+    await recordDailyActivity(userId, now);
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { lastActiveAt: true },

@@ -13,10 +13,13 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
+import { dashboardDays, getAdminDashboard } from "@/lib/admin-dashboard";
+import { PlatformDashboard } from "./platform-dashboard";
 
 type AdminSearchParams = Promise<{
   error?: string;
   user?: string;
+  days?: string;
 }>;
 
 export default async function AdminPage({
@@ -39,6 +42,8 @@ export default async function AdminPage({
   }
 
   const userSearch = query.user?.trim() ?? "";
+  const days = dashboardDays(query.days);
+  const dashboard = await getAdminDashboard(admin.id, days).catch(() => null);
   const [pendingCount, newFeedbackCount, previewUsers] = await Promise.all([
     prisma.betaTesterApplication.count({
       where: { status: BetaTesterStatus.PENDING },
@@ -128,7 +133,13 @@ export default async function AdminPage({
         <p className="max-w-[62ch] text-ink-soft">{t("admin.overview.body")}</p>
       </section>
 
-      <div className="grid grid-cols-2 gap-4 max-md:grid-cols-1">
+      {dashboard ? <PlatformDashboard data={dashboard} locale={locale} userSearch={userSearch} /> : (
+        <Notice tone="error">{locale === "pt-BR" ? "Não foi possível carregar as métricas. Confira a conexão e se o schema do banco foi atualizado; depois atualize a página." : "Metrics could not be loaded. Check the database connection and schema, then refresh the page."}</Notice>
+      )}
+
+      <details className="rounded-card border border-edge p-6">
+        <summary className="cursor-pointer font-display text-xl font-medium">{locale === "pt-BR" ? "Ferramentas de administração" : "Administration tools"}</summary>
+      <div className="mt-4 grid grid-cols-2 gap-4 max-md:grid-cols-1">
         {areas.map((area) => (
           <Card tactile key={area.href}>
             <CardContent className="grid h-full content-between gap-4 p-6">
@@ -157,6 +168,7 @@ export default async function AdminPage({
           </Card>
         ))}
       </div>
+      </details>
 
       <Card tactile>
         <CardContent className="grid gap-4 p-6">
@@ -173,6 +185,7 @@ export default async function AdminPage({
           </div>
 
           <form className="flex flex-wrap items-end gap-3" method="get">
+            <input type="hidden" name="days" value={days} />
             <label className="grid min-w-[min(100%,360px)] flex-1 gap-2">
               <span className="text-sm font-bold text-ink">
                 {t("admin.preview.searchLabel")}

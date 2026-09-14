@@ -213,6 +213,22 @@ The protected `/admin/sync` page shows affected users, progress, errors, recover
 
 ## Localization and product direction
 
+### Administrator platform dashboard
+
+AI spending shows completed-run estimates in USD for the selected period and today, plus separate pending reservations and failed-run estimates, with a per-feature breakdown. It reuses the budget calculation and configured token rates, prefers reported usage and falls back to reservation estimates. These figures are not provider invoices and cover only `AI_BUDGET_*` records; diagnostic records are excluded to prevent double counting. Dates use operation creation in UTC. The reader pages through cost metadata only, without loading prompts or responses. This addition requires no database migration.
+
+`/admin` includes an administrator-only dashboard with 7/30/90-day filters, user and canonical game counts, daily growth, DAU/WAU/MAU, library adoption, recent catalog additions, connected accounts, metadata queue health and recorded failures. Existing admin tools and user preview remain available. All aggregates require the configured admin identity, execute in a consistent database snapshot, and recent lists are limited to eight records.
+
+Apply `prisma/migrations/20260914120000_admin_platform_dashboard/migration.sql` through the normal migration workflow before running this version against an existing database; `npm run db:init` includes the same schema for local bootstrap. Run `npm run db:generate` after updating. The new tables are `UserDailyActivity` and `PlatformError`; no additional environment variables are required. Do not bootstrap a shared remote database just to preview a local branch.
+
+Activity is deduplicated by authenticated user and UTC calendar day, including admins, and collected on session access. Anonymous visits are excluded. It does not infer historical DAU from `lastActiveAt`; historical windows are partial until enough days have been collected. The first observed activity day is shown in the dashboard, with earlier days marked unavailable. WAU/MAU always cover 7/30 UTC days through today; the period filter applies to growth and failure lists. All times use UTC. User/game counts describe surviving database records. Library additions count surviving user/game pairs by their earliest entry, so multiple statuses do not inflate them; deletion and re-addition history is not retained. Deleting a user cascades to daily activity records.
+
+The Next.js Node.js request-error hook records only the route template, context type, hashed error fingerprint, environment and timestamp. It preserves Sentry reporting without storing raw errors, URLs, headers, payloads or user identifiers in `PlatformError`. Browser and Edge errors and full diagnostics remain in Sentry. Both telemetry writes are best-effort and never block authentication on failure; telemetry/database outages can leave gaps. Error records currently remain until explicitly removed by an operator; there is no automatic retention job in user requests.
+
+Sync and metadata queues and server errors use the running environment (`VERCEL_ENV`, falling back to `NODE_ENV`); user, catalog, import and AI metrics reflect the connected database. Sync/import failures use their last update, AI failures use creation time, and server errors use capture time. Counters represent records rather than deduplicated incidents; retry state and retention can change old period results. Failed import rows are counted separately, including partial imports.
+
+Validate using `node scripts/qa/run-steam-sync-check.mjs scripts/qa/admin-dashboard-check.ts`, which creates and removes an isolated PostgreSQL schema and makes no external provider calls. Also run `npm run lint` and `npm run typecheck`.
+
 The interface ships in English and `pt-BR`. The locale is stored in the `filazo-locale` cookie; routes are not locale-prefixed.
 
 Filazo is intentionally a calm catalog rather than a productivity dashboard. Preserve the canonical catalog model and the editorial, low-pressure interface when extending the product. Design tokens and voice guidance live in [`docs/`](./docs/).

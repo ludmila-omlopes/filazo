@@ -160,8 +160,33 @@ model User {
   feedbackComments         FeedbackComment[]
   billingCustomers         BillingCustomer[]
   billingSubscriptions     BillingSubscription[]
+  dailyActivity            UserDailyActivity[]
 
   @@index([lastActiveAt])
+  @@index([createdAt])
+}
+
+// One authenticated user per UTC day. Never infer history from lastActiveAt.
+model UserDailyActivity {
+  userId    String
+  day       DateTime @db.Date
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
+  @@index([day])
+}
+
+// Sanitized server error metadata only; full diagnostics remain in Sentry.
+model PlatformError {
+  id          String   @id @default(cuid())
+  route       String
+  kind        String
+  fingerprint String
+  environment String
+  createdAt   DateTime @default(now())
+
+  @@index([environment, createdAt])
 }
 
 model BillingCustomer {
@@ -321,6 +346,7 @@ model Game {
   metadataJobs              GameMetadataJob[]
 
   @@index([normalizedName])
+  @@index([createdAt])
 }
 
 model GameProviderLink {
@@ -393,6 +419,7 @@ model UserGameEntry {
   @@unique([userId, currentPlayingSlot])
   @@unique([userId, playingNextSlot])
   @@index([userId, status])
+  @@index([createdAt])
 }
 
 model GameMetadataJob {
