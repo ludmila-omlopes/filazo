@@ -1,4 +1,6 @@
 "use server";
+import { ABUSE_LIMITS } from "@/lib/abuse-policy";
+import { checkActionAbuse } from "@/lib/abuse-request";
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
@@ -1326,6 +1328,9 @@ export async function importCsvAction(formData: FormData) {
   if (!userId) {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needCsvLogin"))}`);
   }
+
+  const limitError = await checkActionAbuse([ABUSE_LIMITS.csvImport], userId);
+  if (limitError) redirect(`/profile?tab=integrations&error=${encodeURIComponent(limitError)}`);
 
   const parsed = importSchema.safeParse({
     fileName: formData.get("fileName"),

@@ -8,6 +8,7 @@ export const defaultLocale: Locale = "en";
 
 const messages = {
   en: {
+    "journal.imageTooLarge": "Choose an image smaller than 10 MiB.",
     "common.home": "Home",
     "common.library": "Library",
     "common.catalog": "Catalog",
@@ -1580,6 +1581,7 @@ const messages = {
       "Player profile generation did not complete.",
   },
   "pt-BR": {
+    "journal.imageTooLarge": "Escolha uma imagem menor que 10 MiB.",
     "common.home": "Início",
     "common.library": "Biblioteca",
     "common.catalog": "Catálogo",

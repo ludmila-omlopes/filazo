@@ -8,6 +8,9 @@ import {
 } from "ai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { ABUSE_LIMITS } from "@/lib/abuse-policy";
+import { checkApiAbuse } from "@/lib/abuse-request";
+import { readLimitedJson, RequestBodyError } from "@/lib/request-body";
 import {
   listGamesArgsSchema,
   loadLibraryEntries,
@@ -71,6 +74,8 @@ export async function POST(request: Request) {
     );
   }
 
+  const limited = await checkApiAbuse([ABUSE_LIMITS.assistant], userId);
+  if (limited) return limited;
   const aiSettings = await getAiSettings();
   if (!aiSettings.assistantChatEnabled) {
     return NextResponse.json(
@@ -92,15 +97,15 @@ export async function POST(request: Request) {
 
   let messages: UIMessage[];
   try {
-    const body = (await request.json()) as { messages?: UIMessage[] };
+    const body = (await readLimitedJson(request, 128 * 1024)) as { messages?: UIMessage[] };
     if (!Array.isArray(body.messages) || !body.messages.length) {
       throw new Error("Missing messages.");
     }
     messages = body.messages.slice(-MAX_HISTORY_MESSAGES);
-  } catch {
+  } catch (error) {
     return NextResponse.json(
       { error: "Invalid chat request." },
-      { status: 400 },
+      { status: error instanceof RequestBodyError ? error.status : 400 },
     );
   }
 

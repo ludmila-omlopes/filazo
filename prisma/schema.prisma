@@ -177,6 +177,15 @@ model UserDailyActivity {
   @@index([day])
 }
 
+// HMAC identifiers only; never store raw IP addresses or email addresses.
+model AbuseLimitBucket {
+  key       String   @id
+  count     Int
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
 // Sanitized server error metadata only; full diagnostics remain in Sentry.
 model PlatformError {
   id          String   @id @default(cuid())
