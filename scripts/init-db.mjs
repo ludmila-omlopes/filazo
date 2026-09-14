@@ -24,6 +24,7 @@ if (databaseUrl.startsWith("file:")) {
 // Deployments separately run db:check before building; this bootstrap also
 // includes Game completion structure, Stripe billing tables, and the current provider enum values.
 // Also creates UserDailyActivity and PlatformError for the administrator dashboard.
+// AbuseLimitBucket holds atomic, expiring abuse counters with HMAC identifiers.
 const result = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
   cwd: process.cwd(),
   env: process.env,

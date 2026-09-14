@@ -13,6 +13,7 @@ import {
 } from "react";
 import { JournalUploadContext } from "./journal-upload-context";
 import { buildUploadPath, type UploadKind } from "@/lib/upload-file-type";
+import { JOURNAL_IMAGE_MAX_BYTES } from "@/lib/journal-upload-limits";
 
 type JournalFormProps = {
   action: (
@@ -99,6 +100,9 @@ export function JournalForm({
   }
 
   async function uploadMedia(file: File, kind: "image" | "audio") {
+    if (kind === "image" && file.size > JOURNAL_IMAGE_MAX_BYTES) {
+      throw new Error(t("journal.imageTooLarge"));
+    }
     const target = buildUploadPath({
       fileId: crypto.randomUUID(),
       kind,

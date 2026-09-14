@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { ABUSE_LIMITS } from "@/lib/abuse-policy";
+import { checkApiAbuse } from "@/lib/abuse-request";
+import { readLimitedJson, RequestBodyError } from "@/lib/request-body";
 import { getSessionUserId } from "@/lib/session";
 import { getOpenAiConfig } from "@/lib/openai";
 import { AiBudgetExceededError, runWithAiBudget } from "@/lib/ai-budget";
@@ -9,7 +12,15 @@ export const maxDuration = 90;
 export async function POST(request: Request) {
   const userId = await getSessionUserId();
   if (!userId) return NextResponse.json({ code: "UNAUTHORIZED" }, { status: 401 });
-  const parsed = marketplaceInputSchema.safeParse(await request.json().catch(() => null));
+  const limited = await checkApiAbuse([ABUSE_LIMITS.assistant], userId);
+  if (limited) return limited;
+  let body: unknown;
+  try {
+    body = await readLimitedJson(request, 8 * 1024);
+  } catch (error) {
+    return NextResponse.json({ code: "INVALID_INPUT" }, { status: error instanceof RequestBodyError ? error.status : 400 });
+  }
+  const parsed = marketplaceInputSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400 });
   const config = getOpenAiConfig();
   if (!config) return NextResponse.json({ code: "NOT_CONFIGURED" }, { status: 503 });

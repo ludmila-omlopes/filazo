@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { ABUSE_LIMITS } from "@/lib/abuse-policy";
+import { checkApiAbuse } from "@/lib/abuse-request";
+import { readLimitedJson, RequestBodyError } from "@/lib/request-body";
 import { z } from "zod";
 import { decideBuy } from "@/lib/assistant/buy-decision";
 import type { AssistantEntry } from "@/lib/assistant/scoring";
@@ -21,7 +24,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sign in before using the assistant." }, { status: 401 });
   }
 
-  const parsed = buyDecisionSchema.safeParse(await request.json());
+  const limited = await checkApiAbuse([ABUSE_LIMITS.assistant], userId);
+  if (limited) return limited;
+  let body: unknown;
+  try {
+    body = await readLimitedJson(request, 8 * 1024);
+  } catch (error) {
+    return NextResponse.json({ error: "Invalid buy decision input." }, { status: error instanceof RequestBodyError ? error.status : 400 });
+  }
+  const parsed = buyDecisionSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid buy decision input." }, { status: 400 });
   }
