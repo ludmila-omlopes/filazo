@@ -256,3 +256,7 @@ Connecting Steam, PlayStation, Xbox, or GOG never transfers an existing integrat
 Game detail reads select personal entries, reviews (up to 20), and the displayed entry's latest journal page only for the signed-in user. The community section loads at most six other users with only the public shelf fields it displays. Page metadata uses a separate, minimal query. Viewing a game does not refresh catalog metadata; imports and the scheduled metadata worker retain that responsibility. The library's time estimate uses only the viewer's library, with no live cross-user benchmark.
 
 Run `npm run test:user-isolation` against a disposable local PostgreSQL instance using `DATABASE_URL`. It creates an isolated schema, checks concurrent account linking, review ownership, anonymous and authenticated game reads, then removes the test schema. It does not call external providers. Run `npm run lint` and `npm run typecheck` as well.
+
+## AdSense site verification
+
+Set ADSENSE_PUBLISHER_ID to your ca-pub- publisher ID to serve the Google seller entry at /ads.txt. Use the ads.txt verification method in AdSense after deploying. Missing or invalid configuration returns HTTP 404. This endpoint does not load advertising scripts or enable ads.
