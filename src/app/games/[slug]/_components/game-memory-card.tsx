@@ -1,3 +1,4 @@
+import { chooseDisplayedGameEntry as chooseDisplayedEntry } from "@/lib/game-detail-queries";
 import Link from "next/link";
 import { Suspense } from "react";
 import { GameDetailSections } from "./game-detail-sections";
@@ -30,17 +31,6 @@ import { formatDate, formatTimeEstimate } from "@/lib/utils";
 
 type GameDetail = NonNullable<Awaited<ReturnType<typeof getGameBySlug>>>;
 type GameEntry = GameDetail["userEntries"][number];
-
-function chooseDisplayedEntry(entries: GameEntry[]) {
-  return (
-    entries.find((entry) => entry.currentPlayingSlot !== null) ??
-    entries.find((entry) => entry.playtimeSource === "manual") ??
-    [...entries].sort(
-      (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
-    )[0] ??
-    null
-  );
-}
 
 function readStringList(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -96,7 +86,7 @@ function getReceptionKey(score: number) {
   return "game.reception.quiet";
 }
 
-function getPlaytimeSoFar(locale: Locale, entry: GameEntry) {
+function getPlaytimeSoFar(locale: Locale, entry: Pick<GameEntry, "playtimeMinutes">) {
   const t = createTranslator(locale);
 
   if (entry.playtimeMinutes === null || entry.playtimeMinutes === undefined) {
@@ -846,23 +836,12 @@ function ProviderLinks({ game, locale }: { game: GameDetail; locale: Locale }) {
 function ShelfActivity({
   game,
   locale,
-  sessionUserId,
 }: {
   game: GameDetail;
   locale: Locale;
-  sessionUserId: string | null;
 }) {
   const t = createTranslator(locale);
-  const entriesByUser = new Map<string, GameEntry[]>();
-  for (const entry of game.userEntries) {
-    if (entry.userId === sessionUserId) continue;
-    const userEntries = entriesByUser.get(entry.userId) ?? [];
-    userEntries.push(entry);
-    entriesByUser.set(entry.userId, userEntries);
-  }
-  const displayedEntries = [...entriesByUser.values()]
-    .map(chooseDisplayedEntry)
-    .filter((entry): entry is GameEntry => entry !== null);
+  const displayedEntries = game.communityEntries;
 
   if (!displayedEntries.length) {
     return null;
@@ -919,9 +898,7 @@ export function GameMemoryCard({
   const currentEntry = chooseDisplayedEntry(
     game.userEntries.filter((entry) => entry.userId === sessionUserId),
   );
-  const hasCommunity = game.userEntries.some(
-    (entry) => entry.userId !== sessionUserId,
-  );
+  const hasCommunity = game.communityEntries.length > 0;
   return (
     <main
       id="main-content"
@@ -1018,11 +995,7 @@ export function GameMemoryCard({
                   id: "community",
                   label: t("game.communityTab"),
                   content: (
-                    <ShelfActivity
-                      game={game}
-                      locale={locale}
-                      sessionUserId={sessionUserId}
-                    />
+                    <ShelfActivity game={game} locale={locale} />
                   ),
                 },
               ]

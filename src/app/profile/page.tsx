@@ -38,7 +38,7 @@ import {
 } from "@/lib/assistant/queries";
 import { getPlayerProfileForUser } from "@/lib/assistant/profile-agent";
 import { getAiSettings } from "@/lib/ai-settings";
-import { getPlayTimeBenchmark, getProfileData } from "@/lib/catalog";
+import { getProfileData } from "@/lib/catalog";
 import { createTranslator } from "@/lib/i18n";
 import { reportDatabaseError } from "@/lib/database-errors";
 import {
@@ -155,9 +155,6 @@ export default async function ProfilePage({
     gamesSort,
   );
   const statusMessage = isReadOnlyPreview ? null : getStatusMessage(locale, query);
-  const playTimeBenchmark = activeTab === "games"
-    ? await getPlayTimeBenchmark(profileUserId)
-    : null;
 
   return (
     <main
@@ -255,7 +252,7 @@ export default async function ProfilePage({
 
           {activeTab === "games" ? (
             <div className="grid gap-5">
-              <BacklogEstimate benchmark={playTimeBenchmark} entries={allEntries} locale={locale} />
+              <BacklogEstimate entries={allEntries} locale={locale} />
               <ShelfGrid
               allEntries={allEntries}
               filters={{

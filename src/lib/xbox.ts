@@ -1,3 +1,4 @@
+import { linkExternalAccountForUser } from "@/lib/account-linking";
 import crypto from "node:crypto";
 import { ExternalProvider, type ExternalAccount, type Prisma } from "@prisma/client";
 import { getAuthSecret } from "@/lib/auth-secret";
@@ -510,11 +511,6 @@ export async function connectXboxAccountForUser({
   const token = await requestOAuthToken({ code, origin });
   const authorization = await createXboxAuthorization(token.access_token);
   const profile = await fetchXboxProfile(authorization);
-  const existingUser = await prisma.user.findUnique({ where: { id: userId } });
-
-  if (!existingUser) {
-    throw new Error("Sign in before connecting Xbox.");
-  }
 
   const metadata: XboxAccountMetadata = {
     auth: createOAuthMetadata(token),
@@ -524,33 +520,12 @@ export async function connectXboxAccountForUser({
     titleHistoryLimit: XBOX_TITLEHUB_MAX_ITEMS,
   };
 
-  await prisma.user.update({
-    where: { id: userId },
+  return linkExternalAccountForUser(prisma, {
+    userId,
+    provider: ExternalProvider.XBOX,
+    providerAccountId: profile.providerAccountId,
+    profile,
     data: {
-      displayName: existingUser.displayName ?? profile.displayName ?? undefined,
-      avatarUrl: existingUser.avatarUrl ?? profile.avatarUrl ?? undefined,
-    },
-  });
-
-  return prisma.externalAccount.upsert({
-    where: {
-      provider_providerAccountId: {
-        provider: ExternalProvider.XBOX,
-        providerAccountId: profile.providerAccountId,
-      },
-    },
-    update: {
-      userId,
-      username: profile.username ?? undefined,
-      displayName: profile.displayName ?? undefined,
-      avatarUrl: profile.avatarUrl ?? undefined,
-      profileUrl: profile.profileUrl ?? undefined,
-      metadata: metadata as Prisma.InputJsonValue,
-    },
-    create: {
-      userId,
-      provider: ExternalProvider.XBOX,
-      providerAccountId: profile.providerAccountId,
       username: profile.username ?? undefined,
       displayName: profile.displayName ?? undefined,
       avatarUrl: profile.avatarUrl ?? undefined,
