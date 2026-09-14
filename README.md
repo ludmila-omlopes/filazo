@@ -29,7 +29,7 @@ Feedback from signed-in users is attached to their account; authentication failu
 
 ## Account plans
 
-`User.plan` is the **manual grant**: `FREE` by default or `PRO` when granted by an admin. Paid access is stored separately in `BillingSubscription`. Effective Pro access is a manual grant OR an eligible, paid subscription in the current payment environment. Billing never overwrites manual grants. No existing feature is restricted yet; the subscription page clearly states that exclusive features are still in preparation.
+`User.plan` is the **manual grant**: `FREE` by default or `PRO` when granted by an admin. Paid access is stored separately in `BillingSubscription`. Effective Pro access is a manual grant OR an eligible, paid subscription in the current payment environment. Billing never overwrites manual grants. Pro provides ad-free browsing while signed in; the existing library features remain available on Free.
 
 Admins can search accounts and grant or revoke manual Pro at `/admin/plans`. Both the page and its server action verify the signed-in admin; changing a grant does not charge the user or cancel their subscription. Stale forms cannot overwrite a concurrent grant change. The effective plan is shown on the profile Home tab. Users open `/account/billing` from the header, mobile account menu or plan link on their profile.
 
@@ -57,6 +57,24 @@ The webhook verifies Stripe's signature against the raw body, then synchronizes 
 On the return page, short polling waits for webhook confirmation. The authenticated **Check payment status** action reconciles provider state if a notification is delayed. `BillingCustomer` and `BillingSubscription` separate test/live data; webhook records retain only event identifiers/type/mode, not full payment payloads. Card details stay with Stripe. Refund handling is manual in Stripe for this initial release; a refund alone does not cancel a subscription, so access decisions accompanying a refund must also update/cancel the subscription. No automatic refund workflow is implemented.
 
 References: [Stripe subscriptions](https://docs.stripe.com/billing/subscriptions/webhooks), [webhook handling](https://docs.stripe.com/webhooks), [customer portal](https://docs.stripe.com/customer-management).
+
+### AdSense: a few manual banners, ad-free Pro
+
+Advertising is optional and disabled by default. One responsive horizontal display unit appears after the nonempty Games list (`/profile?tab=games`), and one at the bottom of each game detail page. These are separate pages, with at most one banner per page. Home, Sources, onboarding, billing, admin previews and empty library results have no placements. Ads occupy their own layout space; they do not float over content. Failed scripts and unfilled slots collapse their space.
+
+`AdSenseBanner` resolves the **viewer's** current entitlement on the server using the existing manual/paid Pro rules. Pro renders neither the slot nor the advertising script. Missing accounts, missing subscription data and failed account reads also render no ads. A canceled renewal keeps the benefit until the existing paid access expires. No schema change is needed.
+
+1. Use your existing AdSense account. If it is YouTube-only, [expand that same account for websites](https://support.google.com/adsense/answer/9247020), then add the filazo domain under **Sites**.
+2. Set `ADSENSE_PUBLISHER_ID` to the full `ca-pub-` publisher ID. Keep `ADSENSE_ENABLED=false`. Deploy this configuration and choose **ads.txt** as the ownership verification method: `/ads.txt` serves Google's publisher entry even while banners are disabled. It returns HTTP 404 if the publisher ID is missing or invalid. Request the site's review; serving requires **Ready** status.
+3. Create two **Display / Responsive** ad units. Copy their `data-ad-slot` values into `ADSENSE_LIBRARY_SLOT_ID` and `ADSENSE_GAME_SLOT_ID`. A blank slot ID disables only that placement. These IDs are public identifiers, not credentials.
+4. In AdSense, keep **Auto ads off**, including overlays, anchors and vignettes, and disable automatic optimization of existing placements. The one-banner limit relies on using only these manual units. Do not paste a global AdSense script into the root layout: it would also load for Pro accounts.
+5. Configure and publish the applicable consent messages in **Privacy & messaging**, including consent revocation/privacy controls, before enabling ads. For EEA/UK/Swiss traffic, use Google's certified CMP or another certified CMP as appropriate. This integration does not implement its own consent platform; the AdSense account must supply the configured messages. Review the advertising disclosure at `/privacy` against the account settings.
+6. Set `ADSENSE_ENABLED=true` and redeploy after approval and configuration. `ADSENSE_TEST_MODE=true` requests test ads in production; development and Vercel Preview always force test mode. Never click live ads to test. Missing/invalid publisher or slot configuration produces no slot, script or blank advertising space.
+7. Verify a Free account, paid Pro, manual Pro, canceled renewal with remaining paid access, expired access and signed-out browsing. Verify mobile widths and navigation between two games; each newly mounted slot must initialize once. Use the network panel to confirm no `adsbygoogle.js` request on a fresh Pro visit. Development tests mock the provider and cannot establish approval or actual inventory.
+
+To stop advertising, set `ADSENSE_ENABLED=false` and redeploy. Previously loaded browser documents may retain third-party JavaScript until a full reload; disabling rendering does not undo scripts already executed. Keep Auto ads off so those scripts cannot add placements elsewhere during client navigation.
+
+References: [site verification](https://support.google.com/adsense/answer/7584263), [responsive parameters](https://support.google.com/adsense/answer/9183460), [ads.txt](https://support.google.com/adsense/answer/12171612), [Google CMP requirements](https://support.google.com/adsense/answer/13554116).
 
 ## Requirements
 

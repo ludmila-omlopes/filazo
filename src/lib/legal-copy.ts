@@ -44,8 +44,16 @@ const legalDocuments = {
         {
           title: "Sharing",
           body: [
-            "We do not sell your personal information. We share data only with the services needed to run the product, such as authentication providers, connected platform integrations, database or hosting infrastructure, and optional AI providers when those features are used.",
+            "We share data with services that operate the product, such as authentication providers, connected platform integrations, database or hosting infrastructure, optional AI providers when those features are used, and advertising providers as described below.",
             "Those services receive only the information required for the requested feature to work.",
+          ],
+        },
+        {
+          title: "Advertising",
+          body: [
+            "When advertising is enabled, visitors and Free accounts may see Google AdSense banners on selected pages. Google and its partners may use cookies or similar technologies and process information such as your IP address, browser details, and ad interactions to deliver, measure, and, depending on your choices, personalize ads.",
+            "Signed-in accounts with Pro access are not shown banners and filazo does not load the AdSense script for them. filazo does not attach your private journal, reviews, email, or library records to ad requests.",
+            "Where a consent message is shown, you can accept, reject, or manage the available choices and revisit them through its privacy settings. You can also manage advertising preferences through Google My Ad Center and browser cookie settings.",
           ],
         },
         {
@@ -160,8 +168,16 @@ const legalDocuments = {
         {
           title: "Compartilhamento",
           body: [
-            "Não vendemos suas informações pessoais. Compartilhamos dados apenas com os serviços necessários para operar o produto, como provedores de autenticação, integrações conectadas, infraestrutura de banco de dados ou hospedagem e provedores opcionais de IA quando esses recursos são usados.",
+            "Compartilhamos dados com serviços que operam o produto, como provedores de autenticação, integrações conectadas, infraestrutura de banco de dados ou hospedagem, provedores opcionais de IA quando esses recursos são usados e provedores de publicidade conforme descrito abaixo.",
             "Esses serviços recebem apenas as informações necessárias para que a funcionalidade solicitada funcione.",
+          ],
+        },
+        {
+          title: "Publicidade",
+          body: [
+            "Quando a publicidade estiver ativada, visitantes e contas Grátis podem ver banners do Google AdSense em algumas páginas. O Google e seus parceiros podem usar cookies ou tecnologias semelhantes e processar informações como endereço IP, dados do navegador e interações com anúncios para exibir, medir e, dependendo das suas escolhas, personalizar a publicidade.",
+            "Contas conectadas com acesso Pro não recebem banners e a filazo não carrega o script do AdSense para elas. A filazo não anexa seu diário privado, reviews, e-mail ou registros da biblioteca às solicitações de anúncios.",
+            "Onde uma mensagem de consentimento for exibida, você pode aceitar, recusar ou gerenciar as opções disponíveis e revê-las nas configurações de privacidade da mensagem. Você também pode gerenciar preferências de publicidade na Minha Central de Anúncios do Google e nas configurações de cookies do navegador.",
           ],
         },
         {
