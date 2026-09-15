@@ -48,3 +48,4 @@ jobs:
       - run: npm run test:steam-sync
       - run: npm run test:sync-monitor
       - run: npm run test:abuse-limits
+      - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/pro-features-check.ts

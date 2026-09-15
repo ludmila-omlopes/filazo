@@ -6,6 +6,7 @@ import ts from "typescript";
 import * as policy from "../src/lib/abuse-policy.ts";
 import * as bodyReader from "../src/lib/request-body.ts";
 import * as uploadLimits from "../src/lib/journal-upload-limits.ts";
+import { planCopy } from "../src/lib/plan-copy.ts";
 
 const require = createRequire(import.meta.url);
 function load(relativePath, mocks) {
@@ -92,6 +93,9 @@ test("upload quota denies token issuance; accepted image tokens carry size and r
         ? new Response(null, { status: 429, headers: { "Retry-After": "3600" } }) : null;
     } },
     "@/lib/journal-upload-limits": uploadLimits, "@/lib/request-body": bodyReader,
+    "@/lib/plan-access": { getJournalStorage: async () => ({ remaining: 100 * 1024 * 1024 }) },
+    "@/lib/plan-copy": { planCopy },
+    "@/lib/request-locale": { getRequestLocale: async () => "en" },
   });
   const request = (pathname = path) => new Request("https://filazo.app/api/journal/upload", { method: "POST", body: JSON.stringify({
     type: "blob.generate-client-token", payload: { pathname, clientPayload: JSON.stringify({ kind: "image", pathname }) },

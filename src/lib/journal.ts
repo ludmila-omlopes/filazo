@@ -28,6 +28,8 @@ import { getOpenAiConfig, isAiProviderConfigured } from "@/lib/openai";
 import { runWithAiBudget } from "./ai-budget.ts";
 import { estimateTokensFromText } from "./ai-estimates.ts";
 import { getAiSettings, type AiSettingsValues } from "./ai-settings.ts";
+import { assertJournalStorage, getPlanAccount, withJournalStorage } from "./plan-access.ts";
+import { applyPlanAiLimits } from "./plan-policy.ts";
 
 type PhotoImportCandidate = {
   title: string;
@@ -485,7 +487,7 @@ export async function createJournalEntryForUser({
     throw new Error("Choose a game from your own catalog before journaling.");
   }
 
-  const aiSettings = await getAiSettings();
+  const aiSettings = applyPlanAiLimits(await getAiSettings(), await getPlanAccount(userId));
   const uploads = [imageUpload, audioUpload].filter(
     (upload): upload is JournalUploadPayload => Boolean(upload),
   );
@@ -503,6 +505,8 @@ export async function createJournalEntryForUser({
     }
 
     const audioMedia = media.find((item) => item.kind === "audio");
+    const addedBytes = media.reduce((sum, item) => sum + item.sizeBytes, 0);
+    if (addedBytes) await assertJournalStorage(userId, addedBytes);
     const transcript = audioMedia
       ? await transcribeAudio(
           await getJournalAudioFile(audioMedia),
@@ -513,7 +517,14 @@ export async function createJournalEntryForUser({
       : null;
     const achievement = buildAchievementSummary(entry);
 
-    return await prisma.gameJournalEntry.create({
+    return await withJournalStorage(userId, addedBytes, async (tx) => {
+      const ownedEntry = await tx.userGameEntry.findFirst({ where: { id: entry.id, userId }, select: { id: true } });
+      if (!ownedEntry) throw new Error("Diary game unavailable.");
+      const attached = media.length ? await tx.journalMedia.findFirst({
+        where: { storageKey: { in: media.map(item => item.storageKey) }, journalEntry: { userId } }, select: { id: true },
+      }) : null;
+      if (attached) throw new Error("This attachment is already saved.");
+      return tx.gameJournalEntry.create({
       data: {
         userId,
         userGameEntryId: entry.id,
@@ -546,12 +557,15 @@ export async function createJournalEntryForUser({
           })),
         },
       },
+      });
     });
   } catch (error) {
     await Promise.all(
-      media.map((item) =>
-        deleteJournalMediaObject(item).catch(() => false),
-      ),
+      media.map((item) => withJournalStorage(userId, 0, async (tx) => {
+        // A repeated form submission must never delete previously saved media.
+        const attached = await tx.journalMedia.findFirst({ where: { storageKey: item.storageKey, journalEntry: { userId } }, select: { id: true } });
+        if (!attached) await deleteJournalMediaObject(item).catch(() => false);
+      })),
     );
     throw error;
   }

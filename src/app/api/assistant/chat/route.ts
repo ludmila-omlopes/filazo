@@ -32,6 +32,8 @@ import { estimateTokensFromValue } from "@/lib/ai-estimates";
 import { getSessionUserId } from "@/lib/session";
 import { getOpenAiConfig } from "@/lib/openai";
 import { getRequestLocale } from "@/lib/request-locale";
+import { getPlanAccount } from "@/lib/plan-access";
+import { getPlanLimits } from "@/lib/plan-policy";
 import { getAiOutputLanguageInstruction } from "@/lib/ai-locale";
 import {
   budgetBlockedWebSearch,
@@ -77,6 +79,7 @@ export async function POST(request: Request) {
   const limited = await checkApiAbuse([ABUSE_LIMITS.assistant], userId);
   if (limited) return limited;
   const aiSettings = await getAiSettings();
+  const plan = getPlanLimits(await getPlanAccount(userId));
   if (!aiSettings.assistantChatEnabled) {
     return NextResponse.json(
       { error: "The library chat is disabled in admin settings." },
@@ -141,7 +144,7 @@ export async function POST(request: Request) {
     // endpoint every OpenAI-compatible gateway, including OpenRouter, supports
     // across all models.
     model: openai.chat(modelName),
-    system: `${CHAT_SYSTEM_PROMPT} Today is ${new Date().toISOString().slice(0, 10)}. ${getAiOutputLanguageInstruction(locale)}`,
+    system: `${CHAT_SYSTEM_PROMPT} ${plan.webSearch ? "" : "This account has Free access: web search is unavailable. Explain that web search requires Pro when requested; never imply you searched or invent current information."} Today is ${new Date().toISOString().slice(0, 10)}. ${getAiOutputLanguageInstruction(locale)}`,
     messages: await convertToModelMessages(messages),
     maxOutputTokens: aiSettings.chatMaxOutputTokens,
     abortSignal: request.signal,
@@ -150,10 +153,14 @@ export async function POST(request: Request) {
       ? { toolChoice: "none" }
       : {},
     tools: {
-      search_web: tool({
+      ...(plan.webSearch ? { search_web: tool({
         description: "Search the internet for public game information, news, announcements, releases, and unfamiliar titles. Use when the user asks for a web search. Returns a summary and source URLs. One search per reply.",
         inputSchema: webSearchArgsSchema,
         execute: async ({ query }, { abortSignal }) => {
+          // Check again if the subscription expired while this reply was running.
+          if (!getPlanLimits(await getPlanAccount(userId)).webSearch) {
+            return unavailableWebSearch("Web search requires an active Pro plan.");
+          }
           if (webSearchAttempted) {
             return { status: "limit_reached" as const, summary: "One web search is allowed per reply. Answer using the results already returned.", sources: [] };
           }
@@ -184,7 +191,7 @@ export async function POST(request: Request) {
             return unavailableWebSearch();
           }
         },
-      }),
+      }) } : {}),
       get_library_overview: tool({
         description:
           "High-level overview of the user's library: counts per status, favorites, feedback coverage, total playtime, top genres by playtime, and top platforms.",
