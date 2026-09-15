@@ -20,7 +20,7 @@ export function isPrimaryReleaseUrl(value: string) {
 }
 
 function normalize(text: string) {
-  return text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return text.normalize("NFKD").replace(/[\u0300-\u036f™®©]/g, " ").toLowerCase().replace(/tm(?=\s*\d)/g, " ").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 export function hasReleaseEvidence(page: string, release: { title: string; platform: string; releaseDate: Date | null; evidence: string }) {

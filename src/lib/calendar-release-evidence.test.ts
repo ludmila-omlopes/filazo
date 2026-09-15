@@ -13,3 +13,12 @@ test("requires the title, correct platform and date in an actual release excerpt
   assert.equal(hasReleaseEvidence(release.evidence, { ...release, releaseDate: new Date("2026-03-10") }), false);
   assert.equal(hasReleaseEvidence("Example releases on PC on 10/3/2026", { ...release, evidence: "Example releases on PC on 10/3/2026" }), false);
 });
+test("normalizes trademark markup used by official release pages", () => {
+  const branded = {
+    title: "Example",
+    platform: "PS5",
+    releaseDate: new Date("2026-10-03"),
+    evidence: "Example launches on PlayStation®5 on October 3, 2026.",
+  };
+  assert.equal(hasReleaseEvidence("Example launches on PlayStation 5 on October 3, 2026.", branded), true);
+});

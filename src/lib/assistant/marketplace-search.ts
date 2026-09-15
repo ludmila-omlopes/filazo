@@ -121,7 +121,7 @@ export function storePageText(html: string) {
   return html
     .replace(/<(script|style|noscript|head)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]*>/g, " ")
-    .replace(/&(?:nbsp|amp|quot|apos|lt|gt);/g, (entity) => ({ "&nbsp;": " ", "&amp;": "&", "&quot;": '"', "&apos;": "'", "&lt;": "<", "&gt;": ">" })[entity] ?? " ")
+    .replace(/&(?:nbsp|amp|quot|apos|lt|gt|reg|trade|copy);/g, (entity) => ({ "&nbsp;": " ", "&amp;": "&", "&quot;": '"', "&apos;": "'", "&lt;": "<", "&gt;": ">", "&reg;": " ", "&trade;": " ", "&copy;": " " })[entity] ?? " ")
     .replace(/\s+/g, " ").trim().slice(0, 22000);
 }
 

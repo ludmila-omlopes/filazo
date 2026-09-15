@@ -54,7 +54,10 @@ export function parseReleaseSearch(payload: unknown, now = new Date()) {
   if (data.error || (data.status && data.status !== "completed") || (choice.finish_reason && choice.finish_reason !== "stop")) throw new Error("Incomplete release search");
   if (!texts.length) throw new Error("No release search response");
   const text = texts.join("\n").trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  const rows = z.object({ releases: z.array(z.unknown()).max(8) }).parse(JSON.parse(text));
+  // The model may emit one row per platform for the same announcement. Keep
+  // the request capped at eight announcements while allowing that fan-out to
+  // pass through validation before the database deduplicates each row.
+  const rows = z.object({ releases: z.array(z.unknown()).max(64) }).parse(JSON.parse(text));
   const seen = new Set<string>();
   return rows.releases.flatMap((raw) => {
     const parsed = releaseSchema.safeParse(raw);
