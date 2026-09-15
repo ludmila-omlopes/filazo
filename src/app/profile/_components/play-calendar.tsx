@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import type { Locale } from "@/lib/i18n";
 import { calendarCopy } from "@/lib/calendar-copy";
 import { readCalendar } from "@/lib/calendar";
 import { calendarMonth as parseMonth, DAY_MS, isCalendarEstimateCurrent, utcDay, type EstimateReason } from "@/lib/calendar-policy";
 import { refreshCalendarAction, saveCalendarMinutesAction, saveCalendarStartAction, setCalendarReleaseAction } from "../calendar-actions";
 import { CalendarSubmit } from "./calendar-submit";
+import { CalendarMonthView } from "./calendar-month-view";
+import type { CalendarEvent } from "@/lib/calendar-month";
 import type { ProfileData } from "./profile-types";
 
 const panel = "rounded-card border border-edge bg-surface p-5 sm:p-6";
@@ -25,30 +25,22 @@ export function CalendarView({ calendarMonth, calendarStatus, locale, profile, v
   const c = calendarCopy(locale);
   const now = new Date();
   const month = parseMonth(calendarMonth, now);
-  const end = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 1));
   const format = (date: Date) => new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(date);
   const readOnly = Boolean(viewAsUserId);
   const manualUsed = Boolean(data.state?.manualAt && data.state.manualAt >= utcDay(now));
   const updates = [data.state?.automaticAt, data.state?.manualAt].filter((value): value is Date => Boolean(value)).sort((a, b) => b.getTime() - a.getTime());
-  const href = (offset: number) => {
-    const target = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + offset, 1));
-    const params = new URLSearchParams({ tab: "calendar", month: dateKey(target).slice(0, 7) });
-    if (viewAsUserId) params.set("viewAs", viewAsUserId);
-    return `/profile?${params}`;
-  };
   const savedIds = new Set(data.saved.map((item) => item.releaseId));
   const activeEntries = data.entries.filter((entry) => !entry.finishedAt && entry.status !== "COMPLETED" && entry.status !== "DROPPED" && entry.activeBacklog);
-  const events: { id: string; date: Date; title: string; kind: string; href?: string; extra?: string }[] = [];
+  const events: CalendarEvent[] = [];
   for (const entry of data.entries) {
     const gameHref = `/games/${entry.game.slug}`;
-    if (entry.manualStartedAt) events.push({ id: `${entry.id}-start`, date: entry.manualStartedAt, title: entry.game.name, kind: c.began, href: gameHref });
-    if (entry.finishedAt) events.push({ id: `${entry.id}-finish`, date: entry.finishedAt, title: entry.game.name, kind: c.actualFinish, href: gameHref });
-    else if (entry.calendarEstimate?.estimatedFinish && isCalendarEstimateCurrent(entry.calendarEstimate, now) && entry.status !== "COMPLETED" && entry.status !== "DROPPED" && entry.activeBacklog) events.push({ id: `${entry.id}-estimate`, date: entry.calendarEstimate.estimatedFinish, title: entry.game.name, kind: c.estimated, href: gameHref });
+    if (entry.manualStartedAt) events.push({ id: `${entry.id}-start`, date: dateKey(entry.manualStartedAt), title: entry.game.name, kind: "start", href: gameHref });
+    if (entry.finishedAt) events.push({ id: `${entry.id}-finish`, date: dateKey(entry.finishedAt), title: entry.game.name, kind: "finish", href: gameHref });
+    else if (entry.calendarEstimate?.estimatedFinish && isCalendarEstimateCurrent(entry.calendarEstimate, now) && entry.status !== "COMPLETED" && entry.status !== "DROPPED" && entry.activeBacklog) events.push({ id: `${entry.id}-estimate`, date: dateKey(entry.calendarEstimate.estimatedFinish), title: entry.game.name, kind: "estimate", href: gameHref });
   }
   for (const { release } of data.saved) {
-    if (release.releaseDate) events.push({ id: release.id, date: release.releaseDate, title: release.game.name, kind: c.release, extra: `${release.platform} · ${release.region}` });
+    if (release.releaseDate) events.push({ id: release.id, date: dateKey(release.releaseDate), title: release.game.name, kind: "release", extra: `${release.platform} · ${release.region}` });
   }
-  const visible = events.filter((event) => event.date >= month && event.date < end).sort((a, b) => a.date.getTime() - b.date.getTime());
   const notices = { refreshed: c.refreshed, saved: c.saved, limited: c.limited, failed: c.failed, invalid: c.invalid };
   const notice = calendarStatus && Object.hasOwn(notices, calendarStatus) ? notices[calendarStatus as keyof typeof notices] : null;
 
@@ -59,6 +51,10 @@ export function CalendarView({ calendarMonth, calendarStatus, locale, profile, v
       {readOnly ? <p className="text-sm text-ink-soft">{c.preview}</p> : null}
       {notice ? <p className="rounded-inner border border-edge bg-canvas p-3 text-sm" role="status">{notice}</p> : null}
     </header>
+    <section className={panel} aria-labelledby="calendar-agenda">
+      <CalendarMonthView key={dateKey(month)} initialMonth={dateKey(month).slice(0, 7)} today={dateKey(now)} events={events} locale={locale} />
+      {data.saved.length ? <details className="mt-3 border-t border-edge pt-4"><summary className="cursor-pointer text-sm font-semibold">{c.savedReleases}</summary><p className="mt-2 text-xs text-ink-soft">{c.changedDate}</p><ul className="mt-3 grid gap-3">{data.saved.map(({ release }) => <li key={release.id} className="flex flex-wrap items-center justify-between gap-3 rounded-inner border border-edge p-3"><div className="min-w-0"><p className="break-words text-sm font-semibold">{release.game.name}</p><p className="text-xs text-ink-soft">{release.platform} · {release.region} · {release.releaseDate ? format(release.releaseDate) : c.noDay}</p><a className="text-xs underline" href={release.sourceUrl} target="_blank" rel="noopener noreferrer">{c.source}</a></div>{!readOnly ? <form action={setCalendarReleaseAction}><input type="hidden" name="releaseId" value={release.id} /><input type="hidden" name="operation" value="remove" /><CalendarSubmit>{c.remove}</CalendarSubmit></form> : null}</li>)}</ul></details> : null}
+    </section>
     <section className={panel} aria-labelledby="calendar-pace">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h3 className="font-display text-xl" id="calendar-pace">{c.playing}</h3>
@@ -110,20 +106,6 @@ export function CalendarView({ calendarMonth, calendarStatus, locale, profile, v
         </form>
       </details> : null}
       <details className="mt-4 text-xs leading-relaxed text-ink-soft"><summary className="cursor-pointer py-2">{c.detail}</summary><p>{c.method}</p><p className="mt-2">{c.data}</p></details>
-    </section>
-    <section className={panel} aria-labelledby="calendar-agenda">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><p id="calendar-agenda" className="text-xs font-bold uppercase tracking-wide text-ink-soft">{c.agenda}</p><h3 className="mt-1 font-display text-2xl capitalize">{new Intl.DateTimeFormat(locale, { month: "long", year: "numeric", timeZone: "UTC" }).format(month)}</h3></div>
-        <nav aria-label={c.monthNav} className="flex gap-2"><Button asChild size="icon" variant="outline"><Link aria-label={c.previous} href={href(-1)}><ChevronLeft className="size-4" /></Link></Button><Button asChild size="icon" variant="outline"><Link aria-label={c.next} href={href(1)}><ChevronRight className="size-4" /></Link></Button></nav>
-      </div>
-      <ol className="mt-5 divide-y divide-edge">
-        {visible.map((event) => <li key={event.id} className="grid grid-cols-[3rem_1fr] gap-4 py-4">
-          <time dateTime={dateKey(event.date)} className="font-display text-3xl tabular-nums text-ink-soft">{event.date.getUTCDate()}</time>
-          <div className="min-w-0"><p className="text-xs font-semibold text-ink-soft">{event.kind}</p><p className="mt-1 break-words font-semibold">{event.href ? <Link href={event.href} className="hover:underline">{event.title}</Link> : event.title}</p>{event.extra ? <p className="mt-1 text-xs text-ink-soft">{event.extra}</p> : null}</div>
-        </li>)}
-      </ol>
-      {!visible.length ? <p className="py-5 text-sm text-ink-soft">{c.noEvents}</p> : null}
-      {data.saved.length ? <details className="mt-3 border-t border-edge pt-4"><summary className="cursor-pointer text-sm font-semibold">{c.savedReleases}</summary><p className="mt-2 text-xs text-ink-soft">{c.changedDate}</p><ul className="mt-3 grid gap-3">{data.saved.map(({ release }) => <li key={release.id} className="flex flex-wrap items-center justify-between gap-3 rounded-inner border border-edge p-3"><div className="min-w-0"><p className="break-words text-sm font-semibold">{release.game.name}</p><p className="text-xs text-ink-soft">{release.platform} · {release.region} · {release.releaseDate ? format(release.releaseDate) : c.noDay}</p><a className="text-xs underline" href={release.sourceUrl} target="_blank" rel="noopener noreferrer">{c.source}</a></div>{!readOnly ? <form action={setCalendarReleaseAction}><input type="hidden" name="releaseId" value={release.id} /><input type="hidden" name="operation" value="remove" /><CalendarSubmit>{c.remove}</CalendarSubmit></form> : null}</li>)}</ul></details> : null}
     </section>
     <section className={panel} aria-labelledby="calendar-releases">
       <h3 id="calendar-releases" className="font-display text-xl">{c.releases}</h3>

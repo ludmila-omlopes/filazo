@@ -13,7 +13,7 @@
 
 1. Registrar ou corrigir “Comecei em”, a data real informada pela pessoa. A data em que o jogo entrou em Jogando agora não é tratada como início confirmado.
 2. Acompanhar o ritmo de cada jogo, com início e previsão separados. Sem dados suficientes, mostrar o motivo em linguagem direta.
-3. Ler uma agenda mensal por data, sem barras sobrepostas ou rolagem lateral. Diferenciar início, término observado, término estimado e lançamento por texto.
+3. Consultar primeiro a grade mensal, com dias da semana, destaque de hoje e seleção de um dia para ver os eventos completos. Alternar entre mês e lista, navegar por meses e voltar a hoje sem recarregar a página. Diferenciar início, término observado, término estimado e lançamento por ícones e texto, sem barras sobrepostas ou rolagem lateral. No celular, os ícones mantêm a grade compacta; os títulos completos aparecem nos detalhes do dia. As setas do teclado percorrem dias e semanas.
 4. Consultar datas de lançamento ao final da página e decidir quais adicionar. A pesquisa cobre lançamentos gerais, de todas as plataformas.
 
 Os formulários de correção e de registro de tempo ficam recolhidos. Jogos sem fonte conectada permitem informar o total de minutos de hoje; salvar novamente substitui esse valor. Para fontes conectadas, o calendário usa as horas aceitas da última sincronização. Atualizar estimativas não inicia uma nova sincronização da biblioteca.

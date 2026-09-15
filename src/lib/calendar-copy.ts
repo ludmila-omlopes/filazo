@@ -1,5 +1,6 @@
 import type { Locale } from "./i18n";
 const en = {
+  monthView: "Month", listView: "List", viewLabel: "Calendar view", today: "Today", selectDay: "Select a day to see its games and dates.", noDayEvents: "No events on this day.", legend: "Event types", moreEvents: "more", estimateReminder: "An estimate, not a deadline.", calendarEmptyHelp: "Record a start date or add a release from the section below.",
   outdated: "This estimate needs an update. Use the daily manual update to recalculate it.",
   title: "Your time with games", body: "Record when you started. Your recent playing pace helps estimate when you may finish.",
   playing: "Following your pace", empty: "Record a start date to begin following a game.", register: "Record a start date", game: "Game", choose: "Choose a game from your library", start: "Started on", save: "Save", edit: "Edit start date", startMissing: "Confirm your start date", finish: "Estimated finish", actualFinish: "Finished", update: "Update estimate", updated: "Last estimate update", notUpdated: "No estimate calculated yet.",
@@ -10,6 +11,7 @@ const en = {
   refreshed: "Estimates updated.", limited: "You have already used today's manual update.", saved: "Saved. Estimate changes appear in the next daily or manual update.", failed: "Could not update estimates. Your daily manual update is still available.", invalid: "Could not save. Check the date or game and try again.", preview: "Read-only preview", loadFailed: "The calendar is unavailable. Please try again later.",
 };
 const pt: typeof en = {
+  monthView: "Mês", listView: "Lista", viewLabel: "Visualização do calendário", today: "Hoje", selectDay: "Selecione um dia para ver seus jogos e datas.", noDayEvents: "Nenhum evento neste dia.", legend: "Tipos de evento", moreEvents: "mais", estimateReminder: "Uma estimativa, não um prazo.", calendarEmptyHelp: "Registre um início ou adicione um lançamento na seção abaixo.",
   outdated: "Esta estimativa precisa de atualização. Use a atualização manual diária para recalcular.",
   title: "Seu tempo com os jogos", body: "Registre quando começou. Seu ritmo recente ajuda a estimar quando você pode terminar.",
   playing: "Acompanhando seu ritmo", empty: "Registre uma data de início para acompanhar um jogo.", register: "Registrar data de início", game: "Jogo", choose: "Escolha um jogo da sua biblioteca", start: "Comecei em", save: "Salvar", edit: "Editar data de início", startMissing: "Confirme a data de início", finish: "Previsão de término", actualFinish: "Concluído", update: "Atualizar estimativa", updated: "Última atualização das estimativas", notUpdated: "Nenhuma estimativa calculada ainda.",
