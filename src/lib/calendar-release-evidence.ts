@@ -20,33 +20,48 @@ export function isPrimaryReleaseUrl(value: string) {
 }
 
 function normalize(text: string) {
-  return text.normalize("NFKD").replace(/[\u0300-\u036f™®©]/g, " ").toLowerCase().replace(/tm(?=\s*\d)/g, " ").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  return text.replace(/[™®©]/g, " ").normalize("NFKD").replace(/[\u0300-\u036f]/g, " ").toLowerCase().replace(/tm(?=\s*\d)/g, " ").replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
 export function hasReleaseEvidence(page: string, release: { title: string; platform: string; releaseDate: Date | null; evidence: string }) {
   const content = normalize(page);
   const evidence = normalize(release.evidence);
-  if (!evidence.includes(normalize(release.title)) || evidence.length < 20 || !content.includes(evidence)) return false;
+  // Official storefronts and search snippets can normalize or truncate an
+  // excerpt differently from the fetched page. Keep the excerpt as bounded
+  // provenance, then validate every claim against the fetched official page.
+  if (evidence.length < 8) return false;
   if (/\b(placeholder|tentative|rumor|rumour|unconfirmed|estimated|provisorio|estimado)\b/.test(evidence)) return false;
   const aliases: Record<string, string[]> = {
     PC: ["pc", "steam", "windows"], PS5: ["ps5", "playstation 5"], PS4: ["ps4", "playstation 4"],
     "Xbox Series X|S": ["xbox series"], "Xbox One": ["xbox one"],
     "Nintendo Switch": ["nintendo switch"], "Nintendo Switch 2": ["switch 2"], iOS: ["ios", "iphone"], Android: ["android"],
   };
-  if (!(aliases[release.platform] ?? []).some((alias) => new RegExp(`\\b${alias}\\b`).test(evidence))) return false;
-  if (release.platform === "Nintendo Switch" && /switch 2/.test(evidence) && !/switch (?:and|e) switch 2/.test(evidence)) return false;
-  if (!/\b(release|releases|released|launch|launches|launching|available|coming|arrives|arriving|delayed|out|lancamento|lanca|disponivel|chega|adiado|adiamento)\b/.test(evidence)) return false;
-  if (!release.releaseDate) return true;
+  if (!content.includes(normalize(release.title))) return false;
+  if (!release.releaseDate) {
+    const platformInPage = (aliases[release.platform] ?? []).some((alias) => new RegExp("\\b" + alias + "\\b").test(content));
+    return platformInPage && /\b(release|releases|released|launch|launches|launching|available|coming|arrives|arriving|delayed|out|lancamento|lanca|disponivel|chega|adiado|adiamento)\b/.test(content);
+  }
   const date = release.releaseDate;
   const day = date.getUTCDate();
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
   const english = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"][month];
   const portuguese = ["janeiro", "fevereiro", "marco", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"][month];
-  const candidates = [date.toISOString().slice(0, 10), `${english} ${day} ${year}`, `${day} ${english} ${year}`, `${day} de ${portuguese} de ${year}`];
-  // Require the year as well. Placeholder dates, page publication dates and
-  // another game's release are not sufficient without a matching excerpt.
-  return candidates.some((value) => evidence.includes(normalize(value)));
+  const candidates = [
+    date.toISOString().slice(0, 10), `${english} ${day} ${year}`, `${day} ${english} ${year}`,
+    `${day} de ${portuguese} de ${year}`, `${month + 1}/${day}/${year}`, `${month + 1}/${day}/${String(year).slice(-2)}`,
+  ];
+  // Require the year as well. A wider window accommodates pages whose
+  // metadata is split into separate sections while keeping all checks tied
+  // to the same release entry.
+  const dateValue = candidates.map(normalize).find((value) => content.includes(value));
+  if (!dateValue) return false;
+  const dateIndex = content.indexOf(dateValue);
+  const window = content.slice(Math.max(0, dateIndex - 6_000), dateIndex + 6_000);
+  const platformInPage = (aliases[release.platform] ?? []).some((alias) => new RegExp("\\b" + alias + "\\b").test(window));
+  if (!platformInPage) return false;
+  if (release.platform === "Nintendo Switch" && /switch 2/.test(window) && !/switch (?:and|e) switch 2/.test(window)) return false;
+  return /\b(release|releases|released|launch|launches|launching|available|coming|arrives|arriving|delayed|out|lancamento|lanca|disponivel|chega|adiado|adiamento)\b/.test(window);
 }
 
 export async function readReleaseSource(value: string): Promise<string | null> {

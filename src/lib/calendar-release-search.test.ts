@@ -30,3 +30,17 @@ test("handles OpenRouter citations and rejects truncated responses", () => {
   result.choices[0].finish_reason = "length";
   assert.throws(() => parseReleaseSearch(result, now));
 });
+test("accepts legacy single-source search output when its URL is cited", () => {
+  const sourceUrl = "https://www.nintendo.com/us/store/products/the-legend-of-zelda-ocarina-of-time-switch-2/";
+  const result = {
+    choices: [{ finish_reason: "stop", message: {
+      content: JSON.stringify({ releases: [{
+        title: "The Legend of Zelda: Ocarina of Time", platforms: ["Nintendo Switch 2"],
+        precision: "day", date: "2026-11-05", dateLabel: "November 5, 2026",
+        source: `[nintendo.com](${sourceUrl})`, excerpt: "The Nintendo 64 classic returns in 2026.",
+      }] }),
+      annotations: [{ type: "url_citation", url_citation: { url: sourceUrl } }],
+    } }],
+  };
+  assert.equal(parseReleaseSearch(result, now).length, 1);
+});
