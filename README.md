@@ -227,6 +227,8 @@ Enable `CALENDAR_WORKERS_ENABLED=true` after migration. `/api/internal/calendar-
 
 Release dates additionally require a recognized official domain and an exact release excerpt in the fetched page containing the title, platform and full date. News-site URLs are rejected even if the model labels them primary. Blocked/unreadable pages are omitted. The known-domain list is in `src/lib/calendar-release-evidence.ts`; storefront coverage includes small publishers' games, but arbitrary studio domains are not fetched. Search does not guarantee exhaustive coverage.
 
+Users can also add personal calendar events with a title, UTC date and optional note. These events are stored per user, appear in the monthly calendar, and can be removed by their owner. Apply `prisma/migrations/20260915210000_manual_calendar_events/migration.sql` before deploying this feature, then run `npm run db:generate`.
+
 Run `npm run test:calendar` with a PostgreSQL `DATABASE_URL` for isolated schema tests with simulated providers. Run the focused policy/search tests with `node --experimental-strip-types --test src/lib/calendar-policy.test.ts src/lib/calendar-release-search.test.ts src/lib/calendar-release-evidence.test.ts`. See [the calendar assessment](docs/calendar-redesign.md) for the original problems, algorithm and limitations.
 
 ### Administrator platform dashboard

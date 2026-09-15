@@ -74,7 +74,7 @@ export async function refreshCalendar(userId: string, trigger: "manual" | "autom
 }
 
 export async function readCalendar(userId: string) {
-  const [entries, state, releases, saved, releaseRun, storedDates] = await Promise.all([
+  const [entries, state, releases, saved, releaseRun, storedDates, manualEvents] = await Promise.all([
     prisma.userGameEntry.findMany({
       where: { userId, OR: [...trackedWhere.OR, { provider: { not: null } }, { finishedAt: { not: null } }] },
       include: { game: true, calendarEstimate: true, calendarSessions: { where: { day: utcDay() }, take: 1 } },
@@ -89,9 +89,10 @@ export async function readCalendar(userId: string) {
     prisma.userCalendarRelease.findMany({ where: { userId }, include: { release: { include: { game: { select: { name: true } } } } }, orderBy: { createdAt: "desc" }, take: 200 }),
     prisma.calendarReleaseRun.findFirst({ where: { scope: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development" }, orderBy: { day: "desc" }, select: { status: true, startedAt: true, finishedAt: true } }),
     prisma.userGamePlayDate.findMany({ where: { userId }, select: { gameId: true, provider: true, day: true, kind: true } }),
+    prisma.userCalendarEvent.findMany({ where: { userId }, select: { id: true, title: true, date: true, notes: true }, orderBy: [{ date: "asc" }, { createdAt: "asc" }], take: 200 }),
   ]);
   const playDates = collectGamePlayDates(entries, storedDates);
-  return { entries, state, releases, saved, releaseRun, playDates };
+  return { entries, state, releases, saved, releaseRun, playDates, manualEvents };
 }
 
 export async function runDailyCalendars(now = new Date()) {

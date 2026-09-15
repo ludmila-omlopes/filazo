@@ -2,7 +2,7 @@ import type { Locale } from "@/lib/i18n";
 import { calendarCopy } from "@/lib/calendar-copy";
 import { readCalendar } from "@/lib/calendar";
 import { calendarMonth as parseMonth, DAY_MS, isCalendarEstimateCurrent } from "@/lib/calendar-policy";
-import { setCalendarReleaseAction } from "../calendar-actions";
+import { deleteCalendarEventAction, saveCalendarEventAction, setCalendarReleaseAction } from "../calendar-actions";
 import { CalendarSubmit } from "./calendar-submit";
 import { CalendarMonthView } from "./calendar-month-view";
 import type { CalendarEvent } from "@/lib/calendar-month";
@@ -76,7 +76,8 @@ export function CalendarView({ calendarMonth, calendarStatus, locale, viewAsUser
   for (const { release } of data.saved) {
     if (release.releaseDate) events.push({ id: release.id, date: dateKey(release.releaseDate), title: release.game.name, kind: "release", extra: `${release.platform} · ${release.region}` });
   }
-  const notices = { refreshed: c.refreshed, saved: c.saved, limited: c.limited, failed: c.failed, invalid: c.invalid };
+  for (const event of data.manualEvents) events.push({ id: `manual:${event.id}`, date: dateKey(event.date), title: event.title, kind: "manual", extra: event.notes ?? undefined });
+  const notices = { refreshed: c.refreshed, saved: c.saved, limited: c.limited, failed: c.failed, invalid: c.invalid, eventSaved: c.eventSaved, eventDeleted: c.eventDeleted };
   const notice = calendarStatus && Object.hasOwn(notices, calendarStatus) ? notices[calendarStatus as keyof typeof notices] : null;
 
   return <section className="grid min-w-0 gap-7">
@@ -89,6 +90,8 @@ export function CalendarView({ calendarMonth, calendarStatus, locale, viewAsUser
     <section className={panel} aria-labelledby="calendar-agenda">
       <CalendarMonthView key={dateKey(month)} initialMonth={dateKey(month).slice(0, 7)} today={dateKey(now)} events={events} locale={locale} />
       <p className="mt-3 text-xs leading-relaxed text-ink-soft">{c.platformDateHelp}</p>
+      {!readOnly ? <details className="mt-5 border-t border-edge pt-4"><summary className="cursor-pointer text-sm font-semibold">{c.addEvent}</summary><form action={saveCalendarEventAction} className="mt-4 grid max-w-xl gap-3"><label className="grid gap-1 text-sm font-semibold" htmlFor="calendar-event-title">{c.eventTitle}<input id="calendar-event-title" name="title" required maxLength={160} className="rounded-inner border border-edge bg-canvas px-3 py-2 font-normal" /></label><label className="grid gap-1 text-sm font-semibold" htmlFor="calendar-event-date">{c.eventDate}<input id="calendar-event-date" type="date" name="date" required className="rounded-inner border border-edge bg-canvas px-3 py-2 font-normal" defaultValue={dateKey(now)} /></label><label className="grid gap-1 text-sm font-semibold" htmlFor="calendar-event-notes">{c.eventNotes}<textarea id="calendar-event-notes" name="notes" maxLength={500} rows={3} placeholder={c.eventNotesPlaceholder} className="rounded-inner border border-edge bg-canvas px-3 py-2 font-normal" /></label><div><CalendarSubmit>{c.saveEvent}</CalendarSubmit></div></form></details> : null}
+      {data.manualEvents.length ? <details className="mt-4 border-t border-edge pt-4"><summary className="cursor-pointer text-sm font-semibold">{c.manageEvents}</summary><ul className="mt-3 grid gap-3">{data.manualEvents.map((event) => <li key={event.id} className="flex flex-wrap items-start justify-between gap-3 rounded-inner border border-edge p-3"><div className="min-w-0"><p className="break-words text-sm font-semibold">{event.title}</p><time dateTime={dateKey(event.date)} className="text-xs text-ink-soft">{format(event.date)}</time>{event.notes ? <p className="mt-1 text-xs text-ink-soft">{event.notes}</p> : null}</div>{!readOnly ? <form action={deleteCalendarEventAction}><input type="hidden" name="eventId" value={event.id} /><CalendarSubmit>{c.deleteEvent}</CalendarSubmit></form> : null}</li>)}</ul></details> : null}
       {data.saved.length ? <details className="mt-3 border-t border-edge pt-4"><summary className="cursor-pointer text-sm font-semibold">{c.savedReleases}</summary><p className="mt-2 text-xs text-ink-soft">{c.changedDate}</p><ul className="mt-3 grid gap-3">{data.saved.map(({ release }) => <li key={release.id} className="flex flex-wrap items-center justify-between gap-3 rounded-inner border border-edge p-3"><div className="min-w-0"><p className="break-words text-sm font-semibold">{release.game.name}</p><p className="text-xs text-ink-soft">{release.platform} · {release.region} · {release.releaseDate ? format(release.releaseDate) : c.noDay}</p><a className="text-xs underline" href={release.sourceUrl} target="_blank" rel="noopener noreferrer">{c.source}</a></div>{!readOnly ? <form action={setCalendarReleaseAction}><input type="hidden" name="releaseId" value={release.id} /><input type="hidden" name="operation" value="remove" /><CalendarSubmit>{c.remove}</CalendarSubmit></form> : null}</li>)}</ul></details> : null}
     </section>
     <section className={panel} aria-labelledby="calendar-releases">

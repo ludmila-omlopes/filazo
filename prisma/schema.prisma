@@ -164,6 +164,7 @@ model User {
   calendarState            UserCalendarState?
   calendarReleases         UserCalendarRelease[]
   gamePlayDates            UserGamePlayDate[]
+  calendarEvents            UserCalendarEvent[]
 
   @@index([lastActiveAt])
   @@index([createdAt])
@@ -515,6 +516,20 @@ model UserCalendarRelease {
   release         ReleaseAnnouncement @relation(fields: [releaseId], references: [id], onDelete: Cascade)
 
   @@id([userId, releaseId])
+}
+
+// Personal events are independent from derived game dates and release announcements.
+model UserCalendarEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  date      DateTime @db.Date
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
 }
 
 // One bounded AI search attempt per UTC day and worker environment.

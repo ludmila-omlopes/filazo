@@ -1,4 +1,4 @@
-export type CalendarEventKind = "start" | "finish" | "estimate" | "release" | "played";
+export type CalendarEventKind = "start" | "finish" | "estimate" | "release" | "played" | "manual";
 export type CalendarEvent = { id: string; date: string; title: string; kind: CalendarEventKind; href?: string; extra?: string };
 
 const DAY = 86_400_000;

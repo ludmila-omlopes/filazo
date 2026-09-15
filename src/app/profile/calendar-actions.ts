@@ -7,7 +7,7 @@ import { getSessionUserId } from "@/lib/session";
 import { requirePlatformAccess } from "@/lib/beta-access";
 import { refreshCalendar } from "@/lib/calendar";
 import { parseCalendarDate } from "@/lib/calendar-policy";
-import { saveCalendarMinutes, saveCalendarStart, setCalendarRelease } from "@/lib/calendar-writes";
+import { deleteCalendarEvent, saveCalendarEvent, saveCalendarMinutes, saveCalendarStart, setCalendarRelease } from "@/lib/calendar-writes";
 
 async function authenticatedUser() {
   const userId = await getSessionUserId();
@@ -55,4 +55,27 @@ export async function setCalendarReleaseAction(data: FormData) {
   let ok = false;
   try { ok = await setCalendarRelease(userId, ids.data, data.get("operation") === "add"); } catch { /* Show a safe error. */ }
   finish(ok ? "saved" : "invalid");
+}
+
+export async function saveCalendarEventAction(data: FormData) {
+  const userId = await authenticatedUser();
+  const parsed = z.object({
+    title: z.string().trim().min(1).max(160),
+    date: z.string(),
+    notes: z.string().trim().max(500).optional(),
+  }).safeParse({ title: data.get("title"), date: data.get("date"), notes: data.get("notes") || undefined });
+  const date = parsed.success ? parseCalendarDate(parsed.data.date) : null;
+  if (!parsed.success || !date) finish("invalid");
+  let ok = false;
+  try { ok = await saveCalendarEvent(userId, parsed.data.title, date, parsed.data.notes); } catch { /* Show a safe error. */ }
+  finish(ok ? "eventSaved" : "invalid");
+}
+
+export async function deleteCalendarEventAction(data: FormData) {
+  const userId = await authenticatedUser();
+  const id = z.string().cuid().safeParse(data.get("eventId"));
+  if (!id.success) finish("invalid");
+  let ok = false;
+  try { ok = await deleteCalendarEvent(userId, id.data); } catch { /* Show a safe error. */ }
+  finish(ok ? "eventDeleted" : "invalid");
 }

@@ -53,3 +53,16 @@ export async function setCalendarRelease(userId: string, releaseIds: string | st
     return true;
   });
 }
+
+export async function saveCalendarEvent(userId: string, title: string, date: Date, notes?: string | null) {
+  const cleanTitle = title.trim();
+  const cleanNotes = notes?.trim() || null;
+  if (!cleanTitle || cleanTitle.length > 160 || (cleanNotes && cleanNotes.length > 500) || !Number.isFinite(date.getTime()) || date.getUTCFullYear() < 1900 || date.getUTCFullYear() > 2100) return false;
+  await prisma.userCalendarEvent.create({ data: { userId, title: cleanTitle, date: utcDay(date), notes: cleanNotes } });
+  return true;
+}
+
+export async function deleteCalendarEvent(userId: string, eventId: string) {
+  const result = await prisma.userCalendarEvent.deleteMany({ where: { id: eventId, userId } });
+  return result.count > 0;
+}
