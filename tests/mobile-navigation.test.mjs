@@ -143,11 +143,6 @@ test("mobile shell enables safe-area insets and closes its account menu after na
     new URL("../src/app/profile/page.tsx", import.meta.url),
     "utf8",
   );
-  const globalsSource = readFileSync(
-    new URL("../src/app/globals.css", import.meta.url),
-    "utf8",
-  );
-
   assert.match(layoutSource, /viewportFit:\s*"cover"/);
   assert.match(layoutSource, /safe-area-inset-left/);
   assert.match(layoutSource, /safe-area-inset-right/);
@@ -173,5 +168,5 @@ test("mobile shell enables safe-area insets and closes its account menu after na
   assert.match(profileRailSource, /max-lg:hidden/);
   assert.doesNotMatch(profileRailSource, /<h1/);
   assert.match(profilePageSource, /<h1 className="sr-only">/);
-  assert.match(globalsSource, /safe-area-inset-top/);
+  assert.match(appNavigationSource, /safe-area-inset-bottom/);
 });
