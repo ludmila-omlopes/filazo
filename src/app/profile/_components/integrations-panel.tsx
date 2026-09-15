@@ -1,5 +1,8 @@
 import { ExternalProvider } from "@prisma/client";
 import Image from "next/image";
+import Link from "next/link";
+import { hasProAccess } from "@/lib/account-plans";
+import { planCopy } from "@/lib/plan-copy";
 import {
   ExternalLink,
   Unplug,
@@ -629,6 +632,10 @@ export function IntegrationsPanel({
         }
       />
 
+      <p className="mb-5 text-sm leading-relaxed text-ink-soft">
+        {hasProAccess(profile.user) ? planCopy(locale).syncPro : planCopy(locale).syncFree}{" "}
+        {!hasProAccess(profile.user) ? <Link href="/account/billing" className="underline underline-offset-4">{planCopy(locale).upgrade}</Link> : null}
+      </p>
       <details className="mb-6 rounded-inner border border-edge bg-surface px-5 py-4 text-sm leading-relaxed text-ink-soft">
         <summary className="cursor-pointer font-bold text-ink">
           {t("profile.sources.disconnectQuestion")}

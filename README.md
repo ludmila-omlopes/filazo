@@ -1,5 +1,15 @@
 # filazo
 
+## Free and Pro features
+
+Library organization, reviews, manual imports/sync and text journal entries are available on Free, with no entry-count paywall. Pro unlocks the entire calendar (including date writes), automatic daily platform sync, web search in chat, a private journal retrospective at `/account/retrospective`, and larger media/AI allowances. `/account/billing` displays the current comparison.
+
+Defaults are 100 MiB / 1024 MiB of saved journal media, 5,000 / 20,000 chat tokens per rolling 24 hours and 1 / 10 transcription calls per rolling 24 hours (Free / Pro). Configure `FREE_JOURNAL_STORAGE_MIB`, `PRO_JOURNAL_STORAGE_MIB`, `FREE_CHAT_DAILY_TOKENS`, `PRO_CHAT_DAILY_TOKENS`, `FREE_VOICE_DAILY_CALLS` and `PRO_VOICE_DAILY_CALLS` in the deployment environment. AI administrator limits still apply, including disabled features and spend ceilings. Storage counts saved images and audio across all diary entries; deleting saved media frees space. It does not reset monthly. Concurrent saves serialize per user before checking capacity and writing attachments. Upload tokens are also capped by remaining capacity and existing abuse limits.
+
+Access uses the same manual grant or paid-through subscription policy as billing, with test/live isolation. Canceling at period end retains Pro until the paid period ends. After expiry, notes and existing media remain readable/editable, even above the Free storage limit; text-only entries still work. New media requires available space. Scheduled Steam work rechecks access before each batch and suspends after expiry; manual sync remains available. Automatic sync requires the existing `PLATFORM_SYNC_ENABLED`, provider configuration and workers, respects platform failures, slows after 14 days of inactivity and pauses after 60 days. Calendar integrations with external agendas and reminders are not included in this release.
+
+Verify plan boundaries and concurrent storage using `node scripts/qa/run-steam-sync-check.mjs scripts/qa/pro-features-check.ts`; this creates and removes an isolated PostgreSQL schema and stubs provider calls. Normal `npm test`, `npm run typecheck` and `npm run lint` also apply.
+
 A calm, personal game library. Filazo gathers games from multiple sources into one canonical catalog, so a title imported from Steam, PlayStation, Xbox, or CSV resolves to the same game instead of producing duplicates.
 
 ## Stack

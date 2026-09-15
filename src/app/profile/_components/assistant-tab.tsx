@@ -10,6 +10,8 @@ import { createTranslator, type Locale } from "@/lib/i18n";
 import type { AiSettingsValues } from "@/lib/ai-settings";
 import { isAiProviderConfigured } from "@/lib/openai";
 import { formatNumber } from "@/lib/utils";
+import Link from "next/link";
+import { planCopy } from "@/lib/plan-copy";
 import {
   generatePlayerProfileAction,
   refreshAssistantInsightsAction,
@@ -76,9 +78,11 @@ export function PlayerProfileTab({
 export function AssistantTab({
   assistant,
   locale,
+  pro = false,
 }: {
   assistant: AssistantData;
   locale: Locale;
+  pro?: boolean;
 }) {
   const t = createTranslator(locale);
   if (!assistant) {
@@ -148,7 +152,12 @@ export function AssistantTab({
             id: "chat",
             label: t("assistant.tab.chat"),
             content: <div className="w-full max-w-[64rem]">
-              <LibraryChat aiConfigured={assistant.aiUsage.openAiConfigured && assistant.aiUsage.assistantChatEnabled} />
+              <div className="grid gap-3">
+                <p className="text-sm text-ink-soft">{pro ? planCopy(locale).chatPro : planCopy(locale).chatFree}{" "}
+                  {!pro ? <Link href="/account/billing" className="underline underline-offset-4">{planCopy(locale).upgrade}</Link> : null}
+                </p>
+                <LibraryChat aiConfigured={assistant.aiUsage.openAiConfigured && assistant.aiUsage.assistantChatEnabled} />
+              </div>
             </div>,
           },
           {

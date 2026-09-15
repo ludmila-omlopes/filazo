@@ -6,6 +6,9 @@ import {
   journalUploadPayloadSchema,
 } from "@/lib/journal-media";
 import { getAiSettings } from "@/lib/ai-settings";
+import { getJournalStorage } from "@/lib/plan-access";
+import { planCopy } from "@/lib/plan-copy";
+import { getRequestLocale } from "@/lib/request-locale";
 import { getAllowedUploadMimeTypes } from "@/lib/upload-file-type";
 import { getSessionUserId } from "@/lib/session";
 import { ABUSE_LIMITS } from "@/lib/abuse-policy";
@@ -53,11 +56,16 @@ export async function POST(request: Request) {
         }
 
         const aiSettings = await getAiSettings();
+        const storage = await getJournalStorage(userId);
+        if (storage.remaining <= 0) {
+          quotaResponse = Response.json({ error: planCopy(await getRequestLocale()).storageFull, code: "JOURNAL_STORAGE_LIMIT" }, { status: 403 });
+          throw new Error("Storage allowance exceeded.");
+        }
         quotaResponse = await checkApiAbuse([ABUSE_LIMITS.uploadDaily], userId);
         if (quotaResponse) throw new Error("Upload allowance unavailable.");
         return {
           allowedContentTypes: getAllowedUploadMimeTypes(payload.kind),
-          maximumSizeInBytes: journalUploadMaxBytes(payload.kind, aiSettings.voiceMaxFileBytes),
+          maximumSizeInBytes: Math.min(storage.remaining, journalUploadMaxBytes(payload.kind, aiSettings.voiceMaxFileBytes)),
           addRandomSuffix: false,
           allowOverwrite: false,
           validUntil: Date.now() + 5 * 60 * 1000,

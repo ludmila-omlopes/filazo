@@ -20,6 +20,8 @@ import type { AiSettingsValues } from "@/lib/ai-settings";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { matchesJournalSearch } from "@/lib/journal-search";
 import type { ProfileData } from "./profile-types";
+import { planCopy } from "@/lib/plan-copy";
+import { getPlanLimits } from "@/lib/plan-policy";
 
 type JournalEntry = ProfileData["user"]["journalEntries"][number];
 
@@ -280,7 +282,14 @@ export function JournalTab({
         eyebrow={t("journal.label")}
         title={t("journal.title")}
         description={t("journal.description")}
+        aside={<Link href="/account/retrospective" className="text-sm underline underline-offset-4">{planCopy(locale).recap} · Pro</Link>}
       />
+      <details className="mb-5 text-sm text-ink-soft">
+        <summary className="cursor-pointer">{planCopy(locale).storage}</summary>
+        <p className="mt-2">{new Intl.NumberFormat(locale).format(getPlanLimits(profile.user).journalStorageBytes / 1024 / 1024)} MB · {planCopy(locale).unlimited}</p>
+        <p className="mt-2">{planCopy(locale).retained}</p>
+        <Link href="/account/billing" className="mt-2 inline-block underline underline-offset-4">{planCopy(locale).compare}</Link>
+      </details>
       {selectedEntry ? (
         <div className="grid min-w-0 gap-6">
           <Link

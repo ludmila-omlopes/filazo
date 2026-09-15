@@ -10,6 +10,8 @@ import { journalUploadPayloadSchema } from "@/lib/journal-media";
 import { createTranslator } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
+import { JournalStorageLimitError } from "@/lib/plan-access";
+import { planCopy } from "@/lib/plan-copy";
 
 const pageSchema = z.object({
   userGameEntryId: z.string().trim().min(1),
@@ -70,7 +72,8 @@ export async function saveJournalPageAction(formData: FormData) {
         audioUpload,
       });
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof JournalStorageLimitError) return { error: planCopy(locale).storageFull };
     return { error: t("profileAction.journalSaveFailed") };
   }
 
