@@ -161,6 +161,8 @@ model User {
   billingCustomers         BillingCustomer[]
   billingSubscriptions     BillingSubscription[]
   dailyActivity            UserDailyActivity[]
+  calendarState            UserCalendarState?
+  calendarReleases         UserCalendarRelease[]
 
   @@index([lastActiveAt])
   @@index([createdAt])
@@ -344,6 +346,7 @@ model Game {
   userReviews               UserGameReview[]
   journalEntries            GameJournalEntry[]
   metadataJobs              GameMetadataJob[]
+  releaseAnnouncements      ReleaseAnnouncement[]
 
   @@index([normalizedName])
   @@index([createdAt])
@@ -414,12 +417,99 @@ model UserGameEntry {
   insights           UserGameInsight[]
   reviews            UserGameReview[]
   journalEntries     GameJournalEntry[]
+  calendarEstimate   CalendarEstimate?
+  playObservations   PlayObservation[]
+  calendarSessions   CalendarSession[]
 
   @@unique([userId, gameId, status])
   @@unique([userId, currentPlayingSlot])
   @@unique([userId, playingNextSlot])
   @@index([userId, status])
   @@index([createdAt])
+}
+
+// Calendar limits use UTC days. Automatic and manual refreshes are independent.
+model UserCalendarState {
+  userId          String    @id
+  automaticAt     DateTime?
+  manualAt        DateTime?
+  retryAfter      DateTime?
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([automaticAt])
+}
+
+// Observations are counters, not sessions. A first import is only a baseline.
+model PlayObservation {
+  entryId         String
+  day             DateTime @db.Date
+  observedAt      DateTime
+  totalMinutes    Int
+  source          String
+  entry           UserGameEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@id([entryId, day])
+}
+
+model CalendarEstimate {
+  entryId         String   @id
+  calculatedAt    DateTime
+  estimatedFinish DateTime? @db.Date
+  weeklyMinutes   Float?
+  reason          String
+  entry           UserGameEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+}
+
+// One editable daily total; repeated form submissions cannot duplicate minutes.
+model CalendarSession {
+  entryId String
+  day     DateTime @db.Date
+  minutes Int
+  entry   UserGameEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@id([entryId, day])
+}
+
+// Public, cited release dates attached to the canonical catalog, never news articles.
+model ReleaseAnnouncement {
+  id              String   @id @default(cuid())
+  gameId          String
+  platform        String
+  region          String
+  releaseDate     DateTime? @db.Date
+  dateLabel       String
+  sourceUrl       String
+  checkedAt       DateTime
+  game            Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  subscribers     UserCalendarRelease[]
+
+  @@unique([gameId, platform, region])
+  @@index([checkedAt])
+  @@index([releaseDate])
+}
+
+model UserCalendarRelease {
+  userId          String
+  releaseId       String
+  createdAt       DateTime @default(now())
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  release         ReleaseAnnouncement @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+
+  @@id([userId, releaseId])
+}
+
+// One bounded AI search attempt per UTC day and worker environment.
+model CalendarReleaseRun {
+  day             DateTime @db.Date
+  scope           String
+  status          String
+  model           String?
+  usage           Json?
+  startedAt       DateTime @default(now())
+  finishedAt      DateTime?
+
+  @@id([day, scope])
 }
 
 model GameMetadataJob {

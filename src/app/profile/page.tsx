@@ -244,6 +244,7 @@ export default async function ProfilePage({
           {activeTab === "calendar" ? (
             <PlayCalendar
               calendarMonth={query.month}
+              calendarStatus={query.calendarStatus}
               locale={locale}
               profile={profile}
               viewAsUserId={viewAsUserId}

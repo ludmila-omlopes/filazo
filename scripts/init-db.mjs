@@ -24,6 +24,8 @@ if (databaseUrl.startsWith("file:")) {
 // Deployments separately run db:check before building; this bootstrap also
 // includes Game completion structure, Stripe billing tables, and the current provider enum values.
 // Also creates UserDailyActivity and PlatformError for the administrator dashboard.
+// Includes calendar observations, persisted forecasts, daily refresh limits,
+// manual sessions, cited release dates and personal release subscriptions.
 const result = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
   cwd: process.cwd(),
   env: process.env,

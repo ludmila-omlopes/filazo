@@ -47,3 +47,4 @@ jobs:
       - run: npm ci
       - run: npm run test:steam-sync
       - run: npm run test:sync-monitor
+      - run: npm run test:calendar

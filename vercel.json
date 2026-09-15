@@ -3,6 +3,14 @@
   "buildCommand": "npm run build",
   "crons": [
     {
+      "path": "/api/internal/calendar-refresh",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/internal/calendar-releases",
+      "schedule": "0 4 * * *"
+    },
+    {
       "path": "/api/internal/sync-monitor",
       "schedule": "* * * * *"
     },
