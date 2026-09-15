@@ -34,17 +34,22 @@ export async function saveCalendarMinutes(userId: string, entryId: string, minut
   });
 }
 
-export async function setCalendarRelease(userId: string, releaseId: string, add: boolean) {
+export async function setCalendarRelease(userId: string, releaseIds: string | string[], add: boolean) {
+  const ids = [...new Set(Array.isArray(releaseIds) ? releaseIds : [releaseIds])];
   if (!add) {
-    await prisma.userCalendarRelease.deleteMany({ where: { userId, releaseId } });
+    await prisma.userCalendarRelease.deleteMany({ where: { userId, releaseId: { in: ids } } });
     return true;
   }
   return prisma.$transaction(async (tx) => {
     await lockUserCalendar(tx, userId);
-    const release = await tx.releaseAnnouncement.findFirst({ where: { id: releaseId, releaseDate: { gte: utcDay() } }, select: { id: true } });
-    if (!release) return false;
-    if (await tx.userCalendarRelease.count({ where: { userId } }) >= 200) return false;
-    await tx.userCalendarRelease.createMany({ data: [{ userId, releaseId }], skipDuplicates: true });
+    const releases = await tx.releaseAnnouncement.findMany({ where: { id: { in: ids }, releaseDate: { gte: utcDay() } }, select: { id: true } });
+    if (!releases.length) return false;
+    const existing = await tx.userCalendarRelease.findMany({ where: { userId, releaseId: { in: releases.map((release) => release.id) } }, select: { releaseId: true } });
+    const existingIds = new Set(existing.map((item) => item.releaseId));
+    const available = Math.max(0, 200 - await tx.userCalendarRelease.count({ where: { userId } }));
+    const pending = releases.filter((release) => !existingIds.has(release.id)).slice(0, available);
+    if (!pending.length && existing.length === 0) return false;
+    await tx.userCalendarRelease.createMany({ data: pending.map((release) => ({ userId, releaseId: release.id })), skipDuplicates: true });
     return true;
   });
 }

@@ -27,7 +27,7 @@ export async function runReleaseDateSearch(now = new Date()) {
       await prisma.$transaction(async (tx) => {
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`title:${normalizeTitle(canonicalizeGameTitle(release.title))}`}, 0))`;
         const game = await resolveCatalogGame({ title: release.title, platformName: release.platform, deferEnrichment: true }, tx);
-        const data = { platform: release.platform, region: release.region, releaseDate: release.releaseDate, dateLabel: release.dateLabel, sourceUrl: release.sourceUrl };
+      const data = { platform: release.platform, region: release.region, releaseDate: release.releaseDate, dateLabel: release.dateLabel, sourceUrl: release.sourceUrl, sourceUrls: release.sourceUrls };
         await tx.releaseAnnouncement.upsert({
           where: { gameId_platform_region: { gameId: game.id, platform: release.platform, region: release.region } },
           create: { gameId: game.id, ...data, checkedAt: now }, update: { ...data, checkedAt: now },

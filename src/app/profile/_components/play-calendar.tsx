@@ -14,6 +14,28 @@ const panel = "rounded-card border border-edge bg-surface p-5 sm:p-6";
 const inputStyle = "min-h-11 w-full min-w-0 rounded-inner border border-edge bg-canvas px-3 text-sm";
 const dateKey = (date: Date) => date.toISOString().slice(0, 10);
 type CalendarProps = { calendarMonth?: string; calendarStatus?: string; locale: Locale; profile: ProfileData; viewAsUserId?: string | null };
+type CalendarRelease = Awaited<ReturnType<typeof readCalendar>>["releases"][number];
+type ReleaseGroup = { gameId: string; game: CalendarRelease["game"]; releases: CalendarRelease[]; sources: { url: string; checkedAt: Date }[] };
+
+function groupReleaseAnnouncements(releases: CalendarRelease[]) {
+  const groups = new Map<string, ReleaseGroup>();
+  for (const release of releases) {
+    const group = groups.get(release.gameId) ?? { gameId: release.gameId, game: release.game, releases: [], sources: [] };
+    group.releases.push(release);
+    for (const url of releaseSources(release)) if (!group.sources.some((source) => source.url === url)) group.sources.push({ url, checkedAt: release.checkedAt });
+    groups.set(release.gameId, group);
+  }
+  return [...groups.values()];
+}
+
+function sourceHost(url: string) {
+  try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; }
+}
+
+function releaseSources(release: CalendarRelease) {
+  const stored = Array.isArray(release.sourceUrls) ? release.sourceUrls.filter((value): value is string => typeof value === "string") : [];
+  return stored.length ? stored : [release.sourceUrl];
+}
 
 export async function PlayCalendar(props: CalendarProps) {
   let data: Awaited<ReturnType<typeof readCalendar>>;
@@ -31,6 +53,7 @@ export function CalendarView({ calendarMonth, calendarStatus, locale, profile, v
   const manualUsed = Boolean(data.state?.manualAt && data.state.manualAt >= utcDay(now));
   const updates = [data.state?.automaticAt, data.state?.manualAt].filter((value): value is Date => Boolean(value)).sort((a, b) => b.getTime() - a.getTime());
   const savedIds = new Set(data.saved.map((item) => item.releaseId));
+  const releaseGroups = groupReleaseAnnouncements(data.releases);
   const trackedEntries = data.entries.filter(entry => (entry.currentPlayingSlot !== null || entry.status === "PLAYING" || entry.manualStartedAt) && !entry.finishedAt && entry.status !== "COMPLETED" && entry.status !== "DROPPED" && entry.activeBacklog);
   const activeEntries = trackedEntries.filter((entry, index) => trackedEntries.findIndex(item => item.gameId === entry.gameId) === index);
   const manualGames = new Set(data.entries.filter(entry => entry.manualStartedAt).map(entry => entry.gameId));
@@ -134,10 +157,25 @@ export function CalendarView({ calendarMonth, calendarStatus, locale, profile, v
       <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">{c.releaseBody}</p>
       {data.releaseRun?.status === "failed" ? <p role="status" className="mt-3 text-sm text-ink-soft">{c.releaseFailed}</p> : !data.releaseRun?.finishedAt || now.getTime() - data.releaseRun.finishedAt.getTime() > 2 * DAY_MS ? <p className="mt-3 text-sm text-ink-soft">{c.releaseDelayed}</p> : null}
       <div className="mt-5 grid gap-4">
-        {data.releases.map((release) => <article key={release.id} className="grid gap-3 rounded-inner border border-edge p-4 sm:grid-cols-[1fr_auto] sm:items-center">
-          <div className="min-w-0"><h4 className="break-words font-display text-lg">{release.game.name}</h4><p className="mt-1 text-sm">{release.releaseDate ? format(release.releaseDate) : `${release.dateLabel} · ${c.noDay}`}</p><p className="mt-1 text-xs text-ink-soft">{release.platform} · {release.region}</p><p className="mt-2 text-xs text-ink-soft">{c.checked}: {format(release.checkedAt)} · <a className="underline underline-offset-2" href={release.sourceUrl} target="_blank" rel="noopener noreferrer">{c.source}</a></p></div>
-          {!readOnly ? <form action={setCalendarReleaseAction}><input type="hidden" name="releaseId" value={release.id} /><input type="hidden" name="operation" value="add" /><CalendarSubmit disabled={savedIds.has(release.id) || !release.releaseDate}>{savedIds.has(release.id) ? c.added : c.add}</CalendarSubmit></form> : null}
-        </article>)}
+        {releaseGroups.map((group) => {
+          const latestChecked = group.releases.reduce((latest, release) => release.checkedAt > latest ? release.checkedAt : latest, group.releases[0].checkedAt);
+          const alreadySaved = group.releases.every((release) => savedIds.has(release.id));
+          const canAdd = group.releases.some((release) => release.releaseDate && !savedIds.has(release.id));
+          return <article key={group.gameId} className="grid gap-4 rounded-inner border border-edge p-4 sm:grid-cols-[1fr_auto] sm:items-start">
+            <div className="min-w-0">
+              <h4 className="break-words font-display text-lg">{group.game.name}</h4>
+              <ul className="mt-3 grid gap-2 text-sm">
+                {group.releases.map((release) => <li key={release.id} className="flex flex-wrap gap-x-3 gap-y-1"><span className="font-semibold">{release.platform}</span><span>{release.releaseDate ? format(release.releaseDate) : `${release.dateLabel} (${c.noDay})`}</span><span className="text-ink-soft">{release.region}</span></li>)}
+              </ul>
+              <p className="mt-3 text-xs text-ink-soft">{c.sources}</p>
+              <ul className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                {group.sources.map((source) => <li key={source.url}><a className="underline underline-offset-2" href={source.url} target="_blank" rel="noopener noreferrer" aria-label={`${c.source}: ${sourceHost(source.url)}`}>{sourceHost(source.url)}</a></li>)}
+              </ul>
+              <p className="mt-2 text-xs text-ink-soft">{c.checked}: {format(latestChecked)}</p>
+            </div>
+            {!readOnly ? <form action={setCalendarReleaseAction} className="sm:pt-0"><input type="hidden" name="operation" value="add" />{group.releases.map((release) => <input type="hidden" name="releaseId" value={release.id} key={release.id} />)}<CalendarSubmit disabled={!canAdd}>{alreadySaved ? c.added : c.add}</CalendarSubmit></form> : null}
+          </article>;
+        })}
       </div>
       {!data.releases.length ? <p className="mt-4 text-sm text-ink-soft">{c.noReleases}</p> : null}
     </section>

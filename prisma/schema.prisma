@@ -497,6 +497,7 @@ model ReleaseAnnouncement {
   releaseDate     DateTime? @db.Date
   dateLabel       String
   sourceUrl       String
+  sourceUrls      Json            @default("[]")
   checkedAt       DateTime
   game            Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   subscribers     UserCalendarRelease[]

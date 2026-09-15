@@ -83,7 +83,7 @@ export async function readCalendar(userId: string) {
     prisma.userCalendarState.findUnique({ where: { userId } }),
     prisma.releaseAnnouncement.findMany({
       where: { checkedAt: { gte: new Date(Date.now() - 7 * DAY_MS) }, OR: [{ releaseDate: null }, { releaseDate: { gte: utcDay() } }] },
-      select: { id: true, platform: true, region: true, releaseDate: true, dateLabel: true, sourceUrl: true, checkedAt: true, game: { select: { name: true } } },
+      select: { id: true, gameId: true, platform: true, region: true, releaseDate: true, dateLabel: true, sourceUrl: true, sourceUrls: true, checkedAt: true, game: { select: { name: true } } },
       orderBy: [{ checkedAt: "desc" }, { releaseDate: "asc" }], take: 30,
     }),
     prisma.userCalendarRelease.findMany({ where: { userId }, include: { release: { include: { game: { select: { name: true } } } } }, orderBy: { createdAt: "desc" }, take: 200 }),

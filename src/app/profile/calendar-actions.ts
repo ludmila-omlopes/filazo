@@ -50,9 +50,9 @@ export async function saveCalendarMinutesAction(data: FormData) {
 
 export async function setCalendarReleaseAction(data: FormData) {
   const userId = await authenticatedUser();
-  const id = z.string().cuid().safeParse(data.get("releaseId"));
-  if (!id.success) finish("invalid");
+  const ids = z.array(z.string().cuid()).min(1).max(12).safeParse(data.getAll("releaseId"));
+  if (!ids.success) finish("invalid");
   let ok = false;
-  try { ok = await setCalendarRelease(userId, id.data, data.get("operation") === "add"); } catch { /* Show a safe error. */ }
+  try { ok = await setCalendarRelease(userId, ids.data, data.get("operation") === "add"); } catch { /* Show a safe error. */ }
   finish(ok ? "saved" : "invalid");
 }
