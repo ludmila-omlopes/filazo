@@ -259,4 +259,4 @@ Run `npm run test:user-isolation` against a disposable local PostgreSQL instance
 
 ## AdSense site verification
 
-Set ADSENSE_PUBLISHER_ID to your ca-pub- publisher ID to serve the Google seller entry at /ads.txt. Use the ads.txt verification method in AdSense after deploying. Missing or invalid configuration returns HTTP 404. This endpoint does not load advertising scripts or enable ads.
+Set ADSENSE_PUBLISHER_ID to your ca-pub- publisher ID. The root layout then loads the AdSense ownership snippet, and /ads.txt serves the matching Google seller entry. Use either verification method in AdSense after deploying. Missing or invalid configuration omits the script and returns HTTP 404 for /ads.txt. This does not render ad units or enable monetization by itself.
