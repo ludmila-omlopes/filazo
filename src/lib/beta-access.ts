@@ -16,23 +16,7 @@ type AccessUser = Pick<User, "email" | "createdAt"> & {
 };
 
 export function canAccessPlatform(user: AccessUser | null) {
-  if (!user) {
-    return false;
-  }
-
-  if (isAdminEmail(user.email)) {
-    return true;
-  }
-
-  if (!user.betaApplication) {
-    return true;
-  }
-
-  return (
-    user.betaApplication.status === BetaTesterStatus.APPROVED &&
-    (!user.betaApplication.accessExpiresAt ||
-      user.betaApplication.accessExpiresAt.getTime() > Date.now())
-  );
+  return Boolean(user);
 }
 
 export async function getSessionUserWithBeta(userId: string | null) {
@@ -51,11 +35,7 @@ export function getBetaAccessRedirect(user: AccessUser | null) {
     return "/login";
   }
 
-  if (canAccessPlatform(user)) {
-    return null;
-  }
-
-  return "/beta";
+  return null;
 }
 
 export async function requirePlatformAccess(userId: string | null) {
