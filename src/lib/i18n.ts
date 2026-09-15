@@ -286,6 +286,37 @@ const messages = {
     "admin.ai.saved": "AI settings updated.",
     "admin.ai.invalidSettings":
       "AI settings were outside the accepted ranges.",
+    "admin.ai.navLabel": "AI administration",
+    "admin.ai.featuresTab": "Feature map",
+    "admin.ai.settingsTab": "Budget and controls",
+    "admin.ai.catalog.kicker": "AI inventory",
+    "admin.ai.catalog.title": "Features using AI behind the scenes",
+    "admin.ai.catalog.body":
+      "A transparent map of the platform's AI entry points: what triggers them, which personal context they receive, what they return, and where the admin controls them.",
+    "admin.ai.catalog.legendTitle": "How to read this list",
+    "admin.ai.catalog.legendBody":
+      "Generative AI calls a model. AI + local rules combines model output with deterministic catalog logic and keeps a local fallback. Data automations query an external source without generating content.",
+    "admin.ai.catalog.generativeBadge": "Generative AI",
+    "admin.ai.catalog.hybridBadge": "AI + local rules",
+    "admin.ai.catalog.dataBadge": "External data",
+    "admin.ai.catalog.aiSectionTitle": "Generative-AI features",
+    "admin.ai.catalog.aiSectionBody":
+      "The status reflects both the admin toggle and whether an AI provider is configured in this environment.",
+    "admin.ai.catalog.enabled": "Ready",
+    "admin.ai.catalog.disabled": "Disabled",
+    "admin.ai.catalog.providerMissing": "Provider not configured",
+    "admin.ai.catalog.when": "When it runs",
+    "admin.ai.catalog.technology": "Technology",
+    "admin.ai.catalog.input": "Context received",
+    "admin.ai.catalog.output": "What it returns",
+    "admin.ai.catalog.budget": "Budget key: {feature}",
+    "admin.ai.catalog.relatedKicker": "Clear boundary",
+    "admin.ai.catalog.relatedTitle": "Automations that are not generative AI",
+    "admin.ai.catalog.relatedBody":
+      "These flows support the AI surfaces or look similar to them, but they query structured providers or run local rules. They are listed so the admin can distinguish data retrieval from model-generated output.",
+    "admin.ai.catalog.noAiBadge": "No generative AI",
+    "admin.ai.catalog.note":
+      "This inventory is maintained alongside the AI budget features. When a new model call is added, add it here and give it a budget key before exposing it to users.",
     "admin.preview.kicker": "User preview",
     "admin.preview.title": "View a user profile",
     "admin.preview.body":
@@ -1861,6 +1892,37 @@ const messages = {
     "admin.ai.saved": "Configuracoes de IA atualizadas.",
     "admin.ai.invalidSettings":
       "As configuracoes de IA estavam fora dos intervalos aceitos.",
+    "admin.ai.navLabel": "Administracao de IA",
+    "admin.ai.featuresTab": "Mapa de funcionalidades",
+    "admin.ai.settingsTab": "Orcamento e controles",
+    "admin.ai.catalog.kicker": "Inventario de IA",
+    "admin.ai.catalog.title": "Funcionalidades que usam IA nos bastidores",
+    "admin.ai.catalog.body":
+      "Um mapa transparente dos pontos de entrada de IA da plataforma: o que os aciona, qual contexto pessoal recebem, o que devolvem e onde o admin os controla.",
+    "admin.ai.catalog.legendTitle": "Como ler esta lista",
+    "admin.ai.catalog.legendBody":
+      "IA generativa chama um modelo. IA + regras locais combina a saída do modelo com a lógica determinística do catálogo e mantém um fallback local. Automações de dados consultam uma fonte externa sem gerar conteúdo.",
+    "admin.ai.catalog.generativeBadge": "IA generativa",
+    "admin.ai.catalog.hybridBadge": "IA + regras locais",
+    "admin.ai.catalog.dataBadge": "Dados externos",
+    "admin.ai.catalog.aiSectionTitle": "Funcionalidades com IA generativa",
+    "admin.ai.catalog.aiSectionBody":
+      "O status reflete tanto o toggle do admin quanto a existência de um provedor de IA configurado neste ambiente.",
+    "admin.ai.catalog.enabled": "Pronto",
+    "admin.ai.catalog.disabled": "Desativado",
+    "admin.ai.catalog.providerMissing": "Provedor não configurado",
+    "admin.ai.catalog.when": "Quando executa",
+    "admin.ai.catalog.technology": "Tecnologia",
+    "admin.ai.catalog.input": "Contexto recebido",
+    "admin.ai.catalog.output": "O que retorna",
+    "admin.ai.catalog.budget": "Chave de orçamento: {feature}",
+    "admin.ai.catalog.relatedKicker": "Limite claro",
+    "admin.ai.catalog.relatedTitle": "Automações que não são IA generativa",
+    "admin.ai.catalog.relatedBody":
+      "Estes fluxos apoiam as superfícies de IA ou parecem semelhantes, mas consultam provedores estruturados ou executam regras locais. Eles aparecem aqui para separar recuperação de dados de saída gerada por modelo.",
+    "admin.ai.catalog.noAiBadge": "Sem IA generativa",
+    "admin.ai.catalog.note":
+      "Este inventário é mantido junto das funcionalidades de orçamento de IA. Quando uma nova chamada de modelo for adicionada, inclua-a aqui e dê a ela uma chave de orçamento antes de expô-la às pessoas usuárias.",
     "admin.preview.kicker": "Visualizacao de usuario",
     "admin.preview.title": "Ver perfil de usuario",
     "admin.preview.body":

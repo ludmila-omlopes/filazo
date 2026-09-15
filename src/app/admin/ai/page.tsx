@@ -13,6 +13,7 @@ import { getSessionUserWithBeta, isAdminEmail } from "@/lib/beta-access";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
+import { AdminAiNav } from "./ai-nav";
 
 type AdminAiSearchParams = Promise<{
   aiSettings?: string;
@@ -809,6 +810,7 @@ export default async function AdminAiPage({
 
       <section className="grid gap-4">
         <AdminNav current="/admin/ai" locale={locale} />
+        <AdminAiNav current="settings" locale={locale} />
       </section>
 
       <AiSettingsForm locale={locale} settings={aiSettings} t={t} />
