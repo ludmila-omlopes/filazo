@@ -353,9 +353,50 @@ model Game {
   userReviews               UserGameReview[]
   journalEntries            GameJournalEntry[]
   metadataJobs              GameMetadataJob[]
+  marketplaceSnapshots      GameMarketplaceSnapshot[]
+  steamReviewSnapshots      GameSteamReviewSnapshot[]
 
   @@index([normalizedName])
   @@index([createdAt])
+}
+
+// Public, region-specific store and subscription data shared by every visitor
+// of the canonical game page. Refresh leases prevent duplicate provider calls.
+model GameMarketplaceSnapshot {
+  gameId                String
+  region                String   @db.VarChar(2)
+  offers                Json
+  subscriptions         Json
+  checkedAt             DateTime?
+  refreshLeaseToken     String?
+  refreshLeaseExpiresAt DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  game                  Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, region])
+  @@index([checkedAt])
+  @@index([refreshLeaseExpiresAt])
+}
+
+// Public Steam reviews shared by every visitor of the canonical game page.
+// Each supported platform locale has its own on-demand snapshot.
+model GameSteamReviewSnapshot {
+  gameId                String
+  language              String
+  appId                 String
+  reviews               Json
+  summary               Json
+  checkedAt             DateTime?
+  refreshLeaseToken     String?
+  refreshLeaseExpiresAt DateTime?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  game                  Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, language])
+  @@index([checkedAt])
+  @@index([refreshLeaseExpiresAt])
 }
 
 model GameProviderLink {

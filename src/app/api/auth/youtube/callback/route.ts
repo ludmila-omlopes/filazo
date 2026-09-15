@@ -43,7 +43,7 @@ export async function GET(request: Request) {
     await setUserSession(user.id);
 
     return NextResponse.redirect(
-      new URL(isAdminEmail(user.email) ? "/admin" : "/beta", request.url),
+      new URL(isAdminEmail(user.email) ? "/admin" : "/profile", request.url),
     );
   } catch (error) {
     const { t } = await getRequestTranslator();
@@ -53,7 +53,10 @@ export async function GET(request: Request) {
         : t("auth.error.youtubeCallbackFailed");
 
     return NextResponse.redirect(
-      new URL(`/beta?error=${encodeURIComponent(message)}`, request.url),
+      new URL(
+        `/login?auth=1&error=${encodeURIComponent(message)}`,
+        request.url,
+      ),
     );
   }
 }

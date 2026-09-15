@@ -324,7 +324,7 @@ export function MobileAccountMenu({
         ref={menuRef}
         style={{
           maxHeight:
-            "var(--mobile-account-menu-max-height, calc(100dvh - var(--beta-banner-h) - 5rem))",
+            "var(--mobile-account-menu-max-height, calc(100dvh - 5rem))",
         }}
       >
         <div>

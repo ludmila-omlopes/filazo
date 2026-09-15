@@ -164,10 +164,10 @@ export const AI_FEATURES = [
       pt: "Ofertas e assinaturas compatíveis com disponibilidade, preço quando confirmado e links das fontes.",
     },
     technology: {
-      en: "Generative model with live web search and page verification",
-      pt: "Modelo generativo com busca na web e verificação de páginas",
+      en: "Direct store/catalog adapters; optional generative web search for free-form requests",
+      pt: "Adaptadores diretos de lojas/catálogos; busca generativa opcional para pedidos livres",
     },
-    mode: "ai",
+    mode: "hybrid",
     budgetFeature: "assistant_marketplace",
   },
   {

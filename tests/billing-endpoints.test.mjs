@@ -72,11 +72,8 @@ test("signed-out requests cannot create checkouts, portal sessions or refresh su
   assert.deepEqual(calls, []);
 });
 
-test("checkout requires platform access and recurring-payment consent", async () => {
-  const denied = actionsFor({ id: "owner" }, false);
-  await assert.rejects(denied.actions.startProCheckoutAction(form()), (e) => e.url === "/beta");
-  assert.deepEqual(denied.calls, []);
-  const allowed = actionsFor({ id: "owner" });
+test("any signed-in user can start checkout after giving recurring-payment consent", async () => {
+  const allowed = actionsFor({ id: "owner" }, false);
   await assert.rejects(allowed.actions.startProCheckoutAction(new FormData()), (e) => e.url === "/account/billing?error=consent");
   assert.deepEqual(allowed.calls, []);
 });
@@ -87,7 +84,7 @@ test("checkout ignores forged user, customer and price fields", async () => {
   assert.deepEqual(calls, [["checkout", "owner"]]);
 });
 
-test("a user with expired beta access can still manage their own subscription", async () => {
+test("a signed-in user can manage their own subscription", async () => {
   const { actions, calls } = actionsFor({ id: "owner" }, false);
   await assert.rejects(actions.manageSubscriptionAction(form()), (e) => e.url === "https://billing.stripe.com/test");
   assert.deepEqual(calls, [["portal", "owner"]]);

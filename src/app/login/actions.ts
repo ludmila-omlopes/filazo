@@ -62,10 +62,6 @@ export async function emailAuthAction(formData: FormData) {
   const email = normalizeEmail(parsed.data.email);
   const password = parsed.data.password;
 
-  if (parsed.data.mode === "signup") {
-    redirectWithAuthError(t("auth.error.registrationClosed"));
-  }
-
   if (parsed.data.mode === "signin") {
     const limitError = await checkActionAbuse([ABUSE_LIMITS.loginEmail], email);
     if (limitError) redirectWithAuthError(limitError);

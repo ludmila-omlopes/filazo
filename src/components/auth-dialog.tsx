@@ -39,7 +39,7 @@ export function AuthDialog({
   triggerVariant?: ButtonVariant;
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const [mode] = useState<AuthMode>("signin");
+  const [mode, setMode] = useState<AuthMode>("signin");
   const [showPassword, setShowPassword] = useState(false);
   const [showContactForm, setShowContactForm] = useState(false);
   const titleId = useId();
@@ -174,12 +174,26 @@ export function AuthDialog({
               )
             ) : null}
 
-            <div className="mb-5 rounded-inner border border-cream/10 bg-cream/6 p-4 text-sm leading-relaxed text-cream/78">
-              {t("auth.dialog.registrationClosed")}
-            </div>
-
             <form action={emailAuthAction} className="grid gap-4">
               <input name="mode" type="hidden" value={mode} />
+
+              {mode === "signup" ? (
+                <label className="grid gap-2">
+                  <span className="text-sm font-semibold text-cream/80">
+                    {t("auth.dialog.name")}
+                  </span>
+                  <input
+                    autoComplete="name"
+                    className="min-h-13 w-full rounded-inner border border-cream/8 bg-cream/8 px-4 text-cream placeholder:text-cream/38 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow"
+                    maxLength={48}
+                    minLength={2}
+                    name="displayName"
+                    placeholder={t("auth.dialog.namePlaceholder")}
+                    required
+                    type="text"
+                  />
+                </label>
+              ) : null}
 
               <label className="grid gap-2">
                 <span className="text-sm font-semibold text-cream/80">
@@ -235,13 +249,80 @@ export function AuthDialog({
                 </span>
               </label>
 
+              {mode === "signup" ? (
+                <>
+                  <label className="grid gap-2">
+                    <span className="text-sm font-semibold text-cream/80">
+                      {t("auth.dialog.confirmPassword")}
+                    </span>
+                    <input
+                      autoComplete="new-password"
+                      className="min-h-13 w-full rounded-inner border border-cream/8 bg-cream/8 px-4 text-cream placeholder:text-cream/38 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow"
+                      maxLength={128}
+                      minLength={8}
+                      name="confirmPassword"
+                      placeholder={t("auth.dialog.confirmPasswordPlaceholder")}
+                      required
+                      type="password"
+                    />
+                  </label>
+
+                  <label className="flex items-start gap-3 text-sm leading-relaxed text-cream/72">
+                    <input
+                      className="mt-1 size-4 shrink-0 accent-[color:var(--color-glow)]"
+                      name="terms"
+                      required
+                      type="checkbox"
+                    />
+                    <span>
+                      {t("auth.dialog.termsPrefix")} {" "}
+                      <Link
+                        className="underline decoration-cream/35 underline-offset-4"
+                        href="/terms"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        {t("auth.dialog.terms")}
+                      </Link>{" "}/ {" "}
+                      <Link
+                        className="underline decoration-cream/35 underline-offset-4"
+                        href="/privacy"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        {t("auth.dialog.privacy")}
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                </>
+              ) : null}
+
               <Button
                 className="mt-1 min-h-13 bg-glow text-base text-dusk-deep hover:bg-cream"
                 type="submit"
               >
-                {t("auth.dialog.signIn")}
+                {t(
+                  mode === "signup"
+                    ? "auth.dialog.createAccount"
+                    : "auth.dialog.signIn",
+                )}
               </Button>
             </form>
+
+            <button
+              className="mt-4 w-full text-center text-sm font-semibold text-cream/72 underline decoration-cream/25 underline-offset-4 hover:text-cream"
+              onClick={() =>
+                setMode((current) =>
+                  current === "signin" ? "signup" : "signin",
+                )
+              }
+              type="button"
+            >
+              {t(
+                mode === "signup"
+                  ? "auth.dialog.signIn"
+                  : "auth.dialog.createAccount",
+              )}
+            </button>
 
             <div className="my-6 flex items-center gap-4 text-xs font-bold uppercase tracking-[0.18em] text-cream/45">
               <span className="h-px flex-1 bg-cream/10" />
@@ -262,15 +343,6 @@ export function AuthDialog({
               </a>
             </Button>
 
-            <Button
-              asChild
-              className="mt-3 min-h-13 w-full border-cream/10 bg-transparent text-base text-cream hover:bg-cream/10"
-              variant="ghost"
-            >
-              <Link href="/beta" onClick={() => setIsOpen(false)}>
-                {t("auth.dialog.requestBeta")}
-              </Link>
-            </Button>
           </section>
         </div>
       ) : null}

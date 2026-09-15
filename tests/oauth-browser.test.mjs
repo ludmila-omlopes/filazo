@@ -37,9 +37,9 @@ test("Google OAuth allows regular mobile browsers", () => {
 });
 
 test("OAuth return paths stay inside known auth surfaces", () => {
-  assert.equal(getSafeOAuthReturnPath("/admin", "/beta"), "/admin");
-  assert.equal(getSafeOAuthReturnPath("/login?auth=1", "/beta"), "/login?auth=1");
-  assert.equal(getSafeOAuthReturnPath("/profile", "/beta"), "/beta");
-  assert.equal(getSafeOAuthReturnPath("https://evil.example", "/beta"), "/beta");
-  assert.equal(getSafeOAuthReturnPath("//evil.example", "/beta"), "/beta");
+  assert.equal(getSafeOAuthReturnPath("/admin", "/profile"), "/admin");
+  assert.equal(getSafeOAuthReturnPath("/login?auth=1", "/profile"), "/login?auth=1");
+  assert.equal(getSafeOAuthReturnPath("/profile", "/profile"), "/profile");
+  assert.equal(getSafeOAuthReturnPath("https://evil.example", "/profile"), "/profile");
+  assert.equal(getSafeOAuthReturnPath("//evil.example", "/profile"), "/profile");
 });

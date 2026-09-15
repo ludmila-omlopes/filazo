@@ -6,7 +6,7 @@ import { manageSubscriptionAction, refreshSubscriptionAction, startProCheckoutAc
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
-import { getSessionUserWithBeta, canAccessPlatform } from "@/lib/beta-access";
+import { getSessionUserWithBeta } from "@/lib/beta-access";
 import { hasProAccess } from "@/lib/account-plans";
 import { getBillingConfig } from "@/lib/billing-config";
 import { blocksNewSubscription, hasPaidProAccess, PRO_MONTHLY_CENTS } from "@/lib/billing-policy";
@@ -80,14 +80,13 @@ export default async function BillingPage({ searchParams }: {
           <p className="text-ink-soft">{t("billing.cancelPolicy")}</p>
         </div> : null}
         {!config.checkoutEnabled && !pro ? <p className="text-sm text-ink-soft">{t("billing.unavailable")}</p> : null}
-        {!canAccessPlatform(user) ? <Notice tone="info">{t("billing.betaRequired")}</Notice> : null}
         <div className="flex flex-wrap items-center gap-3">
           {!pro && !existingSubscription ? <form action={startProCheckoutAction} className="grid justify-items-start gap-3">
             <label className="flex max-w-[55ch] items-start gap-2 text-sm text-ink-soft">
               <input type="checkbox" name="brazilConsent" value="BR" required className="mt-1 size-4 shrink-0" />
               <span>{t("billing.brazilConfirm")}</span>
             </label>
-            <BillingButton disabled={!config.checkoutEnabled || !canAccessPlatform(user)} pendingLabel={t("billing.opening")}>
+            <BillingButton disabled={!config.checkoutEnabled} pendingLabel={t("billing.opening")}>
               {t("billing.subscribe", { price })}
             </BillingButton>
           </form> : null}

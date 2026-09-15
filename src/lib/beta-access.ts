@@ -1,4 +1,4 @@
-import { BetaTesterStatus, type Prisma, type User } from "@prisma/client";
+import { type Prisma, type User } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
@@ -8,31 +8,10 @@ export function isAdminEmail(email: string | null | undefined) {
   return email?.trim().toLowerCase() === ADMIN_EMAIL;
 }
 
-type AccessUser = Pick<User, "email" | "createdAt"> & {
-  betaApplication?: {
-    status: BetaTesterStatus;
-    accessExpiresAt: Date | null;
-  } | null;
-};
+type AccessUser = Pick<User, "email" | "createdAt">;
 
 export function canAccessPlatform(user: AccessUser | null) {
-  if (!user) {
-    return false;
-  }
-
-  if (isAdminEmail(user.email)) {
-    return true;
-  }
-
-  if (!user.betaApplication) {
-    return true;
-  }
-
-  return (
-    user.betaApplication.status === BetaTesterStatus.APPROVED &&
-    (!user.betaApplication.accessExpiresAt ||
-      user.betaApplication.accessExpiresAt.getTime() > Date.now())
-  );
+  return Boolean(user);
 }
 
 export async function getSessionUserWithBeta(userId: string | null) {
@@ -51,11 +30,7 @@ export function getBetaAccessRedirect(user: AccessUser | null) {
     return "/login";
   }
 
-  if (canAccessPlatform(user)) {
-    return null;
-  }
-
-  return "/beta";
+  return null;
 }
 
 export async function requirePlatformAccess(userId: string | null) {
@@ -77,17 +52,14 @@ export async function createOrUpdateYoutubeBetaUser(profile: {
 }) {
   const existingByYoutube = await prisma.user.findUnique({
     where: { youtubeSubject: profile.subject },
-    include: { betaApplication: true },
   });
 
   const existingByGoogle = await prisma.user.findUnique({
     where: { googleSubject: profile.subject },
-    include: { betaApplication: true },
   });
 
   const existingByEmail = await prisma.user.findUnique({
     where: { email: profile.email },
-    include: { betaApplication: true },
   });
 
   const existing = existingByYoutube ?? existingByGoogle ?? existingByEmail;
@@ -111,16 +83,6 @@ export async function createOrUpdateYoutubeBetaUser(profile: {
           youtubeSubject: profile.subject,
         },
       });
-
-  if (!isAdminEmail(user.email) && !existing) {
-    await prisma.betaTesterApplication.create({
-      data: {
-        userId: user.id,
-        name: profile.name,
-        status: BetaTesterStatus.DRAFT,
-      },
-    });
-  }
 
   return user;
 }

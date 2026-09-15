@@ -28,7 +28,7 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const returnPath = getSafeOAuthReturnPath(
     requestUrl.searchParams.get("next"),
-    "/beta",
+    "/profile",
   );
 
   try {
