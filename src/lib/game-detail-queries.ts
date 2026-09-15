@@ -1,4 +1,6 @@
 import { UserGameStatus, type PrismaClient, type UserGameEntry } from "@prisma/client";
+import { parseMarketplaceSnapshot } from "@/lib/assistant/marketplace-search";
+import { parseSteamReviewsSnapshot } from "@/lib/steam-reviews";
 
 type DisplayEntry = Pick<UserGameEntry, "currentPlayingSlot" | "playtimeSource" | "updatedAt">;
 
@@ -15,7 +17,16 @@ export const COMMUNITY_SHELF_LIMIT = 6;
 /** Reading a game never refreshes providers or mutates another user's data. */
 export async function readGameDetail(db: PrismaClient, slug: string, userId: string | null) {
   const game = await db.game.findUnique({
-    where: { slug }, include: { providerLinks: { omit: { rawData: true } } },
+    where: { slug }, include: {
+      providerLinks: { omit: { rawData: true } },
+      marketplaceSnapshots: {
+        where: { checkedAt: { not: null } },
+        select: { region: true, offers: true, subscriptions: true, checkedAt: true },
+      },
+      steamReviewSnapshots: {
+        select: { language: true, appId: true, reviews: true, summary: true, checkedAt: true },
+      },
+    },
   });
   if (!game) return null;
 
@@ -71,7 +82,26 @@ export async function readGameDetail(db: PrismaClient, slug: string, userId: str
     const entry = chooseDisplayedGameEntry(user.gameEntries);
     return entry ? [{ ...entry, user: { displayName: user.displayName } }] : [];
   });
-  return { ...game, userEntries, userReviews, journalEntries, communityEntries };
+  const marketplaceSnapshots = game.marketplaceSnapshots
+    .map((snapshot) => parseMarketplaceSnapshot({
+      region: snapshot.region,
+      offers: snapshot.offers,
+      subscriptions: snapshot.subscriptions,
+      checkedAt: snapshot.checkedAt?.toISOString(),
+    }))
+    .filter((snapshot) => snapshot !== null);
+  const steamReviewSnapshots = game.steamReviewSnapshots
+    .map((snapshot) => snapshot.checkedAt
+      ? parseSteamReviewsSnapshot({
+          language: snapshot.language,
+          appId: snapshot.appId,
+          reviews: snapshot.reviews,
+          summary: snapshot.summary,
+          checkedAt: snapshot.checkedAt.toISOString(),
+        })
+      : null)
+    .filter((snapshot) => snapshot !== null);
+  return { ...game, marketplaceSnapshots, steamReviewSnapshots, userEntries, userReviews, journalEntries, communityEntries };
 }
 
 /** SEO metadata needs no library, journal, community or provider queries. */

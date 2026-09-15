@@ -15,6 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
 import { noIndexMetadata } from "@/lib/site-metadata";
+import { PlanComparison } from "@/components/plan-comparison";
 
 export const metadata = noIndexMetadata;
 export const maxDuration = 60;
@@ -102,5 +103,6 @@ export default async function BillingPage({ searchParams }: {
         {!pro ? <p className="text-xs leading-relaxed text-ink-soft">{t("billing.terms")}</p> : null}
       </CardContent>
     </Card>
+    <PlanComparison locale={locale} />
   </main>;
 }

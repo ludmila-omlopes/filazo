@@ -1,5 +1,6 @@
 import { del, get, head } from "@vercel/blob";
 import { z } from "zod";
+import { journalUploadMaxBytes } from "./journal-upload-limits";
 import {
   getAllowedUploadExtensions,
   getAllowedUploadExtension,
@@ -90,8 +91,8 @@ export async function resolveJournalUpload({
   if (!mimeType || !extension || !payload.pathname.endsWith(extension)) {
     throw new Error("Uploaded media type is not allowed.");
   }
-  if (payload.kind === "audio" && blob.size > maxAudioBytes) {
-    throw new Error("Voice upload exceeds the configured file-size limit.");
+  if (blob.size > journalUploadMaxBytes(payload.kind, maxAudioBytes)) {
+    throw new Error("Upload exceeds the configured file-size limit.");
   }
 
   const storageKey = `${STORAGE_KEY_PREFIX}${payload.pathname}`;
