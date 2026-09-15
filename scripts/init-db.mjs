@@ -26,6 +26,7 @@ if (databaseUrl.startsWith("file:")) {
 // Also creates UserDailyActivity and PlatformError for the administrator dashboard.
 // Includes calendar observations, persisted forecasts, daily refresh limits,
 // manual sessions, cited release dates and personal release subscriptions.
+// UserGamePlayDate preserves only provider-confirmed first/last play dates.
 const result = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
   cwd: process.cwd(),
   env: process.env,

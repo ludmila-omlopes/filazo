@@ -163,6 +163,7 @@ model User {
   dailyActivity            UserDailyActivity[]
   calendarState            UserCalendarState?
   calendarReleases         UserCalendarRelease[]
+  gamePlayDates            UserGamePlayDate[]
 
   @@index([lastActiveAt])
   @@index([createdAt])
@@ -347,6 +348,7 @@ model Game {
   journalEntries            GameJournalEntry[]
   metadataJobs              GameMetadataJob[]
   releaseAnnouncements      ReleaseAnnouncement[]
+  userPlayDates             UserGamePlayDate[]
 
   @@index([normalizedName])
   @@index([createdAt])
@@ -450,6 +452,21 @@ model PlayObservation {
   entry           UserGameEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@id([entryId, day])
+}
+
+// Dates confirmed by provider play-history endpoints; never inferred sessions.
+model UserGamePlayDate {
+  userId     String
+  gameId     String
+  provider   ExternalProvider
+  day        DateTime @db.Date
+  kind       String
+  observedAt DateTime @default(now())
+  user       User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game       Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([userId, gameId, provider, day, kind])
+  @@index([userId, day])
 }
 
 model CalendarEstimate {

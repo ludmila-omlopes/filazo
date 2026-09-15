@@ -2,14 +2,14 @@
 
 import { useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
-import { CalendarDays, Check, ChevronLeft, ChevronRight, CircleDashed, List, Play } from "lucide-react";
+import { CalendarDays, Check, ChevronLeft, ChevronRight, CircleDashed, Gamepad2, List, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { calendarCopy } from "@/lib/calendar-copy";
 import { calendarMonthDays, eventsInCalendarMonth, shiftCalendarMonth, type CalendarEvent, type CalendarEventKind } from "@/lib/calendar-month";
 import type { Locale } from "@/lib/i18n";
 
-const icons = { start: Play, finish: Check, estimate: CircleDashed, release: CalendarDays };
-const kinds: CalendarEventKind[] = ["start", "finish", "estimate", "release"];
+const icons = { start: Play, finish: Check, estimate: CircleDashed, release: CalendarDays, played: Gamepad2 };
+const kinds: CalendarEventKind[] = ["start", "played", "finish", "estimate", "release"];
 
 export function CalendarMonthView({ initialMonth, today, events, locale }: { initialMonth: string; today: string; events: CalendarEvent[]; locale: Locale }) {
   const c = calendarCopy(locale);
@@ -17,7 +17,7 @@ export function CalendarMonthView({ initialMonth, today, events, locale }: { ini
   const [selected, setSelected] = useState(today.startsWith(initialMonth) ? today : eventsInCalendarMonth(events, initialMonth)[0]?.date ?? `${initialMonth}-01`);
   const [view, setView] = useState<"month" | "list">("month");
   const buttons = useRef(new Map<string, HTMLButtonElement>());
-  const labels = { start: c.began, finish: c.actualFinish, estimate: c.estimated, release: c.release };
+  const labels = { start: c.began, finish: c.actualFinish, estimate: c.estimated, release: c.release, played: c.played };
   const days = calendarMonthDays(month);
   const visible = eventsInCalendarMonth(events, month);
   const selectedEvents = visible.filter(event => event.date === selected);

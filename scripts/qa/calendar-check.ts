@@ -4,6 +4,8 @@ import { readCalendar, refreshCalendar, runDailyCalendars } from "../../src/lib/
 import { saveCalendarMinutes, saveCalendarStart, setCalendarRelease } from "../../src/lib/calendar-writes";
 import { runReleaseDateSearch } from "../../src/lib/calendar-release-worker";
 import { DAY_MS, utcDay } from "../../src/lib/calendar-policy";
+import { recordProviderPlayDates } from "../../src/lib/provider-play-date-store";
+import { calendarStartForGame } from "../../src/lib/provider-play-dates";
 
 async function main() {
   const schema = new URL(process.env.DATABASE_URL!).searchParams.get("schema");
@@ -100,6 +102,32 @@ async function main() {
     assert.equal(await prisma.releaseAnnouncement.count({ where: { gameId: game.id, platform: "PS5" } }), 1);
   } finally { globalThis.fetch = originalFetch; }
   console.log("PASS one global AI search per day, canonical game reuse and cited platform dates.");
+
+  const account = await prisma.externalAccount.create({ data: { userId: alice.id, provider: "PLAYSTATION", providerAccountId: "calendar-psn-test" } });
+  const psnRaw = { syncSource: "played-game", firstPlayedDateTime: start.toISOString(), lastPlayedDateTime: new Date(now.getTime() - DAY_MS).toISOString() };
+  await prisma.userGameEntry.update({ where: { id: entry.id }, data: { provider: "PLAYSTATION", externalAccountId: account.id, rawData: psnRaw, manualStartedAt: null, playtimeSource: "sync", lastSyncedAt: now } });
+  const inherited = await readCalendar(alice.id);
+  assert.deepEqual(calendarStartForGame(inherited.entries.find(item => item.id === entry.id)!, inherited.playDates).date, utcDay(start));
+  assert.equal(await prisma.userGamePlayDate.count(), 0, "Reading legacy snapshots must not write history");
+  const input = { userId: alice.id, gameId: game.id, accountId: account.id, provider: "PLAYSTATION" as const, rawData: { ...psnRaw, lastPlayedDateTime: now.toISOString() } };
+  await Promise.all([recordProviderPlayDates(input), recordProviderPlayDates(input)]);
+  assert.equal(await prisma.userGamePlayDate.count({ where: { userId: alice.id } }), 3, "First and two last-play snapshots, with no inferred days");
+  await assert.rejects(() => recordProviderPlayDates({ ...input, userId: bob.id }));
+  assert.equal(await prisma.userGamePlayDate.count({ where: { userId: bob.id } }), 0);
+  assert.equal((await readCalendar(bob.id)).playDates.length, 0);
+  const steamAccount = await prisma.externalAccount.create({ data: { userId: alice.id, provider: "STEAM", providerAccountId: "calendar-steam-test" } });
+  await recordProviderPlayDates({ ...input, accountId: steamAccount.id, provider: "STEAM", rawData: { rtimeLastPlayed: Math.floor(now.getTime() / 1000) } });
+  await prisma.userGameEntry.update({ where: { id: entry.id }, data: { rawData: {}, provider: "STEAM", externalAccountId: steamAccount.id } });
+  const persisted = await readCalendar(alice.id);
+  assert.deepEqual(calendarStartForGame(persisted.entries.find(item => item.id === entry.id)!, persisted.playDates).date, utcDay(start));
+  await refreshCalendar(alice.id, "manual", new Date(later.getTime() + DAY_MS));
+  assert.notEqual((await prisma.calendarEstimate.findUniqueOrThrow({ where: { entryId: entry.id } })).reason, "missing_start");
+  const manualStart = new Date(now.getTime() - 2 * DAY_MS);
+  await saveCalendarStart(alice.id, entry.id, manualStart, now);
+  await recordProviderPlayDates(input);
+  const corrected = await readCalendar(alice.id);
+  assert.deepEqual(calendarStartForGame(corrected.entries.find(item => item.id === entry.id)!, corrected.playDates).date, manualStart);
+  console.log("PASS provider date recovery, deduplication, cross-platform history, user isolation and manual precedence.");
 }
 
 main().finally(() => prisma.$disconnect());

@@ -11,7 +11,7 @@
 
 ## Experiência implementada
 
-1. Registrar ou corrigir “Comecei em”, a data real informada pela pessoa. A data em que o jogo entrou em Jogando agora não é tratada como início confirmado.
+1. Preencher “Comecei em” com a primeira data de jogo informada pelo PlayStation, quando disponível, ou registrar/corrigir manualmente. A correção manual sempre tem prioridade. A data em que o jogo entrou em Jogando agora não é tratada como início confirmado.
 2. Acompanhar o ritmo de cada jogo, com início e previsão separados. Sem dados suficientes, mostrar o motivo em linguagem direta.
 3. Consultar primeiro a grade mensal, com dias da semana, destaque de hoje e seleção de um dia para ver os eventos completos. Alternar entre mês e lista, navegar por meses e voltar a hoje sem recarregar a página. Diferenciar início, término observado, término estimado e lançamento por ícones e texto, sem barras sobrepostas ou rolagem lateral. No celular, os ícones mantêm a grade compacta; os títulos completos aparecem nos detalhes do dia. As setas do teclado percorrem dias e semanas.
 4. Consultar datas de lançamento ao final da página e decidir quais adicionar. A pesquisa cobre lançamentos gerais, de todas as plataformas.
@@ -27,6 +27,12 @@ Tempo restante = duração da história principal − horas acumuladas. Dias at�
 O resultado fica salvo em `CalendarEstimate`: abrir a página não calcula nem modifica nada. A rotina percorre usuários em lotes, atualizando cada um uma vez por dia UTC, inclusive sem visita à página. Há uma atualização manual adicional por usuário por dia UTC. A exclusão mútua no PostgreSQL protege solicitações concorrentes, e uma falha transacional não gasta a atualização. Corrigir o início invalida a previsão antiga sem renovar a cota.
 
 Limitação inicial: não existem observações históricas anteriores à ativação. É necessário acumular pelo menos uma semana de dados; a informação de início, sozinha, não autoriza distribuir as horas importadas por esse período.
+
+## Datas das plataformas
+
+O calendário lê os dados pessoais já sincronizados, sem pedir uma nova conexão ou alterar registros durante a abertura da página. PlayStation fornece primeira/última atividade; Steam fornece a última atividade disponível no fluxo atual; Xbox usa somente `titleHistory.lastTimePlayed`, nunca a data de uma conquista. Datas inválidas, futuras e de compra são descartadas. As datas são exibidas em UTC, com a origem identificada. Jogos apenas importados não são tratados como atualmente em andamento.
+
+`UserGamePlayDate` preserva as datas confirmadas a cada sincronização, por usuário, jogo canônico, plataforma e tipo. A gravação é idempotente, inclui o registro anterior antes de substituí-lo e valida a propriedade da conta sob bloqueio transacional. Não registra dias intermediários nem inventa duração de sessões. A leitura reaproveita o snapshot pessoal existente imediatamente; a próxima sincronização também o persiste no histórico. As estimativas continuam usando observações de horas, não a distância entre primeira e última atividade.
 
 ## Datas de lançamento
 

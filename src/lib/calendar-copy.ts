@@ -1,5 +1,6 @@
 import type { Locale } from "./i18n";
 const en = {
+  importedFrom: "Reported by", manualDate: "Date set by you", lastPlayed: "Latest known play date", played: "Played", platformDateHelp: "Platform dates appear automatically when available. They confirm activity on those days, not every session between them. Your start-date corrections take priority.",
   monthView: "Month", listView: "List", viewLabel: "Calendar view", today: "Today", selectDay: "Select a day to see its games and dates.", noDayEvents: "No events on this day.", legend: "Event types", moreEvents: "more", estimateReminder: "An estimate, not a deadline.", calendarEmptyHelp: "Record a start date or add a release from the section below.",
   outdated: "This estimate needs an update. Use the daily manual update to recalculate it.",
   title: "Your time with games", body: "Record when you started. Your recent playing pace helps estimate when you may finish.",
@@ -11,6 +12,7 @@ const en = {
   refreshed: "Estimates updated.", limited: "You have already used today's manual update.", saved: "Saved. Estimate changes appear in the next daily or manual update.", failed: "Could not update estimates. Your daily manual update is still available.", invalid: "Could not save. Check the date or game and try again.", preview: "Read-only preview", loadFailed: "The calendar is unavailable. Please try again later.",
 };
 const pt: typeof en = {
+  importedFrom: "Informado por", manualDate: "Data definida por você", lastPlayed: "Última data de jogo conhecida", played: "Jogou", platformDateHelp: "Datas das plataformas aparecem automaticamente quando disponíveis. Confirmam atividade nesses dias, não todas as sessões entre eles. Suas correções de início têm prioridade.",
   monthView: "Mês", listView: "Lista", viewLabel: "Visualização do calendário", today: "Hoje", selectDay: "Selecione um dia para ver seus jogos e datas.", noDayEvents: "Nenhum evento neste dia.", legend: "Tipos de evento", moreEvents: "mais", estimateReminder: "Uma estimativa, não um prazo.", calendarEmptyHelp: "Registre um início ou adicione um lançamento na seção abaixo.",
   outdated: "Esta estimativa precisa de atualização. Use a atualização manual diária para recalcular.",
   title: "Seu tempo com os jogos", body: "Registre quando começou. Seu ritmo recente ajuda a estimar quando você pode terminar.",
