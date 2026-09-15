@@ -74,7 +74,7 @@ const legalDocuments = {
       title: "Terms of Service",
       intro: [
         "These terms govern your use of filazo. If you use the service, you agree to follow them.",
-        "filazo is offered as a game-library and catalog tool. The service may change over time, especially while access is limited or in beta.",
+        "filazo is offered as a game-library and catalog tool. The service may change over time as features evolve.",
       ],
       sections: [
         {
@@ -87,7 +87,7 @@ const legalDocuments = {
         {
           title: "Accounts and access",
           body: [
-            "Some parts of filazo require an account. Access may be limited, suspended, or revoked if the service is abused, if eligibility changes, or if beta access expires.",
+            "Some parts of filazo require an account. Access may be limited, suspended, or revoked if the service is abused or if eligibility changes.",
             "You may not attempt to bypass access controls, impersonate another user, or interfere with the normal operation of the product.",
           ],
         },
@@ -102,7 +102,7 @@ const legalDocuments = {
           title: "Product behavior",
           body: [
             "filazo tries to keep one canonical internal catalog record per game, but imports, provider data, and metadata enrichment are all best-effort features and may be incomplete, unavailable, or imperfect.",
-            "The service may add, remove, pause, or change features without notice, especially for experimental or beta functionality.",
+            "The service may add, remove, pause, or change features without notice, especially for experimental functionality.",
           ],
         },
         {
@@ -190,7 +190,7 @@ const legalDocuments = {
       title: "Termos de Uso",
       intro: [
         "Estes termos regulam o uso da filazo. Ao usar o serviço, você concorda em segui-los.",
-        "A filazo é oferecida como uma ferramenta de catálogo e biblioteca de jogos. O serviço pode mudar ao longo do tempo, especialmente enquanto o acesso for limitado ou estiver em beta.",
+        "A filazo é oferecida como uma ferramenta de catálogo e biblioteca de jogos. O serviço pode mudar ao longo do tempo conforme as funcionalidades evoluem.",
       ],
       sections: [
         {
@@ -203,7 +203,7 @@ const legalDocuments = {
         {
           title: "Contas e acesso",
           body: [
-            "Algumas partes da filazo exigem conta. O acesso pode ser limitado, suspenso ou revogado se houver abuso do serviço, se a elegibilidade mudar ou se o acesso beta expirar.",
+            "Algumas partes da filazo exigem conta. O acesso pode ser limitado, suspenso ou revogado se houver abuso do serviço ou se a elegibilidade mudar.",
             "Você não pode tentar contornar controles de acesso, se passar por outra pessoa ou interferir no funcionamento normal do produto.",
           ],
         },
@@ -218,7 +218,7 @@ const legalDocuments = {
           title: "Comportamento do produto",
           body: [
             "A filazo tenta manter um único registro canônico interno por jogo, mas importações, dados de provedores e enriquecimento de metadados são recursos de melhor esforço e podem ser incompletos, indisponíveis ou imperfeitos.",
-            "O serviço pode adicionar, remover, pausar ou alterar funcionalidades sem aviso prévio, especialmente em recursos experimentais ou de beta.",
+            "O serviço pode adicionar, remover, pausar ou alterar funcionalidades sem aviso prévio, especialmente em recursos experimentais.",
           ],
         },
         {

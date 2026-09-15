@@ -33,7 +33,7 @@ Game structure uses main-story estimates and story-completion trophies as campai
 
 > **Catalog rule:** `Game` is the shared canonical record. `GameProviderLink` maps a provider's IDs to it, and `UserGameEntry` stores a person's ownership, progress, and status. New integrations must use this resolution flow.
 
-Beta application intake is stored in `BetaSettings`. Admins can open or close applications, while the activity view uses `User.lastActiveAt` to summarize approved testers as active or inactive. The top beta banner follows the application setting and directs current testers to Discord or `/feedback`.
+Filazo is publicly available to every authenticated account. The former beta application tables and admin views remain only as historical operational data; they no longer gate platform access or subscriptions.
 
 Feedback from signed-in users is attached to their account; authentication failure reports may be submitted anonymously so a person can contact support before a session is established.
 
@@ -43,7 +43,7 @@ Feedback from signed-in users is attached to their account; authentication failu
 
 Admins can search accounts and grant or revoke manual Pro at `/admin/plans`. Both the page and its server action verify the signed-in admin; changing a grant does not charge the user or cancel their subscription. Stale forms cannot overwrite a concurrent grant change. The effective plan is shown on the profile Home tab. Users open `/account/billing` from the header, mobile account menu or plan link on their profile.
 
-For future exclusive features, call `requireProAccess()` from `src/lib/pro-access.ts` inside the server action or route handler before doing any protected work. It verifies the session and platform access, reads the current account from the database, and throws `ProRequiredError` (`code: PRO_REQUIRED`) for Free accounts. Handle that error with localized upgrade messaging (and HTTP 403 in an API). `hasProAccess(user)` from `src/lib/account-plans.ts` is available for rendering; hiding UI alone is not authorization. Admin and beta status do not automatically grant Pro.
+For future exclusive features, call `requireProAccess()` from `src/lib/pro-access.ts` inside the server action or route handler before doing any protected work. It verifies the session, reads the current account from the database, and throws `ProRequiredError` (`code: PRO_REQUIRED`) for Free accounts. Handle that error with localized upgrade messaging (and HTTP 403 in an API). `hasProAccess(user)` from `src/lib/account-plans.ts` is available for rendering; hiding UI alone is not authorization. Admin and former beta status do not automatically grant Pro.
 
 Before running the updated app, apply `prisma/migrations/20260911120000_add_account_plan/migration.sql` and `prisma/migrations/20260911160000_add_stripe_billing/migration.sql` through your migration workflow (once each), or run `npm run db:init` for schema bootstrap, then `npm run db:generate`. The billing migration only creates billing tables and indexes. It does not change any existing user's plan. `npm run db:check` verifies compatibility.
 
@@ -60,7 +60,7 @@ The first offer is a monthly card subscription in BRL at **499 centavos**. Price
 
 Required environment variables are listed in `.env.example`. Missing configuration or disabled checkout leaves the library and manual Pro grants working. Disabling checkout does not disable webhooks, payment status checks or subscription management, so existing customers can still cancel. The portal must allow payment-method updates and cancellation **at period end**, with subscription price changes disabled; the server verifies this configuration before checkout or portal access.
 
-Checkout sessions and customers use deterministic idempotency keys and a per-customer database lock, so concurrent clicks and retries after database failures reuse the same Stripe objects. Existing non-terminal subscriptions block another purchase. A signed-in customer can only open their own checkout and portal. Users whose beta access expired can still manage/cancel a paid subscription, but cannot start a new one until platform access is restored.
+Checkout sessions and customers use deterministic idempotency keys and a per-customer database lock, so concurrent clicks and retries after database failures reuse the same Stripe objects. Existing non-terminal subscriptions block another purchase. A signed-in customer can only open their own checkout and portal.
 
 The webhook verifies Stripe's signature against the raw body, then synchronizes the latest subscription under the same database lock. A unique event record and subscription update commit together; failures return HTTP 500 for retry. Notifications received out of order read current provider state. Only paid invoice lines for the recognized subscription item extend `paidThrough`; an active subscription without a paid invoice or a successful redirect cannot activate Pro. Unknown products and mismatched customers are never granted access. `active` and `past_due` subscriptions only retain access while the paid period remains valid; canceled, unpaid, paused, incomplete and expired subscriptions do not. There is no extra grace period after a failed renewal.
 
@@ -101,7 +101,7 @@ AUTH_SECRET="a-long-random-secret"
 | Capability | Variables / setup |
 | --- | --- |
 | Steam owned-library sync | `STEAM_API_KEY` (Steam sign-in itself uses OpenID) |
-| Google sign-in and beta applications | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| Google sign-in and account creation | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | Xbox account sync | `XBOX_CLIENT_ID`, `XBOX_CLIENT_SECRET` |
 | Experimental GOG browser sync | `GOG_CLIENT_ID`, `GOG_CLIENT_SECRET`, optionally `GOG_REDIRECT_URI` |
 | Game metadata | `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET` |

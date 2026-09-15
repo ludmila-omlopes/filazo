@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { canAccessPlatform, getSessionUserWithBeta } from "@/lib/beta-access";
+import { getSessionUserWithBeta } from "@/lib/beta-access";
 import { getSessionUserId } from "@/lib/session";
 import { BillingError, getBillingService } from "@/lib/billing-service";
 
@@ -14,7 +14,6 @@ async function billingUser() {
 
 export async function startProCheckoutAction(formData: FormData) {
   const user = await billingUser();
-  if (!canAccessPlatform(user)) redirect("/beta");
   if (formData.get("brazilConsent") !== "BR") redirect("/account/billing?error=consent");
   let url: string;
   try {
@@ -27,7 +26,7 @@ export async function startProCheckoutAction(formData: FormData) {
 }
 
 export async function manageSubscriptionAction() {
-  // Even an expired beta user must be able to cancel their paid subscription.
+  // A signed-in customer must always be able to manage their own subscription.
   const user = await billingUser();
   let url: string;
   try {
