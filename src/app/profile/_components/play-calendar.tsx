@@ -1,9 +1,8 @@
-import Link from "next/link";
 import type { Locale } from "@/lib/i18n";
 import { calendarCopy } from "@/lib/calendar-copy";
 import { readCalendar } from "@/lib/calendar";
-import { calendarMonth as parseMonth, DAY_MS, isCalendarEstimateCurrent, utcDay, type EstimateReason } from "@/lib/calendar-policy";
-import { refreshCalendarAction, saveCalendarMinutesAction, saveCalendarStartAction, setCalendarReleaseAction } from "../calendar-actions";
+import { calendarMonth as parseMonth, DAY_MS, isCalendarEstimateCurrent } from "@/lib/calendar-policy";
+import { setCalendarReleaseAction } from "../calendar-actions";
 import { CalendarSubmit } from "./calendar-submit";
 import { CalendarMonthView } from "./calendar-month-view";
 import type { CalendarEvent } from "@/lib/calendar-month";
@@ -11,7 +10,6 @@ import { calendarStartForGame, playDateProviderName } from "@/lib/provider-play-
 import type { ProfileData } from "./profile-types";
 
 const panel = "rounded-card border border-edge bg-surface p-5 sm:p-6";
-const inputStyle = "min-h-11 w-full min-w-0 rounded-inner border border-edge bg-canvas px-3 text-sm";
 const dateKey = (date: Date) => date.toISOString().slice(0, 10);
 type CalendarProps = { calendarMonth?: string; calendarStatus?: string; locale: Locale; profile: ProfileData; viewAsUserId?: string | null };
 type CalendarRelease = Awaited<ReturnType<typeof readCalendar>>["releases"][number];
@@ -44,18 +42,14 @@ export async function PlayCalendar(props: CalendarProps) {
   return <CalendarView {...props} data={data} />;
 }
 
-export function CalendarView({ calendarMonth, calendarStatus, locale, profile, viewAsUserId, data }: CalendarProps & { data: Awaited<ReturnType<typeof readCalendar>> }) {
+export function CalendarView({ calendarMonth, calendarStatus, locale, viewAsUserId, data }: CalendarProps & { data: Awaited<ReturnType<typeof readCalendar>> }) {
   const c = calendarCopy(locale);
   const now = new Date();
   const month = parseMonth(calendarMonth, now);
   const format = (date: Date) => new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(date);
   const readOnly = Boolean(viewAsUserId);
-  const manualUsed = Boolean(data.state?.manualAt && data.state.manualAt >= utcDay(now));
-  const updates = [data.state?.automaticAt, data.state?.manualAt].filter((value): value is Date => Boolean(value)).sort((a, b) => b.getTime() - a.getTime());
   const savedIds = new Set(data.saved.map((item) => item.releaseId));
   const releaseGroups = groupReleaseAnnouncements(data.releases);
-  const trackedEntries = data.entries.filter(entry => (entry.currentPlayingSlot !== null || entry.status === "PLAYING" || entry.manualStartedAt) && !entry.finishedAt && entry.status !== "COMPLETED" && entry.status !== "DROPPED" && entry.activeBacklog);
-  const activeEntries = trackedEntries.filter((entry, index) => trackedEntries.findIndex(item => item.gameId === entry.gameId) === index);
   const manualGames = new Set(data.entries.filter(entry => entry.manualStartedAt).map(entry => entry.gameId));
   const gameById = new Map(data.entries.map(entry => [entry.gameId, entry.game]));
   const events: CalendarEvent[] = [];
@@ -96,61 +90,6 @@ export function CalendarView({ calendarMonth, calendarStatus, locale, profile, v
       <CalendarMonthView key={dateKey(month)} initialMonth={dateKey(month).slice(0, 7)} today={dateKey(now)} events={events} locale={locale} />
       <p className="mt-3 text-xs leading-relaxed text-ink-soft">{c.platformDateHelp}</p>
       {data.saved.length ? <details className="mt-3 border-t border-edge pt-4"><summary className="cursor-pointer text-sm font-semibold">{c.savedReleases}</summary><p className="mt-2 text-xs text-ink-soft">{c.changedDate}</p><ul className="mt-3 grid gap-3">{data.saved.map(({ release }) => <li key={release.id} className="flex flex-wrap items-center justify-between gap-3 rounded-inner border border-edge p-3"><div className="min-w-0"><p className="break-words text-sm font-semibold">{release.game.name}</p><p className="text-xs text-ink-soft">{release.platform} · {release.region} · {release.releaseDate ? format(release.releaseDate) : c.noDay}</p><a className="text-xs underline" href={release.sourceUrl} target="_blank" rel="noopener noreferrer">{c.source}</a></div>{!readOnly ? <form action={setCalendarReleaseAction}><input type="hidden" name="releaseId" value={release.id} /><input type="hidden" name="operation" value="remove" /><CalendarSubmit>{c.remove}</CalendarSubmit></form> : null}</li>)}</ul></details> : null}
-    </section>
-    <section className={panel} aria-labelledby="calendar-pace">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h3 className="font-display text-xl" id="calendar-pace">{c.playing}</h3>
-        {!readOnly ? <form action={refreshCalendarAction}><CalendarSubmit disabled={manualUsed}>{manualUsed ? c.limit : c.update}</CalendarSubmit></form> : null}
-      </div>
-      <p className="mt-3 max-w-2xl text-xs leading-relaxed text-ink-soft">{c.daily}</p>
-      <p className="mt-1 text-xs text-ink-soft">{updates[0] ? `${c.updated}: ${format(updates[0])}` : c.notUpdated}</p>
-      <div className="mt-5 divide-y divide-edge">
-        {activeEntries.map((entry) => {
-          const forecast = entry.calendarEstimate;
-          const start = calendarStartForGame(entry, data.playDates, data.entries);
-          const latestPlayed = data.playDates.filter(item => item.gameId === entry.gameId).sort((a, b) => b.day.getTime() - a.day.getTime())[0];
-          const reason = entry.finishedAt || entry.status === "COMPLETED" ? "completed" : entry.status === "DROPPED" || !entry.activeBacklog ? "paused" : !start.date ? "missing_start" : forecast && !isCalendarEstimateCurrent(forecast, now) ? "outdated" : forecast?.reason === "missing_start" && start.date ? "learning" : forecast?.reason ?? "learning";
-          const reasonText = c[reason as EstimateReason | "outdated"] ?? c.learning;
-          const finish = reason === "ready" ? forecast?.estimatedFinish : null;
-          return <article key={entry.id} className="grid gap-3 py-5 first:pt-0 last:pb-0">
-            <Link href={`/games/${entry.game.slug}`} className="w-fit break-words font-display text-lg font-medium underline-offset-4 hover:underline">{entry.game.name}</Link>
-            <dl className="grid gap-4 text-sm sm:grid-cols-2">
-              <div><dt className="text-ink-soft">{c.start}</dt><dd className="mt-1 font-semibold">{start.date ? format(start.date) : c.startMissing}</dd>{start.date ? <dd className="mt-1 text-xs text-ink-soft">{start.provider ? `${c.importedFrom} ${playDateProviderName(start.provider)}` : c.manualDate}</dd> : null}</div>
-              <div><dt className="text-ink-soft">{entry.finishedAt ? c.actualFinish : c.finish}</dt><dd className="mt-1 font-semibold">{entry.finishedAt ? format(entry.finishedAt) : finish ? `${c.around} ${format(finish)}` : "—"}</dd></div>
-            </dl>
-            {latestPlayed ? <p className="text-xs text-ink-soft">{c.lastPlayed}: {format(latestPlayed.day)} · {playDateProviderName(latestPlayed.provider)}</p> : null}
-            <p className="text-sm leading-relaxed text-ink-soft">{reasonText}</p>
-            {forecast?.weeklyMinutes && reason === "ready" ? <p className="text-xs text-ink-soft">{new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(forecast.weeklyMinutes / 60)} {c.pace}</p> : null}
-            {!readOnly ? <details className="text-sm">
-              <summary className="w-fit cursor-pointer py-2 font-semibold">{start.date ? c.edit : c.startMissing}</summary>
-              <form action={saveCalendarStartAction} className="mt-2 flex flex-wrap items-end gap-3">
-                <input type="hidden" name="entryId" value={entry.id} />
-                <label className="grid gap-1">{c.start}<input type="date" name="start" required max={dateKey(entry.finishedAt ?? now)} defaultValue={start.date ? dateKey(start.date) : ""} className={inputStyle} /></label>
-                <CalendarSubmit>{c.save}</CalendarSubmit>
-              </form>
-            </details> : null}
-            {!readOnly && !entry.provider && entry.manualStartedAt && !["completed", "paused"].includes(reason) ? <details className="text-sm">
-              <summary className="w-fit cursor-pointer py-2 font-semibold">{c.session}</summary>
-              <p className="mb-3 max-w-xl text-xs leading-relaxed text-ink-soft">{c.sessionHelp}</p>
-              <form action={saveCalendarMinutesAction} className="flex flex-wrap items-end gap-3">
-                <input type="hidden" name="entryId" value={entry.id} />
-                <label className="grid gap-1">{c.minutes}<input type="number" name="minutes" min="0" max="960" step="1" required defaultValue={entry.calendarSessions[0]?.minutes ?? ""} className={inputStyle} /></label>
-                <CalendarSubmit>{c.save}</CalendarSubmit>
-              </form>
-            </details> : null}
-          </article>;
-        })}
-        {!activeEntries.length ? <p className="py-4 text-sm text-ink-soft">{c.empty}</p> : null}
-      </div>
-      {!readOnly ? <details className="mt-5 border-t border-edge pt-4">
-        <summary className="cursor-pointer text-sm font-semibold">{c.register}</summary>
-        <form action={saveCalendarStartAction} className="mt-4 grid items-end gap-3 sm:grid-cols-[1fr_auto_auto]">
-          <label className="grid min-w-0 gap-1 text-sm">{c.game}<select className={inputStyle} name="entryId" required defaultValue=""><option value="" disabled>{c.choose}</option>{profile.shelfEntries.filter((entry) => !entry.finishedAt && !entry.manualStartedAt).map((entry) => <option value={entry.id} key={entry.id}>{entry.game.name}</option>)}</select></label>
-          <label className="grid gap-1 text-sm">{c.start}<input className={inputStyle} type="date" name="start" required max={dateKey(now)} /></label>
-          <CalendarSubmit>{c.save}</CalendarSubmit>
-        </form>
-      </details> : null}
-      <details className="mt-4 text-xs leading-relaxed text-ink-soft"><summary className="cursor-pointer py-2">{c.detail}</summary><p>{c.method}</p><p className="mt-2">{c.data}</p></details>
     </section>
     <section className={panel} aria-labelledby="calendar-releases">
       <h3 id="calendar-releases" className="font-display text-xl">{c.releases}</h3>
