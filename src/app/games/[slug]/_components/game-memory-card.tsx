@@ -892,10 +892,12 @@ export function GameMemoryCard({
   game,
   locale,
   sessionUserId,
+  advertisement,
 }: {
   game: GameDetail;
   locale: Locale;
   sessionUserId: string | null;
+  advertisement?: React.ReactNode;
 }) {
   const t = createTranslator(locale);
   const currentEntry = chooseDisplayedEntry(
@@ -1034,6 +1036,7 @@ export function GameMemoryCard({
       >
         {t("game.backToCatalog")}
       </Link>
+      {advertisement}
     </main>
   );
 }

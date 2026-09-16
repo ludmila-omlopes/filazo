@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { AdSenseBanner } from "@/components/adsense-banner";
 import { GameMemoryCard } from "./_components/game-memory-card";
 import { getGameBySlug, getGameMetadataBySlug } from "@/lib/catalog";
 import { createTranslator } from "@/lib/i18n";
@@ -46,6 +47,7 @@ export default async function GamePage({
   }
 
   return (
-    <GameMemoryCard game={game} locale={locale} sessionUserId={sessionUserId} />
+    <GameMemoryCard game={game} locale={locale} sessionUserId={sessionUserId}
+      advertisement={<AdSenseBanner key={slug} placement="game" locale={locale} />} />
   );
 }

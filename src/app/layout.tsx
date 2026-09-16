@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import Script from "next/script";
 import { Suspense } from "react";
 import "@fontsource/instrument-sans/400.css";
 import "@fontsource/instrument-sans/500.css";
@@ -107,11 +106,6 @@ export const viewport: Viewport = {
  * flash of the wrong theme. ThemeRuntime then keeps it in sync after hydration.
  */
 const themeBootstrapScript = `(function(){try{var m=document.cookie.match(/(?:^|; )filazo-theme=([^;]+)/);var mode=m?decodeURIComponent(m[1]):'afternoon';var valid={morning:1,afternoon:1,dusk:1,evening:1,night:1};if(mode==='day')mode='afternoon';if(mode!=='auto'&&!valid[mode])mode='afternoon';var r=document.documentElement;var p;if(mode==='auto'){var h=new Date().getHours();p=h<6?'night':h<11?'morning':h<17?'afternoon':h<19?'dusk':h<21?'evening':'night';}else{p=mode;}r.dataset.theme=(p==='morning'||p==='afternoon')?'day':'night';r.dataset.phase=p;}catch(e){}})();`;
-const adsensePublisherId = process.env.ADSENSE_PUBLISHER_ID?.trim();
-const adsenseScriptUrl =
-  adsensePublisherId && /^ca-pub-\d{16}$/.test(adsensePublisherId)
-    ? `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsensePublisherId}`
-    : null;
 
 async function getNavigationUser(userId: string | null) {
   if (!userId) {
@@ -158,14 +152,6 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body>
-        {adsenseScriptUrl ? (
-          <Script
-            src={adsenseScriptUrl}
-            strategy="beforeInteractive"
-            async
-            crossOrigin="anonymous"
-          />
-        ) : null}
         <InlineScript html={themeBootstrapScript} />
         <ThemeRuntime mode={mode} />
         <LocaleProvider locale={locale}>

@@ -71,6 +71,7 @@ export default async function BillingPage({ searchParams }: {
           <p className="font-semibold">{t("billing.price", { price })}</p>
         </div>
         <p className="max-w-[60ch] text-sm leading-relaxed text-ink-soft">{t("billing.offer")}</p>
+        <p className="text-sm font-semibold">{t("billing.adFree")}</p>
         {user.plan === "PRO" ? <Notice tone="info">{t("billing.manual")}</Notice> : null}
         {subscription ? <div className="grid gap-2 border-t border-edge pt-4 text-sm">
           <p>{t(Object.hasOwn(statusKeys, subscription.status) ? statusKeys[subscription.status] : "billing.incomplete")}</p>

@@ -1,6 +1,11 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Remove the entire advertising space when AdSense reports no inventory. */
+.adsense-banner:has(ins[data-ad-status="unfilled"]) {
+  display: none;
+}
+
 @custom-variant night (&:where([data-theme="night"], [data-theme="night"] *));
 
 /* Filazo design tokens: calm catalog, printed labels, low pressure. */
