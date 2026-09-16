@@ -336,6 +336,9 @@ export function MobileAccountMenu({
           </p>
         </div>
 
+        <Link href="/catalog" onClick={closeMenu} aria-current={pathname === "/catalog" ? "page" : undefined}
+          className="nav-link min-h-11 px-3 py-2 text-sm font-bold">{t("common.catalog")}</Link>
+
         {signedIn ? (
           <>
             <nav aria-label={t("nav.secondary")} className="grid gap-1">

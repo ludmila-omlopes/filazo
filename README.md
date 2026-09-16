@@ -292,3 +292,7 @@ Run `npm run test:user-isolation` against a disposable local PostgreSQL instance
 ## AdSense site verification
 
 Set `ADSENSE_PUBLISHER_ID` to your `ca-pub-` publisher ID. `/ads.txt` serves the matching Google seller entry even with banners disabled. Use the ads.txt verification method in AdSense after deploying. Missing or invalid configuration returns HTTP 404. Ownership verification does not load an advertising script or enable monetization; see the manual banner setup above.
+
+## Public catalog
+
+`/catalog` lets visitors browse canonical games without signing in. GET search (`q`, up to 100 characters) and previous/next links (`page`, 1–1000) return 24 games per page, ordered by normalized title and slug. Queries select only public card fields and never read personal entries, import records or reviews, contact providers, or mutate data. Search variations are noindex; browse pages remain indexable. Personal library routes keep their existing authentication and robots restrictions.
