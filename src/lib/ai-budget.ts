@@ -1,5 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "./prisma.ts";
+import { getPlanAccount } from "./plan-access.ts";
+import { applyPlanAiLimits } from "./plan-policy.ts";
 import {
   estimateAiCostUsd,
   getAiEstimateConfig,
@@ -67,7 +69,7 @@ type BudgetUsageSummary = {
   weeklyByFeature: Map<AiBudgetFeature, BudgetUsage>;
 };
 
-type AiBudgetPrismaClient = Pick<typeof prisma, "aiSettings" | "assistantRun">;
+type AiBudgetPrismaClient = Pick<typeof prisma, "aiSettings" | "assistantRun" | "user">;
 
 type AiBudgetLimitSettings = Pick<
   AiSettingsValues,
@@ -306,10 +308,12 @@ async function getAiSettingsWithClient(client: AiBudgetPrismaClient) {
 }
 
 export async function getAiBudgetUsageForUser(userId: string, now = new Date()) {
-  const [settings, usage] = await Promise.all([
+  const [baseSettings, usage, account] = await Promise.all([
     getAiSettings(),
     getBudgetUsage({ now, userId }),
+    getPlanAccount(userId),
   ]);
+  const settings = applyPlanAiLimits(baseSettings, account);
   const chatUsage = usage.dailyByFeature.get("assistant_chat") ?? emptyUsage();
   const playNextUsage =
     usage.dailyByFeature.get("assistant_play_next") ?? emptyUsage();
@@ -536,7 +540,7 @@ async function reserveAiBudgetOnce({
   return prisma.$transaction(
     async (tx) => {
       const client = tx as AiBudgetPrismaClient;
-      const settings = await getAiSettingsWithClient(client);
+      const settings = applyPlanAiLimits(await getAiSettingsWithClient(client), await getPlanAccount(userId, client));
       if (!isAiFeatureEnabled(settings, feature)) {
         return {
           allowed: false,

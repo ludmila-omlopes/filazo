@@ -141,8 +141,8 @@ export async function exchangeGoogleCodeForProfile({
 export async function upsertGoogleUser(
   profile: GoogleProfile,
   {
-    allowCreate = false,
-    registrationClosedMessage = "Public registrations are closed. Use the beta tester signup.",
+    allowCreate = true,
+    registrationClosedMessage = "Could not create the filazo account.",
   }: { allowCreate?: boolean; registrationClosedMessage?: string } = {},
 ) {
   const existingByGoogle = await prisma.user.findUnique({

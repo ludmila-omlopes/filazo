@@ -3,6 +3,10 @@
   "buildCommand": "npm run build",
   "crons": [
     {
+      "path": "/api/internal/abuse-cleanup",
+      "schedule": "*/10 * * * *"
+    },
+    {
       "path": "/api/internal/sync-monitor",
       "schedule": "* * * * *"
     },

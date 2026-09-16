@@ -3,6 +3,8 @@ import { UserGameStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getSessionUserId } from "@/lib/session";
 import { searchIgdbGames } from "@/lib/igdb";
+import { ABUSE_LIMITS } from "@/lib/abuse-policy";
+import { checkApiAbuse } from "@/lib/abuse-request";
 
 const ownedStatuses = new Set<UserGameStatus>([
   UserGameStatus.OWNED,
@@ -20,10 +22,15 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim() ?? "";
+  if (query.length > 160) {
+    return NextResponse.json({ error: "Search query is too long." }, { status: 400 });
+  }
   if (query.length < 2) {
     return NextResponse.json({ results: [] });
   }
 
+  const limited = await checkApiAbuse([ABUSE_LIMITS.gameSearch], userId);
+  if (limited) return limited;
   const results = await searchIgdbGames(query);
   const igdbIds = results.map((result) => result.igdbId).filter(Boolean);
   const existingGames = igdbIds.length

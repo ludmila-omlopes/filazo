@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { FeedbackType } from "@prisma/client";
+import { ABUSE_LIMITS } from "@/lib/abuse-policy";
+import { checkActionAbuse } from "@/lib/abuse-request";
 import {
   hashPassword,
   normalizeEmail,
@@ -20,7 +22,7 @@ import { getSessionUserId, setUserSession } from "@/lib/session";
 const emailAuthSchema = z.object({
   mode: z.enum(["signin", "signup"]),
   displayName: z.string().trim().max(48).optional(),
-  email: z.string().trim().email(),
+  email: z.string().trim().max(254).email(),
   password: z.string().min(8).max(128),
   confirmPassword: z.string().max(128).optional(),
   terms: z.string().optional(),
@@ -36,6 +38,8 @@ function redirectWithAuthError(message: string): never {
 }
 
 export async function emailAuthAction(formData: FormData) {
+  const networkError = await checkActionAbuse([ABUSE_LIMITS.loginIp]);
+  if (networkError) redirectWithAuthError(networkError);
   const { t, locale } = await getRequestTranslator();
   const existingUserId = await getSessionUserId();
   if (existingUserId) {
@@ -58,11 +62,9 @@ export async function emailAuthAction(formData: FormData) {
   const email = normalizeEmail(parsed.data.email);
   const password = parsed.data.password;
 
-  if (parsed.data.mode === "signup") {
-    redirectWithAuthError(t("auth.error.registrationClosed"));
-  }
-
   if (parsed.data.mode === "signin") {
+    const limitError = await checkActionAbuse([ABUSE_LIMITS.loginEmail], email);
+    if (limitError) redirectWithAuthError(limitError);
     const user = await prisma.user
       .findUnique({ where: { email } })
       .catch((error: unknown) => {
@@ -74,7 +76,7 @@ export async function emailAuthAction(formData: FormData) {
       });
 
     if (!user?.passwordHash) {
-      redirectWithAuthError(t("auth.error.noPasswordAccount"));
+      redirectWithAuthError(t("auth.error.emailPasswordMismatch"));
     }
 
     const isValidPassword = await verifyPassword(password, user.passwordHash);
@@ -130,6 +132,8 @@ export async function emailAuthAction(formData: FormData) {
 }
 
 export async function submitAuthFailureFeedbackAction(formData: FormData) {
+  const limitError = await checkActionAbuse([ABUSE_LIMITS.anonymousFeedback]);
+  if (limitError) redirectWithAuthError(limitError);
   const parsed = authFailureFeedbackSchema.safeParse({
     reference: formData.get("reference"),
     details: formData.get("details"),

@@ -15,6 +15,8 @@ import {
   savePlayingNextDateAction,
 } from "@/app/profile/actions";
 import { PhysicalMediaButton } from "@/app/profile/_components/physical-media-button";
+import { MarketplaceSearchPanel } from "@/components/assistant/marketplace-search-panel";
+import { SteamReviewsPanel } from "@/components/steam-reviews-panel";
 import { SafeImage } from "@/components/safe-image";
 import { ScreenshotLightbox } from "@/components/screenshot-lightbox";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { getGameBySlug } from "@/lib/catalog";
 import { createTranslator, type Locale } from "@/lib/i18n";
+import { steamReviewLanguage } from "@/lib/steam-reviews";
 import {
   estimatePlayStartDate,
   weeklyHoursFromOnboarding,
@@ -989,6 +992,29 @@ export function GameMemoryCard({
                   </Link>
                 </Button>
               </section>
+            ),
+          },
+          {
+            id: "buy",
+            label: t("game.buyTab"),
+            content: (
+              <MarketplaceSearchPanel
+                gameId={game.id}
+                initialSnapshots={game.marketplaceSnapshots}
+                title={game.name}
+              />
+            ),
+          },
+          {
+            id: "steam-reviews",
+            label: t("game.steamReviewsTab"),
+            content: (
+              <SteamReviewsPanel
+                gameId={game.id}
+                initialSnapshot={game.steamReviewSnapshots.find(
+                  (snapshot) => snapshot.language === steamReviewLanguage(locale),
+                ) ?? null}
+              />
             ),
           },
           ...(hasCommunity

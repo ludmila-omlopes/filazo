@@ -8,6 +8,7 @@ export const defaultLocale: Locale = "en";
 
 const messages = {
   en: {
+    "journal.imageTooLarge": "Choose an image smaller than 10 MiB.",
     "common.home": "Home",
     "common.library": "Library",
     "common.catalog": "Catalog",
@@ -133,10 +134,10 @@ const messages = {
     "auth.error.accountExists":
       "A filazo account already exists for that email.",
     "auth.error.registrationClosed":
-      "Public registrations are closed. Request access through the beta signup.",
+      "Account creation is temporarily unavailable. Please try again later.",
     "auth.error.sessionExpired": "Session expired. Sign in again.",
     "auth.error.googleRegistrationClosed":
-      "Public registrations are closed. Use the beta tester signup.",
+      "This Google account could not be registered. Please try again.",
     "auth.error.googleMissingCode":
       "Google did not return an authorization code. Try signing in again.",
     "auth.error.googleStateInvalid":
@@ -146,9 +147,9 @@ const messages = {
     "auth.error.googleStartFailed":
       "Could not start Google sign-in. Try again. If it keeps failing, share reference {reference} with us.",
     "auth.error.steamRegistrationClosed":
-      "Public registrations are closed. Request beta access before connecting Steam.",
+      "Sign in before connecting Steam.",
     "auth.error.xboxRegistrationClosed":
-      "Public registrations are closed. Request beta access before connecting Xbox.",
+      "Sign in before connecting Xbox.",
     "auth.error.youtubeStartFailed": "Could not start beta sign-in.",
     "auth.error.youtubeMissingCode":
       "The beta sign-in provider did not return an authorization code.",
@@ -197,7 +198,7 @@ const messages = {
     "login.kicker": "filazo account",
     "login.title": "Sign in once. Keep every library connected after.",
     "login.body":
-      "Sign in with an existing filazo account or a known Google account. Public registration is closed; new players can request beta access with Google.",
+      "Create a filazo account or sign in with Google to keep every game library connected.",
     "login.open": "Open login",
 
     "beta.status.pending.title": "Application sent",
@@ -286,6 +287,37 @@ const messages = {
     "admin.ai.saved": "AI settings updated.",
     "admin.ai.invalidSettings":
       "AI settings were outside the accepted ranges.",
+    "admin.ai.navLabel": "AI administration",
+    "admin.ai.featuresTab": "Feature map",
+    "admin.ai.settingsTab": "Budget and controls",
+    "admin.ai.catalog.kicker": "AI inventory",
+    "admin.ai.catalog.title": "Features using AI behind the scenes",
+    "admin.ai.catalog.body":
+      "A transparent map of the platform's AI entry points: what triggers them, which personal context they receive, what they return, and where the admin controls them.",
+    "admin.ai.catalog.legendTitle": "How to read this list",
+    "admin.ai.catalog.legendBody":
+      "Generative AI calls a model. AI + local rules combines model output with deterministic catalog logic and keeps a local fallback. Data automations query an external source without generating content.",
+    "admin.ai.catalog.generativeBadge": "Generative AI",
+    "admin.ai.catalog.hybridBadge": "AI + local rules",
+    "admin.ai.catalog.dataBadge": "External data",
+    "admin.ai.catalog.aiSectionTitle": "Generative-AI features",
+    "admin.ai.catalog.aiSectionBody":
+      "The status reflects both the admin toggle and whether an AI provider is configured in this environment.",
+    "admin.ai.catalog.enabled": "Ready",
+    "admin.ai.catalog.disabled": "Disabled",
+    "admin.ai.catalog.providerMissing": "Provider not configured",
+    "admin.ai.catalog.when": "When it runs",
+    "admin.ai.catalog.technology": "Technology",
+    "admin.ai.catalog.input": "Context received",
+    "admin.ai.catalog.output": "What it returns",
+    "admin.ai.catalog.budget": "Budget key: {feature}",
+    "admin.ai.catalog.relatedKicker": "Clear boundary",
+    "admin.ai.catalog.relatedTitle": "Automations that are not generative AI",
+    "admin.ai.catalog.relatedBody":
+      "These flows support the AI surfaces or look similar to them, but they query structured providers or run local rules. They are listed so the admin can distinguish data retrieval from model-generated output.",
+    "admin.ai.catalog.noAiBadge": "No generative AI",
+    "admin.ai.catalog.note":
+      "This inventory is maintained alongside the AI budget features. When a new model call is added, add it here and give it a budget key before exposing it to users.",
     "admin.preview.kicker": "User preview",
     "admin.preview.title": "View a user profile",
     "admin.preview.body":
@@ -476,7 +508,7 @@ const messages = {
     "billing.description": "Manage your Pro subscription and payments in one place.",
     "billing.currentPlan": "Current plan",
     "billing.price": "Pro: {price} / month",
-    "billing.offer": "Support filazo with Pro and browse without ads while signed in. The library features remain available on Free.",
+    "billing.offer": "Pro includes the calendar, automatic daily sync, retrospectives, more journal storage and larger AI allowances with web search. Your library, reviews and text journal remain free.",
     "billing.adFree": "Ad-free browsing",
     "ads.label": "Advertisement",
     "billing.subscribe": "Subscribe for {price} / month",
@@ -1282,6 +1314,29 @@ const messages = {
     "game.sections": "Game page sections",
     "game.aboutTab": "About the game",
     "game.personalTab": "Your experience",
+    "game.buyTab": "Where to buy",
+    "game.steamReviewsTab": "Steam reviews",
+    "game.steamReviewsDescription": "The most relevant public reviews, ranked by helpfulness on Steam.",
+    "game.steamReviewsSearch": "Load Steam reviews",
+    "game.steamReviewsRefresh": "Update reviews",
+    "game.steamReviewsSearching": "Loading Steam reviews…",
+    "game.steamReviewsEmpty": "Steam did not return public reviews for this game.",
+    "game.steamReviewsUnavailable": "This game does not have a Steam link in the catalog yet.",
+    "game.steamReviewsError": "Could not load Steam reviews right now.",
+    "game.steamReviewsLimit": "This game has reached today's review refresh limit. Try again later.",
+    "game.steamReviewsRefreshing": "Another refresh for this game is already in progress…",
+    "game.steamReviewsChecked": "Checked",
+    "game.steamReviewsNote": "Reviews are shown in their original language. Read the full context on Steam.",
+    "game.steamReviewsRecommended": "Recommended",
+    "game.steamReviewsNotRecommended": "Not recommended",
+    "game.steamReviewsHelpfulVotes": "helpful votes",
+    "game.steamReviewsPublicCount": "public reviews",
+    "game.steamReviewsScore": "Steam sentiment",
+    "game.steamReviewsRead": "Read on Steam",
+    "game.steamReviewsLanguage": "Language",
+    "game.steamReviewsPlaytime": "played at review time",
+    "game.steamReviewsComments": "comments",
+    "game.steamReviewsUnknownAuthor": "Steam user",
     "game.communityTab": "Community",
     "game.personalHint": "Your progress, notes, reviews, and memories of this game.",
     "game.editExperience": "Edit your progress and preferences",
@@ -1582,6 +1637,7 @@ const messages = {
       "Player profile generation did not complete.",
   },
   "pt-BR": {
+    "journal.imageTooLarge": "Escolha uma imagem menor que 10 MiB.",
     "common.home": "Início",
     "common.library": "Biblioteca",
     "common.catalog": "Catálogo",
@@ -1707,10 +1763,10 @@ const messages = {
     "auth.error.accountExists":
       "Já existe uma conta filazo para esse e-mail.",
     "auth.error.registrationClosed":
-      "Novos registros estão fechados. Solicite acesso pelo cadastro beta.",
+      "Não foi possível criar a conta agora. Tente novamente mais tarde.",
     "auth.error.sessionExpired": "Sua sessão expirou. Entre novamente.",
     "auth.error.googleRegistrationClosed":
-      "Novos registros estão fechados. Entre pelo cadastro de beta tester.",
+      "Não foi possível cadastrar esta conta Google. Tente novamente.",
     "auth.error.googleMissingCode":
       "O Google não retornou um código de autorização. Tente entrar novamente.",
     "auth.error.googleStateInvalid":
@@ -1720,9 +1776,9 @@ const messages = {
     "auth.error.googleStartFailed":
       "Não foi possível iniciar o login com Google. Tente novamente. Se continuar falhando, envie esta referência: {reference}.",
     "auth.error.steamRegistrationClosed":
-      "Novos registros estão fechados. Solicite acesso pelo cadastro beta antes de conectar Steam.",
+      "Entre antes de conectar o Steam.",
     "auth.error.xboxRegistrationClosed":
-      "Novos registros estão fechados. Solicite acesso pelo cadastro beta antes de conectar Xbox.",
+      "Entre antes de conectar o Xbox.",
     "auth.error.youtubeStartFailed":
       "Não foi possível iniciar o login beta.",
     "auth.error.youtubeMissingCode":
@@ -1774,7 +1830,7 @@ const messages = {
     "login.kicker": "conta filazo",
     "login.title": "Entre uma vez. Mantenha todas as bibliotecas conectadas depois.",
     "login.body":
-      "Entre com uma conta filazo existente ou uma conta Google já conhecida. Novos registros estão fechados; novos jogadores podem solicitar acesso beta com Google.",
+      "Crie uma conta filazo ou entre com o Google para manter todas as suas bibliotecas de jogos conectadas.",
     "login.open": "Abrir login",
 
     "beta.status.pending.title": "Cadastro enviado",
@@ -1863,6 +1919,37 @@ const messages = {
     "admin.ai.saved": "Configuracoes de IA atualizadas.",
     "admin.ai.invalidSettings":
       "As configuracoes de IA estavam fora dos intervalos aceitos.",
+    "admin.ai.navLabel": "Administracao de IA",
+    "admin.ai.featuresTab": "Mapa de funcionalidades",
+    "admin.ai.settingsTab": "Orcamento e controles",
+    "admin.ai.catalog.kicker": "Inventario de IA",
+    "admin.ai.catalog.title": "Funcionalidades que usam IA nos bastidores",
+    "admin.ai.catalog.body":
+      "Um mapa transparente dos pontos de entrada de IA da plataforma: o que os aciona, qual contexto pessoal recebem, o que devolvem e onde o admin os controla.",
+    "admin.ai.catalog.legendTitle": "Como ler esta lista",
+    "admin.ai.catalog.legendBody":
+      "IA generativa chama um modelo. IA + regras locais combina a saída do modelo com a lógica determinística do catálogo e mantém um fallback local. Automações de dados consultam uma fonte externa sem gerar conteúdo.",
+    "admin.ai.catalog.generativeBadge": "IA generativa",
+    "admin.ai.catalog.hybridBadge": "IA + regras locais",
+    "admin.ai.catalog.dataBadge": "Dados externos",
+    "admin.ai.catalog.aiSectionTitle": "Funcionalidades com IA generativa",
+    "admin.ai.catalog.aiSectionBody":
+      "O status reflete tanto o toggle do admin quanto a existência de um provedor de IA configurado neste ambiente.",
+    "admin.ai.catalog.enabled": "Pronto",
+    "admin.ai.catalog.disabled": "Desativado",
+    "admin.ai.catalog.providerMissing": "Provedor não configurado",
+    "admin.ai.catalog.when": "Quando executa",
+    "admin.ai.catalog.technology": "Tecnologia",
+    "admin.ai.catalog.input": "Contexto recebido",
+    "admin.ai.catalog.output": "O que retorna",
+    "admin.ai.catalog.budget": "Chave de orçamento: {feature}",
+    "admin.ai.catalog.relatedKicker": "Limite claro",
+    "admin.ai.catalog.relatedTitle": "Automações que não são IA generativa",
+    "admin.ai.catalog.relatedBody":
+      "Estes fluxos apoiam as superfícies de IA ou parecem semelhantes, mas consultam provedores estruturados ou executam regras locais. Eles aparecem aqui para separar recuperação de dados de saída gerada por modelo.",
+    "admin.ai.catalog.noAiBadge": "Sem IA generativa",
+    "admin.ai.catalog.note":
+      "Este inventário é mantido junto das funcionalidades de orçamento de IA. Quando uma nova chamada de modelo for adicionada, inclua-a aqui e dê a ela uma chave de orçamento antes de expô-la às pessoas usuárias.",
     "admin.preview.kicker": "Visualizacao de usuario",
     "admin.preview.title": "Ver perfil de usuario",
     "admin.preview.body":
@@ -2053,7 +2140,7 @@ const messages = {
     "billing.description": "Gerencie sua assinatura Pro e seus pagamentos em um só lugar.",
     "billing.currentPlan": "Plano atual",
     "billing.price": "Pro: {price} / mês",
-    "billing.offer": "Apoie o filazo com o Pro e navegue sem anúncios enquanto estiver conectado. Os recursos da biblioteca continuam disponíveis no Grátis.",
+    "billing.offer": "O Pro inclui calendário, sincronização automática diária, retrospectivas, mais espaço no diário e cotas maiores de IA com pesquisa web. Sua biblioteca, avaliações e diário em texto continuam gratuitos.",
     "billing.adFree": "Sem anúncios",
     "ads.label": "Publicidade",
     "billing.subscribe": "Assinar por {price} / mês",
@@ -2860,6 +2947,29 @@ const messages = {
     "game.sections": "Seções da página do jogo",
     "game.aboutTab": "Sobre o jogo",
     "game.personalTab": "Sua experiência",
+    "game.buyTab": "Onde comprar",
+    "game.steamReviewsTab": "Reviews da Steam",
+    "game.steamReviewsDescription": "As avaliações públicas mais relevantes, organizadas pela utilidade na Steam.",
+    "game.steamReviewsSearch": "Buscar reviews da Steam",
+    "game.steamReviewsRefresh": "Atualizar reviews",
+    "game.steamReviewsSearching": "Buscando reviews na Steam…",
+    "game.steamReviewsEmpty": "A Steam não retornou reviews públicas para este jogo.",
+    "game.steamReviewsUnavailable": "Este jogo ainda não tem um vínculo com a Steam no catálogo.",
+    "game.steamReviewsError": "Não foi possível carregar as reviews da Steam agora.",
+    "game.steamReviewsLimit": "Este jogo já atingiu o limite de atualizações de reviews hoje. Tente novamente mais tarde.",
+    "game.steamReviewsRefreshing": "Outra atualização deste jogo já está em andamento…",
+    "game.steamReviewsChecked": "Consultado em",
+    "game.steamReviewsNote": "As reviews são exibidas no idioma original. Leia o contexto completo na Steam.",
+    "game.steamReviewsRecommended": "Recomendado",
+    "game.steamReviewsNotRecommended": "Não recomendado",
+    "game.steamReviewsHelpfulVotes": "votos úteis",
+    "game.steamReviewsPublicCount": "reviews públicas",
+    "game.steamReviewsScore": "Recepção na Steam",
+    "game.steamReviewsRead": "Ler na Steam",
+    "game.steamReviewsLanguage": "Idioma",
+    "game.steamReviewsPlaytime": "jogadas no momento da review",
+    "game.steamReviewsComments": "comentários",
+    "game.steamReviewsUnknownAuthor": "Usuário da Steam",
     "game.communityTab": "Comunidade",
     "game.personalHint": "Seu progresso, notas, avaliações e lembranças deste jogo.",
     "game.editExperience": "Editar progresso e preferências",

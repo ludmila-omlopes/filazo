@@ -1,5 +1,10 @@
 "use server";
 
+import { hasProAccess } from "@/lib/account-plans";
+import { getPlanAccount, proAccountWhere } from "@/lib/plan-access";
+import { ABUSE_LIMITS } from "@/lib/abuse-policy";
+import { checkActionAbuse } from "@/lib/abuse-request";
+
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -161,6 +166,7 @@ export async function resolveSyncedPlaytimeAction(formData: FormData) {
 export async function savePlayingNextDateAction(formData: FormData) {
   const userId = await getSessionUserId();
   if (!userId) redirect("/login");
+  if (!hasProAccess(await getPlanAccount(userId))) redirect("/account/billing");
   const parsed = plannedStartDateSchema.safeParse({
     entryId: formData.get("entryId"),
     plannedStartDate: formData.get("plannedStartDate"),
@@ -174,6 +180,7 @@ export async function savePlayingNextDateAction(formData: FormData) {
       id: parsed.data.entryId,
       userId,
       status: UserGameStatus.PLAYING_NEXT,
+      user: proAccountWhere(),
     },
     data: { plannedStartDate },
   });
@@ -1066,6 +1073,9 @@ export async function syncSteamLibraryAction() {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needSteamLogin"))}`);
   }
 
+  const limitError = await checkActionAbuse([{ name: "manual-steam-sync", limit: 1, windowSeconds: 60 }], userId);
+  if (limitError) redirect(`/profile?tab=integrations&error=${encodeURIComponent(limitError)}`);
+
   let result: Awaited<ReturnType<typeof steamSyncQueue.enqueue>>;
   try {
     result = await steamSyncQueue.enqueue(userId);
@@ -1073,7 +1083,7 @@ export async function syncSteamLibraryAction() {
     console.warn("Could not enqueue Steam synchronization.");
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.steamSyncFailed"))}`);
   }
-  if (result.kind === "not-connected") {
+  if (result.kind !== "queued") {
     redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.steamSyncFailed"))}`);
   }
   const runId = result.runId;
@@ -1160,6 +1170,9 @@ export async function syncPlayStationLibraryAction() {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needPlayStationSyncLogin"))}`);
   }
 
+  const limitError = await checkActionAbuse([{ name: "manual-playstation-sync", limit: 1, windowSeconds: 60 }], userId);
+  if (limitError) redirect(`/profile?tab=integrations&error=${encodeURIComponent(limitError)}`);
+
   let result: Awaited<ReturnType<typeof runManualPlatformSync>>;
   try {
     result = await runManualPlatformSync({
@@ -1195,6 +1208,9 @@ export async function syncXboxLibraryAction() {
   if (!userId) {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needXboxSyncLogin"))}`);
   }
+
+  const limitError = await checkActionAbuse([{ name: "manual-xbox-sync", limit: 1, windowSeconds: 60 }], userId);
+  if (limitError) redirect(`/profile?tab=integrations&error=${encodeURIComponent(limitError)}`);
 
   let result: Awaited<ReturnType<typeof runManualPlatformSync>>;
   try {
@@ -1326,6 +1342,9 @@ export async function importCsvAction(formData: FormData) {
   if (!userId) {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needCsvLogin"))}`);
   }
+
+  const limitError = await checkActionAbuse([ABUSE_LIMITS.csvImport], userId);
+  if (limitError) redirect(`/profile?tab=integrations&error=${encodeURIComponent(limitError)}`);
 
   const parsed = importSchema.safeParse({
     fileName: formData.get("fileName"),
@@ -1667,6 +1686,7 @@ export async function saveOnboardingStepAction(formData: FormData) {
   }
 
   const returnTo = String(formData.get("returnTo") ?? "");
+  if (returnTo === "calendar" && !hasProAccess(await getPlanAccount(userId))) redirect("/account/billing");
   const parsed = parseOnboardingStepData(formData);
   if (!parsed.ok) {
     redirect(returnTo === "calendar" ? "/profile?tab=calendar&error=Preferences%20could%20not%20be%20saved." : "/profile?tab=setup&error=Those%20setup%20answers%20could%20not%20be%20saved.");

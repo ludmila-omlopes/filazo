@@ -47,9 +47,7 @@ export async function GET(request: Request) {
     stage = "exchange-code";
     const profile = await exchangeGoogleCodeForProfile({ code, nonce, origin });
     stage = "load-user";
-    const user = await upsertGoogleUser(profile, {
-      registrationClosedMessage: t("auth.error.googleRegistrationClosed"),
-    });
+    const user = await upsertGoogleUser(profile, { allowCreate: true });
 
     stage = "create-session";
     await setUserSession(user.id);
@@ -66,12 +64,9 @@ export async function GET(request: Request) {
     const { t } = await getRequestTranslator();
     const message =
       userMessage ??
-      (error instanceof Error &&
-      error.message === t("auth.error.googleRegistrationClosed")
-        ? error.message
-        : t("auth.error.googleCallbackFailed", {
-            reference: requestId.slice(0, 8),
-          }));
+      t("auth.error.googleCallbackFailed", {
+        reference: requestId.slice(0, 8),
+      });
 
     return NextResponse.redirect(
       new URL(
