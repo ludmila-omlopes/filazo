@@ -251,7 +251,7 @@ Run `npm run test:steam-sync` with a PostgreSQL `DATABASE_URL` to verify queue c
 
 ### Sync incident monitoring
 
-Apply `prisma/migrations/20260910140000_sync_incident_monitoring/migration.sql` once to existing databases before deploying the monitor (or use `npm run db:init` for a fresh/current schema). Generate the Prisma client normally afterwards. This adds incident membership, email delivery state, real progress timestamps and system feedback comments; it preserves existing feedback and library data.
+Apply `prisma/migrations/20260910140000_sync_incident_monitoring/migration.sql` once to existing databases before deploying the monitor (or use `npm run db:init` for a fresh/current schema). Generate the Prisma client normally afterwards. This adds incident membership, email delivery state, real progress timestamps and system feedback comments; it preserves existing feedback and library data. Vercel runs `npm run db:sync-monitor` before every build to repair the `Feedback.userId` ownership rule required by system-owned incidents; it is idempotent and fails the deployment if the database cannot be updated.
 
 The authenticated `/api/internal/sync-monitor` cron runs every minute independently of the import workers and `PLATFORM_SYNC_ENABLED`. It only processes production runs and does nothing in development or preview. A terminal failure or 15 minutes without progress opens an admin-only BUG card in `/admin/feedback`; intentional provider backoff is respected. Steam application credential failures are grouped across users. The scan uses a persistent cursor and a lease, so larger account sets are covered over successive bounded invocations. On other hosts, schedule this endpoint with the same `Authorization: Bearer <CRON_SECRET>` header.
 

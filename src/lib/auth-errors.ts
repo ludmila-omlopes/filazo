@@ -11,11 +11,29 @@ export type AuthFailureStage =
   | "create-session"
   | "unknown";
 
+export type AuthFailureReason = "missing-code" | "invalid-state" | "provider-error";
+
+const OAUTH_ERROR_CODES = new Set([
+  "access_denied",
+  "admin_policy_enforced",
+  "disallowed_useragent",
+  "invalid_request",
+  "invalid_scope",
+  "login_required",
+  "interaction_required",
+  "server_error",
+  "temporarily_unavailable",
+  "unauthorized_client",
+  "unsupported_response_type",
+]);
+
 type AuthFailureContext = {
   provider: AuthProvider;
   route: string;
   stage: AuthFailureStage;
   requestId: string;
+  reason?: AuthFailureReason;
+  providerError?: string;
 };
 
 type AuthExceptionContext = {
@@ -49,6 +67,14 @@ export function reportAuthFailure(
         "filazo.provider": context.provider,
         "filazo.route": context.route,
         "filazo.auth_stage": context.stage,
+        ...(context.reason ? { "filazo.auth_reason": context.reason } : {}),
+        ...(context.providerError !== undefined
+          ? {
+              "filazo.oauth_error": OAUTH_ERROR_CODES.has(context.providerError)
+                ? context.providerError
+                : "unknown",
+            }
+          : {}),
       },
       extra: { requestId: context.requestId },
     });
