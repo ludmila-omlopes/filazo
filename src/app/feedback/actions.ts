@@ -10,6 +10,8 @@ import { sendFeedbackCommentEmail } from "@/lib/email";
 import { isFeedbackClosed } from "@/lib/feedback";
 import { getRequestTranslator } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
+import { ABUSE_LIMITS } from "@/lib/abuse-policy";
+import { checkActionAbuse } from "@/lib/abuse-request";
 
 const feedbackSchema = z.object({
   type: z.nativeEnum(FeedbackType),
@@ -28,6 +30,9 @@ export async function submitFeedbackAction(formData: FormData) {
   if (!userId) {
     redirect("/feedback");
   }
+
+  const limitError = await checkActionAbuse([ABUSE_LIMITS.feedback], userId);
+  if (limitError) redirect(`/feedback?error=${encodeURIComponent(limitError)}`);
 
   const parsed = feedbackSchema.safeParse({
     type: formData.get("type"),
@@ -61,6 +66,9 @@ export async function submitFeedbackCommentAction(formData: FormData) {
   if (!userId) {
     redirect("/feedback");
   }
+
+  const limitError = await checkActionAbuse([ABUSE_LIMITS.feedbackComment], userId);
+  if (limitError) redirect(`/feedback?error=${encodeURIComponent(limitError)}`);
 
   const parsed = feedbackCommentSchema.safeParse({
     feedbackId: formData.get("feedbackId"),

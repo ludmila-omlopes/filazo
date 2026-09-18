@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { importSteamLibraryGame } from "@/lib/catalog";
 import { steamAdapter } from "@/lib/steam";
 import { getUserProfileSyncData } from "@/lib/user-profile-sync";
+import { proAccountWhere, planAccountSelect } from "@/lib/plan-access";
+import { hasProAccess } from "@/lib/account-plans";
 import { classifyPlatformSyncError, getNextAutomaticSyncAt, getPlatformSyncPolicy } from "@/lib/platform-sync-policy";
 import { STEAM_BATCH_SIZE, STEAM_WORK_BUDGET_MS, STEAM_WORK_LEASE_MS, getSyncWorkerScope, steamRetryDelay, steamSnapshotSchema } from "@/lib/steam-sync-state";
 
@@ -28,6 +30,9 @@ export function createSteamSyncQueue({
       throw new Error("Steam background worker is not configured.");
     }
     return db.$transaction(async (tx) => {
+      if (trigger === "SCHEDULED" && !await tx.user.findFirst({ where: { id: userId, ...proAccountWhere() }, select: { id: true } })) {
+        return { kind: "pro-required" } as const;
+      }
       // Serialize duplicate clicks and scheduled work on the account, not the user.
       await tx.externalAccount.updateMany({
         where: { userId, provider: "STEAM" }, data: { updatedAt: new Date() },
@@ -38,12 +43,18 @@ export function createSteamSyncQueue({
         where: { externalAccountId: account.id, status: { in: ["PENDING", "RUNNING"] } },
         orderBy: { createdAt: "desc" },
       });
-      if (active) return { kind: "queued", runId: active.id } as const;
+      if (active) {
+        // A manual request can resume work left over from a canceled Pro plan.
+        if (trigger === "MANUAL" && active.trigger === "SCHEDULED") {
+          await tx.platformSyncRun.update({ where: { id: active.id }, data: { trigger: "MANUAL" } });
+        }
+        return { kind: "queued", runId: active.id } as const;
+      }
       const previous = await tx.platformSyncRun.findFirst({
         where: { externalAccountId: account.id, workerScope },
         orderBy: { createdAt: "desc" },
       });
-      const resume = previous?.status === "FAILED" && previous.snapshot &&
+      const resume = (previous?.status === "FAILED" || (previous?.status === "SKIPPED" && previous.errorCode === "PRO_REQUIRED")) && previous.snapshot &&
         steamSnapshotSchema.safeParse(previous.snapshot).success ? previous : null;
       const run = await tx.platformSyncRun.create({
         data: {
@@ -86,7 +97,7 @@ export function createSteamSyncQueue({
       if (!claimed.count) return null;
       return tx.platformSyncRun.findUniqueOrThrow({
         where: { id: previous.id },
-        include: { externalAccount: { include: { user: { select: { lastActiveAt: true, displayName: true, avatarUrl: true } } } } },
+        include: { externalAccount: { include: { user: { select: { ...planAccountSelect, lastActiveAt: true, displayName: true, avatarUrl: true } } } } },
       });
     });
   }
@@ -97,6 +108,12 @@ export function createSteamSyncQueue({
     if (!run) return false;
     const account = run.externalAccount;
     const fence = { id: run.id, workerToken: run.workerToken, status: "RUNNING" as const };
+    if (run.trigger === "SCHEDULED" && !hasProAccess(account.user)) {
+      await db.platformSyncRun.updateMany({ where: fence, data: {
+        status: "SKIPPED", errorCode: "PRO_REQUIRED", finishedAt: new Date(), workerToken: null, leaseExpiresAt: null,
+      } });
+      return true;
+    }
 
     const assertLease = async (tx: Prisma.TransactionClient) => {
       const result = await tx.platformSyncRun.updateMany({

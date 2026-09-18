@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run db:sync-monitor && npm run build",
   "crons": [
     {
       "path": "/api/internal/calendar-refresh",
@@ -9,6 +9,10 @@
     {
       "path": "/api/internal/calendar-releases",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/internal/abuse-cleanup",
+      "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/internal/sync-monitor",

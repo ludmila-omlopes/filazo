@@ -2,8 +2,8 @@ import Link from "next/link";
 import {
   Armchair,
   BookOpen,
-  CalendarDays,
   Cable,
+  CalendarDays,
   LibraryBig,
   SlidersHorizontal,
   Sparkles,
@@ -36,18 +36,18 @@ const railItems = [
     icon: LibraryBig,
   },
   {
-    tab: "calendar" as const,
-    href: "/profile?tab=calendar",
-    labelKey: "profile.rail.calendar" as const,
-    hintKey: "profile.rail.calendarHint" as const,
-    icon: CalendarDays,
-  },
-  {
     tab: "journal" as const,
     href: "/profile?tab=journal",
     labelKey: "profile.rail.journal" as const,
     hintKey: "profile.rail.journalHint" as const,
     icon: BookOpen,
+  },
+  {
+    tab: "calendar" as const,
+    href: "/profile?tab=calendar",
+    labelKey: "profile.rail.calendar" as const,
+    hintKey: "profile.rail.calendarHint" as const,
+    icon: CalendarDays,
   },
   {
     tab: "playerProfile" as const,
@@ -148,6 +148,7 @@ export function ProfileRail({
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-bold leading-tight">
                   {t(labelKey)}
+                  {tab === "calendar" ? <span className="ml-2 text-xs font-normal">Pro</span> : null}
                 </span>
                 <span
                   className={cn(

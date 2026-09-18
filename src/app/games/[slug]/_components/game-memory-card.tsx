@@ -15,6 +15,8 @@ import {
   savePlayingNextDateAction,
 } from "@/app/profile/actions";
 import { PhysicalMediaButton } from "@/app/profile/_components/physical-media-button";
+import { MarketplaceSearchPanel } from "@/components/assistant/marketplace-search-panel";
+import { SteamReviewsPanel } from "@/components/steam-reviews-panel";
 import { SafeImage } from "@/components/safe-image";
 import { ScreenshotLightbox } from "@/components/screenshot-lightbox";
 import { Button } from "@/components/ui/button";
@@ -23,6 +25,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { StatusBadge } from "@/components/ui/status-badge";
 import type { getGameBySlug } from "@/lib/catalog";
 import { createTranslator, type Locale } from "@/lib/i18n";
+import { steamReviewLanguage } from "@/lib/steam-reviews";
 import {
   estimatePlayStartDate,
   weeklyHoursFromOnboarding,
@@ -150,7 +153,7 @@ function CaseHeader({ game, locale }: { game: GameDetail; locale: Locale }) {
               {t("common.home")}
             </Link>
             <span aria-hidden>/</span>
-            <Link className="nav-link" href="/profile?tab=games">
+            <Link className="nav-link" href="/catalog">
               {t("common.catalog")}
             </Link>
             <span aria-hidden>/</span>
@@ -889,10 +892,12 @@ export function GameMemoryCard({
   game,
   locale,
   sessionUserId,
+  advertisement,
 }: {
   game: GameDetail;
   locale: Locale;
   sessionUserId: string | null;
+  advertisement?: React.ReactNode;
 }) {
   const t = createTranslator(locale);
   const currentEntry = chooseDisplayedEntry(
@@ -989,6 +994,29 @@ export function GameMemoryCard({
               </section>
             ),
           },
+          {
+            id: "buy",
+            label: t("game.buyTab"),
+            content: (
+              <MarketplaceSearchPanel
+                gameId={game.id}
+                initialSnapshots={game.marketplaceSnapshots}
+                title={game.name}
+              />
+            ),
+          },
+          {
+            id: "steam-reviews",
+            label: t("game.steamReviewsTab"),
+            content: (
+              <SteamReviewsPanel
+                gameId={game.id}
+                initialSnapshot={game.steamReviewSnapshots.find(
+                  (snapshot) => snapshot.language === steamReviewLanguage(locale),
+                ) ?? null}
+              />
+            ),
+          },
           ...(hasCommunity
             ? [
                 {
@@ -1004,10 +1032,11 @@ export function GameMemoryCard({
       />
       <Link
         className="nav-link justify-self-start text-sm"
-        href="/profile?tab=games"
+        href="/catalog"
       >
         {t("game.backToCatalog")}
       </Link>
+      {advertisement}
     </main>
   );
 }

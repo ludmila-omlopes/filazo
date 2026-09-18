@@ -18,7 +18,7 @@ const EMBEDDED_BROWSER_TOKENS = [
   "x-twitter",
 ];
 
-const SAFE_OAUTH_RETURN_PATHS = new Set(["/admin", "/beta", "/login"]);
+const SAFE_OAUTH_RETURN_PATHS = new Set(["/admin", "/login", "/profile"]);
 
 export function isGoogleOAuthBlockedUserAgent(userAgent: string | null) {
   const normalized = userAgent?.toLowerCase() ?? "";

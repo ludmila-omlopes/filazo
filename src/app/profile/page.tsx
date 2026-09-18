@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { AdSenseBanner } from "@/components/adsense-banner";
 import { AssistantTab, PlayerProfileTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
 import { BacklogEstimate } from "./_components/backlog-estimate";
@@ -47,6 +48,11 @@ import {
 } from "@/lib/profile-games";
 import { getSessionUserId } from "@/lib/session";
 import { formatPlatformNames } from "@/lib/platform-names";
+import { hasProAccess } from "@/lib/account-plans";
+import { getPlanAccount } from "@/lib/plan-access";
+import { applyPlanAiLimits } from "@/lib/plan-policy";
+import { planCopy } from "@/lib/plan-copy";
+import { ProFeatureGate } from "@/components/pro-feature-gate";
 
 export const maxDuration = 60;
 
@@ -94,11 +100,13 @@ export default async function ProfilePage({
   const isReadOnlyPreview = Boolean(viewAsUserId);
   const profileUserId = viewAsUserId ?? userId;
   const activeTab = parseActiveTab(query.tab);
+  const planAccount = viewAsUserId ? await getPlanAccount(viewAsUserId) : sessionUser;
+  const calendarAllowed = hasProAccess(planAccount);
   const setupStep = parseSetupStep(query.step);
 
   let profile: Awaited<ReturnType<typeof getProfileData>>;
   try {
-    profile = await getProfileData(profileUserId, { scope: activeTab });
+    profile = await getProfileData(profileUserId, { scope: activeTab === "calendar" && !calendarAllowed ? "overview" : activeTab });
   } catch (error) {
     console.error("Could not load profile data.", error);
     reportDatabaseError(error, {
@@ -136,7 +144,7 @@ export default async function ProfilePage({
     activeTab === "overview" || activeTab === "playerProfile"
       ? await getPlayerProfileForUser(profileUserId, locale)
       : null;
-  const aiSettings = await getAiSettings();
+  const aiSettings = applyPlanAiLimits(await getAiSettings(), planAccount);
   const signalEntryIds =
     activeTab === "games" && activeSignal
       ? await getAssistantSignalEntryIds(profileUserId, activeSignal)
@@ -214,7 +222,7 @@ export default async function ProfilePage({
           ) : null}
 
           {activeTab === "assistant" && assistant ? (
-            <AssistantTab assistant={assistant} locale={locale} />
+            <AssistantTab assistant={assistant} locale={locale} pro={hasProAccess(planAccount)} />
           ) : null}
 
           {activeTab === "integrations" ? (
@@ -241,7 +249,7 @@ export default async function ProfilePage({
             />
           ) : null}
 
-          {activeTab === "calendar" ? (
+          {activeTab === "calendar" ? calendarAllowed ? (
             <PlayCalendar
               calendarMonth={query.month}
               calendarStatus={query.calendarStatus}
@@ -249,7 +257,7 @@ export default async function ProfilePage({
               profile={profile}
               viewAsUserId={viewAsUserId}
             />
-          ) : null}
+          ) : <ProFeatureGate title={planCopy(locale).calendar} description={planCopy(locale).calendarBody} locale={locale} /> : null}
 
           {activeTab === "games" ? (
             <div className="grid gap-5">
@@ -269,6 +277,7 @@ export default async function ProfilePage({
               locale={locale}
               visibleEntries={visibleEntries}
               />
+              {!isReadOnlyPreview && visibleEntries.length > 0 ? <AdSenseBanner placement="library" locale={locale} /> : null}
             </div>
           ) : null}
         </div>

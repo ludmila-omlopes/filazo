@@ -19,6 +19,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { steamSyncQueue } from "@/lib/steam-sync-queue";
 import { getSyncWorkerScope } from "@/lib/steam-sync-state";
+import { proAccountWhere } from "@/lib/plan-access";
 
 const SCHEDULER_STATE_ID = "platform-sync";
 const LEASE_BUFFER_MS = 5 * 60 * 1000;
@@ -141,6 +142,7 @@ async function acquireAccountLease({
     where: {
       id: account.id,
       provider: account.provider,
+      ...(trigger === PlatformSyncTrigger.SCHEDULED ? { user: proAccountWhere(now) } : {}),
       AND: conditions,
     },
     data: {
@@ -456,7 +458,7 @@ export async function runDuePlatformSyncs(): Promise<ScheduledSyncSummary> {
   const accounts = await prisma.externalAccount.findMany({
     where: {
       provider: { in: providers },
-      user: { lastActiveAt: { gt: automaticSyncPauseAt } },
+      user: { lastActiveAt: { gt: automaticSyncPauseAt }, ...proAccountWhere(now) },
       OR: [
         { nextSyncAt: { lte: now } },
         { nextSyncAt: null, lastSyncedAt: null },
@@ -512,7 +514,7 @@ export async function getPlatformSyncOperationalSummary(now = new Date()) {
       prisma.externalAccount.count({
         where: {
           provider: { in: providers },
-          user: { lastActiveAt: { gt: automaticSyncPauseAt } },
+          user: { lastActiveAt: { gt: automaticSyncPauseAt }, ...proAccountWhere(now) },
           OR: [
             { nextSyncAt: { lte: now } },
             { nextSyncAt: null, lastSyncedAt: null },

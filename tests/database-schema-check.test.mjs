@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { checkDatabaseSchema, shouldCheckDatabase } from "../scripts/database-schema-check.mjs";
 
 const datamodel = {
-  models: [{ name: "Game", fields: [{ name: "id", kind: "scalar" }, { name: "completionModel", kind: "enum" }, { name: "links", kind: "object" }] }],
+  models: [{ name: "Game", fields: [{ name: "id", kind: "scalar", isRequired: true }, { name: "completionModel", kind: "enum", isRequired: true }, { name: "links", kind: "object" }] }],
   enums: [{ name: "GameCompletionModel", values: [{ name: "UNKNOWN" }, { name: "ONGOING" }] }],
 };
 
@@ -24,8 +24,33 @@ test("schema guard resolves columns without reading user rows and rejects a miss
 
 test("schema guard rejects missing enum values and accepts a compatible schema", async () => {
   const values = [{ name: "GameCompletionModel", value: "UNKNOWN" }];
-  const client = { async $queryRawUnsafe(sql) { return sql.includes("pg_enum") ? values : []; } };
+  const client = { async $queryRawUnsafe(sql) {
+    if (sql.includes("information_schema.columns")) {
+      return [
+        { tableName: "Game", columnName: "id", isNullable: "NO" },
+        { tableName: "Game", columnName: "completionModel", isNullable: "NO" },
+      ];
+    }
+    return sql.includes("pg_enum") ? values : [];
+  } };
   await assert.rejects(checkDatabaseSchema(client, datamodel), /ONGOING/);
   values.push({ name: "GameCompletionModel", value: "ONGOING" });
   await checkDatabaseSchema(client, datamodel);
+});
+
+test("schema guard rejects a required database column for an optional Prisma field", async () => {
+  const optionalModel = {
+    models: [{ name: "Feedback", fields: [{ name: "userId", kind: "scalar", isRequired: false }] }],
+    enums: [],
+  };
+  const client = { async $queryRawUnsafe(sql) {
+    if (sql.includes("information_schema.columns")) {
+      return [{ tableName: "Feedback", columnName: "userId", isNullable: "NO" }];
+    }
+    return [];
+  } };
+  await assert.rejects(
+    checkDatabaseSchema(client, optionalModel),
+    /Column nullability mismatch: Feedback.userId/,
+  );
 });

@@ -23,10 +23,14 @@ if (databaseUrl.startsWith("file:")) {
 // bootstrap only: workers require a normally generated Prisma client too.
 // Deployments separately run db:check before building; this bootstrap also
 // includes Game completion structure, Stripe billing tables, and the current provider enum values.
-// Also creates UserDailyActivity and PlatformError for the administrator dashboard.
 // Includes calendar observations, persisted forecasts, daily refresh limits,
 // manual sessions, cited release dates and personal release subscriptions.
 // UserGamePlayDate preserves only provider-confirmed first/last play dates.
+// Also creates UserDailyActivity and PlatformError for the administrator dashboard,
+// plus the public GameMarketplaceSnapshot cache for game-page store lookups.
+// GameSteamReviewSnapshot stores the bounded, public Steam review cache for game pages,
+// with separate rows for each supported platform language.
+// AbuseLimitBucket holds atomic, expiring abuse counters with HMAC identifiers.
 const result = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
   cwd: process.cwd(),
   env: process.env,

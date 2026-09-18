@@ -92,16 +92,18 @@ async function main() {
     assert.equal(request.tools[0].type, "web_search");
     assert.ok(!JSON.stringify(request).includes(alice.id));
     searches++;
-    return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ releases: [{ title: game.name, platform: "PS5", region: "Worldwide", kind: "release_date", precision: "day", date: "2099-10-03", dateLabel: "2099-10-03", sourceUrl: release.sourceUrl, sourceType: "store", evidence }] }), annotations: [{ type: "url_citation", url: release.sourceUrl }] }] }], usage: { input_tokens: 50, output_tokens: 40 } });
+    return Response.json({ status: "completed", output: [{ type: "message", content: [{ type: "output_text", text: JSON.stringify({ releases: [{ title: game.name, platforms: ["PS5"], region: "Worldwide", kind: "release_date", precision: "day", date: "2099-10-03", dateLabel: "2099-10-03", sources: [{ sourceUrl: release.sourceUrl, sourceType: "store", evidence }] }] }), annotations: [{ type: "url_citation", url: release.sourceUrl }] }] }], usage: { input_tokens: 50, output_tokens: 40 } });
   };
   try {
     const results = await Promise.all([runReleaseDateSearch(now), runReleaseDateSearch(now)]);
-    assert.equal(searches, 1);
+    assert.equal(searches, 6, "Concurrent runs must share one batch of six search passes");
     assert.equal(results.filter((r) => r.status === "completed").length, 1);
+    assert.equal((await runReleaseDateSearch(now)).status, "already_run");
+    assert.equal(searches, 6, "A later run on the same day must not repeat the search batch");
     assert.equal(await prisma.game.count({ where: { normalizedName: game.normalizedName } }), 1);
     assert.equal(await prisma.releaseAnnouncement.count({ where: { gameId: game.id, platform: "PS5" } }), 1);
   } finally { globalThis.fetch = originalFetch; }
-  console.log("PASS one global AI search per day, canonical game reuse and cited platform dates.");
+  console.log("PASS one global AI search batch per day, canonical game reuse and cited platform dates.");
 
   const account = await prisma.externalAccount.create({ data: { userId: alice.id, provider: "PLAYSTATION", providerAccountId: "calendar-psn-test" } });
   const psnRaw = { syncSource: "played-game", firstPlayedDateTime: start.toISOString(), lastPlayedDateTime: new Date(now.getTime() - DAY_MS).toISOString() };

@@ -12,7 +12,6 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import "./globals.css";
 import { AuthDialog } from "@/components/auth-dialog";
-import { BetaBanner } from "@/components/beta-banner";
 import { InlineScript } from "@/components/inline-script";
 import { LocaleProvider } from "@/components/locale-provider";
 import { LocaleToggle } from "@/components/locale-toggle";
@@ -28,8 +27,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { createTranslator } from "@/lib/i18n";
 import { isAdminEmail } from "@/lib/beta-access";
-import { getBetaDiscordInviteUrl } from "@/lib/beta-community";
-import { getBetaSubmissionsOpen } from "@/lib/beta-submissions";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
 import { getSessionUserId } from "@/lib/session";
@@ -120,7 +117,6 @@ async function getNavigationUser(userId: string | null) {
       where: { id: userId },
       include: {
         externalAccounts: true,
-        betaApplication: true,
       },
     });
   } catch (error) {
@@ -145,17 +141,12 @@ export default async function RootLayout({
   const initialTheme = mode === "auto" ? "day" : themeForPhase(mode);
   const initialPhase = mode === "auto" ? undefined : mode;
   const userId = await getSessionUserId();
-  const [navigationUser, betaSubmissionsOpen] = await Promise.all([
-    getNavigationUser(userId),
-    getBetaSubmissionsOpen(),
-  ]);
-  const betaDiscordInviteUrl = getBetaDiscordInviteUrl();
+  const navigationUser = await getNavigationUser(userId);
   const homeHref = userId ? "/profile" : "/";
 
   return (
     <html
       lang={locale}
-      className="has-beta-banner"
       data-theme={initialTheme}
       data-phase={initialPhase}
       suppressHydrationWarning
@@ -164,10 +155,6 @@ export default async function RootLayout({
         <InlineScript html={themeBootstrapScript} />
         <ThemeRuntime mode={mode} />
         <LocaleProvider locale={locale}>
-          <BetaBanner
-            discordInviteUrl={betaDiscordInviteUrl}
-            submissionsOpen={betaSubmissionsOpen}
-          />
           <Button
             asChild
             className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50"
@@ -197,6 +184,7 @@ export default async function RootLayout({
                 <Link href={homeHref} className="nav-link text-sm">
                   {t("common.home")}
                 </Link>
+                <Link href="/catalog" className="nav-link text-sm">{t("common.catalog")}</Link>
                 <Link href="/profile" className="nav-link text-sm">
                   {t("common.library")}
                 </Link>
@@ -207,11 +195,7 @@ export default async function RootLayout({
                   <Link href="/admin" className="nav-link text-sm">
                     {t("admin.kicker")}
                   </Link>
-                ) : (
-                  <Link href="/beta" className="nav-link text-sm">
-                    Beta
-                  </Link>
-                )}
+                ) : null}
                 <LocaleToggle locale={locale} />
                 <ThemeToggle mode={mode} />
                 {navigationUser ? (

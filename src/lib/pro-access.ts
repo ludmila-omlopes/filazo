@@ -4,7 +4,7 @@ import { getSessionUserId } from "@/lib/session";
 
 /** Call before running a future Pro-only action or route handler.
  * Read the current plan from the database, never from a cookie or form field.
- * Login and beta access remain independent prerequisites.
+ * Login remains the prerequisite; platform access is public after sign-in.
  */
 export async function requireProAccess() {
   const user = await requirePlatformAccess(await getSessionUserId());

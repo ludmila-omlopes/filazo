@@ -331,7 +331,7 @@ export function MobileAccountMenu({
         ref={menuRef}
         style={{
           maxHeight:
-            "var(--mobile-account-menu-max-height, calc(100dvh - var(--beta-banner-h) - 5rem))",
+            "var(--mobile-account-menu-max-height, calc(100dvh - 5rem))",
         }}
       >
         <div>
@@ -342,6 +342,9 @@ export function MobileAccountMenu({
             {displayName}
           </p>
         </div>
+
+        <Link href="/catalog" onClick={closeMenu} aria-current={pathname === "/catalog" ? "page" : undefined}
+          className="nav-link min-h-11 px-3 py-2 text-sm font-bold">{t("common.catalog")}</Link>
 
         {signedIn ? (
           <>
