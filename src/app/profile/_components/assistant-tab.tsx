@@ -64,9 +64,7 @@ export function PlayerProfileTab({
           isAiProviderConfigured() &&
           aiSettings.playerProfileEnabled
         }
-        hasGames={
-          profile.ownedEntries.length + profile.wishlistEntries.length > 0
-        }
+        hasGames={profile.user.gameEntries.length > 0}
         locale={locale}
         games={profile.user.gameEntries.map((entry) => entry.game)}
         profile={playerProfile}

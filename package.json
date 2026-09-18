@@ -19,6 +19,7 @@
     "db:generate": "prisma generate",
     "db:check": "node scripts/check-db-schema.mjs",
     "db:abuse-limits": "node scripts/security/apply-abuse-migration.mjs",
+    "db:sync-monitor": "node scripts/security/apply-sync-monitor-migration.mjs",
     "billing:setup": "node scripts/setup-stripe-billing.mjs",
     "billing:listen": "node scripts/listen-stripe-billing.mjs",
     "db:init": "node scripts/init-db.mjs",

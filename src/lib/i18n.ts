@@ -140,6 +140,8 @@ const messages = {
       "This Google account could not be registered. Please try again.",
     "auth.error.googleMissingCode":
       "Google did not return an authorization code. Try signing in again.",
+    "auth.error.googleAccessDenied":
+      "Google sign-in was not authorized. Try again and allow access, or use another sign-in method.",
     "auth.error.googleStateInvalid":
       "Google sign-in expired or could not be verified. Try signing in again.",
     "auth.error.googleCallbackFailed":
@@ -1769,6 +1771,8 @@ const messages = {
       "Não foi possível cadastrar esta conta Google. Tente novamente.",
     "auth.error.googleMissingCode":
       "O Google não retornou um código de autorização. Tente entrar novamente.",
+    "auth.error.googleAccessDenied":
+      "O login com Google não foi autorizado. Tente novamente e permita o acesso, ou use outra forma de entrar.",
     "auth.error.googleStateInvalid":
       "O login com Google expirou ou não pôde ser verificado. Tente entrar novamente.",
     "auth.error.googleCallbackFailed":
