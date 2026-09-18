@@ -31,6 +31,7 @@ import {
   syncPlayStationLibraryForAccount as fetchPlayStationLibraryForAccount,
 } from "@/lib/playstation";
 import { prisma } from "@/lib/prisma";
+import { recordProviderPlayDates } from "@/lib/provider-play-date-store";
 import { getSyncWorkerScope } from "@/lib/steam-sync-state";
 import { getUserProfileSyncData } from "@/lib/user-profile-sync";
 import { getSteamStoreArtwork, steamAdapter } from "@/lib/steam";
@@ -779,6 +780,8 @@ export async function importSteamLibraryGame(
     deferEnrichment: true,
   }, prisma);
 
+  await recordProviderPlayDates({ userId, gameId: game.id, accountId: steamAccount.id, provider: ExternalProvider.STEAM, rawData: syncedGame.rawData }, prisma);
+
   const existingEntry = await prisma.userGameEntry.findUnique({
     where: { userId_gameId_status: { userId, gameId: game.id, status: UserGameStatus.OWNED } },
     select: {
@@ -919,6 +922,8 @@ async function syncPlayStationLibraryForAccount(
       });
     }
 
+    await recordProviderPlayDates({ userId, gameId: game.id, accountId: playStationAccount.id, provider: ExternalProvider.PLAYSTATION, rawData: syncedGame.rawData }, prisma);
+
     const existingEntry = await prisma.userGameEntry.findUnique({
       where: { userId_gameId_status: { userId, gameId: game.id, status: UserGameStatus.OWNED } },
       select: { id: true, playtimeMinutes: true, playtimeSource: true },
@@ -1039,6 +1044,8 @@ async function syncXboxLibraryForAccount(
         },
       });
     }
+
+    await recordProviderPlayDates({ userId, gameId: game.id, accountId: xboxAccount.id, provider: ExternalProvider.XBOX, rawData: syncedGame.rawData }, prisma);
 
     const existingEntry = await prisma.userGameEntry.findUnique({
       where: {

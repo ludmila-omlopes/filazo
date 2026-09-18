@@ -48,6 +48,8 @@ import { getSessionUserId } from "@/lib/session";
 import { detectFinishedGamesForUser } from "@/lib/story-completion";
 import { runManualPlatformSync } from "@/lib/platform-sync";
 import { steamSyncQueue } from "@/lib/steam-sync-queue";
+import { saveCalendarStart } from "@/lib/calendar-writes";
+import { parseCalendarDate } from "@/lib/calendar-policy";
 
 const importSchema = z.object({
   fileName: z.string().min(1),
@@ -114,12 +116,9 @@ export async function saveManualStartedAtAction(formData: FormData) {
     slug: formData.get("slug"),
   });
   if (!parsed.success) return;
-  const manualStartedAt = new Date(`${parsed.data.manualStartedAt}T00:00:00.000Z`);
-  if (manualStartedAt.getTime() > Date.now()) return;
-  await prisma.userGameEntry.updateMany({
-    where: { id: parsed.data.entryId, userId },
-    data: { manualStartedAt, startedAt: manualStartedAt },
-  });
+  const manualStartedAt = parseCalendarDate(parsed.data.manualStartedAt);
+  if (!manualStartedAt || manualStartedAt.getTime() > Date.now()) return;
+  await saveCalendarStart(userId, parsed.data.entryId, manualStartedAt);
   revalidatePath(`/games/${parsed.data.slug}`);
   revalidatePath("/profile");
 }

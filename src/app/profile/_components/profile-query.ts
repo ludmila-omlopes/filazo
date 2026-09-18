@@ -22,6 +22,7 @@ export type ProfileSearchParams = Promise<{
   includeDormant?: string;
   q?: string;
   month?: string;
+  calendarStatus?: string;
   connected?: string;
   synced?: string;
   imported?: string;

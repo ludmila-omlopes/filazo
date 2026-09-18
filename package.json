@@ -15,6 +15,7 @@
     "test:steam-sync": "node scripts/qa/run-steam-sync-check.mjs",
     "test:sync-monitor": "node scripts/qa/run-steam-sync-check.mjs scripts/qa/sync-monitor-check.ts",
     "test:user-isolation": "node scripts/qa/run-steam-sync-check.mjs scripts/qa/user-isolation-check.ts",
+    "test:calendar": "node scripts/qa/run-steam-sync-check.mjs scripts/qa/calendar-check.ts",
     "test:abuse-limits": "node scripts/qa/run-steam-sync-check.mjs scripts/qa/abuse-limits-check.ts",
     "db:generate": "prisma generate",
     "db:check": "node scripts/check-db-schema.mjs",
