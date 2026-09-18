@@ -282,7 +282,7 @@ export default async function Home() {
                 size="lg"
                 className={HERO_GHOST_BUTTON}
               >
-                <Link href="/tonight">{t("landing.openTonight")}</Link>
+                <Link href="/catalog">{t("publicCatalog.browse")}</Link>
               </Button>
               <Button
                 asChild
@@ -333,6 +333,7 @@ export default async function Home() {
             <h2 className="text-section-title">
               {t("landing.catalogTitle")}
             </h2>
+            <Link className="nav-link mt-3 inline-flex" href="/catalog">{t("publicCatalog.browse")}</Link>
           </div>
         </div>
 

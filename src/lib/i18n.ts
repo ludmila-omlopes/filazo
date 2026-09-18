@@ -8,6 +8,16 @@ export const defaultLocale: Locale = "en";
 
 const messages = {
   en: {
+    "publicCatalog.description": "Explore games, discover new titles and read about them. No account needed.",
+    "publicCatalog.searchLabel": "Game title",
+    "publicCatalog.search": "Search",
+    "publicCatalog.clear": "Clear search",
+    "publicCatalog.empty": "No games here yet.",
+    "publicCatalog.emptyBody": "Try another title or return to the beginning of the catalog.",
+    "publicCatalog.browse": "Explore the catalog",
+    "publicCatalog.pagination": "Catalog pages",
+    "publicCatalog.previous": "Previous",
+    "publicCatalog.next": "Next",
     "journal.imageTooLarge": "Choose an image smaller than 10 MiB.",
     "common.home": "Home",
     "common.library": "Library",
@@ -1639,6 +1649,16 @@ const messages = {
       "Player profile generation did not complete.",
   },
   "pt-BR": {
+    "publicCatalog.description": "Explore jogos, descubra novos títulos e conheça cada um. Sem precisar de conta.",
+    "publicCatalog.searchLabel": "Nome do jogo",
+    "publicCatalog.search": "Buscar",
+    "publicCatalog.clear": "Limpar busca",
+    "publicCatalog.empty": "Nenhum jogo por aqui.",
+    "publicCatalog.emptyBody": "Experimente outro título ou volte ao início do catálogo.",
+    "publicCatalog.browse": "Explorar o catálogo",
+    "publicCatalog.pagination": "Páginas do catálogo",
+    "publicCatalog.previous": "Anterior",
+    "publicCatalog.next": "Próxima",
     "journal.imageTooLarge": "Escolha uma imagem menor que 10 MiB.",
     "common.home": "Início",
     "common.library": "Biblioteca",

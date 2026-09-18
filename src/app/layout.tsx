@@ -184,6 +184,7 @@ export default async function RootLayout({
                 <Link href={homeHref} className="nav-link text-sm">
                   {t("common.home")}
                 </Link>
+                <Link href="/catalog" className="nav-link text-sm">{t("common.catalog")}</Link>
                 <Link href="/profile" className="nav-link text-sm">
                   {t("common.library")}
                 </Link>

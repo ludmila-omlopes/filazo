@@ -153,7 +153,7 @@ function CaseHeader({ game, locale }: { game: GameDetail; locale: Locale }) {
               {t("common.home")}
             </Link>
             <span aria-hidden>/</span>
-            <Link className="nav-link" href="/profile?tab=games">
+            <Link className="nav-link" href="/catalog">
               {t("common.catalog")}
             </Link>
             <span aria-hidden>/</span>
@@ -1032,7 +1032,7 @@ export function GameMemoryCard({
       />
       <Link
         className="nav-link justify-self-start text-sm"
-        href="/profile?tab=games"
+        href="/catalog"
       >
         {t("game.backToCatalog")}
       </Link>
