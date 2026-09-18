@@ -55,6 +55,46 @@ export function createSyncIncidentMonitor({
         details: `Incidente automático de sincronização ${incident.provider}. ${incident.members.length} conta(s) registrada(s); ${remaining.length} ainda precisam de atenção. ${recoveredAt ? "Recuperação registrada. Aguardando fechamento pelo administrador." : "O monitor acompanha as tentativas e o progresso."} Consulte as pessoas afetadas e o histórico em /admin/sync.`,
       } });
     }
+    async function expireAbandonedRun(run: {
+      id: string;
+      externalAccountId: string;
+    }) {
+      await db.$transaction(async tx => {
+        await fence(tx);
+        const expired = await tx.platformSyncRun.updateMany({
+          where: {
+            id: run.id,
+            status: "RUNNING",
+            leaseExpiresAt: { lt: now() },
+          },
+          data: {
+            status: "FAILED",
+            errorCode: "LEASE_EXPIRED",
+            errorMessage: "Platform synchronization lease expired.",
+            finishedAt: now(),
+            leaseExpiresAt: null,
+          },
+        });
+        if (!expired.count) return;
+
+        // A newer run may already own the account. Only its original lease
+        // holder can clear the account state or schedule the replacement run.
+        await tx.externalAccount.updateMany({
+          where: {
+            id: run.externalAccountId,
+            syncLeaseToken: run.id,
+            syncLeaseExpiresAt: { lt: now() },
+          },
+          data: {
+            lastSyncErrorCode: "LEASE_EXPIRED",
+            nextSyncAt: now(),
+            syncFailureCount: { increment: 1 },
+            syncLeaseExpiresAt: null,
+            syncLeaseToken: null,
+          },
+        });
+      }, { timeout: 15_000 });
+    }
     async function record(account: Account) {
       const run = account.platformSyncRuns[0];
       if (!run) return;
@@ -119,6 +159,21 @@ export function createSyncIncidentMonitor({
 
     let inspected = 0;
     try {
+      const abandonedRuns = await db.platformSyncRun.findMany({
+        where: {
+          workerScope: "production",
+          status: "RUNNING",
+          leaseExpiresAt: { lt: now() },
+        },
+        select: { id: true, externalAccountId: true },
+        orderBy: { leaseExpiresAt: "asc" },
+        take: 20,
+      });
+      for (const run of abandonedRuns) {
+        if (Date.now() >= deadline - 12_000) break;
+        await expireAbandonedRun(run);
+      }
+
       const scheduler = await db.platformSyncSchedulerState.findUniqueOrThrow({ where: { id: SYNC_MONITOR_ID } });
       const accounts = await db.externalAccount.findMany({
         where: { ...(scheduler.scanCursor ? { id: { gt: scheduler.scanCursor } } : {}), platformSyncRuns: { some: { workerScope: "production" } } },
