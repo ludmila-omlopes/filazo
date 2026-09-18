@@ -94,7 +94,27 @@ async function main() {
   await db.platformSyncRun.update({ where: { id: stalled.run.id }, data: { cursor: 51, lastProgressAt: clock } });
   await monitor.scan();
   assert.equal((await db.syncIncidentMember.findFirstOrThrow({ where: { externalAccountId: stalled.source.id } })).state, "RETRYING");
-  console.log("PASS disconnect, stuck worker detection and resumed progress. No real email sent.");
+  const expired = await account("PLAYSTATION", "expired");
+  const expiredAt = new Date(clock.getTime() - 16 * 60_000);
+  await db.platformSyncRun.update({ where: { id: expired.run.id }, data: {
+    status: "RUNNING", errorCode: null, errorMessage: null, finishedAt: null,
+    leaseExpiresAt: expiredAt,
+  } });
+  await db.externalAccount.update({ where: { id: expired.source.id }, data: {
+    syncLeaseToken: expired.run.id, syncLeaseExpiresAt: expiredAt,
+  } });
+  await monitor.scan();
+  const expiredRun = await db.platformSyncRun.findUniqueOrThrow({ where: { id: expired.run.id } });
+  const expiredAccount = await db.externalAccount.findUniqueOrThrow({ where: { id: expired.source.id } });
+  assert.equal(expiredRun.status, "FAILED");
+  assert.equal(expiredRun.errorCode, "LEASE_EXPIRED");
+  assert.ok(expiredRun.finishedAt);
+  assert.equal(expiredRun.leaseExpiresAt, null);
+  assert.equal(expiredAccount.syncLeaseToken, null);
+  assert.equal(expiredAccount.syncLeaseExpiresAt, null);
+  assert.equal(expiredAccount.lastSyncErrorCode, "LEASE_EXPIRED");
+  assert.equal(expiredAccount.syncFailureCount, 1);
+  console.log("PASS disconnect, stalled/abandoned worker recovery, and resumed progress. No real email sent.");
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => db.$disconnect());
