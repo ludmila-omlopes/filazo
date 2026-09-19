@@ -7,11 +7,19 @@ export type SteamOwnedGame = {
   rtime_last_played?: number;
 };
 
+function createPrivateLibraryError() {
+  const error = new Error(
+    "Steam library is unavailable. Check that game details are public.",
+  ) as Error & { platformSyncErrorCode?: "LIBRARY_PRIVATE" };
+  error.platformSyncErrorCode = "LIBRARY_PRIVATE";
+  return error;
+}
+
 export function mapSteamOwnedGamesResponse(data: {
   response?: { games?: SteamOwnedGame[]; game_count?: number };
 }) {
   if (!data.response || (!data.response.games && data.response.game_count !== 0)) {
-    throw new Error("Steam library is unavailable. Check that game details are public.");
+    throw createPrivateLibraryError();
   }
   if (data.response.game_count !== undefined && data.response.game_count !== (data.response.games?.length ?? 0)) {
     throw new Error("Steam returned an incomplete library. Please retry synchronization.");

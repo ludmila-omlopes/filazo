@@ -34,7 +34,13 @@ test("Steam keeps a large library intact, including unnamed titles", () => {
 
 test("Steam distinguishes an empty library from private or incomplete responses", () => {
   assert.deepEqual(mapSteamOwnedGamesResponse({ response: { game_count: 0 } }), []);
-  assert.throws(() => mapSteamOwnedGamesResponse({ response: {} }), /unavailable/);
-  assert.throws(() => mapSteamOwnedGamesResponse({}), /unavailable/);
+  for (const value of [{ response: {} }, {}]) {
+    assert.throws(
+      () => mapSteamOwnedGamesResponse(value),
+      (error: unknown) => error instanceof Error &&
+        /unavailable/.test(error.message) &&
+        (error as Error & { platformSyncErrorCode?: string }).platformSyncErrorCode === "LIBRARY_PRIVATE",
+    );
+  }
   assert.throws(() => mapSteamOwnedGamesResponse({ response: { game_count: 2, games: [{ appid: 1 }] } }), /incomplete/);
 });

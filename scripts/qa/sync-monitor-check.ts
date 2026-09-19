@@ -15,12 +15,17 @@ async function main() {
     return { sent: true as const, id: `test-${id}` };
   };
   const monitor = createSyncIncidentMonitor({ db, scope: "production", now: at, sendEmail });
-  async function account(provider: ExternalProvider, key: string, scope = "production") {
+  async function account(
+    provider: ExternalProvider,
+    key: string,
+    scope = "production",
+    errorCode = provider === "STEAM" ? "CONFIGURATION" : "AUTH",
+  ) {
     const user = await db.user.create({ data: { displayName: `Fixture ${key}` } });
     const source = await db.externalAccount.create({ data: { userId: user.id, provider, providerAccountId: key } });
     const run = await db.platformSyncRun.create({ data: {
       externalAccountId: source.id, provider, workerScope: scope, trigger: "MANUAL", status: "FAILED",
-      errorCode: provider === "STEAM" ? "CONFIGURATION" : "AUTH", finishedAt: clock, totalCount: 500, cursor: 50,
+      errorCode, finishedAt: clock, totalCount: 500, cursor: 50,
     } });
     return { source, run };
   }
@@ -43,6 +48,18 @@ async function main() {
   assert.equal(await db.feedbackComment.count(), comments, "unchanged errors do not spam comments");
   assert.equal(deliveries.length, 1, "unchanged incident does not resend email");
   console.log("PASS production isolation, concurrent scans, shared incident and email deduplication.");
+
+  const privateLibrary = await account("STEAM", "private-library", "production", "LIBRARY_PRIVATE");
+  const incidentCountBeforePrivateLibrary = await db.syncIncident.count();
+  const emailCountBeforePrivateLibrary = deliveries.length;
+  await monitor.scan();
+  assert.equal(await db.syncIncident.count(), incidentCountBeforePrivateLibrary);
+  assert.equal(
+    await db.syncIncidentMember.count({ where: { externalAccountId: privateLibrary.source.id } }),
+    0,
+  );
+  assert.equal(deliveries.length, emailCountBeforePrivateLibrary);
+  console.log("PASS private Steam libraries stay out of incident cards and email.");
 
   await db.platformSyncRun.update({ where: { id: a.run.id }, data: { status: "SUCCEEDED", errorCode: null } });
   await monitor.scan();
