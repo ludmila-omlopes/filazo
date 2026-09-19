@@ -1,3 +1,4 @@
+import { syncLibraryCopy, upsertLibraryCopy } from "@/lib/library-entry";
 import { readGameDetail, readGameMetadata } from "@/lib/game-detail-queries";
 import {
   EntrySource,
@@ -42,10 +43,6 @@ import {
 } from "@/lib/game-completion-model";
 import { refreshGameCompletionModel } from "@/lib/game-completion-refresh";
 import {
-  getSyncedEntryProgressData,
-  getSyncedPlaytimeData,
-} from "@/lib/playtime-conflict";
-import {
   canonicalizeGameTitle,
   cleanGameTitle,
   normalizeTitle,
@@ -85,18 +82,6 @@ function isJsonRecord(
   value: Prisma.JsonValue | null | undefined,
 ): value is Prisma.JsonObject {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function mergeSyncedRawData(
-  existing: Prisma.JsonValue | null | undefined,
-  incoming: Record<string, unknown> | undefined,
-) {
-  if (!incoming) return existing;
-
-  return {
-    ...(isJsonRecord(existing) ? existing : {}),
-    ...incoming,
-  };
 }
 
 function isPlayStationNonGameCategory(category: string | null | undefined) {
@@ -603,66 +588,6 @@ export async function resolveCatalogGame(
   return game;
 }
 
-async function applySyncedProgressToRelatedEntries({
-  completionPercent,
-  gameId,
-  lastPlayedAt,
-  ownedEntryId,
-  rawData,
-  syncedMinutes,
-  userId,
-}: {
-  completionPercent: number | null | undefined;
-  gameId: string;
-  lastPlayedAt: Date | null | undefined;
-  ownedEntryId?: string;
-  rawData: Record<string, unknown> | undefined;
-  syncedMinutes: number | null | undefined;
-  userId: string;
-}, prisma: Prisma.TransactionClient = defaultCatalogClient) {
-  const hasSyncedProgress =
-    (syncedMinutes !== null && syncedMinutes !== undefined) ||
-    (completionPercent !== null && completionPercent !== undefined) ||
-    Boolean(lastPlayedAt);
-  if (!hasSyncedProgress) return;
-
-  const relatedEntries = await prisma.userGameEntry.findMany({
-    where: {
-      userId,
-      gameId,
-      id: ownedEntryId ? { not: ownedEntryId } : undefined,
-    },
-    select: {
-      id: true,
-      playtimeMinutes: true,
-      playtimeSource: true,
-      rawData: true,
-    },
-  });
-  const syncedAt = new Date();
-  for (const entry of relatedEntries) {
-    await prisma.userGameEntry.update({
-      where: { id: entry.id },
-      data: {
-        ...getSyncedEntryProgressData(entry, {
-          completionPercent,
-          lastPlayedAt,
-          playtimeMinutes: syncedMinutes,
-        }),
-        lastSyncedAt: syncedAt,
-        ...(rawData
-          ? {
-              rawData: mergeSyncedRawData(
-                entry.rawData,
-                rawData,
-              ) as Prisma.InputJsonValue,
-            }
-          : {}),
-      },
-    });
-  }
-}
-
 async function findPlatformAccountForUser(
   userId: string,
   provider: ExternalProvider,
@@ -782,65 +707,7 @@ export async function importSteamLibraryGame(
 
   await recordProviderPlayDates({ userId, gameId: game.id, accountId: steamAccount.id, provider: ExternalProvider.STEAM, rawData: syncedGame.rawData }, prisma);
 
-  const existingEntry = await prisma.userGameEntry.findUnique({
-    where: { userId_gameId_status: { userId, gameId: game.id, status: UserGameStatus.OWNED } },
-    select: {
-      id: true,
-      playtimeMinutes: true,
-      playtimeSource: true,
-      rawData: true,
-    },
-  });
-  const syncedRawData = mergeSyncedRawData(
-    existingEntry?.rawData,
-    syncedGame.rawData,
-  );
-  await applySyncedProgressToRelatedEntries({
-    userId,
-    gameId: game.id,
-    ownedEntryId: existingEntry?.id,
-    syncedMinutes: syncedGame.playtimeMinutes,
-    completionPercent: syncedGame.completionPercent,
-    lastPlayedAt: syncedGame.lastPlayedAt,
-    rawData: syncedGame.rawData,
-  }, prisma);
-  const playtimeData = getSyncedPlaytimeData(existingEntry, syncedGame.playtimeMinutes);
-  await prisma.userGameEntry.upsert({
-    where: {
-      userId_gameId_status: {
-        userId,
-        gameId: game.id,
-        status: UserGameStatus.OWNED,
-      },
-    },
-    update: {
-      source: EntrySource.STEAM,
-      provider: ExternalProvider.STEAM,
-      externalAccountId: steamAccount.id,
-      platformName: syncedGame.platformName ?? undefined,
-      ...playtimeData,
-      lastPlayedAt: syncedGame.lastPlayedAt ?? undefined,
-      completionPercent: syncedGame.completionPercent ?? undefined,
-      rawData: syncedRawData as Prisma.InputJsonValue | undefined,
-      lastSyncedAt: new Date(),
-    },
-    create: {
-      userId,
-      gameId: game.id,
-      status: UserGameStatus.OWNED,
-      source: EntrySource.STEAM,
-      provider: ExternalProvider.STEAM,
-      externalAccountId: steamAccount.id,
-      platformName: syncedGame.platformName ?? undefined,
-      playtimeMinutes: syncedGame.playtimeMinutes ?? undefined,
-      playtimeSource: syncedGame.playtimeMinutes !== null && syncedGame.playtimeMinutes !== undefined ? "sync" : undefined,
-      lastPlayedAt: syncedGame.lastPlayedAt ?? null,
-      completionPercent: syncedGame.completionPercent ?? null,
-      rawData: syncedRawData as Prisma.InputJsonValue | undefined,
-      lastSyncedAt: new Date(),
-    },
-  });
-
+  await syncLibraryCopy({ userId, gameId: game.id, accountId: steamAccount.id, provider: ExternalProvider.STEAM, source: EntrySource.STEAM, game: syncedGame }, prisma);
 
   await prisma.userGameProviderLink.upsert({
     where: { externalAccountId_providerGameId: {
@@ -849,7 +716,7 @@ export async function importSteamLibraryGame(
     create: {
       userId, gameId: game.id, externalAccountId: steamAccount.id,
       provider: ExternalProvider.STEAM, providerGameId: syncedGame.providerGameId,
-      platformName: syncedGame.platformName, rawData: syncedRawData as Prisma.InputJsonValue,
+      platformName: syncedGame.platformName, rawData: syncedGame.rawData as Prisma.InputJsonValue,
     },
     update: { gameId: game.id, lastSyncedAt: new Date() },
   });
@@ -924,55 +791,7 @@ async function syncPlayStationLibraryForAccount(
 
     await recordProviderPlayDates({ userId, gameId: game.id, accountId: playStationAccount.id, provider: ExternalProvider.PLAYSTATION, rawData: syncedGame.rawData }, prisma);
 
-    const existingEntry = await prisma.userGameEntry.findUnique({
-      where: { userId_gameId_status: { userId, gameId: game.id, status: UserGameStatus.OWNED } },
-      select: { id: true, playtimeMinutes: true, playtimeSource: true },
-    });
-    await applySyncedProgressToRelatedEntries({
-      userId,
-      gameId: game.id,
-      ownedEntryId: existingEntry?.id,
-      syncedMinutes: syncedGame.playtimeMinutes,
-      completionPercent: syncedGame.completionPercent,
-      lastPlayedAt: syncedGame.lastPlayedAt,
-      rawData: syncedGame.rawData,
-    });
-    const playtimeData = getSyncedPlaytimeData(existingEntry, syncedGame.playtimeMinutes);
-    await prisma.userGameEntry.upsert({
-      where: {
-        userId_gameId_status: {
-          userId,
-          gameId: game.id,
-          status: UserGameStatus.OWNED,
-        },
-      },
-      update: {
-        source: EntrySource.PLAYSTATION,
-        provider: ExternalProvider.PLAYSTATION,
-        externalAccountId: playStationAccount.id,
-        platformName: syncedGame.platformName ?? undefined,
-        ...playtimeData,
-        lastPlayedAt: syncedGame.lastPlayedAt ?? undefined,
-        completionPercent: syncedGame.completionPercent ?? undefined,
-        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: new Date(),
-      },
-      create: {
-        userId,
-        gameId: game.id,
-        status: UserGameStatus.OWNED,
-        source: EntrySource.PLAYSTATION,
-        provider: ExternalProvider.PLAYSTATION,
-        externalAccountId: playStationAccount.id,
-        platformName: syncedGame.platformName ?? undefined,
-        playtimeMinutes: syncedGame.playtimeMinutes ?? undefined,
-        playtimeSource: syncedGame.playtimeMinutes !== null && syncedGame.playtimeMinutes !== undefined ? "sync" : undefined,
-        lastPlayedAt: syncedGame.lastPlayedAt ?? null,
-        completionPercent: syncedGame.completionPercent ?? null,
-        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: new Date(),
-      },
-    });
+    await syncLibraryCopy({ userId, gameId: game.id, accountId: playStationAccount.id, provider: ExternalProvider.PLAYSTATION, source: EntrySource.PLAYSTATION, game: syncedGame }, prisma);
 
     syncedCount += 1;
   }
@@ -1047,58 +866,7 @@ async function syncXboxLibraryForAccount(
 
     await recordProviderPlayDates({ userId, gameId: game.id, accountId: xboxAccount.id, provider: ExternalProvider.XBOX, rawData: syncedGame.rawData }, prisma);
 
-    const existingEntry = await prisma.userGameEntry.findUnique({
-      where: {
-        userId_gameId_status: {
-          userId,
-          gameId: game.id,
-          status: UserGameStatus.OWNED,
-        },
-      },
-      select: { id: true },
-    });
-    await applySyncedProgressToRelatedEntries({
-      userId,
-      gameId: game.id,
-      ownedEntryId: existingEntry?.id,
-      syncedMinutes: syncedGame.playtimeMinutes,
-      completionPercent: syncedGame.completionPercent,
-      lastPlayedAt: syncedGame.lastPlayedAt,
-      rawData: syncedGame.rawData,
-    });
-
-    await prisma.userGameEntry.upsert({
-      where: {
-        userId_gameId_status: {
-          userId,
-          gameId: game.id,
-          status: UserGameStatus.OWNED,
-        },
-      },
-      update: {
-        source: EntrySource.XBOX,
-        provider: ExternalProvider.XBOX,
-        externalAccountId: xboxAccount.id,
-        platformName: syncedGame.platformName ?? undefined,
-        completionPercent: syncedGame.completionPercent ?? undefined,
-        lastPlayedAt: syncedGame.lastPlayedAt ?? undefined,
-        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: new Date(),
-      },
-      create: {
-        userId,
-        gameId: game.id,
-        status: UserGameStatus.OWNED,
-        source: EntrySource.XBOX,
-        provider: ExternalProvider.XBOX,
-        externalAccountId: xboxAccount.id,
-        platformName: syncedGame.platformName ?? undefined,
-        completionPercent: syncedGame.completionPercent ?? null,
-        lastPlayedAt: syncedGame.lastPlayedAt ?? null,
-        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: new Date(),
-      },
-    });
+    await syncLibraryCopy({ userId, gameId: game.id, accountId: xboxAccount.id, provider: ExternalProvider.XBOX, source: EntrySource.XBOX, game: syncedGame }, prisma);
 
     syncedCount += 1;
   }
@@ -1145,60 +913,7 @@ async function syncGogLibraryForAccount(
       rawData: syncedGame.rawData,
       deferEnrichment: true,
     });
-    const existingEntry = await prisma.userGameEntry.findUnique({
-      where: {
-        userId_gameId_status: {
-          userId,
-          gameId: game.id,
-          status: UserGameStatus.OWNED,
-        },
-      },
-      select: {
-        id: true,
-        provider: true,
-        rawData: true,
-        source: true,
-      },
-    });
-    const isExistingGogEntry =
-      existingEntry?.provider === ExternalProvider.GOG ||
-      existingEntry?.source === EntrySource.GOG;
-    const syncedAt = new Date();
-    await prisma.userGameEntry.upsert({
-      where: {
-        userId_gameId_status: {
-          userId,
-          gameId: game.id,
-          status: UserGameStatus.OWNED,
-        },
-      },
-      update: {
-        lastSyncedAt: syncedAt,
-        ...(isExistingGogEntry
-          ? {
-              externalAccountId: gogAccount.id,
-              platformName: syncedGame.platformName ?? undefined,
-              provider: ExternalProvider.GOG,
-              rawData: mergeSyncedRawData(
-                existingEntry?.rawData,
-                syncedGame.rawData,
-              ) as Prisma.InputJsonValue,
-              source: EntrySource.GOG,
-            }
-          : {}),
-      },
-      create: {
-        userId,
-        gameId: game.id,
-        status: UserGameStatus.OWNED,
-        source: EntrySource.GOG,
-        provider: ExternalProvider.GOG,
-        externalAccountId: gogAccount.id,
-        platformName: syncedGame.platformName ?? "GOG",
-        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: syncedAt,
-      },
-    });
+    await syncLibraryCopy({ userId, gameId: game.id, accountId: gogAccount.id, provider: ExternalProvider.GOG, source: EntrySource.GOG, game: syncedGame }, prisma);
 
     await prisma.userGameProviderLink.upsert({
       where: {
@@ -1213,7 +928,7 @@ async function syncGogLibraryForAccount(
         provider: ExternalProvider.GOG,
         platformName: syncedGame.platformName ?? "GOG",
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: syncedAt,
+        lastSyncedAt: new Date(),
       },
       create: {
         userId,
@@ -1223,7 +938,7 @@ async function syncGogLibraryForAccount(
         providerGameId: syncedGame.providerGameId,
         platformName: syncedGame.platformName ?? "GOG",
         rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        lastSyncedAt: syncedAt,
+        lastSyncedAt: new Date(),
       },
     });
 
@@ -1424,14 +1139,8 @@ export async function importCsvForUser({
           rawData: importProvider ? row.rawData : undefined,
         });
 
-        await prisma.userGameEntry.upsert({
-          where: {
-            userId_gameId_status: {
-              userId,
-              gameId: game.id,
-              status: row.status,
-            },
-          },
+        await upsertLibraryCopy({
+          userId, gameId: game.id, status: row.status, platformName, provider: importProvider,
           update: {
             abandonedAt:
               row.status === UserGameStatus.DROPPED ? new Date() : undefined,
@@ -1446,9 +1155,6 @@ export async function importCsvForUser({
             rawData: row.rawData as Prisma.InputJsonValue,
           },
           create: {
-            userId,
-            gameId: game.id,
-            status: row.status,
             source: EntrySource.CSV,
             provider: importProvider ?? undefined,
             platformName: platformName ?? undefined,
@@ -1657,6 +1363,7 @@ export async function getProfileData(
         game: profileGameQuery,
       },
       orderBy: [{ playingNextSlot: "asc" }, { updatedAt: "desc" }],
+      distinct: ["gameId"],
       take: 3,
     }),
   ]);

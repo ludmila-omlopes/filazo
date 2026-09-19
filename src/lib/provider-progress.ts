@@ -128,14 +128,6 @@ async function updateEntryProgress({
         } as Prisma.InputJsonValue,
       },
     }),
-    prisma.userGameEntry.updateMany({
-      where: {
-        userId: entry.userId,
-        gameId: entry.gameId,
-        id: { not: entryId },
-      },
-      data: progressData,
-    }),
   ]);
 }
 
@@ -288,7 +280,9 @@ export async function refreshUserGameEntryProviderProgress({
     return { provider: null, status: "unavailable" };
   }
 
-  const candidates = getProviderCandidates(entry.provider, entry.game.providerLinks);
+  // Canonical links describe where a game exists, not which platform this copy
+  // belongs to. Refresh only the connected source of this personal entry.
+  const candidates = entry.externalAccountId ? getProviderCandidates(entry.provider, []) : [];
   let attemptedProvider: RefreshableProvider | null = null;
 
   for (const provider of candidates) {

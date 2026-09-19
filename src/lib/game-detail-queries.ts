@@ -1,4 +1,4 @@
-import { UserGameStatus, type PrismaClient, type UserGameEntry } from "@prisma/client";
+import { type PrismaClient, type UserGameEntry } from "@prisma/client";
 import { parseMarketplaceSnapshot } from "@/lib/assistant/marketplace-search";
 import { parseSteamReviewsSnapshot } from "@/lib/steam-reviews";
 
@@ -10,8 +10,8 @@ export function chooseDisplayedGameEntry<T extends DisplayEntry>(entries: T[]): 
     [...entries].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0] ?? null;
 }
 
-// One entry per game/status is enforced by the database's unique constraint.
-const entriesPerGame = Object.keys(UserGameStatus).length;
+// Bound public nested reads while allowing copies on different platforms.
+const entriesPerGame = 64;
 export const COMMUNITY_SHELF_LIMIT = 6;
 
 /** Reading a game never refreshes providers or mutates another user's data. */

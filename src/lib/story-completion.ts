@@ -1,3 +1,4 @@
+import { setInferredLibraryCompletion } from "@/lib/library-entry";
 import {
   ExternalProvider,
   UserGameStatus,
@@ -392,8 +393,9 @@ async function loadDetectionEntries(userId: string) {
     where: {
       userId,
       finishedAt: null,
+      statusChangedAt: null,
       status: {
-        notIn: [UserGameStatus.COMPLETED, UserGameStatus.WISHLIST],
+        notIn: [UserGameStatus.COMPLETED, UserGameStatus.WISHLIST, UserGameStatus.DROPPED],
       },
     },
     include: {
@@ -402,19 +404,6 @@ async function loadDetectionEntries(userId: string) {
           providerLinks: true,
         },
       },
-    },
-  });
-}
-
-async function markEntryFinished(
-  entryId: string,
-  unlockedAt: Date | null,
-) {
-  await prisma.userGameEntry.update({
-    where: { id: entryId },
-    data: {
-      finishedAt: unlockedAt ?? new Date(),
-      finishedSource: "story_achievement",
     },
   });
 }
@@ -463,8 +452,7 @@ async function detectEntryViaSteam(
     return false;
   }
 
-  await markEntryFinished(entry.id, unlock.unlockedAt);
-  return true;
+  return setInferredLibraryCompletion(entry.userId, entry.id, unlock.unlockedAt);
 }
 
 async function detectEntryViaPlayStation(
@@ -516,8 +504,7 @@ async function detectEntryViaPlayStation(
     return false;
   }
 
-  await markEntryFinished(entry.id, unlock.unlockedAt);
-  return true;
+  return setInferredLibraryCompletion(entry.userId, entry.id, unlock.unlockedAt);
 }
 
 /**

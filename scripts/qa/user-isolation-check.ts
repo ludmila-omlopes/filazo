@@ -69,7 +69,7 @@ async function main() {
   console.log("PASS review writes preserve ownership, reject another user's entry and handle concurrent imports.");
 
   const otherEntryA = await db.userGameEntry.create({ data: {
-    userId: a.id, gameId: game.id, source: "MANUAL", status: "OWNED", playtimeSource: "manual",
+    userId: a.id, gameId: game.id, source: "MANUAL", status: "PLAYING", platformKey: "ps5", platformName: "PlayStation 5", playtimeSource: "manual",
   } });
   await db.gameJournalEntry.createMany({ data: [
     { userId: a.id, gameId: game.id, userGameEntryId: entryA.id, title: "Selected entry memory", occurredAt: new Date("2026-01-01") },

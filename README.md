@@ -314,3 +314,18 @@ Set `ADSENSE_PUBLISHER_ID` to your `ca-pub-` publisher ID. `/ads.txt` serves the
 ## Public catalog
 
 `/catalog` lets visitors browse canonical games without signing in. GET search (`q`, up to 100 characters) and previous/next links (`page`, 1–1000) return 24 games per page, ordered by normalized title and slug. Queries select only public card fields and never read personal entries, import records or reviews, contact providers, or mutate data. Search variations are noindex; browse pages remain indexable. Personal library routes keep their existing authentication and robots restrictions.
+
+
+### Library identity and shared status
+
+A user's catalog contains one `UserGameEntry` per canonical game and normalized platform (`userId + gameId + platformKey`). Steam, GOG and Windows aliases share the PC identity. A missing platform is not evidence of an additional purchase. Status is shared by all of that user's platform copies; playtime, achievements and source/account data stay with the relevant copy. `statusChangedAt` records explicit choices. Imports, repeat syncs and automatic story detection preserve those choices. All entry creation goes through `upsertLibraryCopy`; status writes use `setLibraryGameStatus` inside the same transaction/lock.
+
+Existing databases require **a coordinated maintenance release**, because previous clients depend on the old status-based unique index:
+
+1. Back up the database and pause the old application and sync workers.
+2. From this release, install dependencies and generate Prisma Client, then run `npm run db:library-status` against the intended database.
+3. Run `npm run db:check`, deploy this release, and resume the application/workers. Do not restart an old release against the migrated database.
+
+The migration runs in one transaction and is idempotent. It consolidates same-platform and unspecified-platform duplicates, preferring evidence of a personal status choice over a sync-created OWNED row. It keeps distinct platforms, moves journals/media and reviews, merges daily totals without double counting, and preserves the original records and conflicting derived values in the retained entry's private `rawData.catalogMergeArchive`. Existing notes, favorites and manual hours survive. Historical timestamps are the best available evidence; every new explicit status change has its own timestamp. Review affected accounts after rollout. Restoring the old schema requires the pre-release backup; a git rollback alone is insufficient.
+
+`npm run db:init` applies this migration before schema bootstrap on existing databases. Preview builds deliberately do not mutate a shared production library. Use a dedicated preview database or an isolated schema. `npm run test:library-status` exercises migration, ownership, all statuses, concurrent imports and multi-platform persistence in a disposable PostgreSQL schema.

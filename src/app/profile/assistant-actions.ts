@@ -1,4 +1,5 @@
 "use server";
+import { lockLibraryGame, setLibraryGameStatus } from "@/lib/library-entry";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -129,20 +130,15 @@ export async function saveAbandonReasonAction(formData: FormData) {
     return;
   }
 
-  const entry = await prisma.userGameEntry.findUnique({
-    where: { id: parsed.data.entryId },
+  await prisma.$transaction(async tx => {
+    await lockLibraryGame(tx, userId, "abandon-reason");
+    const entry = await tx.userGameEntry.findFirst({ where: { id: parsed.data.entryId, userId } });
+    if (!entry) return;
+    await setLibraryGameStatus(tx, userId, entry.gameId, parsed.data.abandonReason ? "DROPPED" : "OWNED");
+    await tx.userGameEntry.updateMany({ where: { userId, gameId: entry.gameId }, data: { abandonReason: parsed.data.abandonReason ?? null } });
   });
-  if (!entry || entry.userId !== userId) {
-    return;
-  }
-
-  await prisma.userGameEntry.update({
-    where: { id: entry.id },
-    data: {
-      abandonReason: parsed.data.abandonReason,
-      abandonedAt: parsed.data.abandonReason ? new Date() : null,
-    },
-  });
+  revalidatePath("/games/[slug]", "page");
+  revalidatePath("/tonight");
 
   revalidatePath("/profile");
 }

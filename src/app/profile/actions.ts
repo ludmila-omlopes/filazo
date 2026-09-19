@@ -1,5 +1,7 @@
 "use server";
 
+import { lockLibraryGame, setLibraryGameStatus, setLibraryEntryStatus, upsertLibraryCopy } from "@/lib/library-entry";
+
 import { hasProAccess } from "@/lib/account-plans";
 import { getPlanAccount, proAccountWhere } from "@/lib/plan-access";
 import { ABUSE_LIMITS } from "@/lib/abuse-policy";
@@ -403,26 +405,7 @@ async function demotePlayingEntryToOwned({
     return;
   }
 
-  const ownedEntry = await tx.userGameEntry.findUnique({
-    where: {
-      userId_gameId_status: {
-        userId,
-        gameId: entry.gameId,
-        status: UserGameStatus.OWNED,
-      },
-    },
-    select: { id: true },
-  });
-
-  if (ownedEntry && ownedEntry.id !== entry.id) {
-    await tx.userGameEntry.delete({ where: { id: entry.id } });
-    return;
-  }
-
-  await tx.userGameEntry.update({
-    where: { id: entry.id },
-    data: { status: UserGameStatus.OWNED },
-  });
+  await setLibraryGameStatus(tx, userId, entry.gameId, UserGameStatus.OWNED);
 }
 
 async function demotePlayingNextEntryToOwned({
@@ -444,31 +427,8 @@ async function demotePlayingNextEntryToOwned({
     return;
   }
 
-  if (entry.userIntent === "needs_purchase" && !entry.isPhysicalCopy) {
-    await tx.userGameEntry.delete({ where: { id: entry.id } });
-    return;
-  }
-
-  const ownedEntry = await tx.userGameEntry.findUnique({
-    where: {
-      userId_gameId_status: {
-        userId,
-        gameId: entry.gameId,
-        status: UserGameStatus.OWNED,
-      },
-    },
-    select: { id: true },
-  });
-
-  if (ownedEntry && ownedEntry.id !== entry.id) {
-    await tx.userGameEntry.delete({ where: { id: entry.id } });
-    return;
-  }
-
-  await tx.userGameEntry.update({
-    where: { id: entry.id },
-    data: { status: UserGameStatus.OWNED },
-  });
+  await setLibraryGameStatus(tx, userId, entry.gameId,
+    entry.userIntent === "needs_purchase" && !entry.isPhysicalCopy ? UserGameStatus.WISHLIST : UserGameStatus.OWNED);
 }
 
 async function saveCurrentPlayingSelectionsForUser({
@@ -495,10 +455,10 @@ async function saveCurrentPlayingSelectionsForUser({
           not: UserGameStatus.WISHLIST,
         },
       },
-      select: { id: true },
+      select: { id: true, gameId: true },
     });
 
-    if (entries.length !== selectedEntryIds.length) {
+    if (entries.length !== selectedEntryIds.length || new Set(entries.map(entry => entry.gameId)).size !== entries.length) {
       throw new Error("Only games already on your shelf can be featured.");
     }
   }
@@ -506,6 +466,7 @@ async function saveCurrentPlayingSelectionsForUser({
   const now = new Date();
 
   await prisma.$transaction(async (tx) => {
+    await lockLibraryGame(tx, userId, "shelf-selections");
     const previousPinnedEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
@@ -562,27 +523,7 @@ async function saveCurrentPlayingSelectionsForUser({
         throw new Error("Only games already on your shelf can be featured.");
       }
 
-      if (entry.status !== UserGameStatus.PLAYING) {
-        const existingPlayingEntry = await tx.userGameEntry.findUnique({
-          where: {
-            userId_gameId_status: {
-              userId,
-              gameId: entry.gameId,
-              status: UserGameStatus.PLAYING,
-            },
-          },
-          select: { id: true },
-        });
-
-        if (
-          existingPlayingEntry &&
-          existingPlayingEntry.id !== selection.entryId
-        ) {
-          await tx.userGameEntry.delete({
-            where: { id: existingPlayingEntry.id },
-          });
-        }
-      }
+      await setLibraryGameStatus(tx, userId, entry.gameId, UserGameStatus.PLAYING);
 
       await tx.userGameEntry.update({
         where: { id: selection.entryId },
@@ -628,15 +569,16 @@ async function savePlayingNextSelectionsForUser({
           notIn: [UserGameStatus.WISHLIST, UserGameStatus.COMPLETED],
         },
       },
-      select: { id: true },
+      select: { id: true, gameId: true },
     });
 
-    if (entries.length !== selectedEntryIds.length) {
+    if (entries.length !== selectedEntryIds.length || new Set(entries.map(entry => entry.gameId)).size !== entries.length) {
       throw new Error("Only unfinished shelf games outside Current playing can be queued.");
     }
   }
 
   await prisma.$transaction(async (tx) => {
+    await lockLibraryGame(tx, userId, "shelf-selections");
     const previousQueuedEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
@@ -699,27 +641,7 @@ async function savePlayingNextSelectionsForUser({
         throw new Error("Only unfinished shelf games outside Current playing can be queued.");
       }
 
-      if (entry.status !== UserGameStatus.PLAYING_NEXT) {
-        const existingPlayingNextEntry = await tx.userGameEntry.findUnique({
-          where: {
-            userId_gameId_status: {
-              userId,
-              gameId: entry.gameId,
-              status: UserGameStatus.PLAYING_NEXT,
-            },
-          },
-          select: { id: true },
-        });
-
-        if (
-          existingPlayingNextEntry &&
-          existingPlayingNextEntry.id !== selection.entryId
-        ) {
-          await tx.userGameEntry.delete({
-            where: { id: existingPlayingNextEntry.id },
-          });
-        }
-      }
+      await setLibraryGameStatus(tx, userId, entry.gameId, UserGameStatus.PLAYING_NEXT);
 
       await tx.userGameEntry.update({
         where: { id: selection.entryId },
@@ -740,6 +662,7 @@ async function savePlayingNextSelectionsForUser({
 
 async function clearCurrentPlayingForUser(userId: string) {
   await prisma.$transaction(async (tx) => {
+    await lockLibraryGame(tx, userId, "shelf-selections");
     const currentPlayingEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
@@ -774,6 +697,7 @@ async function clearCurrentPlayingForUser(userId: string) {
 
 async function clearPlayingNextForUser(userId: string) {
   await prisma.$transaction(async (tx) => {
+    await lockLibraryGame(tx, userId, "shelf-selections");
     const playingNextEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
@@ -855,6 +779,7 @@ async function addPlayingNextGameForUser({
       isPhysicalCopy: true,
       status: true,
       userIntent: true,
+      platformName: true,
     },
   });
 
@@ -898,12 +823,14 @@ async function addPlayingNextGameForUser({
   const needsPurchase = !hasOwnedIntent;
 
   await prisma.$transaction(async (tx) => {
+    await lockLibraryGame(tx, userId, "shelf-selections");
     const currentQueueEntries = await tx.userGameEntry.findMany({
       where: {
         userId,
         status: UserGameStatus.PLAYING_NEXT,
       },
       orderBy: [{ playingNextSlot: "asc" }, { updatedAt: "desc" }],
+      distinct: ["gameId"],
       select: {
         gameId: true,
         id: true,
@@ -953,28 +880,18 @@ async function addPlayingNextGameForUser({
       userIntent: needsPurchase ? "needs_purchase" : null,
     } satisfies Prisma.UserGameEntryUpdateInput;
 
-    if (targetEntry) {
-      await tx.userGameEntry.update({
-        where: { id: targetEntry.id },
-        data: playingNextData,
-      });
-      return;
-    }
-
-    await tx.userGameEntry.create({
-      data: {
-        userId,
-        gameId: game.id,
-        source: EntrySource.MANUAL,
-        provider: ExternalProvider.IGDB,
-        rawData: {
-          source: "playing-next-igdb-search",
-          igdbId: metadata.igdbId,
-          title: metadata.name,
-        } as Prisma.InputJsonValue,
+    await tx.userGameEntry.updateMany({ where: { userId, gameId: game.id }, data: { playingNextSlot: null } });
+    await upsertLibraryCopy({
+      userId, gameId: game.id, status: UserGameStatus.PLAYING_NEXT, explicitStatus: true,
+      // Queuing an existing title doesn't represent a new purchase.
+      platformName: targetEntry ? targetEntry.platformName : platformName, provider: ExternalProvider.IGDB,
+      update: { playingNextSlot: slot, userIntent: needsPurchase ? "needs_purchase" : null },
+      create: {
+        source: EntrySource.MANUAL, provider: ExternalProvider.IGDB,
         ...playingNextData,
+        rawData: { source: "playing-next-igdb-search", igdbId: metadata.igdbId, title: metadata.name },
       },
-    });
+    }, tx);
   });
 
   revalidatePath(`/games/${game.slug}`);
@@ -1586,57 +1503,18 @@ export async function addManualGameAction(formData: FormData) {
       title: metadata.name,
     },
   });
-  const finishedData =
-    parsed.data.status === UserGameStatus.COMPLETED
-      ? {
-          finishedAt: new Date(),
-          finishedSource: "manual",
-        }
-      : {};
-  const droppedData =
-    parsed.data.status === UserGameStatus.DROPPED
-      ? {
-          abandonedAt: new Date(),
-          activeBacklog: false,
-        }
-      : {};
-
-  await prisma.userGameEntry.upsert({
-    where: {
-      userId_gameId_status: {
-        userId,
-        gameId: game.id,
-        status: parsed.data.status,
-      },
-    },
-    update: {
-      source: EntrySource.MANUAL,
-      provider: ExternalProvider.IGDB,
-      platformName: parsed.data.platformName ?? undefined,
-      ...finishedData,
-      ...droppedData,
-      rawData: {
-        source: "manual-igdb-search",
-        igdbId: metadata.igdbId,
-        title: metadata.name,
-      } as Prisma.InputJsonValue,
-    },
+  await upsertLibraryCopy({
+    userId, gameId: game.id, platformName: parsed.data.platformName, provider: ExternalProvider.IGDB,
+    status: parsed.data.status, explicitStatus: true,
+    // Re-adding a title changes its status without replacing its sync/account metadata.
+    update: {},
     create: {
-      userId,
-      gameId: game.id,
-      status: parsed.data.status,
-      source: EntrySource.MANUAL,
-      provider: ExternalProvider.IGDB,
-      platformName: parsed.data.platformName ?? undefined,
-      ...finishedData,
-      ...droppedData,
-      rawData: {
-        source: "manual-igdb-search",
-        igdbId: metadata.igdbId,
-        title: metadata.name,
-      } as Prisma.InputJsonValue,
+      source: EntrySource.MANUAL, provider: ExternalProvider.IGDB,
+      platformName: parsed.data.platformName,
+      rawData: { source: "manual-igdb-search", igdbId: metadata.igdbId, title: metadata.name },
     },
   });
+  await recomputeRuleInsightsForUser(userId);
 
   revalidatePath("/profile");
   revalidatePath("/");
@@ -2048,23 +1926,12 @@ export async function markFinishedAction(formData: FormData) {
     return;
   }
 
-  const entry = await prisma.userGameEntry.findUnique({
-    where: { id: entryId },
-  });
-
-  if (!entry || entry.userId !== userId) {
-    return;
-  }
-
-  await prisma.userGameEntry.update({
-    where: { id: entryId },
-    data: entry.finishedAt
-      ? { finishedAt: null, finishedSource: null }
-      : {
-          finishedAt: new Date(),
-          finishedSource: "manual",
-          playingNextSlot: null,
-        },
+  await prisma.$transaction(async tx => {
+    await lockLibraryGame(tx, userId, "status");
+    const entry = await tx.userGameEntry.findFirst({ where: { id: entryId, userId } });
+    if (!entry) return;
+    await setLibraryGameStatus(tx, userId, entry.gameId,
+      entry.finishedAt || entry.status === UserGameStatus.COMPLETED ? UserGameStatus.OWNED : UserGameStatus.COMPLETED);
   });
 
   await recomputeRuleInsightsForUser(userId);
@@ -2085,82 +1952,14 @@ async function markEntryDroppedForUser({
   entryId: string;
   userId: string;
 }) {
-  const entry = await prisma.userGameEntry.findUnique({
-    where: { id: entryId },
+  return prisma.$transaction(async tx => {
+    await lockLibraryGame(tx, userId, "status");
+    const entry = await tx.userGameEntry.findFirst({ where: { id: entryId, userId } });
+    if (!entry) return null;
+    const restoring = entry.status === UserGameStatus.DROPPED;
+    await setLibraryGameStatus(tx, userId, entry.gameId, restoring ? UserGameStatus.OWNED : UserGameStatus.DROPPED);
+    return { gameId: entry.gameId, restoring };
   });
-
-  if (!entry || entry.userId !== userId) {
-    return null;
-  }
-
-  const restoring = entry.status === UserGameStatus.DROPPED;
-  const targetStatus = restoring
-    ? UserGameStatus.OWNED
-    : UserGameStatus.DROPPED;
-  const existingTarget = await prisma.userGameEntry.findUnique({
-    where: {
-      userId_gameId_status: {
-        userId,
-        gameId: entry.gameId,
-        status: targetStatus,
-      },
-    },
-  });
-  const statusData = restoring
-    ? {
-        abandonedAt: null,
-        abandonReason: null,
-        activeBacklog: true,
-      }
-    : {
-        abandonedAt: entry.abandonedAt ?? new Date(),
-        abandonReason: entry.abandonReason ?? "manual",
-        activeBacklog: false,
-        currentPlayingSlot: null,
-        finishedAt: null,
-        finishedSource: null,
-        playingNextSlot: null,
-      };
-
-  if (existingTarget && existingTarget.id !== entry.id) {
-    const mergedRawData = existingTarget.rawData ?? entry.rawData;
-
-    await prisma.$transaction([
-      prisma.userGameEntry.update({
-        where: { id: existingTarget.id },
-        data: {
-          ...statusData,
-          completionPercent:
-            existingTarget.completionPercent ?? entry.completionPercent ?? undefined,
-          lastPlayedAt:
-            existingTarget.lastPlayedAt ?? entry.lastPlayedAt ?? undefined,
-          notes: existingTarget.notes ?? entry.notes ?? undefined,
-          platformName:
-            existingTarget.platformName ?? entry.platformName ?? undefined,
-          playtimeMinutes:
-            existingTarget.playtimeMinutes ?? entry.playtimeMinutes ?? undefined,
-          rawData:
-            mergedRawData === null
-              ? undefined
-              : (mergedRawData as Prisma.InputJsonValue),
-        },
-      }),
-      prisma.userGameEntry.delete({ where: { id: entry.id } }),
-    ]);
-  } else {
-    await prisma.userGameEntry.update({
-      where: { id: entry.id },
-      data: {
-        status: targetStatus,
-        ...statusData,
-      },
-    });
-  }
-
-  return {
-    gameId: entry.gameId,
-    restoring,
-  };
 }
 
 export async function currentPlayingDropAction(
@@ -2269,15 +2068,7 @@ export async function currentPlayingFinishAction(
     };
   }
 
-  await prisma.userGameEntry.update({
-    where: { id: entryId },
-    data: {
-      currentPlayingSlot: null,
-      finishedAt: new Date(),
-      finishedSource: "manual",
-      playingNextSlot: null,
-    },
-  });
+  await setLibraryEntryStatus(userId, entryId, UserGameStatus.COMPLETED);
 
   const refreshResult = await refreshUserGameEntryProviderProgress({
     entryId,

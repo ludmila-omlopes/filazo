@@ -19,6 +19,13 @@ if (databaseUrl.startsWith("file:")) {
   process.exit(1);
 }
 
+// Existing libraries must be consolidated before db push can add platform identity.
+// This is an explicit maintenance command; preview builds must not run it.
+const migration = spawnSync(process.execPath, ["--import", "tsx", "scripts/apply-library-status-migration.ts"], {
+  cwd: process.cwd(), env: process.env, stdio: "inherit", windowsHide: true,
+});
+if (migration.error || migration.status !== 0) process.exit(migration.status ?? 1);
+
 // Includes account plans (existing/new users default to FREE), sync checkpoints/incidents, system feedback comments, provider links and metadata jobs. This is schema
 // bootstrap only: workers require a normally generated Prisma client too.
 // Deployments separately run db:check before building; this bootstrap also
