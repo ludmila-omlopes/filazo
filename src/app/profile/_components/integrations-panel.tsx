@@ -48,7 +48,7 @@ type SourceProvider =
   | typeof ExternalProvider.XBOX;
 
 function isSourceSyncing(account: ProviderAccount) {
-  if (account?.provider === ExternalProvider.STEAM) {
+  if (account?.provider === ExternalProvider.STEAM || account?.provider === ExternalProvider.PLAYSTATION) {
     const status = account.platformSyncRuns[0]?.status;
     if (status === "PENDING" || status === "RUNNING") return true;
   }

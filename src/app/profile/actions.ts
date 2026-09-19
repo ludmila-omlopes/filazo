@@ -49,6 +49,7 @@ import { syncUserReviews } from "@/lib/reviews";
 import { getSessionUserId } from "@/lib/session";
 import { detectFinishedGamesForUser } from "@/lib/story-completion";
 import { runManualPlatformSync } from "@/lib/platform-sync";
+import { playStationSyncQueue } from "@/lib/playstation-sync-queue";
 import { steamSyncQueue } from "@/lib/steam-sync-queue";
 import { saveCalendarStart } from "@/lib/calendar-writes";
 import { parseCalendarDate } from "@/lib/calendar-policy";
@@ -1089,32 +1090,28 @@ export async function syncPlayStationLibraryAction() {
   const limitError = await checkActionAbuse([{ name: "manual-playstation-sync", limit: 1, windowSeconds: 60 }], userId);
   if (limitError) redirect(`/profile?tab=integrations&error=${encodeURIComponent(limitError)}`);
 
-  let result: Awaited<ReturnType<typeof runManualPlatformSync>>;
+  let result: Awaited<ReturnType<typeof playStationSyncQueue.enqueue>>;
   try {
-    result = await runManualPlatformSync({
-      userId,
-      provider: ExternalProvider.PLAYSTATION,
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : t("profileAction.playStationSyncFailed");
-    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
+    result = await playStationSyncQueue.enqueue(userId);
+  } catch {
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.playStationSyncFailed"))}`);
   }
-  if (result.kind !== "succeeded") {
-    if (result.kind === "skipped" && result.reason === "locked") {
-      redirect(`/profile?tab=integrations&syncPending=1`);
+  if (result.kind !== "queued") {
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.playStationSyncFailed"))}`);
+  }
+  const runId = result.runId;
+  after(async () => {
+    try {
+      if (await playStationSyncQueue.drain(runId)) {
+        revalidatePath("/profile");
+        revalidatePath("/");
+      }
+    } catch {
+      console.warn("PlayStation worker deferred to the next scheduled tick.");
     }
-    redirect(
-      `/profile?tab=integrations&error=${encodeURIComponent(t("profileAction.playStationSyncFailed"))}`,
-    );
-  }
-  const syncedCount = result.syncedCount;
-
+  });
   revalidatePath("/profile");
-  revalidatePath("/");
-  redirect(`/profile?tab=integrations&playstationSynced=${syncedCount}`);
+  redirect("/profile?tab=integrations");
 }
 
 export async function syncXboxLibraryAction() {

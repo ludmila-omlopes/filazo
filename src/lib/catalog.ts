@@ -11,6 +11,7 @@ import {
   UserGameStatus,
 } from "@prisma/client";
 import Papa from "papaparse";
+import type { SyncedLibraryGame } from "@/lib/providers/contracts";
 import { isUniqueConstraintViolation } from "@/lib/database-errors";
 import {
   shouldSearchHltb,
@@ -109,7 +110,7 @@ function getPlayStationSyncSources(rawData: Prisma.JsonValue | null | undefined)
     : [];
 }
 
-async function prunePlayStationNonGameEntries(externalAccountId: string) {
+export async function prunePlayStationNonGameEntries(externalAccountId: string, prisma: Prisma.TransactionClient = defaultCatalogClient) {
   const entries = await prisma.userGameEntry.findMany({
     where: {
       provider: ExternalProvider.PLAYSTATION,
@@ -739,12 +740,66 @@ export async function syncPlayStationLibraryForUser(userId: string) {
   return syncPlatformLibraryForAccount(playStationAccount);
 }
 
+export async function importPlayStationLibraryGame(
+  playStationAccount: ExternalAccount,
+  syncedGame: SyncedLibraryGame,
+  prisma: Prisma.TransactionClient = defaultCatalogClient,
+) {
+  const userId = playStationAccount.userId;
+  const providerGameIds = Array.from(
+    new Set([syncedGame.providerGameId, ...(syncedGame.providerGameIds ?? [])]),
+  );
+  const game = await resolveCatalogGame({
+    title: canonicalizePlayStationGameTitle(syncedGame.title),
+    platformName: syncedGame.platformName,
+    provider: ExternalProvider.PLAYSTATION,
+    providerGameId: syncedGame.providerGameId,
+    storeUrl: syncedGame.storeUrl,
+    rawData: syncedGame.rawData,
+    deferEnrichment: true,
+  }, prisma);
+
+  for (const providerGameId of providerGameIds) {
+    await prisma.gameProviderLink.upsert({
+      where: {
+        provider_providerGameId: {
+          provider: ExternalProvider.PLAYSTATION,
+          providerGameId,
+        },
+      },
+      update: {
+        gameId: game.id,
+        storeUrl: syncedGame.storeUrl ?? undefined,
+        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
+      },
+      create: {
+        gameId: game.id,
+        provider: ExternalProvider.PLAYSTATION,
+        providerGameId,
+        storeUrl: syncedGame.storeUrl ?? undefined,
+        rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
+      },
+    });
+  }
+
+  await recordProviderPlayDates({ userId, gameId: game.id, accountId: playStationAccount.id, provider: ExternalProvider.PLAYSTATION, rawData: syncedGame.rawData }, prisma);
+
+  await syncLibraryCopy({ userId, gameId: game.id, accountId: playStationAccount.id, provider: ExternalProvider.PLAYSTATION, source: EntrySource.PLAYSTATION, game: syncedGame }, prisma);
+
+  await prisma.userGameProviderLink.upsert({
+    where: { externalAccountId_providerGameId: { externalAccountId: playStationAccount.id, providerGameId: syncedGame.providerGameId } },
+    create: { userId, gameId: game.id, externalAccountId: playStationAccount.id, provider: ExternalProvider.PLAYSTATION, providerGameId: syncedGame.providerGameId, platformName: syncedGame.platformName },
+    update: { gameId: game.id, lastSyncedAt: new Date() },
+  });
+  if (shouldSearchIgdb(game) || shouldSearchHltb(game) || shouldSearchMetacritic(game)) {
+    await prisma.gameMetadataJob.createMany({ data: [{ gameId: game.id, workerScope: getSyncWorkerScope() }], skipDuplicates: true });
+  }
+}
+
 async function syncPlayStationLibraryForAccount(
   playStationAccount: ExternalAccount,
   options: PlatformSyncExecutionOptions,
 ) {
-  const userId = playStationAccount.userId;
-
   const { profile, games } = await fetchPlayStationLibraryForAccount(
     playStationAccount,
   );
@@ -754,44 +809,7 @@ async function syncPlayStationLibraryForAccount(
 
   for (const syncedGame of games) {
     throwIfPlatformSyncAborted(options.signal);
-    const providerGameIds = Array.from(
-      new Set([syncedGame.providerGameId, ...(syncedGame.providerGameIds ?? [])]),
-    );
-    const game = await resolveCatalogGame({
-      title: canonicalizePlayStationGameTitle(syncedGame.title),
-      platformName: syncedGame.platformName,
-      provider: ExternalProvider.PLAYSTATION,
-      providerGameId: syncedGame.providerGameId,
-      storeUrl: syncedGame.storeUrl,
-      rawData: syncedGame.rawData,
-    });
-
-    for (const providerGameId of providerGameIds) {
-      await prisma.gameProviderLink.upsert({
-        where: {
-          provider_providerGameId: {
-            provider: ExternalProvider.PLAYSTATION,
-            providerGameId,
-          },
-        },
-        update: {
-          gameId: game.id,
-          storeUrl: syncedGame.storeUrl ?? undefined,
-          rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        },
-        create: {
-          gameId: game.id,
-          provider: ExternalProvider.PLAYSTATION,
-          providerGameId,
-          storeUrl: syncedGame.storeUrl ?? undefined,
-          rawData: syncedGame.rawData as Prisma.InputJsonValue | undefined,
-        },
-      });
-    }
-
-    await recordProviderPlayDates({ userId, gameId: game.id, accountId: playStationAccount.id, provider: ExternalProvider.PLAYSTATION, rawData: syncedGame.rawData }, prisma);
-
-    await syncLibraryCopy({ userId, gameId: game.id, accountId: playStationAccount.id, provider: ExternalProvider.PLAYSTATION, source: EntrySource.PLAYSTATION, game: syncedGame }, prisma);
+    await importPlayStationLibraryGame(playStationAccount, syncedGame);
 
     syncedCount += 1;
   }
