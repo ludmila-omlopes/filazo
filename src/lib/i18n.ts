@@ -1488,7 +1488,7 @@ const messages = {
 
     "status.BACKLOG": "on the shelf",
     "status.OWNED": "on the shelf",
-    "status.WISHLIST": "still curious",
+    "status.WISHLIST": "wishlist",
     "status.PLAYING": "playing now",
     "status.PLAYING_NEXT": "playing next",
     "status.PAUSED": "paused",
@@ -2757,7 +2757,7 @@ const messages = {
     "manualSearch.status.backlog": "Na estante",
     "manualSearch.status.completed": "Créditos concluídos",
     "manualSearch.status.dropped": "Largou",
-    "manualSearch.status.wishlist": "Na mira",
+    "manualSearch.status.wishlist": "Lista de desejos",
     "voiceMemory.label": "Memória de voz",
     "voiceMemory.prompt": "Diga o que aconteceu antes que isso se apague.",
     "voiceMemory.record": "Gravar memória de voz",
@@ -3136,7 +3136,7 @@ const messages = {
 
     "status.BACKLOG": "na estante",
     "status.OWNED": "na estante",
-    "status.WISHLIST": "ainda em observação",
+    "status.WISHLIST": "lista de desejos",
     "status.PLAYING": "jogando agora",
     "status.PLAYING_NEXT": "jogar depois",
     "status.PAUSED": "pausado",
