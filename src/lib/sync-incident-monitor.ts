@@ -65,6 +65,7 @@ export function createSyncIncidentMonitor({
           where: {
             id: run.id,
             status: "RUNNING",
+            workerToken: null,
             leaseExpiresAt: { lt: now() },
           },
           data: {
@@ -167,6 +168,9 @@ export function createSyncIncidentMonitor({
           workerScope: "production",
           status: "RUNNING",
           leaseExpiresAt: { lt: now() },
+          // Queued workers reclaim expired leases themselves; only legacy
+          // executions without a worker token need a terminal failure here.
+          workerToken: null,
         },
         select: { id: true, externalAccountId: true },
         orderBy: { leaseExpiresAt: "asc" },

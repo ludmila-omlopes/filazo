@@ -17,6 +17,7 @@ import {
   type PlatformSyncErrorCode,
 } from "@/lib/platform-sync-policy";
 import { prisma } from "@/lib/prisma";
+import { playStationSyncQueue } from "@/lib/playstation-sync-queue";
 import { steamSyncQueue } from "@/lib/steam-sync-queue";
 import { getSyncWorkerScope } from "@/lib/steam-sync-state";
 import { proAccountWhere } from "@/lib/plan-access";
@@ -307,6 +308,12 @@ async function runAccountSync({
     const owner = await prisma.externalAccount.findUnique({ where: { id: account.id }, select: { userId: true } });
     if (!owner) return { kind: "skipped", reason: "not-connected" };
     const queued = await steamSyncQueue.enqueue(owner.userId, trigger);
+    return queued.kind === "queued" ? queued : { kind: "skipped", reason: "not-connected" };
+  }
+  if (account.provider === ExternalProvider.PLAYSTATION) {
+    const owner = await prisma.externalAccount.findUnique({ where: { id: account.id }, select: { userId: true } });
+    if (!owner) return { kind: "skipped", reason: "not-connected" };
+    const queued = await playStationSyncQueue.enqueue(owner.userId, trigger);
     return queued.kind === "queued" ? queued : { kind: "skipped", reason: "not-connected" };
   }
   const lease = await acquireAccountLease({ account, trigger });

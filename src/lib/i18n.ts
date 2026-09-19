@@ -696,7 +696,7 @@ const messages = {
       "Bring in purchased games and trophy-title history.",
     "profile.sources.refreshPlayStation": "Refresh PlayStation",
     "profile.sources.playstationPending":
-      "PlayStation is refreshing your library.",
+      "Your PlayStation library is syncing in the background. You can leave this page.",
     "profile.sources.technicalStatus": "Technical status",
     "profile.sources.steamReady": "ready",
     "profile.sources.steamMissingKey": "missing key",
@@ -2342,7 +2342,7 @@ const messages = {
       "Traga jogos comprados e histórico de troféus.",
     "profile.sources.refreshPlayStation": "Atualizar PlayStation",
     "profile.sources.playstationPending":
-      "A PlayStation está atualizando sua biblioteca.",
+      "Sua biblioteca PlayStation está sincronizando em segundo plano. Você pode sair desta página.",
     "profile.sources.technicalStatus": "Status técnico",
     "profile.sources.steamReady": "pronto",
     "profile.sources.steamMissingKey": "sem chave",

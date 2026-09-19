@@ -187,7 +187,8 @@ async function exchangeNpssoForAuth(npsso: string) {
   return exchangeAccessCodeForAuthTokens(accessCode);
 }
 
-async function getAuthorizationForAccount(account: ExternalAccount) {
+async function getAuthorizationForAccount(account: ExternalAccount, signal?: AbortSignal) {
+  signal?.throwIfAborted();
   const metadata = parsePlayStationMetadata(account.metadata);
   const accessToken = metadata.auth?.accessToken;
 
@@ -213,6 +214,7 @@ async function getAuthorizationForAccount(account: ExternalAccount) {
   const refreshedTokens = await exchangeRefreshTokenForAuthTokens(
     decryptSecret(refreshToken),
   );
+  signal?.throwIfAborted();
   const nextMetadata: PlayStationAccountMetadata = {
     ...metadata,
     auth: createAuthMetadata(refreshedTokens),
@@ -220,7 +222,7 @@ async function getAuthorizationForAccount(account: ExternalAccount) {
   };
 
   await prisma.externalAccount.update({
-    where: { id: account.id },
+    where: { id: account.id, userId: account.userId },
     data: {
       metadata: nextMetadata as Prisma.InputJsonValue,
     },
@@ -297,12 +299,13 @@ async function fetchPlayStationProfile(
   };
 }
 
-async function fetchPlayedTitles(authorization: AuthorizationPayload) {
+async function fetchPlayedTitles(authorization: AuthorizationPayload, signal?: AbortSignal) {
   const titles: TrophyTitle[] = [];
   let offset = 0;
   let totalItemCount = Number.POSITIVE_INFINITY;
 
   while (offset < totalItemCount) {
+    signal?.throwIfAborted();
     const page = await getUserTitles(authorization, "me", {
       limit: PLAYSTATION_TITLES_PAGE_SIZE,
       offset,
@@ -321,12 +324,13 @@ async function fetchPlayedTitles(authorization: AuthorizationPayload) {
   return titles.map(mapTitleToSyncedGame);
 }
 
-async function fetchPlayedGames(authorization: AuthorizationPayload) {
+async function fetchPlayedGames(authorization: AuthorizationPayload, signal?: AbortSignal) {
   const games: PlayStationPlayedGame[] = [];
   let offset = 0;
   let totalItemCount = Number.POSITIVE_INFINITY;
 
   while (offset < totalItemCount) {
+    signal?.throwIfAborted();
     const page = await getUserPlayedGames(authorization, "me", {
       limit: PLAYSTATION_PLAYED_PAGE_SIZE,
       offset,
@@ -348,11 +352,12 @@ async function fetchPlayedGames(authorization: AuthorizationPayload) {
   return games.map(mapPlayedGameToSyncedGame);
 }
 
-async function fetchPurchasedGames(authorization: AuthorizationPayload) {
+async function fetchPurchasedGames(authorization: AuthorizationPayload, signal?: AbortSignal) {
   const games: PurchasedGame[] = [];
   let start = 0;
 
   while (true) {
+    signal?.throwIfAborted();
     const page = await getPurchasedGames(authorization, {
       size: PLAYSTATION_PURCHASED_PAGE_SIZE,
       start,
@@ -406,14 +411,17 @@ export async function connectPlayStationAccountForUser({
 
 export async function syncPlayStationLibraryForAccount(
   account: ExternalAccount,
+  options: { signal?: AbortSignal } = {},
 ) {
-  const { authorization, metadata } = await getAuthorizationForAccount(account);
+  const { authorization, metadata } = await getAuthorizationForAccount(account, options.signal);
+  options.signal?.throwIfAborted();
   const [profileResult, purchasedGames, trophyGames, playedGames] = await Promise.all([
     fetchPlayStationProfile(authorization),
-    fetchPurchasedGames(authorization),
-    fetchPlayedTitles(authorization),
-    fetchPlayedGames(authorization),
+    fetchPurchasedGames(authorization, options.signal),
+    fetchPlayedTitles(authorization, options.signal),
+    fetchPlayedGames(authorization, options.signal),
   ]);
+  options.signal?.throwIfAborted();
   const games = mergePlayStationSyncedGames(
     purchasedGames,
     trophyGames,
@@ -428,7 +436,7 @@ export async function syncPlayStationLibraryForAccount(
   };
 
   await prisma.externalAccount.update({
-    where: { id: account.id },
+    where: { id: account.id, userId: account.userId },
     data: {
       username: profileResult.profile.username ?? undefined,
       displayName: profileResult.profile.displayName ?? undefined,

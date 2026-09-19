@@ -131,7 +131,16 @@ async function main() {
   assert.equal(expiredAccount.syncLeaseExpiresAt, null);
   assert.equal(expiredAccount.lastSyncErrorCode, "LEASE_EXPIRED");
   assert.equal(expiredAccount.syncFailureCount, 1);
-  console.log("PASS disconnect, stalled/abandoned worker recovery, and resumed progress. No real email sent.");
+  const resumable = await account("PLAYSTATION", "resumable");
+  await db.platformSyncRun.update({ where: { id: resumable.run.id }, data: {
+    status: "RUNNING", errorCode: null, finishedAt: null, workerToken: "interrupted-worker",
+    leaseExpiresAt: expiredAt,
+  } });
+  await monitor.scan();
+  const resumableRun = await db.platformSyncRun.findUniqueOrThrow({ where: { id: resumable.run.id } });
+  assert.equal(resumableRun.status, "RUNNING", "queue workers reclaim expired leases without monitor finalization");
+  assert.equal(resumableRun.workerToken, "interrupted-worker");
+  console.log("PASS disconnect, legacy worker recovery, queue lease preservation and resumed progress. No real email sent.");
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => db.$disconnect());

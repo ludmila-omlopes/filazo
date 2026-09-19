@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run db:sync-monitor && npm run build",
   "crons": [
+    { "path": "/api/internal/playstation-sync-worker", "schedule": "* * * * *" },
     {
       "path": "/api/internal/calendar-refresh",
       "schedule": "*/15 * * * *"
