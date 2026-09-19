@@ -238,6 +238,9 @@ const messages = {
       "Fill in your name and at least one platform.",
     "beta.error.submissionsClosed":
       "Beta tester applications are temporarily closed.",
+    "beta.notice":
+      "filazo is in beta and may have bugs or unexpected behavior.",
+    "beta.feedback": "Send feedback",
 
     "admin.restricted":
       "This area is restricted to the admin. Sign in with Google using ludmila.omlopes@gmail.com.",
@@ -1872,6 +1875,9 @@ const messages = {
       "Preencha seu nome e pelo menos uma plataforma.",
     "beta.error.submissionsClosed":
       "As inscrições para beta testers estão temporariamente fechadas.",
+    "beta.notice":
+      "O filazo está em beta e pode apresentar bugs ou outros problemas inesperados.",
+    "beta.feedback": "Enviar feedback",
 
     "admin.restricted":
       "Esta área é restrita ao admin. Entre com o Google usando ludmila.omlopes@gmail.com.",
