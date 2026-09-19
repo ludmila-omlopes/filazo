@@ -164,18 +164,43 @@ export default async function RootLayout({
 
           <div className="app-shell min-h-screen pb-6 pl-[max(clamp(1.5rem,2.5vw,3rem),env(safe-area-inset-left))] pr-[max(clamp(1.5rem,2.5vw,3rem),env(safe-area-inset-right))] max-md:pb-4 max-md:pl-[max(1rem,env(safe-area-inset-left))] max-md:pr-[max(1rem,env(safe-area-inset-right))]">
             <SiteHeaderFrame>
-              <Link
-                href={homeHref}
-                className="group inline-flex min-h-11 items-center gap-2"
-              >
-                <span className="font-display text-[1.45rem] font-medium">
-                  filazo
-                </span>
-                <span
-                  aria-hidden
-                  className="h-5 w-1.5 translate-y-1 rounded-[2px] bg-glow motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-y-110"
-                />
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href={homeHref}
+                  className="group inline-flex min-h-11 items-center gap-2"
+                >
+                  <span className="font-display text-[1.45rem] font-medium">
+                    filazo
+                  </span>
+                  <span
+                    aria-hidden
+                    className="h-5 w-1.5 translate-y-1 rounded-[2px] bg-glow motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-y-110"
+                  />
+                </Link>
+
+                <div className="group relative">
+                  <button
+                    type="button"
+                    aria-describedby="beta-notice"
+                    className="inline-flex min-h-7 items-center rounded-pill border border-sand/70 bg-sand-soft px-2 text-micro font-bold uppercase tracking-[0.12em] text-ink-soft transition-colors hover:border-sand hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
+                  >
+                    beta
+                  </button>
+                  <div
+                    id="beta-notice"
+                    role="tooltip"
+                    className="pointer-events-none invisible absolute left-0 top-full z-50 mt-3 w-64 rounded-inner border border-edge bg-surface p-4 text-sm leading-relaxed text-ink opacity-0 shadow-float transition-[opacity,visibility] duration-150 group-hover:pointer-events-auto group-hover:visible group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:visible group-focus-within:opacity-100 max-sm:left-auto max-sm:right-0"
+                  >
+                    <p>{t("beta.notice")}</p>
+                    <Link
+                      href="/feedback"
+                      className="nav-link mt-3 inline-flex text-sm"
+                    >
+                      {t("beta.feedback")}
+                    </Link>
+                  </div>
+                </div>
+              </div>
 
               <nav
                 className="hidden flex-wrap items-center justify-end gap-6 lg:flex"
