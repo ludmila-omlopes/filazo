@@ -23,7 +23,6 @@ type SearchResult = {
 const statusOptions = [
   { value: "PLAYING", labelKey: "manualSearch.status.playing" },
   { value: "OWNED", labelKey: "manualSearch.status.owned" },
-  { value: "BACKLOG", labelKey: "manualSearch.status.backlog" },
   { value: "COMPLETED", labelKey: "manualSearch.status.completed" },
   { value: "DROPPED", labelKey: "manualSearch.status.dropped" },
   { value: "WISHLIST", labelKey: "manualSearch.status.wishlist" },

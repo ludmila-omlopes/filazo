@@ -3,6 +3,7 @@ import { getSyncedEntryProgressData } from "./playtime-conflict";
 import type { SyncedLibraryGame } from "./providers/contracts";
 import { prisma } from "./prisma";
 import { libraryPlatformKey } from "./library-platform";
+import { normalizeLibraryStatus } from "./library-status";
 
 export async function lockLibraryGame(tx: Prisma.TransactionClient, userId: string, gameId: string) {
   // A user lock also serializes transactions that update several pinned games.
@@ -11,6 +12,7 @@ export async function lockLibraryGame(tx: Prisma.TransactionClient, userId: stri
 }
 
 export function libraryStatusData(status: UserGameStatus, now = new Date()) {
+  status = normalizeLibraryStatus(status);
   return {
     status,
     finishedAt: status === "COMPLETED" ? now : null,
@@ -25,6 +27,7 @@ export function libraryStatusData(status: UserGameStatus, now = new Date()) {
 
 // All status entry points use this write under the same lock as provider imports.
 export async function setLibraryGameStatus(tx: Prisma.TransactionClient, userId: string, gameId: string, status: UserGameStatus) {
+  status = normalizeLibraryStatus(status);
   await lockLibraryGame(tx, userId, gameId);
   const previous = await tx.userGameEntry.findFirst({ where: { userId, gameId }, orderBy: [{ statusChangedAt: { sort: "desc", nulls: "last" } }, { updatedAt: "desc" }] });
   return tx.userGameEntry.updateMany({
@@ -92,7 +95,7 @@ export async function upsertLibraryCopy(input: CopyInput, db: Prisma.Transaction
       existing = await tx.userGameEntry.update({ where: { id: copies[0].id, userId: input.userId }, data: { platformKey: key } });
     }
     const chosen = copies.find(copy => copy.statusChangedAt !== null) ?? copies[0];
-    const status = input.explicitStatus ? input.status : chosen?.status ?? input.status;
+    const status = normalizeLibraryStatus(input.explicitStatus ? input.status : chosen?.status ?? input.status);
     const now = new Date();
     if (input.explicitStatus) await setLibraryGameStatus(tx, input.userId, input.gameId, status);
     // Imports update only source data. They cannot change a person's status or lifecycle fields.

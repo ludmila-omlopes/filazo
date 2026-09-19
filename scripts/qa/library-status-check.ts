@@ -1,3 +1,4 @@
+import { normalizeLibraryStatus } from "../../src/lib/library-status";
 import assert from "node:assert/strict";
 import { Prisma, UserGameStatus } from "@prisma/client";
 import { prisma as db } from "../../src/lib/prisma";
@@ -60,11 +61,11 @@ async function main() {
   for (const status of Object.values(UserGameStatus)) {
     await setLibraryEntryStatus(user.id, pc.id, status);
     copies = await db.userGameEntry.findMany({ where: base });
-    assert.ok(copies.every(e => e.status === status));
+    assert.ok(copies.every(e => e.status === normalizeLibraryStatus(status)));
     assert.ok(copies.every(e => Boolean(e.finishedAt) === (status === "COMPLETED")));
     assert.ok(copies.every(e => Boolean(e.abandonedAt) === (status === "DROPPED")));
     const detail = await readGameDetail(db, game.slug, user.id);
-    assert.equal(detail?.userEntries[0]?.status, status, "detail and catalog read the persisted choice");
+    assert.equal(detail?.userEntries[0]?.status, normalizeLibraryStatus(status), "detail and catalog read the persisted choice");
   }
   assert.equal(await setLibraryEntryStatus(other.id, pc.id, "COMPLETED"), false);
   assert.equal(await setInferredLibraryCompletion(user.id, pc.id, new Date()), false, "achievement detection must preserve the explicit dropped choice");

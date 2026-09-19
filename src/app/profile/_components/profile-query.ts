@@ -1,3 +1,4 @@
+import { normalizeLibraryStatus } from "../../../lib/library-status.ts";
 import { AssistantSignalType, GameCompletionModel, UserGameStatus } from "@prisma/client";
 import { getEffectiveGameCompletionModel } from "../../../lib/game-completion-model.ts";
 import { normalizePlatformNames } from "../../../lib/platform-names.ts";
@@ -67,7 +68,7 @@ export function parseAssistantSignal(value: string | undefined) {
 
 export function parseActiveStatus(value: string | undefined) {
   return Object.values(UserGameStatus).includes(value as UserGameStatus)
-    ? (value as UserGameStatus)
+    ? normalizeLibraryStatus(value as UserGameStatus)
     : null;
 }
 
@@ -403,7 +404,7 @@ export function filterEntries({
       return false;
     }
 
-    if (activeStatus && entry.status !== activeStatus) {
+    if (activeStatus && normalizeLibraryStatus(entry.status) !== normalizeLibraryStatus(activeStatus)) {
       return false;
     }
 

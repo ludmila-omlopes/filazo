@@ -714,7 +714,7 @@ function parsePhotoStatus(statusText: string | null) {
   }
 
   if (normalized.includes("backlog")) {
-    return UserGameStatus.BACKLOG;
+    return UserGameStatus.OWNED;
   }
 
   return UserGameStatus.OWNED;

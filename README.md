@@ -318,7 +318,7 @@ Set `ADSENSE_PUBLISHER_ID` to your `ca-pub-` publisher ID. `/ads.txt` serves the
 
 ### Library identity and shared status
 
-A user's catalog contains one `UserGameEntry` per canonical game and normalized platform (`userId + gameId + platformKey`). Steam, GOG and Windows aliases share the PC identity. A missing platform is not evidence of an additional purchase. Status is shared by all of that user's platform copies; playtime, achievements and source/account data stay with the relevant copy. `statusChangedAt` records explicit choices. Imports, repeat syncs and automatic story detection preserve those choices. All entry creation goes through `upsertLibraryCopy`; status writes use `setLibraryGameStatus` inside the same transaction/lock.
+A user's catalog contains one `UserGameEntry` per canonical game and normalized platform (`userId + gameId + platformKey`). Steam, GOG and Windows aliases share the PC identity. A missing platform is not evidence of an additional purchase. The single shelf status is shown as “Na estante” (“On the shelf”) and persisted as `OWNED`; legacy `BACKLOG` values are normalized on import/write and by `db:library-status`, including databases that already received the platform migration. Status is shared by all of that user's platform copies; playtime, achievements and source/account data stay with the relevant copy. `statusChangedAt` records explicit choices. Imports, repeat syncs and automatic story detection preserve those choices. All entry creation goes through `upsertLibraryCopy`; status writes use `setLibraryGameStatus` inside the same transaction/lock.
 
 Existing databases require **a coordinated maintenance release**, because previous clients depend on the old status-based unique index:
 

@@ -993,7 +993,7 @@ function parseStatus(rawValue: unknown) {
     return UserGameStatus.DROPPED;
   }
   if (normalized.includes("backlog")) {
-    return UserGameStatus.BACKLOG;
+    return UserGameStatus.OWNED;
   }
 
   return UserGameStatus.OWNED;
@@ -1380,7 +1380,7 @@ export async function getProfileData(
   };
 
   const ownedEntries = gameEntries
-    .filter((entry) => entry.status === UserGameStatus.OWNED)
+    .filter((entry) => entry.status === UserGameStatus.OWNED || entry.status === UserGameStatus.BACKLOG)
     .sort((left, right) => {
       const playtimeDelta =
         (right.playtimeMinutes ?? 0) - (left.playtimeMinutes ?? 0);

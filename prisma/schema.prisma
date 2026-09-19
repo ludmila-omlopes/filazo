@@ -22,6 +22,7 @@ enum UserGameStatus {
   WISHLIST
   PLAYING
   PLAYING_NEXT
+  // Legacy import alias; new writes normalize this to OWNED ("Na estante").
   BACKLOG
   COMPLETED
   DROPPED

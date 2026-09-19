@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useId } from "react";
-import { UserGameStatus } from "@prisma/client";
+import type { UserGameStatus } from "@prisma/client";
+import { LIBRARY_STATUSES, normalizeLibraryStatus } from "@/lib/library-status";
 import { Button } from "@/components/ui/button";
 import { getStatusDisplayLabel } from "@/lib/copy";
 import type { Locale } from "@/lib/i18n";
@@ -18,9 +19,9 @@ export function CatalogStatusForm({ entryId, status, locale, compact = false }: 
       <input name="entryId" type="hidden" value={entryId} />
       <label htmlFor={id} className="min-w-0 flex-1 text-xs">
         Status
-        <select id={id} key={status} name="status" defaultValue={status} disabled={pending}
+        <select id={id} key={status} name="status" defaultValue={normalizeLibraryStatus(status)} disabled={pending}
           className="mt-1 block w-full rounded-inner border border-edge bg-surface px-2 py-2 text-sm text-ink">
-          {Object.values(UserGameStatus).map(value => <option key={value} value={value}>{getStatusDisplayLabel(value, locale)}</option>)}
+          {LIBRARY_STATUSES.map(value => <option key={value} value={value}>{getStatusDisplayLabel(value, locale)}</option>)}
         </select>
       </label>
       <Button type="submit" size="xs" disabled={pending}>{pending ? (pt ? "Salvando…" : "Saving…") : (pt ? "Salvar" : "Save")}</Button>

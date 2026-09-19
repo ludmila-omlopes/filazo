@@ -12,7 +12,10 @@ export async function migrateLibraryStatus(db: PrismaClient, schema: string) {
     if (!exists[0].present) return { merged: 0, alreadyApplied: false };
     await tx.$executeRaw`LOCK TABLE ${table} IN ACCESS EXCLUSIVE MODE`;
     const applied = await tx.$queryRaw<{ present: boolean }[]>`SELECT EXISTS(SELECT 1 FROM pg_indexes WHERE schemaname = ${schema} AND indexname = 'UserGameEntry_userId_gameId_platformKey_key') AS present`;
-    if (applied[0].present) return { merged: 0, alreadyApplied: true };
+    if (applied[0].present) {
+      await tx.$executeRaw`UPDATE ${table} SET "status" = 'OWNED' WHERE "status" = 'BACKLOG'`;
+      return { merged: 0, alreadyApplied: true };
+    }
     await tx.$executeRaw`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS "platformKey" TEXT NOT NULL DEFAULT 'unknown', ADD COLUMN IF NOT EXISTS "statusChangedAt" TIMESTAMP(3)`;
     await tx.$executeRaw`DROP INDEX IF EXISTS ${ident("UserGameEntry_userId_gameId_status_key")}`;
 
@@ -106,6 +109,7 @@ export async function migrateLibraryStatus(db: PrismaClient, schema: string) {
     await tx.$executeRaw`UPDATE ${table} SET "statusChangedAt" = COALESCE("statusChangedAt", "updatedAt") WHERE "status" <> 'OWNED' OR "finishedAt" IS NOT NULL OR "abandonedAt" IS NOT NULL OR "source" = 'MANUAL'`;
     await tx.$executeRaw`UPDATE ${table} SET "status" = CASE WHEN "status" = 'DROPPED' OR "abandonedAt" IS NOT NULL THEN 'DROPPED' ELSE 'COMPLETED' END::${ident("UserGameStatus")} WHERE "finishedAt" IS NOT NULL OR "abandonedAt" IS NOT NULL`;
     await tx.$executeRaw`UPDATE ${table} SET "finishedAt" = CASE WHEN "status" = 'COMPLETED' THEN COALESCE("finishedAt", "updatedAt") ELSE NULL END, "finishedSource" = CASE WHEN "status" = 'COMPLETED' THEN COALESCE("finishedSource", 'manual') ELSE NULL END, "abandonedAt" = CASE WHEN "status" = 'DROPPED' THEN COALESCE("abandonedAt", "updatedAt") ELSE NULL END, "currentPlayingSlot" = CASE WHEN "status" = 'PLAYING' THEN "currentPlayingSlot" ELSE NULL END, "playingNextSlot" = CASE WHEN "status" = 'PLAYING_NEXT' THEN "playingNextSlot" ELSE NULL END`;
+    await tx.$executeRaw`UPDATE ${table} SET "status" = 'OWNED' WHERE "status" = 'BACKLOG'`;
     await tx.$executeRaw`CREATE UNIQUE INDEX "UserGameEntry_userId_gameId_platformKey_key" ON ${table}("userId", "gameId", "platformKey")`;
     return { merged, alreadyApplied: false };
   }, { maxWait: 30_000, timeout: 600_000 });

@@ -35,9 +35,9 @@ test("games default to lifecycle sorting with playing next after playing", () =>
       "Playing",
       "Playing next",
       "Completed",
+      "Owned",
       "Backlog",
       "Wishlist",
-      "Owned",
       "Dropped",
     ],
   );

@@ -11,7 +11,7 @@ const statusStyles: Record<string, string> = {
   PAUSED: "bg-canvas text-ink-soft",
   COMPLETED: "bg-fern-soft text-ink",
   FINISHED: "bg-fern-soft text-ink",
-  BACKLOG: "bg-canvas text-ink-soft",
+  BACKLOG: "bg-sage-soft text-ink",
   DROPPED: "bg-clay-soft text-ink",
 };
 

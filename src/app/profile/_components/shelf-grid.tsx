@@ -1,3 +1,4 @@
+import { normalizeLibraryStatus } from "@/lib/library-status";
 import Link from "next/link";
 import { LayoutGrid, List, Search } from "lucide-react";
 import { GameCard } from "@/components/game-card";
@@ -217,7 +218,7 @@ export function ShelfGrid({
   visibleEntries: ProfileEntry[];
 }) {
   const t = createTranslator(locale);
-  const statuses = Array.from(new Set(allEntries.map((entry) => entry.status)));
+  const statuses = Array.from(new Set(allEntries.map((entry) => normalizeLibraryStatus(entry.status))));
   const platforms = getPlatformFilterOptions(allEntries);
   const {
     activePlatform,
