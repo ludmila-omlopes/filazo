@@ -3,10 +3,25 @@ import { test } from "node:test";
 import { ExternalProvider, GameCompletionModel, UserGameStatus } from "@prisma/client";
 import {
   filterEntries,
+  parseActiveStatus,
   getPlatformFilterOptions,
   getUserPlatformLabel,
   UNKNOWN_PLATFORM_FILTER,
 } from "../src/app/profile/_components/profile-query.ts";
+
+test("the shelf filter includes both legacy statuses without a separate backlog option", () => {
+  const entries = [
+    createEntry("Existing owned", { status: UserGameStatus.OWNED }),
+    createEntry("Legacy backlog", { status: UserGameStatus.BACKLOG }),
+    createEntry("Currently playing", { status: UserGameStatus.PLAYING }),
+  ];
+  assert.equal(parseActiveStatus("BACKLOG"), "OWNED");
+  for (const activeStatus of ["OWNED", "BACKLOG"]) {
+    assert.deepEqual(filterEntries({ activePlatform: null, activeStatus, entries,
+      includeDormant: false, queryText: "", signalEntryIds: null,
+    }).map(entry => entry.game.name), ["Existing owned", "Legacy backlog"]);
+  }
+});
 
 test("profile catalog shows not-started entries and hides dropped entries by default", () => {
   const entries = [

@@ -22,6 +22,7 @@ enum UserGameStatus {
   WISHLIST
   PLAYING
   PLAYING_NEXT
+  // Legacy import alias; new writes normalize this to OWNED ("Na estante").
   BACKLOG
   COMPLETED
   DROPPED
@@ -432,6 +433,9 @@ model UserGameEntry {
   userId             String
   gameId             String
   status             UserGameStatus
+  // One copy per actual platform. Status is shared across this user's copies.
+  platformKey        String             @default("unknown")
+  statusChangedAt    DateTime?
   source             EntrySource
   provider           ExternalProvider?
   externalAccountId  String?
@@ -474,7 +478,7 @@ model UserGameEntry {
   playObservations   PlayObservation[]
   calendarSessions   CalendarSession[]
 
-  @@unique([userId, gameId, status])
+  @@unique([userId, gameId, platformKey])
   @@unique([userId, currentPlayingSlot])
   @@unique([userId, playingNextSlot])
   @@index([userId, status])

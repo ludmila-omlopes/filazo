@@ -1,4 +1,5 @@
 "use server";
+import { setLibraryEntryStatus } from "@/lib/library-entry";
 
 import { UserGameStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -29,8 +30,8 @@ export async function chooseTonightGameAction(formData: FormData) {
     );
   }
 
-  const entry = await prisma.userGameEntry.findUnique({
-    where: { id: entryId },
+  const entry = await prisma.userGameEntry.findFirst({
+    where: { id: entryId, userId },
     include: { game: true },
   });
 
@@ -39,14 +40,7 @@ export async function chooseTonightGameAction(formData: FormData) {
   }
 
   try {
-    await prisma.userGameEntry.update({
-      where: { id: entry.id },
-      data: {
-        status: UserGameStatus.PLAYING,
-        activeBacklog: true,
-        updatedAt: new Date(),
-      },
-    });
+    await setLibraryEntryStatus(userId, entry.id, UserGameStatus.PLAYING);
   } catch {
     redirect(
       `/tonight?message=${encodeURIComponent(

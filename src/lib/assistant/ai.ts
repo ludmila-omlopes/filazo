@@ -175,11 +175,9 @@ function scorePlayNextCandidate(
       ? 18
       : entry.status === UserGameStatus.PLAYING_NEXT
         ? 16
-      : entry.status === UserGameStatus.BACKLOG
+      : entry.status === UserGameStatus.BACKLOG || entry.status === UserGameStatus.OWNED
         ? 14
-        : entry.status === UserGameStatus.OWNED
-          ? 10
-          : -20;
+        : -20;
   const timeScore = remainingTime
     ? Math.max(0, 16 - remainingTime.remainingMinutes / 60)
     : 0;

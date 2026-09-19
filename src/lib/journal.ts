@@ -1,3 +1,4 @@
+import { upsertLibraryCopy } from "@/lib/library-entry";
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -713,7 +714,7 @@ function parsePhotoStatus(statusText: string | null) {
   }
 
   if (normalized.includes("backlog")) {
-    return UserGameStatus.BACKLOG;
+    return UserGameStatus.OWNED;
   }
 
   return UserGameStatus.OWNED;
@@ -753,57 +754,7 @@ async function upsertPhotoImportedEntry({
       statusText: candidate.statusText,
     } as Prisma.InputJsonValue,
   };
-  const [existingAnyStatus, existingTargetStatus] = await Promise.all([
-    prisma.userGameEntry.findFirst({
-      where: {
-        userId,
-        gameId: game.id,
-      },
-      orderBy: {
-        updatedAt: "desc",
-      },
-    }),
-    prisma.userGameEntry.findUnique({
-      where: {
-        userId_gameId_status: {
-          userId,
-          gameId: game.id,
-          status,
-        },
-      },
-    }),
-  ]);
-
-  if (existingTargetStatus) {
-    await prisma.userGameEntry.update({
-      where: { id: existingTargetStatus.id },
-      data: entryData,
-    });
-    if (existingAnyStatus && existingAnyStatus.id !== existingTargetStatus.id) {
-      await prisma.userGameEntry.delete({ where: { id: existingAnyStatus.id } });
-    }
-    return game;
-  }
-
-  if (existingAnyStatus) {
-    await prisma.userGameEntry.update({
-      where: { id: existingAnyStatus.id },
-      data: {
-        status,
-        ...entryData,
-      },
-    });
-    return game;
-  }
-
-  await prisma.userGameEntry.create({
-    data: {
-      userId,
-      gameId: game.id,
-      status,
-      ...entryData,
-    },
-  });
+  await upsertLibraryCopy({ userId, gameId: game.id, status, platformName: candidate.platformName, create: entryData, update: entryData });
 
   return game;
 }

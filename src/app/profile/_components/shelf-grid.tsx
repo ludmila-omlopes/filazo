@@ -1,3 +1,4 @@
+import { normalizeLibraryStatus } from "@/lib/library-status";
 import Link from "next/link";
 import { LayoutGrid, List, Search } from "lucide-react";
 import { GameCard } from "@/components/game-card";
@@ -13,7 +14,7 @@ import type { ProfileGameSort } from "@/lib/profile-games";
 import { cn, formatNumber } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
 import { PhysicalMediaButton } from "./physical-media-button";
-import { markDroppedAction, markFinishedAction } from "../actions";
+import { CatalogStatusForm } from "./catalog-status-form";
 import {
   COMPLETION_MODEL_FILTERS,
   getPlatformFilterOptions,
@@ -109,44 +110,7 @@ function EntryStatusActions({
   compact?: boolean;
   locale: Locale;
 }) {
-  const t = createTranslator(locale);
-  const isDropped = entry.status === "DROPPED";
-  const buttonClassName = compact ? "w-full" : "";
-
-  return (
-    <>
-      <form action={markFinishedAction}>
-        <input type="hidden" name="entryId" value={entry.id} />
-        <input type="hidden" name="slug" value={entry.game.slug} />
-        <Button
-          className={buttonClassName}
-          disabled={isDropped}
-          size="xs"
-          title={
-            isDropped
-              ? t("shelf.restoreBeforeCredits")
-              : undefined
-          }
-          type="submit"
-          variant={entry.finishedAt ? "secondary" : "ghost"}
-        >
-          {entry.finishedAt ? t("shelf.creditsRolled") : t("shelf.rollCredits")}
-        </Button>
-      </form>
-      <form action={markDroppedAction}>
-        <input type="hidden" name="entryId" value={entry.id} />
-        <input type="hidden" name="slug" value={entry.game.slug} />
-        <Button
-          className={buttonClassName}
-          size="xs"
-          type="submit"
-          variant={isDropped ? "secondary" : "ghost"}
-        >
-          {isDropped ? t("shelf.return") : t("shelf.dropped")}
-        </Button>
-      </form>
-    </>
-  );
+  return <CatalogStatusForm entryId={entry.id} status={entry.finishedAt ? "COMPLETED" : entry.status} locale={locale} compact={compact} />;
 }
 
 function ShelfCard({
@@ -254,7 +218,7 @@ export function ShelfGrid({
   visibleEntries: ProfileEntry[];
 }) {
   const t = createTranslator(locale);
-  const statuses = Array.from(new Set(allEntries.map((entry) => entry.status)));
+  const statuses = Array.from(new Set(allEntries.map((entry) => normalizeLibraryStatus(entry.status))));
   const platforms = getPlatformFilterOptions(allEntries);
   const {
     activePlatform,

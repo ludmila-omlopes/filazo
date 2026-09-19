@@ -67,7 +67,7 @@ async function main() {
   assert.equal(run.errorCode, "NETWORK");
   assert.equal(await db.userGameEntry.count({ where: { userId: user.id } }), 3);
   assert.equal(await db.game.count(), 3, "failed item must not leave an orphan canonical game");
-  assert.ok(await db.userGameEntry.findUnique({ where: { userId_gameId_status: { userId: user.id, gameId: normalized.id, status: "OWNED" } } }));
+  assert.ok(await db.userGameEntry.findUnique({ where: { userId_gameId_platformKey: { userId: user.id, gameId: normalized.id, platformKey: "pc" } } }));
   assert.equal(await queue.processBatch(id), false, "backoff must be respected");
   console.log("PASS duplicate clicks, access, canonical provider/title/IGDB matching and atomic rollback.");
 
@@ -90,7 +90,7 @@ async function main() {
   assert.equal(fetches, 1, "resume must not fetch the library again");
   assert.equal(await db.userGameEntry.count({ where: { userId: user.id } }), games.length);
   assert.equal(await db.userGameProviderLink.count({ where: { userId: user.id } }), games.length);
-  const entry = await db.userGameEntry.findUniqueOrThrow({ where: { userId_gameId_status: { userId: user.id, gameId: linked.id, status: "OWNED" } } });
+  const entry = await db.userGameEntry.findUniqueOrThrow({ where: { userId_gameId_platformKey: { userId: user.id, gameId: linked.id, platformKey: "pc" } } });
   assert.equal(entry.playtimeMinutes, 777, "manual playtime must survive sync");
   assert.equal(await db.gameMetadataJob.count(), games.length);
   assert.ok((await db.externalAccount.findUniqueOrThrow({ where: { id: account.id } })).lastSyncedAt);

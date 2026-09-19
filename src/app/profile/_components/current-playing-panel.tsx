@@ -123,10 +123,8 @@ function scoreShelfEntry(entry: ShelfEntry) {
 
   if (entry.status === "PLAYING") {
     score += 120;
-  } else if (entry.status === "BACKLOG") {
+  } else if (entry.status === "BACKLOG" || entry.status === "OWNED") {
     score += 30;
-  } else if (entry.status === "OWNED") {
-    score += 20;
   }
 
   if (entry.isFavorite) {
