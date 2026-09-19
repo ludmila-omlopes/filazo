@@ -181,6 +181,15 @@ test("classifies platform sync failures by code", () => {
     classifyPlatformSyncError(rejectedSteamApiKey).code,
     "CONFIGURATION",
   );
+
+  const privateSteamLibrary = Object.assign(
+    new Error("Steam library is unavailable. Check that game details are public."),
+    { platformSyncErrorCode: "LIBRARY_PRIVATE" },
+  );
+  assert.equal(
+    classifyPlatformSyncError(privateSteamLibrary).code,
+    "LIBRARY_PRIVATE",
+  );
 });
 
 test("characterizes classifier keyword precedence", () => {

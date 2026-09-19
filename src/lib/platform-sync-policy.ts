@@ -10,6 +10,7 @@ export type PlatformSyncErrorCode =
   | "AUTH"
   | "CONFIGURATION"
   | "INTERNAL"
+  | "LIBRARY_PRIVATE"
   | "NETWORK"
   | "PROVIDER"
   | "RATE_LIMIT"
@@ -117,7 +118,11 @@ export function getRetryDelayMs({
   random?: () => number;
 }) {
   if (errorCode === "ACCOUNT_MISSING") return PLATFORM_SYNC_MAX_BACKOFF_MS;
-  if (errorCode === "AUTH" || errorCode === "CONFIGURATION") {
+  if (
+    errorCode === "AUTH" ||
+    errorCode === "CONFIGURATION" ||
+    errorCode === "LIBRARY_PRIVATE"
+  ) {
     return PLATFORM_SYNC_MAX_BACKOFF_MS;
   }
 
@@ -212,6 +217,7 @@ function getExplicitPlatformSyncErrorCode(error: unknown) {
     "AUTH",
     "CONFIGURATION",
     "INTERNAL",
+    "LIBRARY_PRIVATE",
     "NETWORK",
     "PROVIDER",
     "RATE_LIMIT",

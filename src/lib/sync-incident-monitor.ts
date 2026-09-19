@@ -98,6 +98,9 @@ export function createSyncIncidentMonitor({
     async function record(account: Account) {
       const run = account.platformSyncRuns[0];
       if (!run) return;
+      // A private Steam library needs action from the account owner. It remains
+      // recorded on the account and run, but is not an operational incident.
+      if (run.errorCode === "LIBRARY_PRIVATE") return;
       const state = getSyncHealth(run, now());
       if (!state) return;
       const problematic = state === "FAILED" || state === "STALLED";
