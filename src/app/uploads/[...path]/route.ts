@@ -1,4 +1,6 @@
 import { readFile } from "node:fs/promises";
+import { get } from "@vercel/blob";
+import { canUploadCatalogPath } from "@/lib/catalog-upload-policy";
 import {
   getPrivateJournalMedia,
 } from "@/lib/journal-media";
@@ -21,6 +23,18 @@ export async function GET(
   const storageKey = getUploadStorageKeyFromRoutePath(path);
   if (!storageKey) {
     return new Response("Not found", { status: 404 });
+  }
+
+  if (path[0] === "imports" && path.length === 3) {
+    const userId = await getSessionUserId();
+    const pathname = path.join("/");
+    if (!userId || !canUploadCatalogPath(pathname, userId)) return new Response("Not found", { status: 404 });
+    const blob = await get(pathname, { access: "private", useCache: false });
+    if (!blob?.stream) return new Response("Not found", { status: 404 });
+    return new Response(blob.stream, { headers: {
+      "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+      "Content-Type": getUploadContentType(storageKey) ?? "application/octet-stream",
+    } });
   }
 
   if (path[0] === "journal") {

@@ -8,6 +8,7 @@ import {
   Unplug,
 } from "lucide-react";
 import { CsvImportWidget } from "@/components/csv-import-widget";
+import { CatalogPhotoImportForm } from "@/components/catalog-photo-import-form";
 import { SyncActionForm } from "@/components/sync-action-form";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -501,31 +502,14 @@ function PhotoImportRow({
           </div>
         }
       />
-      <form
+      <CatalogPhotoImportForm
         action={importPhotoCatalogAction}
-        className="grid gap-4"
-      >
-        <label className="grid gap-2">
-          <span className="text-sm font-semibold">
-            {t("profile.photoImport.images")}
-          </span>
-          <input
-            accept="image/*"
-            className="w-full file:mr-3 file:cursor-pointer file:rounded-pill file:border file:border-edge file:bg-sage-soft file:px-4 file:py-2 file:font-semibold file:transition-colors hover:file:bg-sand-soft"
-            multiple
-            name="images"
-            type="file"
-          />
-        </label>
-        {!aiAvailable ? (
-          <p className="text-sm font-semibold text-clay">
-            {unavailableBody}
-          </p>
-        ) : null}
-        <Button disabled={!aiSettings.photoImportEnabled} type="submit">
-          {t("profile.photoImport.submit")}
-        </Button>
-      </form>
+        userId={profile.user.id}
+        maxFiles={Math.min(aiSettings.photoImportMaxFiles, aiSettings.photoImportDailyFileLimit)}
+        maxBytes={aiSettings.photoImportMaxFileBytes}
+        disabled={!aiAvailable}
+        unavailableBody={unavailableBody}
+      />
       <ImportAuditPreview locale={locale} profile={profile} source="photo" />
     </div>
   );

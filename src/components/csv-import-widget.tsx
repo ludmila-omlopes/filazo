@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Papa from "papaparse";
 import { useTranslations } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
+import { CSV_MAX_BYTES, csvFits } from "@/lib/catalog-upload-policy";
 
 type ColumnMapping = {
   title: string;
@@ -97,6 +98,7 @@ export function CsvImportWidget({
     externalId: "",
   });
   const [error, setError] = useState("");
+  const selectionId = useRef(0);
   const serializedMapping = useMemo(
     () =>
       JSON.stringify({
@@ -134,12 +136,23 @@ export function CsvImportWidget({
   }, [mapping, rows]);
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const selection = ++selectionId.current;
     const selectedFile = event.target.files?.[0];
-    if (!selectedFile) {
+    setHeaders([]);
+    setRows([]);
+    setCsvText("");
+    setError("");
+    if (!selectedFile) return;
+    if (selectedFile.size > CSV_MAX_BYTES) {
+      setError(t("csv.tooLarge"));
       return;
     }
-
     const text = await selectedFile.text();
+    if (selection !== selectionId.current) return;
+    if (!csvFits(text)) {
+      setError(t("csv.tooLarge"));
+      return;
+    }
     const parsed = Papa.parse<Record<string, string>>(text, {
       header: true,
       skipEmptyLines: true,
@@ -178,6 +191,7 @@ export function CsvImportWidget({
         />
         <p className="mt-2 text-sm leading-relaxed text-ink-soft">
           {t("csv.helper")}
+          {" "}{t("csv.sizeLimit")}
         </p>
       </div>
 
