@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { AdSenseBanner } from "@/components/adsense-banner";
+import { AppNewsPanel } from "./_components/app-news-panel";
 import { AssistantTab, PlayerProfileTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
 import { BacklogEstimate } from "./_components/backlog-estimate";
@@ -201,6 +202,7 @@ export default async function ProfilePage({
           {activeTab === "overview" ? (
             <div className="grid min-w-0 gap-6">
               <GreetingStrip locale={locale} profile={profile} />
+              <AppNewsPanel locale={locale} />
               <div className="grid min-w-0 items-start gap-6">
                 <CurrentPlayingPanel
                   locale={locale}
