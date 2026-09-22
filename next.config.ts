@@ -3,6 +3,9 @@ import type { NextConfig } from "next";
 import { remoteImagePatterns } from "./src/lib/image-urls";
 
 const nextConfig: NextConfig = {
+  // CSV is capped at 1 MiB; leave room for form encoding and metadata.
+  // Photos go directly to private Blob storage, never through a Server Action.
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   env: {
     NEXT_PUBLIC_VERCEL_ENV: process.env.VERCEL_ENV,
   },

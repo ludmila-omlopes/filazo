@@ -8,6 +8,15 @@ export const defaultLocale: Locale = "en";
 
 const messages = {
   en: {
+    "csv.sizeLimit": "Maximum file size: 1 MiB.",
+    "csv.tooLarge": "This CSV exceeds 1 MiB. Split it into smaller files before importing.",
+    "profile.photoImport.fileLimit": "Select up to {count} images per import.",
+    "profile.photoImport.sizeLimit": "Each image must be non-empty and at most {size} MiB.",
+    "profile.photoImport.invalidFormat": "Use PNG, JPEG, WebP or GIF images.",
+    "profile.photoImport.limits": "Up to {count} images, {size} MiB each. PNG, JPEG, WebP or GIF.",
+    "profile.photoImport.uploading": "Uploading images…",
+    "profile.photoImport.processing": "Reading images and importing games…",
+    "profile.photoImport.uploadFailed": "Could not finish the import. Your selection was kept; try again.",
     "publicCatalog.description": "Explore games, discover new titles and read about them. No account needed.",
     "publicCatalog.searchLabel": "Game title",
     "publicCatalog.search": "Search",
@@ -1652,6 +1661,15 @@ const messages = {
       "Player profile generation did not complete.",
   },
   "pt-BR": {
+    "csv.sizeLimit": "Tamanho máximo do arquivo: 1 MiB.",
+    "csv.tooLarge": "Este CSV ultrapassa 1 MiB. Divida-o em arquivos menores antes de importar.",
+    "profile.photoImport.fileLimit": "Selecione até {count} imagens por importação.",
+    "profile.photoImport.sizeLimit": "Cada imagem deve ter conteúdo e no máximo {size} MiB.",
+    "profile.photoImport.invalidFormat": "Use imagens PNG, JPEG, WebP ou GIF.",
+    "profile.photoImport.limits": "Até {count} imagens, com {size} MiB cada. PNG, JPEG, WebP ou GIF.",
+    "profile.photoImport.uploading": "Enviando imagens…",
+    "profile.photoImport.processing": "Lendo imagens e importando jogos…",
+    "profile.photoImport.uploadFailed": "Não foi possível concluir a importação. Sua seleção foi mantida; tente novamente.",
     "publicCatalog.description": "Explore jogos, descubra novos títulos e conheça cada um. Sem precisar de conta.",
     "publicCatalog.searchLabel": "Nome do jogo",
     "publicCatalog.search": "Buscar",

@@ -23,6 +23,7 @@ import {
   resolveCatalogGame,
 } from "@/lib/catalog";
 import { parseCsvColumnMappingJson } from "@/lib/csv-import-mapping";
+import { catalogUploadsSchema, csvFits, CATALOG_UPLOAD_REQUEST_MAX_BYTES } from "@/lib/catalog-upload-policy";
 import { getIgdbGameById } from "@/lib/igdb";
 import {
   connectGogAccountForUser,
@@ -35,7 +36,6 @@ import { createTranslator } from "@/lib/i18n";
 import {
   createJournalEntryForUser,
   deleteJournalEntryForUser,
-  getFormFile,
   importPhotoCatalogForUser,
 } from "@/lib/journal";
 import { connectPlayStationAccountForUser } from "@/lib/playstation";
@@ -55,9 +55,9 @@ import { saveCalendarStart } from "@/lib/calendar-writes";
 import { parseCalendarDate } from "@/lib/calendar-policy";
 
 const importSchema = z.object({
-  fileName: z.string().min(1),
+  fileName: z.string().min(1).max(255),
   csvText: z.string().min(1),
-  mapping: z.string().min(1),
+  mapping: z.string().min(1).max(16384),
 });
 
 const plannedStartDateSchema = z.object({
@@ -1259,6 +1259,10 @@ export async function importCsvAction(formData: FormData) {
   const limitError = await checkActionAbuse([ABUSE_LIMITS.csvImport], userId);
   if (limitError) redirect(`/profile?tab=integrations&error=${encodeURIComponent(limitError)}`);
 
+  const csvText = formData.get("csvText");
+  if (typeof csvText === "string" && !csvFits(csvText)) {
+    redirect(`/profile?tab=integrations&error=${encodeURIComponent(t("csv.tooLarge"))}`);
+  }
   const parsed = importSchema.safeParse({
     fileName: formData.get("fileName"),
     csvText: formData.get("csvText"),
@@ -1299,19 +1303,19 @@ export async function importPhotoCatalogAction(formData: FormData) {
   const t = createTranslator(locale);
   const userId = await getSessionUserId();
   if (!userId) {
-    redirect(`/login?error=${encodeURIComponent(t("profileAction.needPhotoLogin"))}`);
+    return { error: t("profileAction.needPhotoLogin") };
   }
-
-  const files = formData
-    .getAll("images")
-    .map((value) => getFormFile(value))
-    .filter((file): file is File => Boolean(file));
 
   let importedCount: number;
   try {
+    const encoded = formData.get("uploads");
+    if (typeof encoded !== "string" || new TextEncoder().encode(encoded).length > CATALOG_UPLOAD_REQUEST_MAX_BYTES) {
+      return { error: t("profileAction.photoUploadAtLeastOne") };
+    }
+    const uploads = catalogUploadsSchema.parse(JSON.parse(encoded));
     const result = await importPhotoCatalogForUser({
       userId,
-      files,
+      uploads,
       messages: {
         uploadAtLeastOne: t("profileAction.photoUploadAtLeastOne"),
         onlyImages: t("profileAction.photoOnlyImages"),
@@ -1327,14 +1331,13 @@ export async function importPhotoCatalogAction(formData: FormData) {
     });
     importedCount = result.importedCount;
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : t("profileAction.photoImportFailed");
-    redirect(`/profile?tab=integrations&error=${encodeURIComponent(message)}`);
+    console.warn("Photo catalog import failed.", { kind: error instanceof Error ? error.name : "unknown" });
+    return { error: t("profileAction.photoImportFailed") };
   }
 
   revalidatePath("/profile");
   revalidatePath("/");
-  redirect(`/profile?tab=integrations&photoImported=${importedCount}`);
+  return { success: true, importedCount };
 }
 
 export async function createJournalEntryAction(formData: FormData) {

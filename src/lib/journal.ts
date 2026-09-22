@@ -1,7 +1,7 @@
 import { upsertLibraryCopy } from "@/lib/library-entry";
-import { randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { unlink } from "node:fs/promises";
+import { resolveCatalogUpload } from "@/lib/catalog-upload";
+import { canUploadCatalogPath, catalogUploadsSchema, type CatalogUpload } from "@/lib/catalog-upload-policy";
 import {
   EntrySource,
   ImportJobStatus,
@@ -12,10 +12,6 @@ import {
 import { z } from "zod";
 import { resolveCatalogGame } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
-import {
-  getAllowedUploadExtension,
-  type UploadKind,
-} from "@/lib/upload-file-type";
 import { getUploadDiskPath } from "@/lib/upload-storage";
 import {
   deleteJournalMediaObject,
@@ -54,48 +50,6 @@ const PhotoImportSchema = z.object({
 
 function isUsableFile(value: FormDataEntryValue | null): value is File {
   return value instanceof File && value.size > 0;
-}
-
-function getSafeFileName(file: File) {
-  const fallback = `${randomUUID()}.bin`;
-  const baseName = (file.name || fallback)
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 90);
-
-  return baseName || fallback;
-}
-
-async function saveUpload(
-  file: File,
-  folder: "imports",
-  kind: UploadKind,
-) {
-  const safeFileName = getSafeFileName(file);
-  const extension = getAllowedUploadExtension(file.type, kind);
-  if (!extension) {
-    throw new Error(
-      kind === "image"
-        ? "Screenshot uploads must be PNG, JPEG, WebP, or GIF files."
-        : "Voice uploads must be WebM, MP3, M4A, WAV, or OGG files.",
-    );
-  }
-  const storageKey = `uploads/${folder}/${randomUUID()}${extension}`;
-  const diskPath = getUploadDiskPath(storageKey);
-  if (!diskPath) {
-    throw new Error("Upload storage path is not available.");
-  }
-
-  await mkdir(path.dirname(diskPath), { recursive: true });
-  await writeFile(diskPath, Buffer.from(await file.arrayBuffer()));
-
-  return {
-    url: `/${storageKey}`,
-    storageKey,
-    mimeType: file.type || "application/octet-stream",
-    fileName: safeFileName,
-    sizeBytes: file.size,
-  };
 }
 
 function extractOutputText(response: unknown) {
@@ -760,11 +714,11 @@ async function upsertPhotoImportedEntry({
 }
 
 export async function importPhotoCatalogForUser({
-  files,
+  uploads,
   messages,
   userId,
 }: {
-  files: File[];
+  uploads: CatalogUpload[];
   messages: {
     uploadAtLeastOne: string;
     onlyImages: string;
@@ -780,12 +734,11 @@ export async function importPhotoCatalogForUser({
   userId: string;
 }) {
   const aiSettings = await getAiSettings();
-  const usableFiles = files
-    .filter((file) => file.size > 0)
-    .slice(0, aiSettings.photoImportDailyFileLimit);
-  if (!usableFiles.length) {
+  const parsedUploads = catalogUploadsSchema.safeParse(uploads);
+  if (!parsedUploads.success || uploads.length > Math.min(aiSettings.photoImportMaxFiles, aiSettings.photoImportDailyFileLimit)) {
     throw new Error(messages.uploadAtLeastOne);
   }
+  if (uploads.some(upload => !canUploadCatalogPath(upload.pathname, userId))) throw new Error(messages.importFailed);
   if (!aiSettings.photoImportEnabled) {
     throw new Error(messages.aiDisabled);
   }
@@ -793,7 +746,7 @@ export async function importPhotoCatalogForUser({
   const job = await prisma.importJob.create({
     data: {
       userId,
-      fileName: usableFiles.map((file) => file.name || "catalog-photo").join(", "),
+      fileName: uploads.map((upload) => upload.fileName).join(", "),
       status: ImportJobStatus.PROCESSING,
       columnMapping: {
         source: "photo-import",
@@ -813,49 +766,9 @@ export async function importPhotoCatalogForUser({
   }> = [];
 
   try {
-    for (const file of usableFiles) {
-      if (
-        !file.type.startsWith("image/") ||
-        !getAllowedUploadExtension(file.type, "image")
-      ) {
-        failedCount += 1;
-        await prisma.importRow.create({
-          data: {
-            jobId: job.id,
-            rowIndex: rowIndex,
-            rawData: {
-              fileName: file.name,
-              mimeType: file.type,
-            } as Prisma.InputJsonValue,
-            outcome: ImportRowStatus.FAILED,
-            error: messages.onlyImages,
-          },
-        });
-        rowIndex += 1;
-        continue;
-      }
-
-      if (file.size > aiSettings.photoImportMaxFileBytes) {
-        failedCount += 1;
-        await prisma.importRow.create({
-          data: {
-            jobId: job.id,
-            rowIndex,
-            rawData: {
-              fileName: file.name,
-              fileSize: file.size,
-              maxFileSize: aiSettings.photoImportMaxFileBytes,
-              mimeType: file.type,
-            } as Prisma.InputJsonValue,
-            outcome: ImportRowStatus.FAILED,
-            error: messages.fileTooLarge,
-          },
-        });
-        rowIndex += 1;
-        continue;
-      }
-
-      const upload = await saveUpload(file, "imports", "image");
+    for (const reference of uploads) {
+      const upload = await resolveCatalogUpload(reference, userId, aiSettings.photoImportMaxFileBytes);
+      const file = upload.file;
       sourceImages.push({
         fileName: upload.fileName,
         mimeType: upload.mimeType,
