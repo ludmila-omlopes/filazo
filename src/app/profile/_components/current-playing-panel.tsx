@@ -12,7 +12,7 @@ import {
   X,
 } from "lucide-react";
 import {
-  startTransition,
+  useTransition,
   useCallback,
   useEffect,
   useRef,
@@ -44,6 +44,7 @@ import {
   saveCurrentPlayingSelectionAction,
 } from "../actions";
 import type { PlayerProfileData, ProfileData } from "./profile-types";
+import { ProfileActionRecovery, useProfileActionRecovery } from "./profile-action-recovery";
 
 const INITIAL_CURRENT_PLAYING_SLOT_COUNT = 3;
 const collator = new Intl.Collator("en-US", { sensitivity: "base" });
@@ -744,6 +745,8 @@ export function CurrentPlayingPanel({
   profile: ProfileData;
 }) {
   const router = useRouter();
+  const recovery = useProfileActionRecovery();
+  const [isRefreshing, startTransition] = useTransition();
   const t = createTranslator(locale);
   const panelRef = useRef<HTMLElement | null>(null);
   const currentPlayingAreaRef = useRef<HTMLDivElement | null>(null);
@@ -827,7 +830,9 @@ export function CurrentPlayingPanel({
     (slot) => !selectedEntriesBySlot.has(slot),
   );
   const isAutosaving = autosaveCount > 0;
-  const isBusy = isAutosaving || isClearing || pendingEntryAction !== null;
+  const isWorking = recovery.pending || isRefreshing || isAutosaving || isClearing || pendingEntryAction !== null;
+  // Resolve an unconfirmed save before another action can replace its draft.
+  const isBusy = isWorking || recovery.failure !== null;
   const suggestedEntries = openSlots.length
     ? getSuggestedCurrentPlayingEntries({
         excludedEntryIds: excludedSuggestionEntryIds,
@@ -884,43 +889,42 @@ export function CurrentPlayingPanel({
 
   function autosaveSelection(selection: Map<CurrentPlayingSlotNumber, string>) {
     const formData = buildCurrentPlayingFormData(selection);
-    setAutosaveError(null);
-    setAutosaveCount((count) => count + 1);
-
-    void saveCurrentPlayingSelectionAction(formData)
-      .then((result) => {
+    void recovery.runner.run(async () => {
+      setAutosaveError(null);
+      setAutosaveCount((count) => count + 1);
+      try {
+        const result = await saveCurrentPlayingSelectionAction(formData);
         if (!result.ok) {
           setAutosaveError(result.message);
         }
-      })
-      .finally(() => {
+      } finally {
         setAutosaveCount((count) => Math.max(0, count - 1));
-      });
+      }
+    });
   }
 
   async function clearSelections() {
-    const previousSelection = new Map(selectedEntryIdsBySlot);
-    const previousUnlockedSlotCount = unlockedSlotCount;
-    setSelectedEntryIdsBySlot(new Map());
-    setUnlockedSlotCount(INITIAL_CURRENT_PLAYING_SLOT_COUNT);
-    setAutosaveError(null);
-    setIsClearing(true);
+    if (isBusy) return;
+    await recovery.runner.run(async () => {
+      setAutosaveError(null);
+      setIsClearing(true);
 
-    try {
-      const result = await clearCurrentPlayingSelectionAction();
-      if (!result.ok) {
-        setSelectedEntryIdsBySlot(previousSelection);
-        setUnlockedSlotCount(previousUnlockedSlotCount);
-        setAutosaveError(result.message);
-        return;
+      try {
+        const result = await clearCurrentPlayingSelectionAction();
+        if (!result.ok) {
+          setAutosaveError(result.message);
+          return;
+        }
+
+        setSelectedEntryIdsBySlot(new Map());
+        setUnlockedSlotCount(INITIAL_CURRENT_PLAYING_SLOT_COUNT);
+        startTransition(() => {
+          router.refresh();
+        });
+      } finally {
+        setIsClearing(false);
       }
-
-      startTransition(() => {
-        router.refresh();
-      });
-    } finally {
-      setIsClearing(false);
-    }
+    });
   }
 
   function getSelectionWithSlotEntry({
@@ -952,6 +956,7 @@ export function CurrentPlayingPanel({
     entryId: string | null,
     shouldAnimate = false,
   ) {
+    if (isBusy || recovery.runner.busy) return;
     if (entryId) {
       pendingScrollToCardsRef.current = true;
       const activeElement = document.activeElement;
@@ -1000,39 +1005,40 @@ export function CurrentPlayingPanel({
     entry: ShelfEntry,
     action: "drop" | "finish",
   ) {
+    if (isBusy) return;
     const formData = new FormData();
     formData.set("entryId", entry.id);
-    setEntryActionError(null);
-    setPendingEntryAction({ entryId: entry.id, action });
+    await recovery.runner.run(async () => {
+      setEntryActionError(null);
+      setPendingEntryAction({ entryId: entry.id, action });
 
-    try {
-      const result =
-        action === "drop"
-          ? await currentPlayingDropAction(formData)
-          : await currentPlayingFinishAction(formData);
+      try {
+        const result =
+          action === "drop"
+            ? await currentPlayingDropAction(formData)
+            : await currentPlayingFinishAction(formData);
 
-      if (!result.ok) {
-        setEntryActionError(result.message);
-        return;
-      }
+        if (!result.ok) {
+          setEntryActionError(result.message);
+          return;
+        }
 
-      removeEntryFromLocalSelection(entry.id);
+        removeEntryFromLocalSelection(entry.id);
 
-      if (action === "finish") {
-        setCelebration({
-          gameName: result.gameName,
-          providerRefreshStatus: result.providerRefreshStatus,
+        if (action === "finish") {
+          setCelebration({
+            gameName: result.gameName,
+            providerRefreshStatus: result.providerRefreshStatus,
+          });
+        }
+
+        startTransition(() => {
+          router.refresh();
         });
+      } finally {
+        setPendingEntryAction(null);
       }
-
-      startTransition(() => {
-        router.refresh();
-      });
-    } catch {
-      setEntryActionError(t("profile.currentPlaying.actionFailed"));
-    } finally {
-      setPendingEntryAction(null);
-    }
+    });
   }
 
   function handleSlotDragEnd(
@@ -1091,6 +1097,7 @@ export function CurrentPlayingPanel({
   }
 
   function fillOpenSpots() {
+    if (isBusy || recovery.runner.busy) return;
     const nextPicks = suggestedEntries.slice(0, openSlots.length);
     if (!nextPicks.length) {
       return;
@@ -1141,6 +1148,10 @@ export function CurrentPlayingPanel({
         title={t("profile.currentPlaying.title")}
         description={t("profile.currentPlaying.description")}
       />
+
+      {recovery.failure ? (
+        <ProfileActionRecovery locale={locale} pending={isWorking} onRetry={recovery.retry} />
+      ) : null}
 
       {selectedEntriesBySlot.size ? (
         <div className="grid gap-5">
@@ -1200,7 +1211,7 @@ export function CurrentPlayingPanel({
           ) : null}
           <SuggestedPicks
             entries={suggestedEntries}
-            isSaving={isAutosaving}
+            isSaving={isBusy}
             locale={locale}
             onFillOpenSpots={fillOpenSpots}
             onPick={addSuggestedEntry}
@@ -1226,7 +1237,7 @@ export function CurrentPlayingPanel({
           </EmptyState>
           <SuggestedPicks
             entries={suggestedEntries}
-            isSaving={isAutosaving}
+            isSaving={isBusy}
             locale={locale}
             onFillOpenSpots={fillOpenSpots}
             onPick={addSuggestedEntry}

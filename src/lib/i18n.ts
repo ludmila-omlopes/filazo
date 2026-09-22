@@ -8,6 +8,15 @@ export const defaultLocale: Locale = "en";
 
 const messages = {
   en: {
+    "profile.recovery.title": "We couldn't confirm this change",
+    "profile.recovery.searchTitle": "Search is temporarily unavailable",
+    "profile.recovery.searchBody": "Your search was kept. Check your connection. If a security check is required, open it in another tab, then return here and try again.",
+    "profile.recovery.body": "Your choices are still on this page. Check your connection. If a security check is required, open it in another tab, then return here and try again. The change may already have been saved; check it before retrying.",
+    "profile.recovery.verify": "Check access (new tab)",
+    "profile.recovery.retry": "Try again",
+    "profile.recovery.checkTitle": "You can reach filazo",
+    "profile.recovery.savedLibrary": "Check saved library in this tab",
+    "profile.recovery.checkBody": "Return to the original tab, check whether your change was saved and, if needed, try again. You can close this tab. If the problem continues, wait a little before retrying.",
     "profile.news.title": "What's new in filazo",
     "profile.news.description": "Updates and fixes to keep you informed.",
     "profile.news.fix": "Fixed",
@@ -1667,6 +1676,15 @@ const messages = {
       "Player profile generation did not complete.",
   },
   "pt-BR": {
+    "profile.recovery.title": "Não foi possível confirmar a alteração",
+    "profile.recovery.searchTitle": "A busca está indisponível no momento",
+    "profile.recovery.searchBody": "Sua busca foi mantida. Confira sua conexão. Se houver uma verificação de segurança, abra em outra aba, depois volte aqui e tente novamente.",
+    "profile.recovery.body": "Suas escolhas continuam nesta página. Confira sua conexão. Se houver uma verificação de segurança, abra em outra aba, depois volte aqui e tente novamente. A alteração pode já ter sido salva; confira antes de repetir.",
+    "profile.recovery.verify": "Verificar acesso (nova aba)",
+    "profile.recovery.retry": "Tentar novamente",
+    "profile.recovery.checkTitle": "Você conseguiu acessar o filazo",
+    "profile.recovery.savedLibrary": "Conferir biblioteca salva nesta aba",
+    "profile.recovery.checkBody": "Volte à aba original, confira se a alteração foi salva e, se necessário, tente novamente. Você pode fechar esta aba. Se o problema continuar, aguarde um pouco antes de tentar de novo.",
     "profile.news.title": "Novidades do filazo",
     "profile.news.description": "Atualizações e correções para você ficar por dentro.",
     "profile.news.fix": "Corrigido",
