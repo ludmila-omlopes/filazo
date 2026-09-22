@@ -8,6 +8,12 @@ export const defaultLocale: Locale = "en";
 
 const messages = {
   en: {
+    "profile.news.title": "What's new in filazo",
+    "profile.news.description": "Updates and fixes to keep you informed.",
+    "profile.news.fix": "Fixed",
+    "profile.news.xbox.title": "Xbox account connection fixed",
+    "profile.news.xbox.body": "We fixed a bug that prevented Xbox accounts from connecting to filazo. If you couldn't connect before, try again from the Sources tab.",
+    "profile.news.sources": "Go to Sources",
     "csv.sizeLimit": "Maximum file size: 1 MiB.",
     "csv.tooLarge": "This CSV exceeds 1 MiB. Split it into smaller files before importing.",
     "profile.photoImport.fileLimit": "Select up to {count} images per import.",
@@ -1661,6 +1667,12 @@ const messages = {
       "Player profile generation did not complete.",
   },
   "pt-BR": {
+    "profile.news.title": "Novidades do filazo",
+    "profile.news.description": "Atualizações e correções para você ficar por dentro.",
+    "profile.news.fix": "Corrigido",
+    "profile.news.xbox.title": "Conexão com a Xbox corrigida",
+    "profile.news.xbox.body": "Corrigimos um bug que impedia a conexão de contas Xbox ao filazo. Se você não conseguiu conectar antes, tente novamente na aba Fontes.",
+    "profile.news.sources": "Ir para Fontes",
     "csv.sizeLimit": "Tamanho máximo do arquivo: 1 MiB.",
     "csv.tooLarge": "Este CSV ultrapassa 1 MiB. Divida-o em arquivos menores antes de importar.",
     "profile.photoImport.fileLimit": "Selecione até {count} imagens por importação.",
