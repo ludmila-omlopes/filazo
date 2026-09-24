@@ -519,13 +519,13 @@ export const igdbAdapter: CatalogMetadataAdapter = {
   },
 };
 
-export async function searchIgdbGames(query: string, limit = 8) {
+export async function searchIgdbGames(query: string, limit = 8, signal?: AbortSignal) {
   const trimmedQuery = query.trim();
   if (trimmedQuery.length < 2) {
     return [];
   }
 
-  const results = await queryIgdbGames(trimmedQuery, limit);
+  const results = await queryIgdbGames(trimmedQuery, limit, signal);
   return results.map(mapIgdbGame);
 }
 

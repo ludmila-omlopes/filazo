@@ -5,6 +5,7 @@ import { getSessionUserId } from "@/lib/session";
 import { searchIgdbGames } from "@/lib/igdb";
 import { ABUSE_LIMITS } from "@/lib/abuse-policy";
 import { checkApiAbuse } from "@/lib/abuse-request";
+import { searchQueueGames } from "@/lib/queue-game-search";
 
 const ownedStatuses = new Set<UserGameStatus>([
   UserGameStatus.OWNED,
@@ -31,6 +32,9 @@ export async function GET(request: Request) {
 
   const limited = await checkApiAbuse([ABUSE_LIMITS.gameSearch], userId);
   if (limited) return limited;
+  if (searchParams.get("scope") === "queue") {
+    return NextResponse.json({ results: await searchQueueGames(query, userId) });
+  }
   const results = await searchIgdbGames(query);
   const igdbIds = results.map((result) => result.igdbId).filter(Boolean);
   const existingGames = igdbIds.length
