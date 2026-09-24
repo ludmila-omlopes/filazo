@@ -2,7 +2,7 @@ import type {
   CatalogMetadataAdapter,
   EnrichedGameMetadata,
 } from "@/lib/providers/contracts";
-import { normalizeTitle } from "@/lib/utils";
+import { selectUnambiguousTitleMatch } from "@/lib/catalog-match";
 
 type IgdbGameRecord = {
   id: number;
@@ -143,42 +143,6 @@ function formatIgdbAsset(url?: string | null, size = "t_cover_big") {
 
   const normalized = url.startsWith("//") ? `https:${url}` : url;
   return normalized.replace("t_thumb", size);
-}
-
-function scoreCandidate(
-  queryTitle: string,
-  candidate: IgdbGameRecord,
-  platformName?: string | null,
-) {
-  const normalizedQuery = normalizeTitle(queryTitle);
-  const normalizedCandidate = normalizeTitle(candidate.name);
-
-  let score = 0;
-
-  if (normalizedCandidate === normalizedQuery) {
-    score += 100;
-  } else if (normalizedCandidate.startsWith(normalizedQuery)) {
-    score += 70;
-  } else if (normalizedCandidate.includes(normalizedQuery)) {
-    score += 50;
-  }
-
-  score -= Math.min(
-    Math.abs(normalizedCandidate.length - normalizedQuery.length),
-    30,
-  );
-
-  if (platformName) {
-    const normalizedPlatform = normalizeTitle(platformName);
-    const platformMatch = candidate.platforms?.some((platform) =>
-      normalizeTitle(platform.name).includes(normalizedPlatform),
-    );
-    if (platformMatch) {
-      score += 25;
-    }
-  }
-
-  return score;
 }
 
 function mapIgdbGame(game: IgdbGameRecord): EnrichedGameMetadata {
@@ -466,8 +430,8 @@ async function queryIgdbGames(query: string, limit: number, signal?: AbortSignal
   return (await response.json()) as IgdbGameRecord[];
 }
 
-async function fetchIgdbGameById(igdbId: number) {
-  const token = await getIgdbToken();
+async function fetchIgdbGameById(igdbId: number, signal?: AbortSignal) {
+  const token = await getIgdbToken(signal);
   if (!token || !process.env.IGDB_CLIENT_ID) {
     return null;
   }
@@ -486,6 +450,7 @@ async function fetchIgdbGameById(igdbId: number) {
     },
     body,
     cache: "no-store",
+    signal,
   });
 
   if (!response.ok) {
@@ -496,26 +461,44 @@ async function fetchIgdbGameById(igdbId: number) {
   return results[0] ? mapIgdbGame(results[0]) : null;
 }
 
+let steamSourceId: number | undefined;
+
+// Use the platform's immutable ID, not its display name, to distinguish homonyms.
+export async function getIgdbGameBySteamAppId(appId: string, signal = AbortSignal.timeout(6_000)) {
+  if (!/^\d+$/.test(appId)) return null;
+  const token = await getIgdbToken(signal);
+  if (!token || !process.env.IGDB_CLIENT_ID) return null;
+  const query = async (endpoint: string, body: string) => {
+    const response = await fetch(`https://api.igdb.com/v4/${endpoint}`, {
+      method: "POST", signal, cache: "no-store", body,
+      headers: { "Client-ID": process.env.IGDB_CLIENT_ID!, Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error("Could not look up the platform game identity.");
+    return response.json();
+  };
+  if (!steamSourceId) {
+    const sources = await query("external_game_sources", 'fields name; where name ~ "Steam"; limit 10;') as Array<{ id: number; name: string }>;
+    steamSourceId = sources.find(source => source.name.toLowerCase() === "steam")?.id;
+    if (!steamSourceId) return null;
+  }
+  const records = await query("external_games", [
+    "fields game.name,game.slug,game.summary,game.first_release_date,game.aggregated_rating,game.aggregated_rating_count,game.cover.url,game.genres.name,game.game_modes.name,game.platforms.name,game.screenshots.url,game.artworks.url,game.websites.url;",
+    `where external_game_source = ${steamSourceId} & uid = "${appId}"; limit 10;`,
+  ].join(" ")) as Array<{ game: IgdbGameRecord }>;
+  const games = [...new Map(records.filter(record => record.game?.id).map(record => [record.game.id, record.game])).values()];
+  return games.length === 1 ? mapIgdbGame(games[0]) : null;
+}
+
 export const igdbAdapter: CatalogMetadataAdapter = {
   provider: "IGDB",
-  async searchBestMatch({ title, platformName, signal }) {
-    const results = await queryIgdbGames(title, 10, signal ?? AbortSignal.timeout(6_000));
-    if (!results.length) {
-      return null;
-    }
-
-    const ranked = [...results]
-      .map((game) => ({
-        game,
-        score: scoreCandidate(title, game, platformName),
-      }))
-      .sort((left, right) => right.score - left.score);
-
-    if (!ranked[0] || ranked[0].score < 35) {
-      return null;
-    }
-
-    return mapIgdbGame(ranked[0].game);
+  async searchBestMatch({ title, platformName, provider, providerGameId, signal }) {
+    signal ??= AbortSignal.timeout(6_000);
+    // No name fallback for a known Steam app when its identity lookup is unavailable.
+    if (provider === "STEAM" && providerGameId) return getIgdbGameBySteamAppId(providerGameId, signal);
+    if (provider === "IGDB" && providerGameId && /^\d+$/.test(providerGameId)) return fetchIgdbGameById(Number(providerGameId), signal);
+    const results = await queryIgdbGames(title, 50, signal);
+    const match = selectUnambiguousTitleMatch(title, results, platformName);
+    return match ? mapIgdbGame(match) : null;
   },
 };
 
@@ -530,7 +513,7 @@ export async function searchIgdbGames(query: string, limit = 8, signal?: AbortSi
 }
 
 export async function getIgdbGameById(igdbId: number) {
-  return fetchIgdbGameById(igdbId);
+  return fetchIgdbGameById(igdbId, AbortSignal.timeout(6_000));
 }
 
 export async function searchUpcomingRelatedIgdbReleases({
