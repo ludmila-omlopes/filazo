@@ -15,6 +15,7 @@ import { cn, formatNumber } from "@/lib/utils";
 import { FavoriteButton } from "./favorite-button";
 import { PhysicalMediaButton } from "./physical-media-button";
 import { CatalogStatusForm } from "./catalog-status-form";
+import { RemoveLibraryEntryForm } from "./remove-library-entry-form";
 import {
   COMPLETION_MODEL_FILTERS,
   getPlatformFilterOptions,
@@ -110,7 +111,12 @@ function EntryStatusActions({
   compact?: boolean;
   locale: Locale;
 }) {
-  return <CatalogStatusForm entryId={entry.id} status={entry.finishedAt ? "COMPLETED" : entry.status} locale={locale} compact={compact} />;
+  return (
+    <div className="grid w-full min-w-0 max-w-sm gap-1">
+      <CatalogStatusForm entryId={entry.id} status={entry.finishedAt ? "COMPLETED" : entry.status} locale={locale} compact={compact} />
+      <RemoveLibraryEntryForm entryId={entry.id} gameName={entry.game.name} platformName={getUserPlatformLabel(entry) ?? createTranslator(locale)("shelf.unknownPlatform")} locale={locale} />
+    </div>
+  );
 }
 
 function ShelfCard({
@@ -166,7 +172,7 @@ function ShelfCard({
 
   return (
     <div
-      className="grid scroll-mt-28 gap-2 target:rounded-card target:ring-2 target:ring-sky"
+      className="grid content-start scroll-mt-28 gap-2 target:rounded-card target:ring-2 target:ring-sky"
       id={`entry-${entry.id}`}
     >
       <GameCard

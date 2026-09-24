@@ -316,7 +316,7 @@ function buildAchievementSummary(entry: {
   };
 }
 
-async function removeUploadedFile({
+export async function removeUploadedFile({
   storageKey,
   storageProvider,
 }: {
