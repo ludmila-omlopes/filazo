@@ -50,6 +50,8 @@ jobs:
       - run: npm run test:sync-monitor
       - run: npm run test:calendar
       - run: npm run test:library-status
+      - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/catalog-identity-check.ts
+      - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/catalog-identity-repair-check.ts
       - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/remove-library-entry-check.ts
       - run: npm run test:user-isolation
       - run: npm run test:abuse-limits

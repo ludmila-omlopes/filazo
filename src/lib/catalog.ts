@@ -19,7 +19,7 @@ import {
   shouldSearchMetacritic,
 } from "@/lib/enrichment-policy";
 import { hltbAdapter } from "@/lib/hltb";
-import { igdbAdapter } from "@/lib/igdb";
+import { getIgdbGameById, igdbAdapter } from "@/lib/igdb";
 import { metacriticAdapter } from "@/lib/metacritic";
 import {
   getGogArtworkFallback,
@@ -255,7 +255,8 @@ async function applyMetadataToExistingGame(
   }
 
   const game = await prisma.game.update({
-    where: { id: gameId },
+    // Refresh content, never replace an established identity with a title-search result.
+    where: { id: gameId, OR: [{ igdbId: null }, { igdbId: metadata.igdbId }] },
     data: {
       name: metadata.name,
       normalizedName: normalizeTitle(metadata.name),
@@ -285,6 +286,13 @@ async function applyCompletionTimesToGame(
   prisma: Prisma.TransactionClient = defaultCatalogClient,
 ) {
   if (!completionTimes) {
+    return prisma.game.findUniqueOrThrow({ where: { id: gameId } });
+  }
+
+  const existingLink = await prisma.gameProviderLink.findUnique({
+    where: { provider_providerGameId: { provider: ExternalProvider.HLTB, providerGameId: completionTimes.hltbId } },
+  });
+  if (existingLink && existingLink.gameId !== gameId) {
     return prisma.game.findUniqueOrThrow({ where: { id: gameId } });
   }
 
@@ -390,17 +398,9 @@ export async function resolveCatalogGame(
       },
     });
 
-    if (existingLink) {
+    if (existingLink && (input.provider !== ExternalProvider.IGDB || existingLink.game.igdbId === Number(input.providerGameId))) {
       game = existingLink.game;
     }
-  }
-
-  if (!game) {
-    game = await prisma.game.findFirst({
-      where: {
-        normalizedName: normalizedTitle,
-      },
-    });
   }
 
   const initiallyMatchedGame = game;
@@ -411,17 +411,21 @@ export async function resolveCatalogGame(
   const metadata =
     input.metadata ??
     (ranIgdbSearch
-      ? await igdbAdapter.searchBestMatch({
+      ? await (game?.igdbId ? getIgdbGameById(game.igdbId) : igdbAdapter.searchBestMatch({
           title: searchTitle,
           platformName: input.platformName,
-        }).catch((error: unknown) => {
-          if (!input.deferEnrichment) throw error;
+          provider: input.provider,
+          providerGameId: input.providerGameId,
+        })).catch(() => {
           igdbSearchFailed = true;
           return null;
         })
       : null);
 
   if (metadata?.igdbId) {
+    if (game?.igdbId && game.igdbId !== metadata.igdbId) {
+      throw new Error("Conflicting catalog identities require an explicit catalog repair.");
+    }
     const gameByIgdb = await prisma.game.findUnique({
       where: {
         igdbId: metadata.igdbId,
@@ -430,15 +434,29 @@ export async function resolveCatalogGame(
     game = gameByIgdb ?? game;
   }
 
+  if (!game) {
+    // Reuse an unclassified title only if it has no competing provider identity.
+    // Identified homonyms must be resolved by IGDB ID above, not by name.
+    const candidates = await prisma.game.findMany({
+      where: { normalizedName: normalizedTitle, igdbId: null,
+        ...(input.provider && input.providerGameId ? {
+          providerLinks: { none: { provider: input.provider, providerGameId: { not: input.providerGameId } } },
+        } : {}),
+      },
+      take: 2,
+    });
+    if (candidates.length === 1) game = candidates[0];
+  }
+
   const enrichmentSearchTitle = cleanGameTitle(metadata?.name ?? input.title);
-  const ranHltbSearch = !input.deferEnrichment && shouldSearchHltb(initiallyMatchedGame);
+  const ranHltbSearch = !input.deferEnrichment && shouldSearchHltb(game);
   const completionTimes = ranHltbSearch
     ? await hltbAdapter.searchBestMatch({
         title: enrichmentSearchTitle,
         platformName: input.platformName,
       })
     : null;
-  const ranMetacriticSearch = !input.deferEnrichment && shouldSearchMetacritic(initiallyMatchedGame);
+  const ranMetacriticSearch = !input.deferEnrichment && shouldSearchMetacritic(game);
   const reviewScore = ranMetacriticSearch
     ? await metacriticAdapter.searchBestMatch({
         title: enrichmentSearchTitle,
@@ -448,21 +466,6 @@ export async function resolveCatalogGame(
             : null,
       })
     : null;
-
-  if (completionTimes?.hltbId) {
-    const gameByHltb = await prisma.gameProviderLink.findUnique({
-      where: {
-        provider_providerGameId: {
-          provider: ExternalProvider.HLTB,
-          providerGameId: completionTimes.hltbId,
-        },
-      },
-      include: {
-        game: true,
-      },
-    });
-    game = gameByHltb?.game ?? game;
-  }
 
   if (!game) {
     try {
@@ -478,10 +481,7 @@ export async function resolveCatalogGame(
           ? await prisma.game.findUnique({
               where: { igdbId: metadata.igdbId },
             })
-          : null) ??
-        (await prisma.game.findFirst({
-          where: { normalizedName: normalizedTitle },
-        }));
+          : null);
       if (!game) throw error;
     }
   }
@@ -1458,9 +1458,14 @@ async function enrichMissingGameDetailData(
 
   try {
     if (shouldSearchIgdb(game)) {
-      const metadata = await igdbAdapter.searchBestMatch({
-        title: searchTitle,
-      });
+      const steamLink = game.providerLinks.find(link => link.provider === ExternalProvider.STEAM);
+      const metadata = game.igdbId
+        ? await getIgdbGameById(game.igdbId)
+        : await igdbAdapter.searchBestMatch({
+            title: searchTitle,
+            provider: steamLink?.provider,
+            providerGameId: steamLink?.providerGameId,
+          });
       await prisma.game.update({
         where: { id: game.id },
         data: { igdbCheckedAt: new Date() },
