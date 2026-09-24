@@ -377,7 +377,7 @@ export function PlayingNextPanel({
     const formData = new FormData();
     if (result.gameId) formData.set("gameId", result.gameId);
     if (result.igdbId) formData.set("igdbId", String(result.igdbId));
-    formData.set("platformName", result.platforms[0] ?? "");
+    // Search metadata lists supported platforms, not the platform this person owns.
     formData.set("replaceEntryId", queuedEntriesBySlot.get(activeSlot)?.id ?? "");
     formData.set("slot", String(activeSlot));
     formData.set("title", result.name);

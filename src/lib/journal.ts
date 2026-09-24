@@ -708,7 +708,7 @@ async function upsertPhotoImportedEntry({
       statusText: candidate.statusText,
     } as Prisma.InputJsonValue,
   };
-  await upsertLibraryCopy({ userId, gameId: game.id, status, platformName: candidate.platformName, create: entryData, update: entryData });
+  await upsertLibraryCopy({ userId, gameId: game.id, status, platformName: candidate.platformName, platformSource: "import", create: entryData, update: entryData });
 
   return game;
 }
