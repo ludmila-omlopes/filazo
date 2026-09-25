@@ -25,6 +25,7 @@ import {
 import { parseCsvColumnMappingJson } from "@/lib/csv-import-mapping";
 import { catalogUploadsSchema, csvFits, CATALOG_UPLOAD_REQUEST_MAX_BYTES } from "@/lib/catalog-upload-policy";
 import { getIgdbGameById } from "@/lib/igdb";
+import { resolveQueueGame } from "@/lib/queue-game";
 import {
   connectGogAccountForUser,
   GOG_OAUTH_STATE_COOKIE,
@@ -259,7 +260,11 @@ const playingNextSchema = z.object({
 });
 
 const playingNextGameSchema = z.object({
-  igdbId: z.coerce.number().int().positive(),
+  gameId: z.preprocess(parseOptionalEntryId, z.string().trim().min(1).max(128).nullable()),
+  igdbId: z.preprocess(
+    (value) => value == null || value === "" ? null : value,
+    z.coerce.number().int().positive().nullable(),
+  ),
   platformName: z.preprocess(
     (value) => {
       const rawValue = String(value ?? "").trim();
@@ -270,7 +275,7 @@ const playingNextGameSchema = z.object({
   replaceEntryId: z.preprocess(parseOptionalEntryId, z.string().trim().nullable()),
   slot: z.coerce.number().int().min(1).max(3),
   title: z.string().trim().min(1).max(200),
-});
+}).refine((value) => Boolean(value.gameId || value.igdbId));
 
 const journalEntrySchema = z.object({
   userGameEntryId: z.string().trim().min(1),
@@ -735,37 +740,22 @@ async function clearPlayingNextForUser(userId: string) {
 }
 
 async function addPlayingNextGameForUser({
+  gameId,
   igdbId,
   platformName,
   replaceEntryId,
   slot,
-  title,
   userId,
 }: {
-  igdbId: number;
+  gameId: string | null;
+  igdbId: number | null;
   platformName: string | null;
   replaceEntryId: string | null;
   slot: 1 | 2 | 3;
-  title: string;
   userId: string;
 }) {
-  const metadata = await getIgdbGameById(igdbId);
-  if (!metadata) {
-    throw new Error("Could not load this game from search.");
-  }
-
-  const game = await resolveCatalogGame({
-    title: metadata.name,
-    platformName,
-    provider: ExternalProvider.IGDB,
-    providerGameId: String(metadata.igdbId),
-    metadata,
-    rawData: {
-      source: "playing-next-igdb-search",
-      igdbId: metadata.igdbId,
-      title,
-    },
-  });
+  const game = await resolveQueueGame({ gameId, igdbId, platformName });
+  const queueProvider = game.igdbId ? ExternalProvider.IGDB : null;
 
   const existingEntries = await prisma.userGameEntry.findMany({
     where: {
@@ -885,12 +875,12 @@ async function addPlayingNextGameForUser({
     await upsertLibraryCopy({
       userId, gameId: game.id, status: UserGameStatus.PLAYING_NEXT, explicitStatus: true,
       // Queuing an existing title doesn't represent a new purchase.
-      platformName: targetEntry ? targetEntry.platformName : platformName, provider: ExternalProvider.IGDB,
+      platformName: targetEntry ? targetEntry.platformName : platformName, provider: queueProvider,
       update: { playingNextSlot: slot, userIntent: needsPurchase ? "needs_purchase" : null },
       create: {
-        source: EntrySource.MANUAL, provider: ExternalProvider.IGDB,
+        source: EntrySource.MANUAL, provider: queueProvider,
         ...playingNextData,
-        rawData: { source: "playing-next-igdb-search", igdbId: metadata.igdbId, title: metadata.name },
+        rawData: { source: gameId ? "playing-next-catalog-search" : "playing-next-igdb-search", igdbId: game.igdbId, title: game.name },
       },
     }, tx);
   });
@@ -1477,7 +1467,8 @@ export async function addManualGameAction(formData: FormData) {
   const parsed = manualGameAddSchema.safeParse({
     igdbId: formData.get("igdbId"),
     title: formData.get("title"),
-    platformName: formData.get("platformName"),
+    // Old forms preselected metadata platforms without a user choice.
+    platformName: formData.get("platformChoice") === "user" ? formData.get("platformName") : null,
     status: formData.get("status"),
     query: formData.get("query"),
   });
@@ -1505,7 +1496,7 @@ export async function addManualGameAction(formData: FormData) {
   });
   await upsertLibraryCopy({
     userId, gameId: game.id, platformName: parsed.data.platformName, provider: ExternalProvider.IGDB,
-    status: parsed.data.status, explicitStatus: true,
+    status: parsed.data.status, explicitStatus: true, platformSource: "user",
     // Re-adding a title changes its status without replacing its sync/account metadata.
     update: {},
     create: {
@@ -1814,8 +1805,11 @@ export async function addPlayingNextGameAction(
   }
 
   const parsed = playingNextGameSchema.safeParse({
+    gameId: formData.get("gameId"),
     igdbId: formData.get("igdbId"),
-    platformName: formData.get("platformName"),
+    // Older open tabs may still submit an automatically selected platform.
+    platformName: null,
+    replaceEntryId: formData.get("replaceEntryId"),
     slot: formData.get("slot"),
     title: formData.get("title"),
   });
@@ -1829,11 +1823,11 @@ export async function addPlayingNextGameAction(
 
   try {
     await addPlayingNextGameForUser({
+      gameId: parsed.data.gameId,
       igdbId: parsed.data.igdbId,
       platformName: parsed.data.platformName,
       replaceEntryId: parsed.data.replaceEntryId,
       slot: parsed.data.slot as 1 | 2 | 3,
-      title: parsed.data.title,
       userId,
     });
   } catch (error) {

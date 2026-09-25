@@ -3,6 +3,7 @@ import { getSyncedEntryProgressData } from "./playtime-conflict";
 import type { SyncedLibraryGame } from "./providers/contracts";
 import { prisma } from "./prisma";
 import { libraryPlatformKey } from "./library-platform";
+import { jsonRecord, readPlatformEvidence, sameSyncedCopy, type PlatformEvidence, type PlatformEvidenceSource } from "./library-platform-evidence";
 import { normalizeLibraryStatus } from "./library-status";
 
 export async function lockLibraryGame(tx: Prisma.TransactionClient, userId: string, gameId: string) {
@@ -70,6 +71,8 @@ type CopyInput = {
   provider?: string | null;
   status: UserGameStatus;
   explicitStatus?: boolean;
+  platformSource?: PlatformEvidenceSource;
+  providerGameId?: string;
   create: Omit<Prisma.UserGameEntryUncheckedCreateInput, "userId" | "gameId" | "status">;
   update: Prisma.UserGameEntryUncheckedUpdateInput;
   sourceData?: (existing: UserGameEntry | null) => Prisma.UserGameEntryUncheckedUpdateInput;
@@ -90,7 +93,18 @@ export async function upsertLibraryCopy(input: CopyInput, db: Prisma.Transaction
     let key = libraryPlatformKey(input.platformName, input.provider);
     // An unspecified platform is not proof of an additional purchase.
     if (key === "unknown" && copies.length) key = copies[0].platformKey;
+    const evidence: PlatformEvidence = {
+      version: 1, source: key === "unknown" ? "unspecified" : input.platformSource ?? "unspecified",
+      platformKey: key, provider: input.provider ?? null,
+      providerGameId: input.providerGameId ?? null, externalAccountId: accountId ?? null,
+    };
     let existing = copies.find(copy => copy.platformKey === key);
+    const sameSource = copies.filter(copy => sameSyncedCopy(copy.rawData, evidence));
+    // A provider changing its platform label must not create a second copy.
+    // An existing conflicting target needs maintenance review, never a silent merge.
+    if (!existing && sameSource.length === 1) {
+      existing = await tx.userGameEntry.update({ where: { id: sameSource[0].id, userId: input.userId }, data: { platformKey: key } });
+    }
     if (!existing && copies.length === 1 && copies[0].platformKey === "unknown") {
       existing = await tx.userGameEntry.update({ where: { id: copies[0].id, userId: input.userId }, data: { platformKey: key } });
     }
@@ -104,16 +118,26 @@ export async function upsertLibraryCopy(input: CopyInput, db: Prisma.Transaction
       statusChangedAt: _statusChangedAt, userId: _user, gameId: _game, platformKey: _platform,
       ...sourceUpdate } = input.sourceData?.(existing ?? null) ?? input.update;
     void [_status, _finished, _finishedSource, _abandoned, _reason, _active, _statusChangedAt, _user, _game, _platform];
-    if (existing?.rawData && typeof existing.rawData === "object" && !Array.isArray(existing.rawData) &&
-        sourceUpdate.rawData && typeof sourceUpdate.rawData === "object" && !Array.isArray(sourceUpdate.rawData)) {
-      sourceUpdate.rawData = {
-        ...existing.rawData, ...sourceUpdate.rawData,
-        ...(existing.rawData.catalogMergeArchive ? { catalogMergeArchive: existing.rawData.catalogMergeArchive } : {}),
-      } as Prisma.InputJsonValue;
-    }
+    const previousRaw = jsonRecord(existing?.rawData);
+    const incomingRaw = jsonRecord(existing ? sourceUpdate.rawData : input.create.rawData);
+    const previousEvidence = readPlatformEvidence(existing?.rawData);
+    // Status-only writes and imports without a platform must preserve the established origin.
+    const recordsPlatform = input.platformSource && key !== "unknown" &&
+      (input.platformName || input.platformSource === "sync") &&
+      (!input.sourceData || sourceUpdate.externalAccountId === accountId);
+    const platformEvidence = recordsPlatform
+      ? { ...evidence, selectedByUser: input.platformSource === "user" || previousEvidence?.selectedByUser === true }
+      : previousEvidence ?? { ...evidence, source: "unspecified" };
+    const rawData = JSON.parse(JSON.stringify({ ...previousRaw, ...incomingRaw,
+      libraryPlatformEvidence: platformEvidence,
+      ...(previousRaw.catalogMergeArchive ? { catalogMergeArchive: previousRaw.catalogMergeArchive } : {}),
+      ...(previousRaw.platformRepairArchive ? { platformRepairArchive: previousRaw.platformRepairArchive } : {}),
+    })) as Prisma.InputJsonValue;
+    sourceUpdate.rawData = rawData;
+    if (recordsPlatform && input.platformName) sourceUpdate.platformName = input.platformName;
     if (existing) return tx.userGameEntry.update({ where: { id: existing.id, userId: input.userId }, data: sourceUpdate });
     return tx.userGameEntry.create({ data: {
-      ...input.create, userId: input.userId, gameId: input.gameId, platformKey: key,
+      ...input.create, userId: input.userId, gameId: input.gameId, platformKey: key, rawData,
       ...libraryStatusData(status, chosen?.status === status ? chosen.finishedAt ?? now : now),
       ...(!chosen && !input.explicitStatus && input.create.finishedSource ? { finishedSource: input.create.finishedSource } : {}),
       ...(chosen && !input.explicitStatus ? { finishedAt: chosen.finishedAt, finishedSource: chosen.finishedSource, abandonedAt: chosen.abandonedAt, abandonReason: chosen.abandonReason, activeBacklog: chosen.activeBacklog } : {}),
@@ -139,6 +163,7 @@ export async function syncLibraryCopy({ userId, gameId, accountId, provider, sou
     };
   };
   return upsertLibraryCopy({ userId, gameId, provider, platformName: game.platformName, status: "OWNED",
+    platformSource: "sync", providerGameId: game.providerGameId,
     create: { ...sourceData(null), source, provider, externalAccountId: accountId }, update: {}, sourceData,
   }, db);
 }

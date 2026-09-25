@@ -56,6 +56,7 @@ test("anonymous support quota denial cannot write a feedback row", async () => {
 
 test("search quota denial precedes provider calls and preserves HTTP 429", async () => {
   const route = load("../src/app/api/profile/game-search/route.ts", {
+    "@/lib/queue-game-search": { searchQueueGames() { assert.fail("catalog work after denial"); } },
     "@/lib/prisma": {}, "@/lib/session": { getSessionUserId: async () => "user-a" },
     "@/lib/igdb": { searchIgdbGames() { assert.fail("provider work after denial"); } },
     "@/lib/abuse-policy": policy,

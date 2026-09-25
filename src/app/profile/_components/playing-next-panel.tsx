@@ -35,6 +35,7 @@ import {
 } from "../actions";
 import type { ProfileData } from "./profile-types";
 import { ProfileActionRecovery, useProfileActionRecovery } from "./profile-action-recovery";
+import type { QueueGameSearchResult } from "@/lib/queue-game-search";
 
 const PLAYING_NEXT_SLOTS = [1, 2, 3] as const;
 const LONG_GAME_MINUTES = 20 * 60;
@@ -42,20 +43,11 @@ const LONG_GAME_MINUTES = 20 * 60;
 type PlayingNextSlotNumber = (typeof PLAYING_NEXT_SLOTS)[number];
 type PlayingNextEntry = ProfileData["playingNextEntries"][number];
 
-type SearchResult = {
-  igdbId: number;
-  name: string;
-  slug: string | null;
-  summary: string | null;
-  coverUrl: string | null;
-  releaseDate: string | null;
-  platforms: string[];
-  genres: string[];
-  existingSlug: string | null;
-  isDropped: boolean;
-  isOwned: boolean;
-  isQueued: boolean;
-};
+type SearchResult = QueueGameSearchResult;
+
+function searchResultKey(result: SearchResult) {
+  return result.gameId ? `catalog:${result.gameId}` : `igdb:${result.igdbId}`;
+}
 
 function getGameEstimateMinutes(entry: PlayingNextEntry) {
   return (
@@ -230,7 +222,7 @@ export function PlayingNextPanel({
   const [isSearching, setIsSearching] = useState(false);
   const [searchFailed, setSearchFailed] = useState(false);
   const [searchAttempt, setSearchAttempt] = useState(0);
-  const [savingIgdbId, setSavingIgdbId] = useState<number | null>(null);
+  const [savingGameKey, setSavingGameKey] = useState<string | null>(null);
   const queuedEntriesBySlot = new Map(
     PLAYING_NEXT_SLOTS.flatMap((slot, index) => {
       const entry = profile.playingNextEntries[index] ?? null;
@@ -241,7 +233,7 @@ export function PlayingNextPanel({
     entries: profile.playingNextEntries,
     locale,
   });
-  const isBusy = recovery.pending || isRefreshing || isClearing || savingIgdbId !== null;
+  const isBusy = recovery.pending || isRefreshing || isClearing || savingGameKey !== null;
 
   useEffect(() => {
     if (!activeSlot) {
@@ -268,7 +260,7 @@ export function PlayingNextPanel({
     const controller = new AbortController();
     setIsSearching(true);
     const timeout = window.setTimeout(() => {
-      fetch(`/api/profile/game-search?q=${encodeURIComponent(trimmedQuery)}`, {
+      fetch(`/api/profile/game-search?scope=queue&q=${encodeURIComponent(trimmedQuery)}`, {
         signal: controller.signal,
       })
         .then((response) => {
@@ -318,7 +310,7 @@ export function PlayingNextPanel({
     if (recovery.runner.busy) return;
     setActiveSlot(null);
     setMessage(null);
-    setSavingIgdbId(null);
+    setSavingGameKey(null);
   }
 
   async function clearSelections() {
@@ -394,13 +386,14 @@ export function PlayingNextPanel({
     }
 
     const formData = new FormData();
-    formData.set("igdbId", String(result.igdbId));
-    formData.set("platformName", result.platforms[0] ?? "");
+    if (result.gameId) formData.set("gameId", result.gameId);
+    if (result.igdbId) formData.set("igdbId", String(result.igdbId));
+    // Search metadata lists supported platforms, not the platform this person owns.
     formData.set("replaceEntryId", queuedEntriesBySlot.get(activeSlot)?.id ?? "");
     formData.set("slot", String(activeSlot));
     formData.set("title", result.name);
     await recovery.runner.run(async () => {
-      setSavingIgdbId(result.igdbId);
+      setSavingGameKey(searchResultKey(result));
       setMessage(null);
 
       try {
@@ -416,7 +409,7 @@ export function PlayingNextPanel({
           router.refresh();
         });
       } finally {
-        setSavingIgdbId(null);
+        setSavingGameKey(null);
       }
     });
   }
@@ -578,7 +571,7 @@ export function PlayingNextPanel({
 
             <div className="mt-4 grid gap-3">
               {results.map((result) => {
-                const isSaving = savingIgdbId === result.igdbId;
+                const isSaving = savingGameKey === searchResultKey(result);
                 const meta = [
                   getYear(result.releaseDate),
                   result.platforms[0],
@@ -591,7 +584,7 @@ export function PlayingNextPanel({
                   <button
                     className="grid grid-cols-[58px_1fr_auto] items-center gap-4 rounded-inner border border-edge bg-canvas/60 p-3 text-left transition-colors hover:border-sage disabled:cursor-wait disabled:opacity-70 max-sm:grid-cols-[52px_1fr]"
                     disabled={isBusy}
-                    key={result.igdbId}
+                    key={searchResultKey(result)}
                     onClick={() => {
                       void addSearchResult(result);
                     }}
