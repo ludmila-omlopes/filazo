@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import {
-  startTransition,
+  useTransition,
   useEffect,
   useMemo,
   useRef,
@@ -34,6 +34,7 @@ import {
   savePlayingNextSelectionAction,
 } from "../actions";
 import type { ProfileData } from "./profile-types";
+import { ProfileActionRecovery, useProfileActionRecovery } from "./profile-action-recovery";
 import type { QueueGameSearchResult } from "@/lib/queue-game-search";
 
 const PLAYING_NEXT_SLOTS = [1, 2, 3] as const;
@@ -207,6 +208,8 @@ export function PlayingNextPanel({
   profile: ProfileData;
 }) {
   const router = useRouter();
+  const recovery = useProfileActionRecovery();
+  const [isRefreshing, startTransition] = useTransition();
   const t = useMemo(() => createTranslator(locale), [locale]);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const [activeSlot, setActiveSlot] = useState<PlayingNextSlotNumber | null>(
@@ -217,6 +220,8 @@ export function PlayingNextPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [isClearing, setIsClearing] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchFailed, setSearchFailed] = useState(false);
+  const [searchAttempt, setSearchAttempt] = useState(0);
   const [savingGameKey, setSavingGameKey] = useState<string | null>(null);
   const queuedEntriesBySlot = new Map(
     PLAYING_NEXT_SLOTS.flatMap((slot, index) => {
@@ -228,7 +233,7 @@ export function PlayingNextPanel({
     entries: profile.playingNextEntries,
     locale,
   });
-  const isBusy = isClearing || savingGameKey !== null;
+  const isBusy = recovery.pending || isRefreshing || isClearing || savingGameKey !== null;
 
   useEffect(() => {
     if (!activeSlot) {
@@ -266,17 +271,14 @@ export function PlayingNextPanel({
         })
         .then((data) => {
           setResults(data.results);
+          setSearchFailed(false);
           setMessage(null);
         })
-        .catch((error) => {
+        .catch(() => {
           if (controller.signal.aborted) {
             return;
           }
-          setMessage(
-            error instanceof Error
-              ? error.message
-              : t("profile.playingNext.searchFailed"),
-          );
+          setSearchFailed(true);
         })
         .finally(() => {
           if (!controller.signal.aborted) {
@@ -289,7 +291,7 @@ export function PlayingNextPanel({
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [activeSlot, query, t]);
+  }, [activeSlot, query, t, searchAttempt]);
 
   function getFirstOpenSlot() {
     return (
@@ -299,33 +301,38 @@ export function PlayingNextPanel({
   }
 
   function openPicker(slot = getFirstOpenSlot()) {
+    if (isBusy || recovery.runner.busy) return;
     setActiveSlot(slot);
     setMessage(null);
   }
 
   function closePicker() {
+    if (recovery.runner.busy) return;
     setActiveSlot(null);
     setMessage(null);
     setSavingGameKey(null);
   }
 
   async function clearSelections() {
-    setMessage(null);
-    setIsClearing(true);
+    if (isBusy) return;
+    await recovery.runner.run(async () => {
+      setMessage(null);
+      setIsClearing(true);
 
-    try {
-      const result = await clearPlayingNextSelectionAction();
-      if (!result.ok) {
-        setMessage(result.message);
-        return;
+      try {
+        const result = await clearPlayingNextSelectionAction();
+        if (!result.ok) {
+          setMessage(result.message);
+          return;
+        }
+
+        startTransition(() => {
+          router.refresh();
+        });
+      } finally {
+        setIsClearing(false);
       }
-
-      startTransition(() => {
-        router.refresh();
-      });
-    } finally {
-      setIsClearing(false);
-    }
+    });
   }
 
   function buildPlayingNextFormDataWithoutSlot(slotToRemove: PlayingNextSlotNumber) {
@@ -345,23 +352,27 @@ export function PlayingNextPanel({
   }
 
   async function removeSlotEntry(slot: PlayingNextSlotNumber) {
-    setMessage(null);
-    const result = await savePlayingNextSelectionAction(
-      buildPlayingNextFormDataWithoutSlot(slot),
-    );
+    if (isBusy) return;
+    const formData = buildPlayingNextFormDataWithoutSlot(slot);
+    await recovery.runner.run(async () => {
+      setMessage(null);
+      const result = await savePlayingNextSelectionAction(
+        formData,
+      );
 
-    if (!result.ok) {
-      setMessage(result.message);
-      return;
-    }
+      if (!result.ok) {
+        setMessage(result.message);
+        return;
+      }
 
-    startTransition(() => {
-      router.refresh();
+      startTransition(() => {
+        router.refresh();
+      });
     });
   }
 
   async function addSearchResult(result: SearchResult) {
-    if (!activeSlot) {
+    if (!activeSlot || isBusy || recovery.runner.busy) {
       return;
     }
 
@@ -381,23 +392,26 @@ export function PlayingNextPanel({
     formData.set("replaceEntryId", queuedEntriesBySlot.get(activeSlot)?.id ?? "");
     formData.set("slot", String(activeSlot));
     formData.set("title", result.name);
-    setSavingGameKey(searchResultKey(result));
-    setMessage(null);
+    await recovery.runner.run(async () => {
+      setSavingGameKey(searchResultKey(result));
+      setMessage(null);
 
-    try {
-      const saveResult = await addPlayingNextGameAction(formData);
-      if (!saveResult.ok) {
-        setMessage(saveResult.message);
-        return;
+      try {
+        const saveResult = await addPlayingNextGameAction(formData);
+        if (!saveResult.ok) {
+          setMessage(saveResult.message);
+          return;
+        }
+
+        setActiveSlot(null);
+        setMessage(null);
+        startTransition(() => {
+          router.refresh();
+        });
+      } finally {
+        setSavingGameKey(null);
       }
-
-      closePicker();
-      startTransition(() => {
-        router.refresh();
-      });
-    } finally {
-      setSavingGameKey(null);
-    }
+    });
   }
 
   function handleBackdropClick(event: MouseEvent<HTMLDivElement>) {
@@ -488,6 +502,10 @@ export function PlayingNextPanel({
         <p className="mt-3 text-sm font-semibold text-clay">{message}</p>
       ) : null}
 
+      {recovery.failure && !activeSlot ? (
+        <ProfileActionRecovery locale={locale} pending={isBusy} onRetry={recovery.retry} />
+      ) : null}
+
       {activeSlot ? (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-ink/45 p-4"
@@ -513,6 +531,7 @@ export function PlayingNextPanel({
               </div>
               <Button
                 aria-label={t("common.close")}
+                disabled={isBusy}
                 onClick={closePicker}
                 size="icon-sm"
                 type="button"
@@ -530,7 +549,7 @@ export function PlayingNextPanel({
               />
               <input
                 className="min-h-11 w-full rounded-pill border border-edge bg-canvas px-10 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => { setQuery(event.target.value); setSearchFailed(false); }}
                 placeholder={t("profile.playingNext.searchPlaceholder")}
                 ref={searchInputRef}
                 type="search"
@@ -540,6 +559,14 @@ export function PlayingNextPanel({
 
             {message ? (
               <p className="mt-3 text-sm font-semibold text-clay">{message}</p>
+            ) : null}
+
+            {recovery.failure ? (
+              <ProfileActionRecovery locale={locale} pending={isBusy} onRetry={recovery.retry} />
+            ) : null}
+
+            {searchFailed && !recovery.failure ? (
+              <ProfileActionRecovery locale={locale} search pending={isSearching} onRetry={() => setSearchAttempt((attempt) => attempt + 1)} />
             ) : null}
 
             <div className="mt-4 grid gap-3">
@@ -556,7 +583,7 @@ export function PlayingNextPanel({
                 return (
                   <button
                     className="grid grid-cols-[58px_1fr_auto] items-center gap-4 rounded-inner border border-edge bg-canvas/60 p-3 text-left transition-colors hover:border-sage disabled:cursor-wait disabled:opacity-70 max-sm:grid-cols-[52px_1fr]"
-                    disabled={savingGameKey !== null}
+                    disabled={isBusy}
                     key={searchResultKey(result)}
                     onClick={() => {
                       void addSearchResult(result);
@@ -616,7 +643,7 @@ export function PlayingNextPanel({
               </p>
             ) : null}
 
-            {!isSearching && query.trim().length >= 2 && !results.length ? (
+            {!isSearching && !searchFailed && query.trim().length >= 2 && !results.length ? (
               <p className="mt-4 text-sm text-ink-soft">
                 {t("profile.playingNext.noMatches")}
               </p>
