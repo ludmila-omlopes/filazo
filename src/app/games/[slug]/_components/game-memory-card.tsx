@@ -189,10 +189,12 @@ function CaseHeader({ game, locale }: { game: GameDetail; locale: Locale }) {
 
 function SaveSlot({
   currentEntry,
+  platformNames,
   game,
   locale,
 }: {
   currentEntry: GameEntry | null;
+  platformNames: string[];
   game: GameDetail;
   locale: Locale;
 }) {
@@ -220,11 +222,26 @@ function SaveSlot({
         title={t("game.relationship")}
       />
 
-      {currentEntry.platformName ? (
-        <p className="mb-4 text-sm text-ink-soft">
-          {t("game.yourPlatform", { platform: currentEntry.platformName })}
-        </p>
-      ) : null}
+      <dl className="mb-4 grid gap-2">
+        <dt className="stat-label">
+          {t(platformNames.length > 1 ? "game.yourPlatformsLabel" : "game.yourPlatformLabel")}
+        </dt>
+        <dd>
+          {platformNames.length ? (
+            <ul className="flex flex-wrap gap-2">
+              {platformNames.map((platform) => (
+                <li className="min-w-0 max-w-full" key={platform.toLowerCase()}>
+                  <Chip className="max-w-full break-words normal-case" tone="blue">
+                    {platform}
+                  </Chip>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span className="text-sm text-ink-soft">{t("game.platformNotSpecified")}</span>
+          )}
+        </dd>
+      </dl>
       <div className="grid grid-cols-3 gap-4 max-md:grid-cols-1">
         <div className="rounded-inner border border-edge bg-surface p-4">
           <span className="stat-label">{t("game.placeOnShelf")}</span>
@@ -900,9 +917,12 @@ export function GameMemoryCard({
   advertisement?: React.ReactNode;
 }) {
   const t = createTranslator(locale);
-  const currentEntry = chooseDisplayedEntry(
-    game.userEntries.filter((entry) => entry.userId === sessionUserId),
-  );
+  const personalEntries = game.userEntries.filter((entry) => entry.userId === sessionUserId);
+  const currentEntry = chooseDisplayedEntry(personalEntries);
+  const platformNames = [...new Map(personalEntries.flatMap((entry) => {
+    const platform = entry.platformName?.trim();
+    return platform ? [[platform.toLowerCase(), platform] as const] : [];
+  })).values()];
   const hasCommunity = game.communityEntries.length > 0;
   return (
     <main
@@ -943,6 +963,7 @@ export function GameMemoryCard({
                 </p>
                 <SaveSlot
                   currentEntry={currentEntry}
+                  platformNames={platformNames}
                   game={game}
                   locale={locale}
                 />
