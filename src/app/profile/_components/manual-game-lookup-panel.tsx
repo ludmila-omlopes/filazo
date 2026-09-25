@@ -90,7 +90,7 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
 
   function selectGame(result: SearchResult) {
     setSelectedGame(result);
-    setPlatformName(result.platforms[0] ?? "");
+    setPlatformName("");
     setMessage(null);
   }
 
@@ -179,6 +179,7 @@ export function ManualGameLookupPanel({ enabled }: { enabled: boolean }) {
             <input name="igdbId" type="hidden" value={selectedGame.igdbId} />
             <input name="title" type="hidden" value={selectedGame.name} />
             <input name="query" type="hidden" value={query} />
+            <input name="platformChoice" type="hidden" value="user" />
             <div>
               <p className="section-label !mb-1">{t("manualSearch.selected")}</p>
               <h3 className="font-display text-xl font-medium">

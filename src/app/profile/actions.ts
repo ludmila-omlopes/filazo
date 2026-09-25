@@ -1467,7 +1467,8 @@ export async function addManualGameAction(formData: FormData) {
   const parsed = manualGameAddSchema.safeParse({
     igdbId: formData.get("igdbId"),
     title: formData.get("title"),
-    platformName: formData.get("platformName"),
+    // Old forms preselected metadata platforms without a user choice.
+    platformName: formData.get("platformChoice") === "user" ? formData.get("platformName") : null,
     status: formData.get("status"),
     query: formData.get("query"),
   });
@@ -1495,7 +1496,7 @@ export async function addManualGameAction(formData: FormData) {
   });
   await upsertLibraryCopy({
     userId, gameId: game.id, platformName: parsed.data.platformName, provider: ExternalProvider.IGDB,
-    status: parsed.data.status, explicitStatus: true,
+    status: parsed.data.status, explicitStatus: true, platformSource: "user",
     // Re-adding a title changes its status without replacing its sync/account metadata.
     update: {},
     create: {
@@ -1806,7 +1807,8 @@ export async function addPlayingNextGameAction(
   const parsed = playingNextGameSchema.safeParse({
     gameId: formData.get("gameId"),
     igdbId: formData.get("igdbId"),
-    platformName: formData.get("platformName"),
+    // Older open tabs may still submit an automatically selected platform.
+    platformName: null,
     replaceEntryId: formData.get("replaceEntryId"),
     slot: formData.get("slot"),
     title: formData.get("title"),

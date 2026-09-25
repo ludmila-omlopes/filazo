@@ -1158,7 +1158,7 @@ export async function importCsvForUser({
         });
 
         await upsertLibraryCopy({
-          userId, gameId: game.id, status: row.status, platformName, provider: importProvider,
+          userId, gameId: game.id, status: row.status, platformName, provider: importProvider, platformSource: "import",
           update: {
             abandonedAt:
               row.status === UserGameStatus.DROPPED ? new Date() : undefined,
