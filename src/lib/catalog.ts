@@ -840,7 +840,7 @@ async function syncXboxLibraryForAccount(
 ) {
   const userId = xboxAccount.userId;
 
-  const { profile, games } = await fetchXboxLibraryForAccount(xboxAccount);
+  const { profile, games } = await fetchXboxLibraryForAccount(xboxAccount, { signal: options.signal });
   throwIfPlatformSyncAborted(options.signal);
 
   let syncedCount = 0;

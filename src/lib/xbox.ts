@@ -4,11 +4,7 @@ import { ExternalProvider, type ExternalAccount, type Prisma } from "@prisma/cli
 import { getAuthSecret } from "@/lib/auth-secret";
 import { prisma } from "@/lib/prisma";
 import type { ProviderProfile } from "@/lib/providers/contracts";
-import {
-  mergeXboxTitles,
-  type XboxTitleHistoryItem,
-  type XboxTitleHubItem,
-} from "@/lib/xbox-library";
+import { fetchXboxTitleHistories } from "@/lib/xbox-history";
 
 const XBOX_OAUTH_SCOPES = ["Xboxlive.signin", "Xboxlive.offline_access"];
 const MICROSOFT_AUTH_URL = "https://login.live.com/oauth20_authorize.srf";
@@ -16,9 +12,6 @@ const MICROSOFT_TOKEN_URL = "https://login.live.com/oauth20_token.srf";
 const XBOX_USER_AUTH_URL = "https://user.auth.xboxlive.com/user/authenticate";
 const XBOX_XSTS_AUTH_URL = "https://xsts.auth.xboxlive.com/xsts/authorize";
 const XBOX_PROFILE_URL = "https://profile.xboxlive.com";
-const XBOX_ACHIEVEMENTS_URL = "https://achievements.xboxlive.com";
-const XBOX_TITLEHUB_URL = "https://titlehub.xboxlive.com";
-const XBOX_TITLEHUB_MAX_ITEMS = 200;
 
 type EncryptedSecret = {
   ciphertext: string;
@@ -68,7 +61,7 @@ type XboxAccountMetadata = {
   connectedAt?: string;
   lastTokenRefreshAt?: string;
   syncMode?: "achievement-title-history";
-  titleHistoryLimit?: number;
+  historyPagination?: "complete";
 };
 
 type XboxAuthorization = {
@@ -195,10 +188,7 @@ function parseXboxMetadata(value: Prisma.JsonValue | null): XboxAccountMetadata 
       value.syncMode === "achievement-title-history"
         ? value.syncMode
         : undefined,
-    titleHistoryLimit:
-      typeof value.titleHistoryLimit === "number"
-        ? value.titleHistoryLimit
-        : undefined,
+    historyPagination: value.historyPagination === "complete" ? "complete" : undefined,
   };
 }
 
@@ -450,55 +440,6 @@ async function fetchXboxProfile(authorization: XboxAuthorization) {
   } satisfies ProviderProfile;
 }
 
-async function fetchAchievementTitleHistory(authorization: XboxAuthorization) {
-  const response = await requestJson<{ titles?: XboxTitleHistoryItem[] }>(
-    `${XBOX_ACHIEVEMENTS_URL}/users/xuid(${authorization.xuid})/history/titles`,
-    {
-      method: "GET",
-      headers: {
-        Authorization: authorization.authorizationHeader,
-        "x-xbl-contract-version": "2",
-      },
-      errorMessage: "Could not fetch Xbox achievement title history",
-    },
-  );
-
-  return response.titles ?? [];
-}
-
-async function fetchTitleHubHistory(authorization: XboxAuthorization) {
-  const fields = [
-    "achievement",
-    "image",
-    "scid",
-    "detail",
-    "alternateTitleId",
-    "productId",
-  ].join(",");
-  const url = new URL(
-    `${XBOX_TITLEHUB_URL}/users/xuid(${authorization.xuid})/titles/titlehistory/decoration/${fields}`,
-  );
-  url.searchParams.set("maxItems", String(XBOX_TITLEHUB_MAX_ITEMS));
-
-  const response = await requestJson<{ titles?: XboxTitleHubItem[] }>(
-    url.toString(),
-    {
-      method: "GET",
-      headers: {
-        Authorization: authorization.authorizationHeader,
-        "Accept-Language": "en-US",
-        "x-xbl-client-name": "XboxApp",
-        "x-xbl-client-type": "UWA",
-        "x-xbl-client-version": "39.39.22001.0",
-        "x-xbl-contract-version": "2",
-      },
-      errorMessage: "Could not fetch Xbox title history",
-    },
-  );
-
-  return response.titles ?? [];
-}
-
 export async function connectXboxAccountForUser({
   userId,
   code,
@@ -517,7 +458,6 @@ export async function connectXboxAccountForUser({
     connectedAt: new Date().toISOString(),
     profile,
     syncMode: "achievement-title-history",
-    titleHistoryLimit: XBOX_TITLEHUB_MAX_ITEMS,
   };
 
   return linkExternalAccountForUser(prisma, {
@@ -535,19 +475,19 @@ export async function connectXboxAccountForUser({
   });
 }
 
-export async function syncXboxLibraryForAccount(account: ExternalAccount) {
+export async function syncXboxLibraryForAccount(account: ExternalAccount, options: { signal?: AbortSignal } = {}) {
+  options.signal?.throwIfAborted();
   const { authorization, metadata } = await getAuthorizationForAccount(account);
-  const [profile, achievementTitles, titleHubTitles] = await Promise.all([
+  const [profile, games] = await Promise.all([
     fetchXboxProfile(authorization),
-    fetchAchievementTitleHistory(authorization),
-    fetchTitleHubHistory(authorization).catch(() => []),
+    fetchXboxTitleHistories(authorization, options),
   ]);
-  const games = mergeXboxTitles(achievementTitles, titleHubTitles);
+  options.signal?.throwIfAborted();
   const nextMetadata: XboxAccountMetadata = {
     ...metadata,
     profile,
+    historyPagination: "complete",
     syncMode: "achievement-title-history",
-    titleHistoryLimit: XBOX_TITLEHUB_MAX_ITEMS,
   };
 
   await prisma.externalAccount.update({
@@ -572,11 +512,7 @@ export async function fetchXboxAchievementProgressForTitle(
   providerGameIds: string[],
 ) {
   const { authorization } = await getAuthorizationForAccount(account);
-  const [achievementTitles, titleHubTitles] = await Promise.all([
-    fetchAchievementTitleHistory(authorization),
-    fetchTitleHubHistory(authorization).catch(() => []),
-  ]);
-  const games = mergeXboxTitles(achievementTitles, titleHubTitles);
+  const games = await fetchXboxTitleHistories(authorization);
   const providerGameIdSet = new Set(providerGameIds);
   const game = games.find((candidate) =>
     [candidate.providerGameId, ...(candidate.providerGameIds ?? [])].some(
