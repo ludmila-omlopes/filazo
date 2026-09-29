@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { GameDetailSections } from "./game-detail-sections";
 import { GameSynopsis } from "./game-synopsis";
+import { RelatedGames } from "./related-games";
 import { localizeGameGenre } from "@/lib/game-localization";
 import { ExternalProvider } from "@prisma/client";
 import { BookOpen, ChevronRight } from "lucide-react";
@@ -1018,6 +1019,9 @@ export function GameMemoryCard({
                   </aside>
                 </div>
                 <ScreenshotStrip game={game} locale={locale} />
+                <Suspense fallback={null}>
+                  <RelatedGames game={game} locale={locale} />
+                </Suspense>
               </>
             ),
           },
@@ -1086,6 +1090,7 @@ export function GameMemoryCard({
           {
             id: "buy",
             label: t("game.buyTab"),
+            deferred: true,
             content: (
               <MarketplaceSearchPanel
                 gameId={game.id}
@@ -1097,6 +1102,7 @@ export function GameMemoryCard({
           {
             id: "steam-reviews",
             label: t("game.steamReviewsTab"),
+            deferred: true,
             content: (
               <SteamReviewsPanel
                 gameId={game.id}

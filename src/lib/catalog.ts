@@ -1,5 +1,10 @@
 import { syncLibraryCopy, upsertLibraryCopy } from "@/lib/library-entry";
-import { readGameDetail, readGameMetadata } from "@/lib/game-detail-queries";
+import {
+  readGameDetail,
+  readGameMetadata,
+  readRelatedGames,
+  readSitemapGames,
+} from "@/lib/game-detail-queries";
 import {
   EntrySource,
   ExternalProvider,
@@ -1527,6 +1532,14 @@ export function getGameBySlug(slug: string, userId: string | null) {
 
 export function getGameMetadataBySlug(slug: string) {
   return readGameMetadata(prisma, slug);
+}
+
+export function getRelatedGames(game: Parameters<typeof readRelatedGames>[1]) {
+  return readRelatedGames(prisma, game);
+}
+
+export function getSitemapGames() {
+  return readSitemapGames(prisma);
 }
 
 export async function enrichCatalogGame(gameId: string) {
