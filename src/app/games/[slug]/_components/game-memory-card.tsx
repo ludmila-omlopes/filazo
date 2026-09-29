@@ -6,6 +6,8 @@ import { GameSynopsis } from "./game-synopsis";
 import { localizeGameGenre } from "@/lib/game-localization";
 import { ExternalProvider } from "@prisma/client";
 import { BookOpen, ChevronRight } from "lucide-react";
+import { AuthDialog } from "@/components/auth-dialog";
+import { formatCatalogPlatformName } from "@/lib/platform-names";
 import {
   markDroppedAction,
   markFinishedAction,
@@ -129,11 +131,36 @@ function GameCover({ game, locale }: { game: GameDetail; locale: Locale }) {
   );
 }
 
-function CaseHeader({ game, locale }: { game: GameDetail; locale: Locale }) {
+// Platform chips shown before the rest fold behind a "+N" toggle.
+const VISIBLE_PLATFORM_COUNT = 5;
+
+function CaseHeader({
+  game,
+  inLibrary,
+  locale,
+  sessionUserId,
+}: {
+  game: GameDetail;
+  inLibrary: boolean;
+  locale: Locale;
+  sessionUserId: string | null;
+}) {
   const t = createTranslator(locale);
-  const platforms = readStringList(game.platforms);
-  const genres = readStringList(game.genres);
+  const platforms = [
+    ...new Set(readStringList(game.platforms).map(formatCatalogPlatformName)),
+  ];
+  const visiblePlatforms = platforms.slice(0, VISIBLE_PLATFORM_COUNT);
+  const foldedPlatforms = platforms.slice(VISIBLE_PLATFORM_COUNT);
+  const genres = [
+    ...new Set(readStringList(game.genres).map((genre) => localizeGameGenre(genre, locale))),
+  ];
   const year = getYear(game.releaseDate);
+  const facts = [year, genres.join(", ")].filter(Boolean).join(" · ");
+  const platformChip = (platform: string) => (
+    <Chip className="normal-case" key={platform} tone="blue">
+      {platform}
+    </Chip>
+  );
 
   return (
     <section className="relative overflow-hidden rounded-card border border-edge bg-sky-soft/70 p-6 shadow-soft max-sm:p-4">
@@ -142,19 +169,15 @@ function CaseHeader({ game, locale }: { game: GameDetail; locale: Locale }) {
         aria-hidden
         className="absolute inset-0 bg-[linear-gradient(135deg,rgba(159,153,209,0.16),rgba(134,186,218,0.12)_52%,rgba(255,227,179,0.1))]"
       />
-      <div className="relative grid grid-cols-[160px_minmax(0,1fr)] items-center gap-6 max-sm:grid-cols-[88px_minmax(0,1fr)]">
+      <div className="relative grid grid-cols-[160px_minmax(0,1fr)] items-center gap-6 max-sm:grid-cols-[96px_minmax(0,1fr)] max-sm:items-start max-sm:gap-4 lg:grid-cols-[160px_minmax(0,1fr)_17rem]">
         <GameCover game={game} locale={locale} />
-        <div className="grid gap-5 min-w-0">
+        <div className="grid min-w-0 gap-4">
           <nav
             className="flex flex-wrap items-center gap-2 text-sm text-ink-soft"
             aria-label={t("game.breadcrumb")}
           >
-            <Link className="nav-link" href="/">
-              {t("common.home")}
-            </Link>
-            <span aria-hidden>/</span>
             <Link className="nav-link" href="/catalog">
-              {t("common.catalog")}
+              {t("nav.exploreGames")}
             </Link>
             <span aria-hidden>/</span>
             <span className="max-w-[24ch] truncate text-ink">{game.name}</span>
@@ -162,26 +185,66 @@ function CaseHeader({ game, locale }: { game: GameDetail; locale: Locale }) {
 
           <div>
             <h1 className="text-page-title leading-[1.03]">{game.name}</h1>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              {year ? <Chip tone="sand">{year}</Chip> : null}
-              {platforms.map((platform) => (
-                <Chip key={platform} tone="blue">
-                  {platform}
-                </Chip>
-              ))}
-            </div>
+            {facts ? (
+              <p className="mt-2 text-sm font-semibold text-ink-soft">{facts}</p>
+            ) : null}
           </div>
 
-          {genres.length ? (
-            <div className="flex flex-wrap gap-2">
-              {genres.map((genre) => (
-                <Chip key={localizeGameGenre(genre, locale)} tone="sage">
-                  {localizeGameGenre(genre, locale)}
-                </Chip>
-              ))}
+          {platforms.length ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-micro font-bold uppercase tracking-[0.12em] text-ink-soft">
+                {t("game.platformsLabel")}
+              </span>
+              {visiblePlatforms.map(platformChip)}
+              {foldedPlatforms.length ? (
+                <details className="group min-w-0">
+                  <summary className="inline-flex min-h-7 cursor-pointer list-none items-center rounded-pill border border-edge bg-surface px-2.5 text-caption font-bold text-ink-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+                    <span className="group-open:hidden">
+                      <span aria-hidden>+{foldedPlatforms.length}</span>
+                      <span className="sr-only">
+                        {t("game.morePlatforms", { count: foldedPlatforms.length })}
+                      </span>
+                    </span>
+                    <span className="hidden group-open:inline">
+                      {t("game.fewerPlatforms")}
+                    </span>
+                  </summary>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {foldedPlatforms.map(platformChip)}
+                  </div>
+                </details>
+              ) : null}
             </div>
           ) : null}
         </div>
+
+        {!inLibrary ? (
+          <div className="grid gap-2 rounded-inner border border-edge bg-surface/85 p-4 shadow-rest max-lg:col-span-full lg:self-center">
+            {sessionUserId ? (
+              <>
+                <Button asChild className="w-full" variant="secondary">
+                  <Link href="/profile?tab=integrations">
+                    {t("game.addFromSearch")}
+                  </Link>
+                </Button>
+                <p className="text-center text-xs leading-relaxed text-ink-soft">
+                  {t("game.addFromSearchHint")}
+                </p>
+              </>
+            ) : (
+              <>
+                <AuthDialog
+                  triggerClassName="w-full"
+                  triggerLabel={t("game.saveToShelf")}
+                  triggerSize="default"
+                />
+                <p className="text-center text-xs leading-relaxed text-ink-soft">
+                  {t("game.saveToShelfHint")}
+                </p>
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -929,7 +992,12 @@ export function GameMemoryCard({
       id="main-content"
       className="mx-auto grid w-full min-w-0 max-w-page gap-6 pb-12"
     >
-      <CaseHeader game={game} locale={locale} />
+      <CaseHeader
+        game={game}
+        inLibrary={Boolean(currentEntry)}
+        locale={locale}
+        sessionUserId={sessionUserId}
+      />
       <GameDetailSections
         label={t("game.sections")}
         sections={[

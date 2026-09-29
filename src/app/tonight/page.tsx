@@ -10,6 +10,7 @@ import {
 import { isEntryRecommendable } from "@/lib/assistant/eligibility";
 import { getRequestLocale } from "@/lib/request-locale";
 import { estimateRemainingTime } from "@/lib/time-estimates";
+import { formatTimeEstimate } from "@/lib/utils";
 import { orderPicksForMood } from "@/lib/tonight-moods";
 import { selectTonightBasePicks } from "@/lib/tonight-picks";
 import {
@@ -59,8 +60,42 @@ function toTonightPick(
   };
 }
 
+type TonightEntry = Awaited<ReturnType<typeof getAssistantProfileData>>["entries"][number];
+
+// Short games are named as such only when the estimate is genuinely small.
+const SHORT_PICK_MINUTES = 6 * 60;
+
+/**
+ * A concrete reason for a pick that comes straight from the shelf, built from
+ * what we know about the entry, instead of the same generic sentence for all.
+ */
+function describeShelfPick(
+  entry: TonightEntry,
+  t: ReturnType<typeof createTranslator>,
+  locale: string,
+) {
+  if (entry.playtimeMinutes && entry.playtimeMinutes >= 60) {
+    return t("tonight.reason.resume", {
+      playtime: formatTimeEstimate(entry.playtimeMinutes, locale),
+    });
+  }
+
+  const remainingMinutes = estimateRemainingTime(entry)?.remainingMinutes ?? null;
+  if (remainingMinutes && remainingMinutes <= SHORT_PICK_MINUTES) {
+    return t("tonight.reason.short", {
+      time: formatTimeEstimate(remainingMinutes, locale),
+    });
+  }
+
+  if (entry.isFavorite) {
+    return t("tonight.reason.favorite");
+  }
+
+  return t("tonight.fallbackReason");
+}
+
 function toRuleTonightPick(
-  entry: Awaited<ReturnType<typeof getAssistantProfileData>>["entries"][number],
+  entry: TonightEntry,
   reason: string,
 ): TonightPick {
   return {
@@ -157,10 +192,7 @@ export default async function TonightPage({
       (entry) => isEntryRecommendable(entry) && entry.status !== "WISHLIST",
     )
     .map((entry) =>
-      toRuleTonightPick(
-        entry,
-        t("tonight.fallbackReason"),
-      ),
+      toRuleTonightPick(entry, describeShelfPick(entry, t, locale)),
     );
   const basePicks = selectTonightBasePicks({
     storedRecommendations: assistant.playNextRecommendations.map(toTonightPick),

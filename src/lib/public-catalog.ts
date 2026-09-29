@@ -24,10 +24,12 @@ export async function readPublicCatalog(db: Pick<PrismaClient, "game">, params: 
   const { q, page } = parsePublicCatalogParams(params);
   const normalized = normalizeTitle(q);
   const rows = await db.game.findMany({
+    // Browsing shows entries with cover art so the first page reads as a
+    // catalog; searching still reaches every canonical game.
     where: q ? { OR: [
       { name: { contains: q, mode: "insensitive" } },
       ...(normalized ? [{ normalizedName: { contains: normalized } }] : []),
-    ] } : {},
+    ] } : { coverUrl: { not: null } },
     select: { slug: true, name: true, coverUrl: true },
     orderBy: [{ normalizedName: "asc" }, { slug: "asc" }],
     skip: (page - 1) * PUBLIC_CATALOG_PAGE_SIZE,

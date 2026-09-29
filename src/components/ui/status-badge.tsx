@@ -50,6 +50,15 @@ const statusLabelStyles: Record<string, string> = {
   DROPPED: "text-clay-strong",
 };
 
+// A small dot echoes the row accent so the label reads at a glance without
+// shouting in capitals next to the game title.
+const statusDotStyles: Record<string, string> = {
+  PLAYING: "bg-sky",
+  PLAYING_NEXT: "bg-sage",
+  WISHLIST: "bg-sand",
+  DROPPED: "bg-clay",
+};
+
 /**
  * Text-only status label for the catalog. The status hue is carried by the row
  * (see {@link catalogRowAccent}) and echoed in the label color. Finished games
@@ -69,13 +78,18 @@ export function StatusLabel({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-caption font-bold uppercase tracking-[0.12em]",
+        "inline-flex items-center gap-1.5 text-caption font-bold",
         statusLabelStyles[status] ?? "text-ink-soft",
         className,
       )}
     >
       {isFinished ? (
         <Check aria-hidden className="h-3.5 w-3.5" strokeWidth={3} />
+      ) : statusDotStyles[status] ? (
+        <span
+          aria-hidden
+          className={cn("h-1.5 w-1.5 flex-none rounded-full", statusDotStyles[status])}
+        />
       ) : null}
       {getStatusDisplayLabel(status, locale)}
     </span>

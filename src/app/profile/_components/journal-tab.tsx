@@ -284,12 +284,6 @@ export function JournalTab({
         description={t("journal.description")}
         aside={<Link href="/account/retrospective" className="text-sm underline underline-offset-4">{planCopy(locale).recap} · Pro</Link>}
       />
-      <details className="mb-5 text-sm text-ink-soft">
-        <summary className="cursor-pointer">{planCopy(locale).storage}</summary>
-        <p className="mt-2">{new Intl.NumberFormat(locale).format(getPlanLimits(profile.user).journalStorageBytes / 1024 / 1024)} MB · {planCopy(locale).unlimited}</p>
-        <p className="mt-2">{planCopy(locale).retained}</p>
-        <Link href="/account/billing" className="mt-2 inline-block underline underline-offset-4">{planCopy(locale).compare}</Link>
-      </details>
       {selectedEntry ? (
         <div className="grid min-w-0 gap-6">
           <Link
@@ -443,6 +437,36 @@ export function JournalTab({
           {profile.user.gameEntries.length ? (
             <JournalSearch locale={locale} queryText={queryText} />
           ) : null}
+          {/* Writing is the main action here, so the game picker for a new
+              page sits above the pages already written. */}
+          {otherGames.length ? (
+            <details
+              className="group rounded-inner open:border open:border-edge open:bg-canvas/40 open:p-4"
+              open={Boolean(queryText) || !gamesWithPages.length}
+            >
+              <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-pill bg-ink px-5 text-sm font-bold text-surface shadow-rest transition-colors hover:bg-ink/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 [&::-webkit-details-marker]:hidden">
+                <PenLine aria-hidden="true" className="h-4 w-4" />
+                {t("journal.startForAnotherGame")}
+              </summary>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
+                {otherGames.map((entry) => (
+                  <Link
+                    className="flex min-w-0 items-center justify-between gap-3 rounded-inner border border-edge bg-surface p-3 text-sm font-semibold hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    href={`${buildEntryHref(entry.id)}&journalMode=write`}
+                    key={entry.id}
+                  >
+                    <span className="min-w-0 break-words">
+                      {entry.game.name}
+                    </span>
+                    <PenLine
+                      aria-hidden="true"
+                      className="h-4 w-4 flex-none text-ink-soft"
+                    />
+                  </Link>
+                ))}
+              </div>
+            </details>
+          ) : null}
           {gamesWithPages.length ? (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))] items-start gap-4">
               {gamesWithPages.map((entry) => {
@@ -512,35 +536,14 @@ export function JournalTab({
               {t("journal.emptyIndexBody")}
             </EmptyState>
           ) : null}
-          {otherGames.length ? (
-            <details
-              className="rounded-inner border border-edge bg-canvas/40 p-4"
-              open={Boolean(queryText) || !gamesWithPages.length}
-            >
-              <summary className="cursor-pointer rounded text-sm font-bold text-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {t("journal.startForAnotherGame")}
-              </summary>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
-                {otherGames.map((entry) => (
-                  <Link
-                    className="flex min-w-0 items-center justify-between gap-3 rounded-inner border border-edge bg-surface p-3 text-sm font-semibold hover:bg-canvas focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    href={`${buildEntryHref(entry.id)}&journalMode=write`}
-                    key={entry.id}
-                  >
-                    <span className="min-w-0 break-words">
-                      {entry.game.name}
-                    </span>
-                    <PenLine
-                      aria-hidden="true"
-                      className="h-4 w-4 flex-none text-ink-soft"
-                    />
-                  </Link>
-                ))}
-              </div>
-            </details>
-          ) : null}
         </div>
       )}
+      <details className="mt-8 border-t border-edge pt-4 text-sm text-ink-soft">
+        <summary className="cursor-pointer">{planCopy(locale).storage}</summary>
+        <p className="mt-2">{new Intl.NumberFormat(locale).format(getPlanLimits(profile.user).journalStorageBytes / 1024 / 1024)} MB · {planCopy(locale).unlimited}</p>
+        <p className="mt-2">{planCopy(locale).retained}</p>
+        <Link href="/account/billing" className="mt-2 inline-block underline underline-offset-4">{planCopy(locale).compare}</Link>
+      </details>
     </section>
   );
 }

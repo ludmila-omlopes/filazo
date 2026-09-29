@@ -43,3 +43,37 @@ export function normalizePlatformNames(value: string | null | undefined): string
 export function formatPlatformNames(value: string | null | undefined) {
   return normalizePlatformNames(value).join(", ");
 }
+
+// Short labels for the catalog's supported platforms, which arrive with full
+// metadata names ("PC (Microsoft Windows)"). Display only: these never build
+// platform keys or match library entries, so they can't split existing copies.
+const catalogPlatformShortNames: Record<string, string> = {
+  "pc (microsoft windows)": "PC",
+  playstation: "PS1",
+  "playstation 2": "PS2",
+  "playstation 3": "PS3",
+  "playstation 4": "PS4",
+  "playstation 5": "PS5",
+  "playstation portable": "PSP",
+  "playstation vita": "PS Vita",
+  "playstation vr": "PS VR",
+  "playstation vr2": "PS VR2",
+  "xbox series x|s": "Xbox Series X|S",
+  "nintendo switch": "Switch",
+  "nintendo switch 2": "Switch 2",
+  "nintendo 3ds": "3DS",
+  "nintendo ds": "DS",
+  "nintendo 64": "N64",
+  "nintendo gamecube": "GameCube",
+  "nintendo entertainment system": "NES",
+  "super nintendo entertainment system": "SNES",
+  "game boy advance": "GBA",
+  "sega mega drive/genesis": "Mega Drive",
+  mac: "macOS",
+  "web browser": "Browser",
+};
+
+export function formatCatalogPlatformName(name: string) {
+  const trimmed = name.trim().replace(/\s+/g, " ");
+  return catalogPlatformShortNames[trimmed.toLowerCase()] ?? trimmed;
+}

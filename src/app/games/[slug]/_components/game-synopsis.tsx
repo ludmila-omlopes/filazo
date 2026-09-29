@@ -19,6 +19,25 @@ export async function GameSynopsis({
     locale,
     userId,
   }).catch(() => null);
+
+  if (!translated && locale !== "en") {
+    // Without a translation, the original text is still the useful thing to
+    // read, so show it directly and say which language it is in.
+    return (
+      <div className="grid gap-3">
+        <span className="w-fit rounded-pill border border-edge bg-dusk-lavender-soft px-2.5 py-0.5 text-caption font-bold text-ink">
+          {t("game.originalLanguageBadge")}
+        </span>
+        <p
+          className="max-w-[65ch] whitespace-pre-line break-words text-base leading-8 text-ink/90"
+          lang="en"
+        >
+          {summary}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4">
       {translated ? (

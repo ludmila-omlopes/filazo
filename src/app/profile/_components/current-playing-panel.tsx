@@ -36,7 +36,7 @@ import { Notice } from "@/components/ui/notice";
 import { SectionHeader } from "@/components/ui/section-header";
 import { getSharedGameGenre } from "@/lib/game-metadata";
 import { createTranslator, type Locale } from "@/lib/i18n";
-import { formatNumber } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import {
   clearCurrentPlayingSelectionAction,
   currentPlayingDropAction,
@@ -283,23 +283,25 @@ function CurrentPlayingSlot({
   if (!entry) {
     return (
       <button
-        className="grid min-h-[180px] gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-5 text-left shadow-rest outline-none transition-colors duration-200 hover:bg-canvas/75 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        className="grid min-h-[180px] gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-5 text-left shadow-rest outline-none transition-colors duration-200 hover:bg-canvas/75 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas @max-[31rem]/slots:min-h-0 @max-[31rem]/slots:gap-2 @max-[31rem]/slots:p-4"
         disabled={isSaving}
         onClick={onOpenPicker}
         type="button"
       >
-        <div>
-          <div className="mb-3 grid h-10 w-10 place-items-center rounded-inner border border-edge bg-surface text-ink-soft">
+        <div className="@max-[31rem]/slots:flex @max-[31rem]/slots:items-center @max-[31rem]/slots:gap-3">
+          <div className="mb-3 grid h-10 w-10 flex-none place-items-center rounded-inner border border-edge bg-surface text-ink-soft @max-[31rem]/slots:mb-0">
             <ListPlus aria-hidden className="h-5 w-5" />
           </div>
-          <p className="section-label !mb-1">
-            {t("profile.currentPlaying.spot", { slot })}
-          </p>
-          <h3 className="font-display text-xl leading-tight">
-            {t("profile.currentPlaying.openTitle")}
-          </h3>
+          <div>
+            <p className="section-label !mb-1">
+              {t("profile.currentPlaying.spot", { slot })}
+            </p>
+            <h3 className="font-display text-xl leading-tight @max-[31rem]/slots:text-base">
+              {t("profile.currentPlaying.openTitle")}
+            </h3>
+          </div>
         </div>
-        <p className="max-w-[28ch] text-sm leading-relaxed text-ink-soft">
+        <p className="max-w-[28ch] text-sm leading-relaxed text-ink-soft @max-[31rem]/slots:hidden">
           {t("profile.currentPlaying.openBody")}
         </p>
         <span className="text-sm font-bold text-ink">
@@ -311,7 +313,10 @@ function CurrentPlayingSlot({
 
   return (
     <div
-      className={animated ? "grid min-w-0 content-start gap-2 animate-current-playing-place" : "grid min-w-0 content-start gap-2"}
+      className={cn(
+        "grid min-w-0 content-start gap-2 @max-[31rem]/slots:grid-cols-[minmax(0,1fr)_auto] @max-[31rem]/slots:items-stretch",
+        animated && "animate-current-playing-place",
+      )}
       draggable
       onDragEnd={onDragEnd}
       title={t("profile.currentPlaying.dragOut")}
@@ -328,16 +333,21 @@ function CurrentPlayingSlot({
         status={null}
         variant="slot"
       />
-      <div className="flex items-center gap-2 rounded-inner border border-edge bg-surface/80 p-2 shadow-rest">
+      <div className="flex items-center gap-2 rounded-inner border border-edge bg-surface/80 p-2 shadow-rest @max-[31rem]/slots:flex-col @max-[31rem]/slots:justify-center">
         <Button
           asChild
-          className="min-w-0 flex-1 px-2 text-xs sm:text-sm"
+          className="min-w-0 flex-1 px-2 text-xs sm:text-sm @max-[31rem]/slots:w-full @max-[31rem]/slots:flex-none"
           size="sm"
           variant="secondary"
         >
           <Link href={`/profile?tab=journal&journalMode=write&entryId=${entry.id}`}>
             <BookOpen className="h-4 w-4" />
-            {t("profile.currentPlaying.diaryPage")}
+            <span className="@max-[31rem]/slots:hidden">
+              {t("profile.currentPlaying.diaryPage")}
+            </span>
+            <span className="hidden @max-[31rem]/slots:inline">
+              {t("profile.currentPlaying.diaryShort")}
+            </span>
           </Link>
         </Button>
         <DropdownMenu>
@@ -1170,7 +1180,7 @@ export function CurrentPlayingPanel({
             </Notice>
           ) : null}
           <div
-            className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4"
+            className="@container/slots grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4"
             ref={currentPlayingAreaRef}
           >
             {currentPlayingSlots.map((slot) => (

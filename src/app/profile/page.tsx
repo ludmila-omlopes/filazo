@@ -4,7 +4,6 @@ import { AdSenseBanner } from "@/components/adsense-banner";
 import { AppNewsPanel } from "./_components/app-news-panel";
 import { AssistantTab, PlayerProfileTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
-import { BacklogEstimate } from "./_components/backlog-estimate";
 import { GreetingStrip } from "./_components/greeting-strip";
 import { IntegrationsPanel } from "./_components/integrations-panel";
 import { JournalTab } from "./_components/journal-tab";
@@ -38,7 +37,10 @@ import {
   getAssistantProfileData,
   getAssistantSignalEntryIds,
 } from "@/lib/assistant/queries";
-import { getPlayerProfileForUser } from "@/lib/assistant/profile-agent";
+import {
+  getPlayerProfileForUser,
+  getPlayerProfileShelfChanges,
+} from "@/lib/assistant/profile-agent";
 import { getAiSettings } from "@/lib/ai-settings";
 import { getProfileData } from "@/lib/catalog";
 import { createTranslator } from "@/lib/i18n";
@@ -145,6 +147,10 @@ export default async function ProfilePage({
     activeTab === "overview" || activeTab === "playerProfile"
       ? await getPlayerProfileForUser(profileUserId, locale)
       : null;
+  const playerProfileShelfChanges =
+    activeTab === "playerProfile" && playerProfile?.isLocalized
+      ? await getPlayerProfileShelfChanges(profileUserId, playerProfile.updatedAt)
+      : [];
   const aiSettings = applyPlanAiLimits(await getAiSettings(), planAccount);
   const signalEntryIds =
     activeTab === "games" && activeSignal
@@ -220,6 +226,7 @@ export default async function ProfilePage({
               locale={locale}
               playerProfile={playerProfile}
               profile={profile}
+              shelfChanges={playerProfileShelfChanges}
             />
           ) : null}
 
@@ -263,7 +270,6 @@ export default async function ProfilePage({
 
           {activeTab === "games" ? (
             <div className="grid gap-5">
-              <BacklogEstimate entries={allEntries} locale={locale} />
               <ShelfGrid
               allEntries={allEntries}
               filters={{

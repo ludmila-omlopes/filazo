@@ -25,9 +25,9 @@ export function SiteFooter({ locale }: { locale: Locale }) {
           aria-label={t("nav.footer")}
           className="flex flex-wrap items-center gap-4 text-sm"
         >
-          <Link className="nav-link" href="/catalog">{t("common.catalog")}</Link>
+          <Link className="nav-link" href="/catalog">{t("nav.exploreGames")}</Link>
           <Link className="nav-link" href="/profile">
-            {t("common.library")}
+            {t("nav.myShelf")}
           </Link>
           <Link className="nav-link" href="/feedback">
             {t("feedback.kicker")}

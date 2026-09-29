@@ -18,7 +18,8 @@ test("anonymous catalog reads only public game fields with bounded stable pagina
     assert.deepEqual(args.orderBy, [{ normalizedName: "asc" }, { slug: "asc" }]);
     assert.equal(args.take, 25);
     assert.equal(args.skip, 24);
-    assert.deepEqual(args.where, {});
+    // Browsing without a search skips entries that have no cover art.
+    assert.deepEqual(args.where, { coverUrl: { not: null } });
     return cards;
   } } };
   const result = await readPublicCatalog(db, { page: "2" });

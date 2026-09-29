@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Check } from "lucide-react";
 import { DropdownMenu as DropdownMenuPrimitive } from "radix-ui";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,30 @@ function DropdownMenuItem({
   );
 }
 
+/** On/off menu entry (role="menuitemcheckbox") with a trailing check. */
+function DropdownMenuCheckboxItem({
+  children,
+  className,
+  ...props
+}: React.ComponentProps<typeof DropdownMenuPrimitive.CheckboxItem>) {
+  return (
+    <DropdownMenuPrimitive.CheckboxItem
+      className={cn(
+        "flex cursor-pointer select-none items-center gap-2 rounded-[8px] px-3 py-2 text-sm font-semibold outline-none transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-60 data-[highlighted]:bg-canvas [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+      <span className="ml-auto grid h-4 w-4 place-items-center">
+        <DropdownMenuPrimitive.ItemIndicator>
+          <Check aria-hidden className="text-fern-strong" strokeWidth={3} />
+        </DropdownMenuPrimitive.ItemIndicator>
+      </span>
+    </DropdownMenuPrimitive.CheckboxItem>
+  );
+}
+
 function DropdownMenuSeparator({
   className,
   ...props
@@ -55,6 +80,7 @@ function DropdownMenuSeparator({
 
 export {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,

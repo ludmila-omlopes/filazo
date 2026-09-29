@@ -22,8 +22,9 @@ import {
 import { SignOutForm } from "@/components/sign-out-form";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeaderFrame } from "@/components/site-header-frame";
+import { ThemeMenu } from "@/components/theme-menu";
 import { ThemeRuntime } from "@/components/theme-runtime";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AccountMenu } from "@/components/account-menu";
 import { Button } from "@/components/ui/button";
 import { createTranslator } from "@/lib/i18n";
 import { isAdminEmail } from "@/lib/beta-access";
@@ -206,12 +207,19 @@ export default async function RootLayout({
                 className="hidden flex-wrap items-center justify-end gap-6 lg:flex"
                 aria-label={t("nav.main")}
               >
-                <Link href={homeHref} className="nav-link text-sm">
-                  {t("common.home")}
-                </Link>
-                <Link href="/catalog" className="nav-link text-sm">{t("common.catalog")}</Link>
-                <Link href="/profile" className="nav-link text-sm">
-                  {t("common.library")}
+                {/* One name per destination: the personal shelf and the public
+                    catalog used to both be called "catalog". */}
+                {navigationUser ? (
+                  <Link href="/profile" className="nav-link text-sm">
+                    {t("nav.myShelf")}
+                  </Link>
+                ) : (
+                  <Link href="/" className="nav-link text-sm">
+                    {t("common.home")}
+                  </Link>
+                )}
+                <Link href="/catalog" className="nav-link text-sm">
+                  {t("nav.exploreGames")}
                 </Link>
                 <Link href="/tonight" className="nav-link text-sm">
                   {t("common.tonight")}
@@ -221,16 +229,16 @@ export default async function RootLayout({
                     {t("admin.kicker")}
                   </Link>
                 ) : null}
-                <LocaleToggle locale={locale} />
-                <ThemeToggle mode={mode} />
+                <div className="inline-flex items-center gap-2">
+                  <LocaleToggle locale={locale} />
+                  <ThemeMenu mode={mode} />
+                </div>
                 {navigationUser ? (
-                  <div className="inline-flex items-center gap-3">
-                    <Link href="/account/billing" className="nav-link text-sm">{t("billing.title")}</Link>
-                    <span className="max-w-[16ch] truncate text-sm font-semibold">
-                      {navigationUser.displayName ?? t("common.player")}
-                    </span>
-                    <SignOutForm label={t("auth.signOut")} />
-                  </div>
+                  <AccountMenu
+                    avatarUrl={navigationUser.avatarUrl}
+                    displayName={navigationUser.displayName ?? t("common.player")}
+                    signOut={<SignOutForm label={t("auth.signOut")} />}
+                  />
                 ) : (
                   <AuthDialog
                     triggerLabel={t("auth.trigger.signIn")}
