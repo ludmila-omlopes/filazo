@@ -1,5 +1,6 @@
-import { type PrismaClient, type UserGameEntry } from "@prisma/client";
+import { Prisma, type PrismaClient, type UserGameEntry } from "@prisma/client";
 import { parseMarketplaceSnapshot } from "@/lib/assistant/marketplace-search";
+import { indexableGameSelect, isIndexableGame, looksLikeGameExtra } from "@/lib/game-indexing";
 import { parseSteamReviewsSnapshot } from "@/lib/steam-reviews";
 
 type DisplayEntry = Pick<UserGameEntry, "currentPlayingSlot" | "playtimeSource" | "updatedAt">;
@@ -107,6 +108,70 @@ export async function readGameDetail(db: PrismaClient, slug: string, userId: str
 /** SEO metadata needs no library, journal, community or provider queries. */
 export function readGameMetadata(db: PrismaClient, slug: string) {
   return db.game.findUnique({
-    where: { slug }, select: { name: true, slug: true, summary: true },
+    where: { slug }, select: { name: true, slug: true, ...indexableGameSelect },
   });
+}
+
+/** Database-side superset of `isIndexableGame`, so catalog scans stay narrow. */
+const indexableGameWhere = {
+  summary: { not: null },
+  coverUrl: { not: null },
+  OR: [
+    { hltbMainStoryMinutes: { not: null } },
+    { hltbMainExtraMinutes: { not: null } },
+    { hltbCompletionistMinutes: { not: null } },
+    { metacriticScore: { not: null } },
+    { screenshots: { not: Prisma.DbNull } },
+  ],
+} satisfies Prisma.GameWhereInput;
+
+export const SITEMAP_GAME_LIMIT = 10_000;
+
+export async function readSitemapGames(db: PrismaClient) {
+  const games = await db.game.findMany({
+    where: indexableGameWhere,
+    select: { slug: true, updatedAt: true, ...indexableGameSelect },
+    orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+    take: SITEMAP_GAME_LIMIT,
+  });
+  return games.filter(isIndexableGame).map(({ slug, updatedAt }) => ({ slug, updatedAt }));
+}
+
+export const RELATED_GAMES_LIMIT = 6;
+const RELATED_GAME_CANDIDATES = 48;
+
+function readGenres(value: Prisma.JsonValue | null) {
+  return Array.isArray(value)
+    ? value.filter((genre): genre is string => typeof genre === "string" && genre.length > 0)
+    : [];
+}
+
+/** Catalog-only discovery links: public fields, bounded, never user data. */
+export async function readRelatedGames(
+  db: PrismaClient,
+  game: { id: string; genres: Prisma.JsonValue | null },
+) {
+  const genres = readGenres(game.genres);
+  if (!genres.length) return [];
+
+  const candidates = await db.game.findMany({
+    where: {
+      id: { not: game.id },
+      AND: [indexableGameWhere, { OR: genres.map((genre) => ({ genres: { array_contains: [genre] } })) }],
+    },
+    select: { slug: true, name: true, genres: true, ...indexableGameSelect },
+    orderBy: [{ totalRatingCount: { sort: "desc", nulls: "last" } }, { id: "asc" }],
+    take: RELATED_GAME_CANDIDATES,
+  });
+  const genreSet = new Set(genres);
+  return candidates
+    .filter((candidate) => isIndexableGame(candidate) && !looksLikeGameExtra(candidate.name))
+    .map((candidate) => ({
+      candidate,
+      sharedGenres: readGenres(candidate.genres).filter((genre) => genreSet.has(genre)).length,
+    }))
+    // Stable sort keeps the better-known title first among equal genre overlap.
+    .sort((left, right) => right.sharedGenres - left.sharedGenres)
+    .slice(0, RELATED_GAMES_LIMIT)
+    .map(({ candidate }) => ({ slug: candidate.slug, name: candidate.name, coverUrl: candidate.coverUrl }));
 }

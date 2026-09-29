@@ -1459,6 +1459,9 @@ const messages = {
     "game.entryCountOne": "1 entry",
     "game.entryCountMany": "{count} entries",
     "game.backToCatalog": "Back to catalog",
+    "game.relatedLabel": "Keep browsing",
+    "game.relatedTitle": "Games in the same vein",
+    "game.relatedHint": "Chosen from shared genres in the catalog.",
     "game.noPlaytimeData": "No playtime data",
     "game.notFound": "Game not found | filazo",
     "game.metadataFallback":
@@ -3159,6 +3162,9 @@ const messages = {
     "game.otherEntries": "Outras entradas",
     "game.nearbyShelves": "Na biblioteca de outros jogadores",
     "game.backToCatalog": "Voltar ao catálogo",
+    "game.relatedLabel": "Continue explorando",
+    "game.relatedTitle": "Jogos na mesma linha",
+    "game.relatedHint": "Escolhidos por gêneros em comum no catálogo.",
     "game.noPlaytimeData": "Sem dados de tempo de jogo",
     "game.notFound": "Jogo não encontrado | filazo",
     "game.metadataFallback":

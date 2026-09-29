@@ -112,7 +112,10 @@ async function main() {
   assert.ok(!queries.some((query) => /^\s*(INSERT|UPDATE|DELETE)\b/i.test(query)));
   assert.deepEqual(await db.game.findUniqueOrThrow({ where: { id: game.id } }), gameBefore);
   queries.length = 0;
-  assert.deepEqual(await readGameMetadata(db, game.slug), { name: game.name, slug: game.slug, summary: null });
+  assert.deepEqual(await readGameMetadata(db, game.slug), {
+    name: game.name, slug: game.slug, summary: null, coverUrl: null, screenshots: null,
+    hltbMainStoryMinutes: null, hltbMainExtraMinutes: null, hltbCompletionistMinutes: null, metacriticScore: null,
+  });
   assert.equal(queries.length, 1);
   assert.doesNotMatch(queries[0], /User|Journal|Review/);
   assert.equal(await readGameDetail(db, "missing-title", a.id), null);

@@ -18,5 +18,6 @@ export default function robots(): MetadataRoute.Robots {
       ],
     },
     host: getSiteUrl().origin,
+    sitemap: new URL("/sitemap.xml", getSiteUrl()).toString(),
   };
 }

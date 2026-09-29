@@ -14,6 +14,7 @@ import {
   getDatabaseErrorMessage,
   reportDatabaseError,
 } from "@/lib/database-errors";
+import { looksLikeGameExtra } from "@/lib/game-indexing";
 import { createTranslator } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getRequestLocale } from "@/lib/request-locale";
@@ -92,11 +93,7 @@ function isSuspiciousCatalogCandidate(candidate: HomeShowcaseCandidate) {
   const normalizedName = candidate.name.toLowerCase();
   const normalizedSummary = candidate.summary?.toLowerCase() ?? "";
 
-  if (
-    /\b(troph(?:y|ies)|skin|soundtrack|avatar|theme|add[\s-]?on|dlc|bundle)\b/i.test(
-      normalizedName,
-    )
-  ) {
+  if (looksLikeGameExtra(normalizedName)) {
     return true;
   }
 
