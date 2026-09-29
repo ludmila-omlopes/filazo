@@ -131,7 +131,7 @@ function PlayingNextSlot({
   if (!entry) {
     return (
       <button
-        className="grid min-h-[160px] content-start gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-4 text-left outline-none transition-colors duration-200 hover:bg-canvas/75 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
+        className="grid min-h-[160px] content-start gap-3 rounded-card border border-dashed border-edge bg-canvas/55 p-4 text-left outline-none transition-colors duration-200 hover:bg-canvas/75 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas @max-[31rem]/slots:min-h-0 @max-[31rem]/slots:grid-cols-[2.5rem_minmax(0,1fr)] @max-[31rem]/slots:items-center"
         disabled={isBusy}
         onClick={onOpenPicker}
         type="button"
@@ -143,11 +143,11 @@ function PlayingNextSlot({
           <p className="section-label !mb-1">
             {t("profile.playingNext.spot", { slot })}
           </p>
-          <h3 className="font-display text-lg leading-tight">
+          <h3 className="font-display text-lg leading-tight @max-[31rem]/slots:text-base">
             {t("profile.playingNext.openTitle")}
           </h3>
         </div>
-        <p className="max-w-[30ch] text-sm leading-relaxed text-ink-soft">
+        <p className="max-w-[30ch] text-sm leading-relaxed text-ink-soft @max-[31rem]/slots:hidden">
           {t("profile.playingNext.openBody")}
         </p>
       </button>
@@ -160,7 +160,7 @@ function PlayingNextSlot({
   }
 
   return (
-    <div className="group grid min-w-0 content-start gap-2">
+    <div className="group grid min-w-0 content-start gap-2 @max-[31rem]/slots:grid-cols-[minmax(0,1fr)_auto] @max-[31rem]/slots:items-center">
       <GameCard
         className="h-full transition-colors group-hover:border-sage"
         completionPercent={entry.completionPercent}
@@ -194,7 +194,9 @@ function PlayingNextSlot({
         variant="ghost"
       >
         <X className="h-3.5 w-3.5" />
-        {t("profile.currentPlaying.removeFromView")}
+        <span className="@max-[31rem]/slots:sr-only">
+          {t("profile.currentPlaying.removeFromView")}
+        </span>
       </Button>
     </div>
   );
@@ -447,7 +449,7 @@ export function PlayingNextPanel({
       />
 
       {profile.playingNextEntries.length ? (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4">
+        <div className="@container/slots grid grid-cols-[repeat(auto-fill,minmax(min(100%,15rem),1fr))] gap-4">
           {PLAYING_NEXT_SLOTS.map((slot) => {
             const entry = queuedEntriesBySlot.get(slot) ?? null;
 

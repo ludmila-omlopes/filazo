@@ -4,6 +4,7 @@ import Link from "next/link";
 import { hasProAccess } from "@/lib/account-plans";
 import { planCopy } from "@/lib/plan-copy";
 import {
+  ChevronDown,
   ExternalLink,
   Unplug,
 } from "lucide-react";
@@ -67,6 +68,18 @@ function hasSteamApiConfigurationError(account: ProviderAccount) {
   );
 }
 
+// A connected account whose data is this old is shown as needing a refresh
+// instead of with the same calm "synced on" pill as an account synced today.
+const STALE_SYNC_DAYS = 14;
+
+function isSyncStale(account: ProviderAccount) {
+  return Boolean(
+    account?.lastSyncedAt &&
+      Date.now() - account.lastSyncedAt.getTime() >
+        STALE_SYNC_DAYS * 24 * 60 * 60 * 1000,
+  );
+}
+
 function ConnectionRow({
   label,
   children,
@@ -102,14 +115,31 @@ function DisconnectForm({
   );
 }
 
-function getSourceState(account: ProviderAccount, locale: Locale) {
+type SourceState = {
+  label: string;
+  tone: string;
+  dot: string;
+  border: string;
+  /** Opens the row by default so the fix is visible without hunting for it. */
+  needsAttention: boolean;
+  /** Plain explanation shown inside an open row that needs attention. */
+  detail?: string;
+};
+
+function getSourceState(account: ProviderAccount, locale: Locale): SourceState {
   const t = createTranslator(locale);
+  const problem = {
+    tone: "bg-clay-soft text-ink border-clay/35",
+    dot: "bg-clay",
+    border: "border-clay/35",
+    needsAttention: true,
+  };
 
   if (!account) {
     return {
       label: t("profile.sources.disconnected"),
-      tone: "bg-clay-soft text-ink border-clay/35",
-      dot: "bg-clay",
+      ...problem,
+      needsAttention: false,
     };
   }
 
@@ -118,39 +148,25 @@ function getSourceState(account: ProviderAccount, locale: Locale) {
       label: t("profile.sources.syncing"),
       tone: "bg-sky-soft text-ink border-sky/50",
       dot: "bg-sky",
+      border: "border-sky/50",
+      needsAttention: false,
     };
   }
 
   if (hasSteamApiConfigurationError(account)) {
-    return {
-      label: t("profile.sources.steamApiUnavailable"),
-      tone: "bg-clay-soft text-ink border-clay/35",
-      dot: "bg-clay",
-    };
+    return { label: t("profile.sources.steamApiUnavailable"), ...problem };
   }
 
   if (account.lastSyncErrorCode === "CONFIGURATION") {
-    return {
-      label: t("profile.sources.configurationNeeded"),
-      tone: "bg-clay-soft text-ink border-clay/35",
-      dot: "bg-clay",
-    };
+    return { label: t("profile.sources.configurationNeeded"), ...problem };
   }
 
   if (account.lastSyncErrorCode === "AUTH") {
-    return {
-      label: t("profile.sources.reconnectNeeded"),
-      tone: "bg-clay-soft text-ink border-clay/35",
-      dot: "bg-clay",
-    };
+    return { label: t("profile.sources.reconnectNeeded"), ...problem };
   }
 
   if (account.lastSyncErrorCode) {
-    return {
-      label: t("profile.sources.syncFailed"),
-      tone: "bg-clay-soft text-ink border-clay/35",
-      dot: "bg-clay",
-    };
+    return { label: t("profile.sources.syncFailed"), ...problem };
   }
 
   if (!account.lastSyncedAt) {
@@ -158,6 +174,20 @@ function getSourceState(account: ProviderAccount, locale: Locale) {
       label: t("profile.sources.notSynced"),
       tone: "bg-sand-soft text-ink border-sand/70",
       dot: "bg-sand",
+      border: "border-sand/70",
+      needsAttention: false,
+    };
+  }
+
+  if (isSyncStale(account)) {
+    const date = formatDate(account.lastSyncedAt, locale);
+    return {
+      label: t("profile.sources.staleSince", { date }),
+      tone: "bg-sand-soft text-ink border-sand/70",
+      dot: "bg-sand-strong",
+      border: "border-sand/70",
+      needsAttention: true,
+      detail: t("profile.sources.staleBody", { date }),
     };
   }
 
@@ -167,6 +197,8 @@ function getSourceState(account: ProviderAccount, locale: Locale) {
     }),
     tone: "bg-sage-soft text-ink border-sage/50",
     dot: "bg-sage",
+    border: "border-sage/45",
+    needsAttention: false,
   };
 }
 
@@ -243,12 +275,9 @@ function ProviderRow({
     <details
       className={cn(
         "group rounded-inner border bg-surface shadow-rest transition-colors",
-        account
-          ? account.lastSyncedAt
-            ? "border-sage/45"
-            : "border-sand/70"
-          : "border-clay/35",
+        state.border,
       )}
+      open={state.needsAttention || undefined}
     >
       <summary className="grid cursor-pointer grid-cols-[1fr_auto] items-center gap-4 p-4 marker:content-[''] max-sm:grid-cols-1">
         <div className="flex min-w-0 items-center gap-3">
@@ -274,6 +303,11 @@ function ProviderRow({
       </summary>
 
       <div className="grid gap-4 border-t border-edge p-4">
+        {state.detail ? (
+          <p className="max-w-[62ch] rounded-inner border border-sand/70 bg-sand-soft px-4 py-3 text-sm font-semibold leading-relaxed text-ink">
+            {state.detail}
+          </p>
+        ) : null}
         <p className="max-w-[62ch] text-sm leading-relaxed text-ink-soft">
           {description}
         </p>
@@ -292,6 +326,54 @@ function ProviderRow({
   );
 }
 
+/**
+ * A less frequent way to bring games in: collapsed to its title and one line
+ * of context, opened only when someone wants to use it.
+ */
+function SourceTool({
+  children,
+  eyebrow,
+  summary,
+  title,
+  unavailableLabel,
+}: {
+  children: React.ReactNode;
+  eyebrow: string;
+  summary?: React.ReactNode;
+  title: string;
+  /** Shown only when the tool cannot be used yet. */
+  unavailableLabel?: string | null;
+}) {
+  return (
+    <details className="group rounded-inner border border-edge bg-surface shadow-rest">
+      <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-inner p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+        <div className="min-w-0">
+          <p className="section-label !mb-1">{eyebrow}</p>
+          <h3 className="font-display text-lg font-medium leading-tight">
+            {title}
+          </h3>
+          {summary ? (
+            <p className="mt-1 max-w-[62ch] text-sm leading-relaxed text-ink-soft">
+              {summary}
+            </p>
+          ) : null}
+          {unavailableLabel ? (
+            <span className="mt-2 inline-flex items-center gap-2 rounded-pill border border-clay/35 bg-clay-soft px-3 py-1 text-xs font-bold text-ink">
+              <span aria-hidden className="h-2 w-2 rounded-full bg-clay" />
+              {unavailableLabel}
+            </span>
+          ) : null}
+        </div>
+        <ChevronDown
+          aria-hidden
+          className="h-4 w-4 flex-none text-ink-soft motion-safe:transition-transform group-open:rotate-180"
+        />
+      </summary>
+      <div className="grid gap-4 border-t border-edge p-4">{children}</div>
+    </details>
+  );
+}
+
 function CompletionStatusRow({
   locale,
   profile,
@@ -305,57 +387,27 @@ function CompletionStatusRow({
   );
 
   return (
-    <div
-      className={cn(
-        "rounded-inner border bg-surface p-4 shadow-rest",
-        canUpdateCompletion ? "border-sage/45" : "border-clay/35",
-      )}
+    <SourceTool
+      eyebrow={t("profile.completion.label")}
+      summary={t("profile.completion.body")}
+      title={t("profile.completion.title")}
+      unavailableLabel={
+        canUpdateCompletion ? null : t("profile.completion.needsSource")
+      }
     >
-      <div className="grid grid-cols-[1fr_auto] items-center gap-4 max-sm:grid-cols-1">
-        <div>
-          <p className="section-label !mb-1">{t("profile.completion.label")}</p>
-          <h2 className="font-display text-xl font-medium leading-tight">
-            {t("profile.completion.title")}
-          </h2>
-          <p className="mt-2 max-w-[62ch] text-sm leading-relaxed text-ink-soft">
-            {t("profile.completion.body")}
-          </p>
-        </div>
-        <span
-          className={cn(
-            "inline-flex items-center justify-center gap-2 rounded-pill border px-3 py-1 text-xs font-bold",
-            canUpdateCompletion
-              ? "border-sage/50 bg-sage-soft text-ink"
-              : "border-clay/35 bg-clay-soft text-ink",
-          )}
-        >
-          <span
-            className={cn(
-              "h-2 w-2 rounded-full",
-              canUpdateCompletion ? "bg-sage" : "bg-clay",
-            )}
-          />
-          {canUpdateCompletion
-            ? t("profile.completion.ready")
-            : t("profile.completion.needsSource")}
-        </span>
-      </div>
-
-      <div className="mt-4">
-        {canUpdateCompletion ? (
-          <SyncActionForm
-            action={detectFinishedGamesAction}
-            buttonLabel={t("profile.completion.update")}
-            pendingLabel={t("profile.completion.checking")}
-            pendingNotice={t("profile.completion.pending")}
-          />
-        ) : (
-          <p className="text-sm font-semibold text-ink-soft">
-            {t("profile.completion.connectFirst")}
-          </p>
-        )}
-      </div>
-    </div>
+      {canUpdateCompletion ? (
+        <SyncActionForm
+          action={detectFinishedGamesAction}
+          buttonLabel={t("profile.completion.update")}
+          pendingLabel={t("profile.completion.checking")}
+          pendingNotice={t("profile.completion.pending")}
+        />
+      ) : (
+        <p className="text-sm font-semibold text-ink-soft">
+          {t("profile.completion.connectFirst")}
+        </p>
+      )}
+    </SourceTool>
   );
 }
 
@@ -369,23 +421,20 @@ function CsvImportRow({
   const t = createTranslator(locale);
 
   return (
-    <div className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
-      <SectionHeader
-        eyebrow={t("profile.addGames.fileImport")}
-        title={t("profile.addGames.uploadCsv")}
-        aside={
-          profile.latestImport ? (
-            <div className="pill">
-              {t("profile.addGames.latestImport", {
-                date: formatDate(profile.latestImport.createdAt, locale),
-              })}
-            </div>
-          ) : null
-        }
-      />
+    <SourceTool
+      eyebrow={t("profile.addGames.fileImport")}
+      summary={
+        profile.latestImport
+          ? t("profile.addGames.latestImport", {
+              date: formatDate(profile.latestImport.createdAt, locale),
+            })
+          : t("profile.addGames.csvSummary")
+      }
+      title={t("profile.addGames.uploadCsv")}
+    >
       <CsvImportWidget action={importCsvAction} />
       <ImportAuditPreview locale={locale} profile={profile} source="file" />
-    </div>
+    </SourceTool>
   );
 }
 
@@ -489,19 +538,12 @@ function PhotoImportRow({
     : t("profile.photoImport.disabledBody");
 
   return (
-    <div className="rounded-inner border border-edge bg-surface p-5 shadow-rest">
-      <SectionHeader
-        eyebrow={t("profile.photoImport.label")}
-        title={t("profile.photoImport.title")}
-        description={t("profile.photoImport.description")}
-        aside={
-          <div className={cn("pill", !aiAvailable && "bg-clay-soft")}>
-            {aiAvailable
-              ? t("profile.photoImport.ready")
-              : unavailableLabel}
-          </div>
-        }
-      />
+    <SourceTool
+      eyebrow={t("profile.photoImport.label")}
+      summary={t("profile.photoImport.description")}
+      title={t("profile.photoImport.title")}
+      unavailableLabel={aiAvailable ? null : unavailableLabel}
+    >
       <CatalogPhotoImportForm
         action={importPhotoCatalogAction}
         userId={profile.user.id}
@@ -511,7 +553,7 @@ function PhotoImportRow({
         unavailableBody={unavailableBody}
       />
       <ImportAuditPreview locale={locale} profile={profile} source="photo" />
-    </div>
+    </SourceTool>
   );
 }
 
@@ -526,55 +568,25 @@ function ReviewSyncRow({
   const canSyncReviews = Boolean(profile.steamAccount);
 
   return (
-    <div
-      className={cn(
-        "rounded-inner border bg-surface p-4 shadow-rest",
-        canSyncReviews ? "border-sage/45" : "border-clay/35",
-      )}
+    <SourceTool
+      eyebrow={t("profile.reviews.label")}
+      summary={t("profile.reviews.body")}
+      title={t("profile.reviews.title")}
+      unavailableLabel={canSyncReviews ? null : t("profile.reviews.needsSteam")}
     >
-      <div className="grid grid-cols-[1fr_auto] items-center gap-4 max-sm:grid-cols-1">
-        <div>
-          <p className="section-label !mb-1">{t("profile.reviews.label")}</p>
-          <h2 className="font-display text-xl font-medium leading-tight">
-            {t("profile.reviews.title")}
-          </h2>
-          <p className="mt-2 max-w-[62ch] text-sm leading-relaxed text-ink-soft">
-            {t("profile.reviews.body")}
-          </p>
-        </div>
-        <span
-          className={cn(
-            "inline-flex items-center justify-center gap-2 rounded-pill border px-3 py-1 text-xs font-bold",
-            canSyncReviews
-              ? "border-sage/50 bg-sage-soft text-ink"
-              : "border-clay/35 bg-clay-soft text-ink",
-          )}
-        >
-          <span
-            className={cn(
-              "h-2 w-2 rounded-full",
-              canSyncReviews ? "bg-sage" : "bg-clay",
-            )}
-          />
-          {canSyncReviews ? t("profile.reviews.ready") : t("profile.reviews.needsSteam")}
-        </span>
-      </div>
-
-      <div className="mt-4">
-        {canSyncReviews ? (
-          <SyncActionForm
-            action={syncUserReviewsAction}
-            buttonLabel={t("profile.reviews.sync")}
-            pendingLabel={t("profile.reviews.checking")}
-            pendingNotice={t("profile.reviews.pending")}
-          />
-        ) : (
-          <p className="text-sm font-semibold text-ink-soft">
-            {t("profile.reviews.connectFirst")}
-          </p>
-        )}
-      </div>
-    </div>
+      {canSyncReviews ? (
+        <SyncActionForm
+          action={syncUserReviewsAction}
+          buttonLabel={t("profile.reviews.sync")}
+          pendingLabel={t("profile.reviews.checking")}
+          pendingNotice={t("profile.reviews.pending")}
+        />
+      ) : (
+        <p className="text-sm font-semibold text-ink-soft">
+          {t("profile.reviews.connectFirst")}
+        </p>
+      )}
+    </SourceTool>
   );
 }
 
@@ -602,30 +614,20 @@ export function IntegrationsPanel({
         eyebrow={t("profile.sources.label")}
         title={t("profile.sources.title")}
         description={t("profile.sources.description")}
-        aside={
-          <div className="pill">
-            {t("profile.sources.connectedCount", {
-              count: formatNumber(
-                profile.user.externalAccounts.filter(
-                  (account) => account.provider !== ExternalProvider.GOG,
-                ).length,
-                locale,
-              ),
-            })}
-          </div>
-        }
       />
 
-      <p className="mb-5 text-sm leading-relaxed text-ink-soft">
+      {/* Adding one game is the most common task here, so it comes first. */}
+      <div className="mb-8">
+        <ManualGameLookupPanel enabled={hasIgdbConfig()} />
+      </div>
+
+      <h3 className="mb-2 font-display text-xl font-medium">
+        {t("profile.sources.accountsTitle")}
+      </h3>
+      <p className="mb-4 text-sm leading-relaxed text-ink-soft">
         {hasProAccess(profile.user) ? planCopy(locale).syncPro : planCopy(locale).syncFree}{" "}
         {!hasProAccess(profile.user) ? <Link href="/account/billing" className="underline underline-offset-4">{planCopy(locale).upgrade}</Link> : null}
       </p>
-      <details className="mb-6 rounded-inner border border-edge bg-surface px-5 py-4 text-sm leading-relaxed text-ink-soft">
-        <summary className="cursor-pointer font-bold text-ink">
-          {t("profile.sources.disconnectQuestion")}
-        </summary>
-        <p className="mt-2">{t("profile.sources.disconnectAnswer")}</p>
-      </details>
 
       <div className="grid gap-5">
         <ProviderRow
@@ -794,12 +796,18 @@ export function IntegrationsPanel({
           </details>
         </ProviderRow>
 
-        <CompletionStatusRow locale={locale} profile={profile} />
+        <details className="rounded-inner border border-edge bg-surface px-5 py-4 text-sm leading-relaxed text-ink-soft">
+          <summary className="cursor-pointer font-bold text-ink">
+            {t("profile.sources.disconnectQuestion")}
+          </summary>
+          <p className="mt-2">{t("profile.sources.disconnectAnswer")}</p>
+        </details>
+      </div>
 
-        <ReviewSyncRow locale={locale} profile={profile} />
-
-        <ManualGameLookupPanel enabled={hasIgdbConfig()} />
-
+      <h3 className="mb-4 mt-8 font-display text-xl font-medium">
+        {t("profile.sources.moreWaysTitle")}
+      </h3>
+      <div className="grid gap-3">
         <PhotoImportRow
           aiSettings={aiSettings}
           locale={locale}
@@ -807,6 +815,10 @@ export function IntegrationsPanel({
         />
 
         <CsvImportRow locale={locale} profile={profile} />
+
+        <ReviewSyncRow locale={locale} profile={profile} />
+
+        <CompletionStatusRow locale={locale} profile={profile} />
       </div>
     </section>
   );

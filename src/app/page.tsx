@@ -139,11 +139,20 @@ function toShowcaseGame(candidate: HomeShowcaseCandidate): GameCardGame {
   };
 }
 
+// Editions of one game ("Fallout 3" and "Fallout 3: Game of the Year
+// Edition") would otherwise sit side by side in an eight-card showcase.
+const EDITION_SUFFIX =
+  /\s*[:\-–]?\s*(game of the year|goty|complete|definitive|deluxe|ultimate|enhanced|special|anniversary|collector'?s|director'?s cut|remastered)(\s+edition)?\s*$/i;
+
+function showcaseFamilyKey(name: string) {
+  return name.replace(EDITION_SUFFIX, "").trim().toLowerCase();
+}
+
 function selectHomeShowcaseGames(candidates: HomeShowcaseCandidate[]) {
   const safeCandidates = candidates.filter(
     (candidate) => !isSuspiciousCatalogCandidate(candidate),
   );
-  const orderedCandidates = [...safeCandidates].sort((left, right) => {
+  const rankedCandidates = [...safeCandidates].sort((left, right) => {
     const scoreDelta =
       scoreCatalogCandidate(right) - scoreCatalogCandidate(left);
     if (scoreDelta !== 0) {
@@ -151,6 +160,15 @@ function selectHomeShowcaseGames(candidates: HomeShowcaseCandidate[]) {
     }
 
     return right.updatedAt.getTime() - left.updatedAt.getTime();
+  });
+  const seenFamilies = new Set<string>();
+  const orderedCandidates = rankedCandidates.filter((candidate) => {
+    const family = showcaseFamilyKey(candidate.name);
+    if (seenFamilies.has(family)) {
+      return false;
+    }
+    seenFamilies.add(family);
+    return true;
   });
 
   const strongCandidates = orderedCandidates.filter(hasStrongCatalogSignal);
@@ -172,10 +190,9 @@ function selectHomeShowcaseGames(candidates: HomeShowcaseCandidate[]) {
 
 async function getHomeData() {
   try {
-    const [catalogStats, enrichedStats, showcaseCandidates] =
+    const [catalogStats, showcaseCandidates] =
       await Promise.all([
         prisma.game.aggregate({ _count: { id: true } }),
-        prisma.game.aggregate({ _count: { igdbId: true } }),
         prisma.game.findMany({
           where: {
             coverUrl: { not: null },
@@ -194,7 +211,6 @@ async function getHomeData() {
 
     return {
       catalogCount: catalogStats._count.id,
-      enrichedCount: enrichedStats._count.igdbId,
       showcaseGames: selectHomeShowcaseGames(showcaseCandidates),
       databaseError: null,
     };
@@ -207,7 +223,6 @@ async function getHomeData() {
 
     return {
       catalogCount: 0,
-      enrichedCount: 0,
       showcaseGames: [],
       databaseError: getDatabaseErrorMessage(error),
     };
@@ -228,8 +243,7 @@ export default async function Home() {
     cookieStore.get(FILAZO_THEME_COOKIE)?.value,
   );
   const homeData = await getHomeData();
-  const { catalogCount, enrichedCount, showcaseGames, databaseError } =
-    homeData;
+  const { catalogCount, showcaseGames, databaseError } = homeData;
   const isSignedIn = Boolean(sessionUserId);
   const shouldShowDatabaseNotice =
     Boolean(databaseError) &&
@@ -284,14 +298,14 @@ export default async function Home() {
               >
                 <Link href="/catalog">{t("publicCatalog.browse")}</Link>
               </Button>
-              <Button
-                asChild
-                variant="ghost"
-                size="lg"
-                className={HERO_GHOST_BUTTON}
+              {/* A third equal-weight button made the hero ask for three things
+                  at once; adding games is a quieter follow-up to signing in. */}
+              <Link
+                className="nav-link inline-flex min-h-11 items-center text-sm font-bold"
+                href="/profile?tab=integrations"
               >
-                <Link href="/profile?tab=integrations">{t("common.addGames")}</Link>
-              </Button>
+                {t("common.addGames")}
+              </Link>
             </div>
             <p className="mt-5 text-sm text-ink-soft">
               {t("landing.indexedCount", {
@@ -414,11 +428,7 @@ export default async function Home() {
               <Link href="/profile?tab=integrations">{t("common.addGames")}</Link>
             </Button>
           </div>
-          <p className="text-xs text-ink-soft">
-            {t("landing.ctaFoot", {
-              count: formatNumber(enrichedCount, locale),
-            })}
-          </p>
+          <p className="text-xs text-ink-soft">{t("landing.ctaFoot")}</p>
         </div>
       </section>
     </main>

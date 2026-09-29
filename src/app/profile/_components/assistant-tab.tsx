@@ -8,6 +8,7 @@ import { SyncActionForm } from "@/components/sync-action-form";
 import { SectionHeader } from "@/components/ui/section-header";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import type { AiSettingsValues } from "@/lib/ai-settings";
+import type { PlayerProfileShelfChange } from "@/lib/assistant/profile-agent";
 import { isAiProviderConfigured } from "@/lib/openai";
 import { formatNumber } from "@/lib/utils";
 import Link from "next/link";
@@ -50,12 +51,23 @@ export function PlayerProfileTab({
   locale,
   playerProfile,
   profile,
+  shelfChanges,
 }: {
   aiSettings: AiSettingsValues;
   locale: Locale;
   playerProfile: PlayerProfileData;
   profile: ProfileData;
+  shelfChanges?: PlayerProfileShelfChange[];
 }) {
+  // Copies on several platforms share one status, so any entry for the game
+  // gives the current shelf state.
+  const statusBySlug = Object.fromEntries(
+    profile.user.gameEntries.map((entry) => [
+      entry.game.slug,
+      entry.finishedAt && entry.status !== "COMPLETED" ? "FINISHED" : entry.status,
+    ]),
+  );
+
   return (
     <div className="min-w-0">
       <PlayerProfilePanel
@@ -68,6 +80,8 @@ export function PlayerProfileTab({
         locale={locale}
         games={profile.user.gameEntries.map((entry) => entry.game)}
         profile={playerProfile}
+        shelfChanges={shelfChanges}
+        statusBySlug={statusBySlug}
       />
     </div>
   );

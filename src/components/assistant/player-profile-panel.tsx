@@ -1,13 +1,58 @@
 import Link from "next/link";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
 import { createTranslator, type Locale } from "@/lib/i18n";
-import type { StoredPlayerProfile } from "@/lib/assistant/profile-agent";
+import type {
+  PlayerProfileShelfChange,
+  StoredPlayerProfile,
+} from "@/lib/assistant/profile-agent";
 import { GameCard, type GameCardGame } from "@/components/game-card";
 import { SyncActionForm } from "@/components/sync-action-form";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getStatusDisplayLabel } from "@/lib/copy";
 import { cn, formatDate } from "@/lib/utils";
+
+const NAMED_CHANGES_PER_KIND = 3;
+
+function describeShelfChanges(
+  changes: PlayerProfileShelfChange[],
+  since: Date,
+  locale: Locale,
+) {
+  const t = createTranslator(locale);
+  const list = new Intl.ListFormat(locale, { style: "long", type: "conjunction" });
+  const clauses: string[] = [];
+  let unnamedCount = 0;
+
+  for (const [kind, key] of [
+    ["started", "playerProfile.stale.started"],
+    ["finished", "playerProfile.stale.finished"],
+    ["released", "playerProfile.stale.released"],
+  ] as const) {
+    const names = changes
+      .filter((change) => change.kind === kind)
+      .map((change) => change.gameName);
+    if (!names.length) {
+      continue;
+    }
+    clauses.push(t(key, { games: list.format(names.slice(0, NAMED_CHANGES_PER_KIND)) }));
+    unnamedCount += Math.max(0, names.length - NAMED_CHANGES_PER_KIND);
+  }
+
+  unnamedCount += changes.filter((change) => change.kind === "other").length;
+  if (unnamedCount > 0) {
+    clauses.push(
+      t(unnamedCount === 1 ? "playerProfile.stale.otherOne" : "playerProfile.stale.other", {
+        count: unnamedCount,
+      }),
+    );
+  }
+
+  return t("playerProfile.stale.body", {
+    date: formatDate(since, locale),
+    changes: list.format(clauses),
+  });
+}
 
 export function PlayerProfilePanel({
   profile,
@@ -16,6 +61,8 @@ export function PlayerProfilePanel({
   action,
   locale,
   games,
+  shelfChanges = [],
+  statusBySlug = {},
 }: {
   profile: StoredPlayerProfile | null;
   hasGames: boolean;
@@ -23,12 +70,28 @@ export function PlayerProfilePanel({
   action: (formData: FormData) => void;
   locale: Locale;
   games: GameCardGame[];
+  /** Status changes made after the stored reading was written. */
+  shelfChanges?: PlayerProfileShelfChange[];
+  /** Current shelf status per game slug, shown on recommended games. */
+  statusBySlug?: Record<string, string>;
 }) {
   const t = createTranslator(locale);
   const gamesBySlug = new Map(games.map((game) => [game.slug, game]));
   const payload = profile?.payload;
   const hasProfile = hasGames && profile?.isLocalized;
   const hasGenres = Boolean(payload?.preferredGenres.length);
+  const isStale = Boolean(hasProfile && profile && shelfChanges.length);
+  const refreshForm =
+    hasGames && aiConfigured ? (
+      <SyncActionForm
+        action={action}
+        buttonLabel={
+          profile ? t("playerProfile.refresh") : t("playerProfile.generate")
+        }
+        pendingLabel={t("playerProfile.reading")}
+        pendingNotice={t("playerProfile.pending")}
+      />
+    ) : null;
 
   // Older saved readings can contain internal status names. Display the same
   // labels used by the catalog, without changing the stored analysis.
@@ -52,17 +115,10 @@ export function PlayerProfilePanel({
           </p>
         </div>
         <div className="grid max-w-sm gap-2">
-          {hasGames && aiConfigured ? (
-            <SyncActionForm
-              action={action}
-              buttonLabel={
-                profile
-                  ? t("playerProfile.refresh")
-                  : t("playerProfile.generate")
-              }
-              pendingLabel={t("playerProfile.reading")}
-              pendingNotice={t("playerProfile.pending")}
-            />
+          {/* When the reading is out of date the refresh lives in the notice
+              below, next to the explanation of what changed. */}
+          {refreshForm ? (
+            isStale ? null : refreshForm
           ) : profile && !aiConfigured ? (
             <p className="text-sm text-ink-soft">
               {t("playerProfile.refreshUnavailable")}
@@ -77,6 +133,24 @@ export function PlayerProfilePanel({
           </p>
         </div>
       </header>
+
+      {isStale && profile ? (
+        <section
+          aria-labelledby="player-profile-stale"
+          className="flex flex-wrap items-center gap-4 rounded-card border border-sky/50 bg-sky-soft px-6 py-5 shadow-rest max-sm:px-4"
+        >
+          <RefreshCw aria-hidden="true" className="h-5 w-5 flex-none text-sky-strong" />
+          <div className="min-w-0 flex-1 basis-72">
+            <h3 className="font-bold leading-snug" id="player-profile-stale">
+              {t("playerProfile.stale.title")}
+            </h3>
+            <p className="mt-1 max-w-[70ch] text-sm leading-relaxed text-ink-soft">
+              {describeShelfChanges(shelfChanges, profile.updatedAt, locale)}
+            </p>
+          </div>
+          {refreshForm}
+        </section>
+      ) : null}
 
       {!hasGames ? (
         <section className="panel grid gap-4 max-sm:p-4">
@@ -255,6 +329,8 @@ export function PlayerProfilePanel({
                       }
                     }
                     locale={locale}
+                    status={statusBySlug[recommendation.slug] ?? null}
+                    statusVariant="label"
                     variant="shelf"
                     footer={
                       <p className="border-t border-edge pt-3 text-sm leading-relaxed text-ink-soft">

@@ -12,15 +12,17 @@ export function GameDetailSections({
 }) {
   return (
     <Tabs.Root defaultValue="about" className="grid min-w-0 gap-6">
+      {/* One scrollable row: wrapped tabs on a phone read as a pile of
+          buttons and push the content down. */}
       <Tabs.List
         aria-label={label}
-        className="flex flex-wrap gap-2 border-b border-edge pb-3"
+        className="-mx-1 flex gap-2 overflow-x-auto border-b border-edge px-1 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {sections.map((section) => (
           <Tabs.Trigger
             key={section.id}
             value={section.id}
-            className="min-h-11 rounded-inner px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring data-[state=active]:bg-surface data-[state=active]:text-ink data-[state=active]:shadow-rest"
+            className="min-h-11 flex-none whitespace-nowrap rounded-inner px-4 py-2 text-sm font-semibold text-ink-soft transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring data-[state=active]:bg-surface data-[state=active]:text-ink data-[state=active]:shadow-rest"
           >
             {section.label}
           </Tabs.Trigger>

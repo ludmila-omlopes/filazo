@@ -228,7 +228,7 @@ const messages = {
     "landing.ctaTitle":
       "Bring your records in.\nLet the catalog stay legible.",
     "landing.ctaFoot":
-      "{count} games here already carry cover art, play times, and stories.",
+      "Cover art, play times, and stories come along with each game.",
     "landing.catalogEntry": "catalog entry",
 
     "login.kicker": "filazo account",
@@ -875,9 +875,9 @@ const messages = {
       "A few ideas for when you feel like something else.",
     "profile.playingNext.inQueue": "{count} of 3 queued",
     "profile.playingNext.spot": "Queue {slot}",
-    "profile.playingNext.openTitle": "Open queue spot",
+    "profile.playingNext.openTitle": "Room for one more",
     "profile.playingNext.openBody":
-      "Search the catalog for something you want to start as soon as a current slot opens.",
+      "Search the catalog for something to start whenever you feel like it.",
     "profile.playingNext.emptyTitle": "No next games queued yet.",
     "profile.playingNext.emptyBody":
       "Click here to search the catalog and add up to three follow-up picks.",
@@ -899,7 +899,7 @@ const messages = {
       "All three queued games look long. Consider swapping one for something under {duration}.",
     "profile.playingNext.searchTitle": "Choose a game",
     "profile.playingNext.searchLabel": "Search the game catalog",
-    "profile.playingNext.searchPlaceholder": "Search IGDB by title",
+    "profile.playingNext.searchPlaceholder": "Search by game title",
     "profile.playingNext.searchFailed": "Game search failed.",
     "profile.playingNext.catalogResult": "Catalog result",
     "profile.playingNext.owned": "in your library",
@@ -1112,8 +1112,8 @@ const messages = {
     "playerProfile.fromCatalog": "From your own catalog",
     "playerProfile.traceTitle":
       "How the agent built this ({count} tool calls)",
-    "manualSearch.eyebrow": "Manual add",
-    "manualSearch.title": "Search for a game",
+    "manualSearch.eyebrow": "Game search",
+    "manualSearch.title": "Add a game",
     "manualSearch.unavailableTitle": "Game search is not configured.",
     "manualSearch.unavailableBody":
       "Add metadata credentials before manually adding games.",
@@ -1493,7 +1493,7 @@ const messages = {
     "tonight.nightMode": "Night Mode",
     "tonight.oldSaveLabel": "Back to an old save?",
     "tonight.oldSaveBody":
-      "{name} is already open in the catalog. Continuity beats novelty at night.",
+      "Already in progress. Sometimes picking up where you left off beats starting something new.",
     "tonight.title": "What kind of night is it?",
     "tonight.suggested": "Suggested for tonight",
     "tonight.chooseThis": "Choose this",
@@ -1676,6 +1676,42 @@ const messages = {
       "Sign in before generating a player profile.",
     "assistantAction.profileFailed":
       "Player profile generation did not complete.",
+
+    "nav.myShelf": "My shelf",
+    "nav.exploreGames": "Explore games",
+    "theme.openMenu": "Page light: {current}",
+    "profile.rail.groupDaily": "Every day",
+    "profile.rail.groupOccasional": "Now and then",
+    "profile.currentPlaying.diaryShort": "Journal",
+    "profile.shelf.statusFilter": "Filter by status",
+    "profile.shelf.details": "Shelf details",
+    "profile.shelf.detailsHint": "estimated time and totals",
+    "playerProfile.stale.title": "Your shelf changed since this reading",
+    "playerProfile.stale.body": "Reading from {date}. Since then, you {changes}.",
+    "playerProfile.stale.started": "started {games}",
+    "playerProfile.stale.finished": "rolled credits on {games}",
+    "playerProfile.stale.released": "set {games} aside",
+    "playerProfile.stale.other": "changed the status of {count} games",
+    "playerProfile.stale.otherOne": "changed the status of 1 game",
+    "profile.sources.staleSince": "Not updated since {date}",
+    "profile.sources.staleBody":
+      "This account's data hasn't been updated since {date}. Refresh it to bring in new games and recent play time.",
+    "profile.sources.accountsTitle": "Connected accounts",
+    "profile.sources.moreWaysTitle": "Other ways to bring games in",
+    "profile.addGames.csvSummary":
+      "Bring a list from another backlog or wishlist tool. You'll see a preview before anything is added.",
+    "tonight.reason.resume":
+      "You've already spent {playtime} here, so you can pick up where you left off.",
+    "tonight.reason.short": "A short one: about {time} to the credits, on average.",
+    "tonight.reason.favorite": "One of your favorites, a safe bet for tonight.",
+    "game.platformsLabel": "Platforms",
+    "game.morePlatforms": "Show other platforms ({count})",
+    "game.fewerPlatforms": "less",
+    "game.saveToShelf": "Save to my shelf",
+    "game.saveToShelfHint": "Sign in with Google or Steam. It only takes a moment.",
+    "game.addFromSearch": "Add through game search",
+    "game.addFromSearchHint": "Find it in Sources and choose your platform.",
+    "game.originalLanguageBadge": "in English",
   },
   "pt-BR": {
     "profile.recovery.title": "Não foi possível confirmar a alteração",
@@ -1901,7 +1937,7 @@ const messages = {
     "landing.ctaTitle":
       "Traga seus registros.\nDeixe o catálogo legível.",
     "landing.ctaFoot":
-      "{count} jogos daqui já trazem capa, tempo de jogo e histórias.",
+      "Capa, tempo de jogo e histórias chegam junto com cada jogo.",
     "landing.catalogEntry": "entrada do catálogo",
 
     "login.kicker": "conta filazo",
@@ -2030,15 +2066,15 @@ const messages = {
     "admin.ai.catalog.noAiBadge": "Sem IA generativa",
     "admin.ai.catalog.note":
       "Este inventário é mantido junto das funcionalidades de orçamento de IA. Quando uma nova chamada de modelo for adicionada, inclua-a aqui e dê a ela uma chave de orçamento antes de expô-la às pessoas usuárias.",
-    "admin.preview.kicker": "Visualizacao de usuario",
-    "admin.preview.title": "Ver perfil de usuario",
+    "admin.preview.kicker": "Visualização de usuário",
+    "admin.preview.title": "Ver perfil de usuário",
     "admin.preview.body":
-      "Abra todas as abas do perfil com os dados dessa pessoa. A visualizacao e somente leitura e nunca altera a conta selecionada.",
-    "admin.preview.searchLabel": "Encontrar usuario",
+      "Abra todas as abas do perfil com os dados dessa pessoa. A visualização é somente leitura e nunca altera a conta selecionada.",
+    "admin.preview.searchLabel": "Encontrar usuário",
     "admin.preview.searchPlaceholder": "Pesquisar por nome ou e-mail",
     "admin.preview.search": "Pesquisar",
-    "admin.preview.open": "Abrir visualizacao",
-    "admin.preview.empty": "Nenhum usuario corresponde a essa busca.",
+    "admin.preview.open": "Abrir visualização",
+    "admin.preview.empty": "Nenhum usuário corresponde a essa busca.",
     "admin.preview.viewing": "Visualizando o perfil de {name} em modo somente leitura.",
     "admin.preview.return": "Voltar ao Admin",
 
@@ -2547,36 +2583,36 @@ const messages = {
       "Algumas ideias para quando der vontade de mudar.",
     "profile.playingNext.inQueue": "{count} de 3 na fila",
     "profile.playingNext.spot": "Fila {slot}",
-    "profile.playingNext.openTitle": "Espaco aberto na fila",
+    "profile.playingNext.openTitle": "Tem espaço para mais um",
     "profile.playingNext.openBody":
-      "Busque no catalogo algo para comecar assim que abrir um espaco.",
-    "profile.playingNext.emptyTitle": "Ainda nao ha proximos jogos na fila.",
+      "Busque no catálogo algo para começar quando der vontade.",
+    "profile.playingNext.emptyTitle": "Ainda não há próximos jogos na fila.",
     "profile.playingNext.emptyBody":
-      "Clique aqui para buscar no catalogo e adicionar ate tres proximas escolhas.",
+      "Clique aqui para buscar no catálogo e adicionar até três próximas escolhas.",
     "profile.playingNext.chooseChange":
-      "Escolha ou altere seus proximos jogos",
-    "profile.playingNext.choose": "Escolha seus proximos jogos",
-    "profile.playingNext.leaveOpen": "Deixar esse espaco vazio",
+      "Escolha ou altere seus próximos jogos",
+    "profile.playingNext.choose": "Escolha seus próximos jogos",
+    "profile.playingNext.leaveOpen": "Deixar esse espaço vazio",
     "profile.playingNext.save": "Salvar jogar depois",
     "profile.playingNext.saving": "Salvando...",
     "profile.playingNext.clearTop": "Limpar fila",
     "profile.playingNext.remove": "Remover {name}",
     "profile.playingNext.help":
-      "Jogos atuais e terminados ficam fora desta fila. Jogos largados pedem confirmacao antes de voltar.",
+      "Jogos atuais e terminados ficam fora desta fila. Jogos largados pedem confirmação antes de voltar.",
     "profile.playingNext.confirmDropped":
-      "{name} esta marcado como largado. Tem certeza que quer tentar de novo?",
+      "{name} está marcado como largado. Tem certeza que quer tentar de novo?",
     "profile.playingNext.sameGenreWarning":
-      "Os tres jogos da fila sao de {genre}. Considere incluir outro genero para evitar cansaco.",
+      "Os três jogos da fila são de {genre}. Considere incluir outro gênero para variar.",
     "profile.playingNext.longGamesWarning":
-      "Os tres jogos da fila parecem longos. Considere trocar um por algo abaixo de {duration}.",
+      "Os três jogos da fila parecem longos. Considere trocar um por algo abaixo de {duration}.",
     "profile.playingNext.searchTitle": "Escolha um jogo",
-    "profile.playingNext.searchLabel": "Buscar no catalogo de jogos",
-    "profile.playingNext.searchPlaceholder": "Busque no IGDB por titulo",
+    "profile.playingNext.searchLabel": "Buscar no catálogo de jogos",
+    "profile.playingNext.searchPlaceholder": "Busque pelo título do jogo",
     "profile.playingNext.searchFailed": "A busca de jogos falhou.",
-    "profile.playingNext.catalogResult": "Resultado do catalogo",
+    "profile.playingNext.catalogResult": "Resultado do catálogo",
     "profile.playingNext.owned": "na sua biblioteca",
-    "profile.playingNext.notOwned": "ainda nao comprado",
-    "profile.playingNext.alreadyQueued": "ja esta na fila",
+    "profile.playingNext.notOwned": "ainda não comprado",
+    "profile.playingNext.alreadyQueued": "já está na fila",
     "profile.playingNext.queueThis": "Enfileirar",
     "profile.playingNext.searching": "Buscando...",
     "profile.playingNext.noMatches": "Ainda sem resultados.",
@@ -2758,7 +2794,7 @@ const messages = {
     "playerProfile.aboutTitle": "Sobre esta leitura",
     "playerProfile.openGuide": "Explorar o guia",
     "playerProfile.openSources": "Ir para Fontes",
-    "playerProfile.title": "Quem você é como jogador",
+    "playerProfile.title": "O que seu jeito de jogar conta",
     "playerProfile.body":
       "Uma leitura curta do seu gosto, baseada na sua biblioteca, tempo de jogo e notas. Atualize depois de adicionar feedback.",
     "playerProfile.generated": "Gerado em {date}",
@@ -2786,8 +2822,8 @@ const messages = {
     "playerProfile.fromCatalog": "Do seu próprio catálogo",
     "playerProfile.traceTitle":
       "Como o agente montou isso ({count} chamadas de ferramenta)",
-    "manualSearch.eyebrow": "Adição manual",
-    "manualSearch.title": "Buscar um jogo",
+    "manualSearch.eyebrow": "Busca de jogos",
+    "manualSearch.title": "Adicionar um jogo",
     "manualSearch.unavailableTitle": "A busca de jogos não está configurada.",
     "manualSearch.unavailableBody":
       "Adicione credenciais de metadados antes de incluir jogos manualmente.",
@@ -2818,7 +2854,7 @@ const messages = {
     "voiceMemory.audioFile": "Arquivo de áudio",
     "voiceMemory.inputLevel": "Entrada do microfone",
     "voiceMemory.noSignal":
-      "Nao detectei som. Confira o microfone selecionado no navegador ou no sistema e grave de novo.",
+      "Não detectei som. Confira o microfone selecionado no navegador ou no sistema e grave de novo.",
     "voiceMemory.recordedAudioInput": "Memória de voz gravada",
     "voiceMemory.stopBeforeSave":
       "Pare a gravação antes de salvar esta página do diário.",
@@ -3167,7 +3203,7 @@ const messages = {
     "tonight.nightMode": "Modo Noite",
     "tonight.oldSaveLabel": "Voltar para um save antigo?",
     "tonight.oldSaveBody":
-      "{name} já está aberto no catálogo. Continuidade vence novidade à noite.",
+      "Já está em andamento. Às vezes, continuar de onde parou vale mais que começar algo novo.",
     "tonight.title": "Que tipo de noite é hoje?",
     "tonight.suggested": "Sugestão para hoje",
     "tonight.chooseThis": "Escolher este",
@@ -3192,8 +3228,8 @@ const messages = {
     "status.PLAYING": "jogando agora",
     "status.PLAYING_NEXT": "jogar depois",
     "status.PAUSED": "pausado",
-    "status.COMPLETED": "concluído",
-    "status.FINISHED": "concluído",
+    "status.COMPLETED": "créditos rolaram",
+    "status.FINISHED": "créditos rolaram",
     "status.DROPPED": "largou",
 
     "signal.UNTOUCHED": "pronto quando você quiser",
@@ -3362,6 +3398,42 @@ const messages = {
       "A geração do perfil de jogador não terminou.",
     "profile.sources.syncing": "Sincronizando...",
     "profile.sources.reconnectNeeded": "Reconectar necessário",
+
+    "nav.myShelf": "Minha estante",
+    "nav.exploreGames": "Explorar jogos",
+    "theme.openMenu": "Luz da página: {current}",
+    "profile.rail.groupDaily": "Todo dia",
+    "profile.rail.groupOccasional": "De vez em quando",
+    "profile.currentPlaying.diaryShort": "Diário",
+    "profile.shelf.statusFilter": "Filtrar por status",
+    "profile.shelf.details": "Detalhes da estante",
+    "profile.shelf.detailsHint": "tempo estimado e totais",
+    "playerProfile.stale.title": "Sua estante mudou desde esta leitura",
+    "playerProfile.stale.body": "Leitura de {date}. Depois disso, você {changes}.",
+    "playerProfile.stale.started": "começou {games}",
+    "playerProfile.stale.finished": "viu os créditos de {games}",
+    "playerProfile.stale.released": "deixou {games} de lado",
+    "playerProfile.stale.other": "mudou o status de {count} jogos",
+    "playerProfile.stale.otherOne": "mudou o status de 1 jogo",
+    "profile.sources.staleSince": "Sem atualização desde {date}",
+    "profile.sources.staleBody":
+      "Os dados desta conta não são atualizados desde {date}. Atualize para trazer jogos novos e horas recentes.",
+    "profile.sources.accountsTitle": "Contas conectadas",
+    "profile.sources.moreWaysTitle": "Outras formas de trazer jogos",
+    "profile.addGames.csvSummary":
+      "Traga uma lista de outro app de backlog ou de lista de desejos. Você vê uma prévia antes de qualquer coisa ser adicionada.",
+    "tonight.reason.resume":
+      "Você já passou {playtime} aqui. Dá para continuar de onde parou.",
+    "tonight.reason.short": "Uma história curta: cerca de {time} até os créditos, pelo tempo médio.",
+    "tonight.reason.favorite": "Um dos seus favoritos, uma aposta segura para esta noite.",
+    "game.platformsLabel": "Plataformas",
+    "game.morePlatforms": "Mostrar outras plataformas ({count})",
+    "game.fewerPlatforms": "menos",
+    "game.saveToShelf": "Guardar na minha estante",
+    "game.saveToShelfHint": "Entre com Google ou Steam. Leva só um instante.",
+    "game.addFromSearch": "Adicionar pela busca de jogos",
+    "game.addFromSearchHint": "Encontre o jogo em Fontes e escolha a sua plataforma.",
+    "game.originalLanguageBadge": "em inglês",
   },
 } satisfies Record<string, Record<string, string>>;
 

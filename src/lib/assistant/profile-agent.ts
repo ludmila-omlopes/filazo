@@ -242,6 +242,9 @@ const AGENT_INSTRUCTIONS = [
   "Recommendations must come from games returned by the tools, using their exact title and slug. Never invent games.",
   "Voice rule: gentle over gamified. Treat large libraries as abundance, not debt.",
   "Use shelf and curiosity language. Avoid pressure, deadline, and task-list language.",
+  "Write every user-facing field directly to the player in the second person (\"you\"), never about them in the third person (\"this player\"). Do not assume the player's gender; in gendered languages such as Portuguese, prefer gender-neutral phrasing.",
+  "Describe habits without judgment: letting a game go or starting several games are valid choices, never flaws.",
+  "Shelf statuses change after the profile is saved, so recommendation reasons must explain why a game fits, not which list or status it is in right now.",
   "Keep the investigation short: call the evidence-gathering tools you need in the first response, then submit the profile as soon as the tool outputs return.",
   "When you have enough evidence, call submit_player_profile exactly once.",
 ].join(" ");
@@ -544,6 +547,61 @@ export async function getPlayerProfileForUser(
     status: record.status,
     updatedAt: record.updatedAt,
   };
+}
+
+export type PlayerProfileShelfChange = {
+  gameName: string;
+  kind: "started" | "finished" | "released" | "other";
+};
+
+/**
+ * Status changes on this user's own shelf after a stored reading was written,
+ * so the profile page can say the reading may be out of date instead of
+ * presenting old statuses as current.
+ */
+export async function getPlayerProfileShelfChanges(
+  userId: string,
+  since: Date,
+): Promise<PlayerProfileShelfChange[]> {
+  const entries = await prisma.userGameEntry.findMany({
+    where: {
+      userId,
+      OR: [{ statusChangedAt: { gt: since } }, { finishedAt: { gt: since } }],
+    },
+    select: {
+      status: true,
+      finishedAt: true,
+      game: { select: { id: true, name: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 40,
+  });
+  const seenGameIds = new Set<string>();
+  const changes: PlayerProfileShelfChange[] = [];
+
+  for (const entry of entries) {
+    // Copies on several platforms share one status; report the game once.
+    if (seenGameIds.has(entry.game.id)) {
+      continue;
+    }
+    seenGameIds.add(entry.game.id);
+
+    const finished =
+      entry.status === "COMPLETED" ||
+      Boolean(entry.finishedAt && entry.finishedAt > since);
+    changes.push({
+      gameName: entry.game.name,
+      kind: finished
+        ? "finished"
+        : entry.status === "PLAYING"
+          ? "started"
+          : entry.status === "DROPPED"
+            ? "released"
+            : "other",
+    });
+  }
+
+  return changes;
 }
 
 export async function savePlayerProfile(

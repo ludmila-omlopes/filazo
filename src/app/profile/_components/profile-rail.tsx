@@ -9,24 +9,21 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
+import { AvatarImage } from "@/components/avatar-image";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { ProfileData, ProfileTab } from "./profile-types";
 
-const railItems = [
+// Sections people open most sit first with a short hint; setup-style and
+// reflective sections are grouped below in a quieter list (progressive
+// disclosure instead of eight equally loud destinations).
+const dailyItems = [
   {
     tab: "overview" as const,
     href: "/profile",
     labelKey: "profile.rail.home" as const,
     hintKey: "profile.rail.homeHint" as const,
     icon: Armchair,
-  },
-  {
-    tab: "integrations" as const,
-    href: "/profile?tab=integrations",
-    labelKey: "profile.rail.sources" as const,
-    hintKey: "profile.rail.sourcesHint" as const,
-    icon: Cable,
   },
   {
     tab: "games" as const,
@@ -49,28 +46,37 @@ const railItems = [
     hintKey: "profile.rail.calendarHint" as const,
     icon: CalendarDays,
   },
+];
+
+const occasionalItems = [
+  {
+    tab: "integrations" as const,
+    href: "/profile?tab=integrations",
+    labelKey: "profile.rail.sources" as const,
+    icon: Cable,
+  },
   {
     tab: "playerProfile" as const,
     href: "/profile?tab=player-profile",
     labelKey: "profile.rail.playerProfile" as const,
-    hintKey: "profile.rail.playerProfileHint" as const,
     icon: UserRound,
   },
   {
     tab: "assistant" as const,
     href: "/profile?tab=assistant",
     labelKey: "profile.rail.guide" as const,
-    hintKey: "profile.rail.guideHint" as const,
     icon: Sparkles,
   },
   {
     tab: "setup" as const,
     href: "/profile?tab=setup",
     labelKey: "profile.rail.setup" as const,
-    hintKey: "profile.rail.setupHint" as const,
     icon: SlidersHorizontal,
   },
 ];
+
+const railLinkFocus =
+  "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas";
 
 export function ProfileRail({
   activeTab,
@@ -84,6 +90,7 @@ export function ProfileRail({
   viewAsUserId?: string | null;
 }) {
   const t = createTranslator(locale);
+  const displayName = profile.user.displayName ?? t("common.player");
 
   function getTabHref(href: string) {
     if (!viewAsUserId) {
@@ -106,24 +113,19 @@ export function ProfileRail({
         />
         <div className="relative">
           <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-inner border border-cream/25 bg-cream/12 font-display text-2xl">
-            {profile.user.avatarUrl ? (
-              <img
-                alt={t("profile.rail.avatarAlt", {
-                  name: profile.user.displayName ?? t("common.player"),
-                })}
-                src={profile.user.avatarUrl}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span>{(profile.user.displayName ?? "P").slice(0, 1)}</span>
-            )}
+            <AvatarImage
+              alt={t("profile.rail.avatarAlt", { name: displayName })}
+              className="h-full w-full object-cover"
+              name={displayName}
+              src={profile.user.avatarUrl}
+            />
           </div>
           <p className="mt-4 truncate font-display text-xl font-medium">
-            {profile.user.displayName ?? t("common.player")}
+            {displayName}
           </p>
-            <p className="mt-1 text-xs leading-relaxed text-cream/55">
-              {t("profile.rail.catalogMood")}
-            </p>
+          <p className="mt-1 text-xs leading-relaxed text-cream/55">
+            {t("profile.rail.catalogMood")}
+          </p>
         </div>
       </div>
 
@@ -131,34 +133,70 @@ export function ProfileRail({
         className="grid gap-1 rounded-card border border-edge bg-surface p-2 shadow-rest"
         aria-label={t("nav.profileSections")}
       >
-        {railItems.map(({ tab, href, labelKey, hintKey, icon: Icon }) => {
+        <p className="px-4 pb-1 pt-2 text-micro font-bold uppercase tracking-[0.14em] text-ink-soft">
+          {t("profile.rail.groupDaily")}
+        </p>
+        {dailyItems.map(({ tab, href, labelKey, hintKey, icon: Icon }) => {
+          const isActive = activeTab === tab;
+
           return (
             <Link
               href={getTabHref(href)}
               key={tab}
-              aria-current={activeTab === tab ? "page" : undefined}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex items-center gap-3 rounded-[20px] px-4 py-3 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas",
-                activeTab === tab
+                "flex items-center gap-3 rounded-[20px] px-4 py-3",
+                railLinkFocus,
+                isActive
                   ? "bg-ink text-surface shadow-rest"
                   : "text-ink-soft hover:bg-canvas hover:text-ink",
               )}
             >
               <Icon className="h-4.5 w-4.5 flex-none opacity-80" />
               <span className="min-w-0 flex-1">
-                <span className="block text-sm font-bold leading-tight">
+                <span className="flex items-center gap-2 text-sm font-bold leading-tight">
                   {t(labelKey)}
-                  {tab === "calendar" ? <span className="ml-2 text-xs font-normal">Pro</span> : null}
+                  {tab === "calendar" ? (
+                    <span className="rounded-pill bg-dusk-lavender-soft px-2 py-0.5 text-micro font-bold uppercase tracking-[0.08em] text-ink">
+                      Pro
+                    </span>
+                  ) : null}
                 </span>
                 <span
                   className={cn(
                     "block text-caption leading-tight",
-                    activeTab === tab ? "text-surface/60" : "text-ink-soft/70",
+                    isActive ? "text-surface/60" : "text-ink-soft/70",
                   )}
                 >
                   {t(hintKey)}
                 </span>
               </span>
+            </Link>
+          );
+        })}
+
+        <div aria-hidden className="mx-4 my-2 h-px bg-edge" />
+        <p className="px-4 pb-1 text-micro font-bold uppercase tracking-[0.14em] text-ink-soft">
+          {t("profile.rail.groupOccasional")}
+        </p>
+        {occasionalItems.map(({ tab, href, labelKey, icon: Icon }) => {
+          const isActive = activeTab === tab;
+
+          return (
+            <Link
+              href={getTabHref(href)}
+              key={tab}
+              aria-current={isActive ? "page" : undefined}
+              className={cn(
+                "flex min-h-11 items-center gap-3 rounded-[20px] px-4 py-2 text-sm",
+                railLinkFocus,
+                isActive
+                  ? "bg-ink font-bold text-surface shadow-rest"
+                  : "text-ink-soft hover:bg-canvas hover:text-ink",
+              )}
+            >
+              <Icon className="h-4 w-4 flex-none opacity-70" />
+              {t(labelKey)}
             </Link>
           );
         })}

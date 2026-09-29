@@ -14,7 +14,7 @@ export async function generateMetadata({ searchParams }: Props) {
   const t = createTranslator(await getRequestLocale());
   return {
     ...createPageMetadata({
-      title: t("common.catalog"), description: t("publicCatalog.description"),
+      title: t("nav.exploreGames"), description: t("publicCatalog.description"),
       path: publicCatalogHref(q, page),
     }),
     // Search variations stay usable without creating an index of arbitrary queries.
@@ -30,7 +30,7 @@ export default async function CatalogPage({ searchParams }: Props) {
   return (
     <main id="main-content" className="mx-auto grid w-full max-w-page gap-8 py-8">
       <header className="grid gap-3">
-        <h1 className="text-section-title">{t("common.catalog")}</h1>
+        <h1 className="text-section-title">{t("nav.exploreGames")}</h1>
         <p className="max-w-[60ch] text-ink-soft">{t("publicCatalog.description")}</p>
       </header>
       <form action="/catalog" method="get" role="search" className="grid gap-2">

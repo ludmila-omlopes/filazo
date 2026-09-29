@@ -95,27 +95,36 @@ export function TonightRoom({
     setDealt(pool[Math.floor(Math.random() * pool.length)]);
   }
 
+  // The in-progress game is offered as a second option, only when it is not
+  // already the suggestion on screen.
+  const oldSavePick =
+    playingPick && playingPick.entryId !== activePick.entryId
+      ? playingPick
+      : null;
+
   return (
     <section className="relative overflow-hidden rounded-card border border-edge bg-dusk-deep p-8 text-cream shadow-float max-md:p-5">
       <NightCatalogLines />
-      <div className="relative z-10 mx-auto grid max-w-[960px] gap-10">
-        {!isNight ? (
-          <form
-            action={dimTheLightsAction}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-cream/10 bg-cream/8 px-4 py-3 text-sm text-cream/75"
-          >
-            <span>{t("tonight.dimLights")}</span>
-            <Button
-              className="border-cream/20 bg-cream/10 text-cream hover:bg-cream/15"
-              size="sm"
-              type="submit"
-              variant="ghost"
-            >
-              <Moon aria-hidden />
-              {t("tonight.nightMode")}
-            </Button>
-          </form>
-        ) : null}
+      <div className="relative z-10 mx-auto grid max-w-[960px] gap-8 max-md:gap-6">
+        <div className="flex items-start justify-between gap-4">
+          <p className="pt-2 text-kicker font-bold uppercase text-glow/85">
+            {t("common.tonight")}
+          </p>
+          {!isNight ? (
+            <form action={dimTheLightsAction}>
+              <Button
+                aria-label={t("tonight.nightMode")}
+                className="border-cream/20 bg-cream/10 text-cream hover:bg-cream/15"
+                size="icon-sm"
+                title={t("tonight.dimLights")}
+                type="submit"
+                variant="ghost"
+              >
+                <Moon aria-hidden />
+              </Button>
+            </form>
+          ) : null}
+        </div>
 
         {message ? (
           <p className="rounded-card border border-glow/20 bg-glow/10 px-4 py-3 text-sm font-semibold text-cream/85">
@@ -123,31 +132,16 @@ export function TonightRoom({
           </p>
         ) : null}
 
-        {playingPick ? (
-          <div className="rounded-card border border-glow/20 bg-glow/10 p-5">
-            <p className="section-label !mb-1 text-glow">
-              {t("tonight.oldSaveLabel")}
-            </p>
-            <p className="text-sm leading-relaxed text-cream/75">
-              {t("tonight.oldSaveBody", {
-                name: playingPick.entry.game.name,
-              })}
-            </p>
-          </div>
-        ) : null}
-
         <div className="grid gap-5 text-center">
-          <p className="text-kicker font-bold uppercase text-glow/85">
-            {t("common.tonight")}
-          </p>
           <h1 className="font-display text-display font-normal leading-none">
             {t("tonight.title")}
           </h1>
           <div className="flex flex-wrap justify-center gap-2">
             {moods.map((mood) => (
               <Link
+                aria-current={currentMood === mood.value ? "true" : undefined}
                 className={cn(
-                  "rounded-pill border px-4 py-2 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow focus-visible:ring-offset-2 focus-visible:ring-offset-dusk-deep",
+                  "inline-flex min-h-10 items-center rounded-pill border px-4 text-sm font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow focus-visible:ring-offset-2 focus-visible:ring-offset-dusk-deep",
                   currentMood === mood.value
                     ? "border-glow bg-glow text-dusk-deep"
                     : "border-cream/15 bg-cream/8 text-cream/75 hover:bg-cream/12 hover:text-cream",
@@ -161,27 +155,7 @@ export function TonightRoom({
           </div>
         </div>
 
-        {canDeal ? (
-          <div className="flex flex-col items-center gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-cream/45">
-              {t("tonight.dealHint")}
-            </p>
-            <button
-              className="group/deal inline-flex items-center gap-3 rounded-pill border border-cream/15 bg-cream/8 px-5 py-2.5 text-sm font-bold text-cream/85 transition-colors hover:bg-cream/14 hover:text-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow focus-visible:ring-offset-2 focus-visible:ring-offset-dusk-deep"
-              onClick={deal}
-              type="button"
-            >
-              <span aria-hidden className="relative h-5 w-7 flex-none">
-                <span className="absolute inset-y-0 left-0 w-4 -rotate-12 rounded-[3px] border border-cream/35 bg-cream/15 transition-transform duration-200 group-hover/deal:-translate-x-0.5 group-hover/deal:-rotate-[20deg]" />
-                <span className="absolute inset-y-0 left-1.5 w-4 rotate-6 rounded-[3px] border border-cream/35 bg-cream/20 transition-transform duration-200 group-hover/deal:translate-x-0.5 group-hover/deal:rotate-[14deg]" />
-                <span className="absolute inset-y-0 left-3 w-4 rounded-[3px] border border-glow/60 bg-glow/30" />
-              </span>
-              {t("tonight.dealMe")}
-            </button>
-          </div>
-        ) : null}
-
-        <div className="mx-auto grid w-full max-w-[460px] gap-4">
+        <div className="mx-auto grid w-full max-w-[560px] gap-4">
           <GameCard
             className="bg-cream text-dusk-deep shadow-float motion-safe:animate-current-playing-place"
             completionPercent={activePick.entry.completionPercent}
@@ -194,7 +168,7 @@ export function TonightRoom({
             platformName={activePick.entry.platformName}
             playtimeMinutes={activePick.entry.playtimeMinutes}
             status={activePick.entry.status}
-            variant="slot"
+            variant="feature"
           />
 
           <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
@@ -215,6 +189,43 @@ export function TonightRoom({
               </Link>
             </Button>
           </div>
+
+          {canDeal ? (
+            <button
+              className="group/deal inline-flex min-h-11 items-center justify-center gap-3 justify-self-center rounded-pill px-5 text-sm font-bold text-glow/90 transition-colors hover:text-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-glow focus-visible:ring-offset-2 focus-visible:ring-offset-dusk-deep"
+              onClick={deal}
+              type="button"
+            >
+              <span aria-hidden className="relative h-5 w-7 flex-none">
+                <span className="absolute inset-y-0 left-0 w-4 -rotate-12 rounded-[3px] border border-cream/35 bg-cream/15 transition-transform duration-200 group-hover/deal:-translate-x-0.5 group-hover/deal:-rotate-[20deg]" />
+                <span className="absolute inset-y-0 left-1.5 w-4 rotate-6 rounded-[3px] border border-cream/35 bg-cream/20 transition-transform duration-200 group-hover/deal:translate-x-0.5 group-hover/deal:rotate-[14deg]" />
+                <span className="absolute inset-y-0 left-3 w-4 rounded-[3px] border border-glow/60 bg-glow/30" />
+              </span>
+              {t("tonight.dealMe")}
+            </button>
+          ) : null}
+
+          {oldSavePick ? (
+            <div className="grid gap-2 border-t border-cream/10 pt-4">
+              <p className="text-xs font-bold uppercase tracking-wide text-cream/55">
+                {t("tonight.oldSaveLabel")}
+              </p>
+              <GameCard
+                className="bg-cream/95 text-dusk-deep"
+                description={t("tonight.oldSaveBody", {
+                  name: oldSavePick.entry.game.name,
+                })}
+                game={oldSavePick.entry.game}
+                isPhysicalCopy={oldSavePick.entry.isPhysicalCopy}
+                locale={locale}
+                onClick={() => setDealt(oldSavePick)}
+                platformName={oldSavePick.entry.platformName}
+                playtimeMinutes={oldSavePick.entry.playtimeMinutes}
+                status={null}
+                variant="row"
+              />
+            </div>
+          ) : null}
         </div>
 
         {alternatives.length ? (
