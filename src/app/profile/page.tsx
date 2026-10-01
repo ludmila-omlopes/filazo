@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { AdSenseBanner } from "@/components/adsense-banner";
 import { AppNewsPanel } from "./_components/app-news-panel";
 import { AssistantTab, PlayerProfileTab } from "./_components/assistant-tab";
 import { CurrentPlayingPanel } from "./_components/current-playing-panel";
@@ -285,7 +284,6 @@ export default async function ProfilePage({
               locale={locale}
               visibleEntries={visibleEntries}
               />
-              {!isReadOnlyPreview && visibleEntries.length > 0 ? <AdSenseBanner placement="library" locale={locale} /> : null}
             </div>
           ) : null}
         </div>
