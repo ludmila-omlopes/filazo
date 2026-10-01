@@ -32,7 +32,14 @@ export async function RelatedGames({
       />
       <div className="library-grid">
         {games.map((related) => (
-          <GameCard game={related} key={related.slug} locale={locale} variant="shelf" />
+          <div className="grid min-w-0 content-start gap-2" key={related.slug}>
+            <GameCard game={related} locale={locale} variant="shelf" />
+            <p className="px-1 text-sm leading-relaxed text-ink-soft">
+              {related.reason.kind === "mechanic"
+                ? t(`game.affinity.${related.reason.mechanic}`)
+                : t(related.reason.kind === "similar" ? "game.affinity.similar" : "game.affinity.features")}
+            </p>
+          </div>
         ))}
       </div>
     </section>

@@ -343,3 +343,11 @@ Both sources must finish before the catalog import starts. Missing pagination in
 This imports available played/achievement history, not proof of every purchase or every never-played game. No database migration or new environment variables are required. Tests: `node --experimental-strip-types --test src/lib/xbox-history.test.ts` (mocked provider responses, no production mutations).
 
 Protocol references: [Microsoft title history pagination](https://learn.microsoft.com/en-us/gaming/gdk/docs/reference/live/rest/uri/titlehistory/uri-titlehistoryusersxuidhistorytitlesgetv2) and [Playnite's TitleHub history request without a maxItems cutoff](https://github.com/JosefNemec/PlayniteExtensions/blob/master/source/Libraries/XboxLibrary/Services/XboxAccountClient.cs).
+
+### Related game discovery
+
+The game-page suggestions are prepared by the signed `/api/internal/game-discovery-worker` minute cron. It uses the existing `GameMetadataJob` queue under an environment-specific `:discovery` scope, separately from metadata/import jobs, with claims, leases and retry backoff. IGDB credentials and `CRON_SECRET` are required; no additional schema migration is needed. Other hosts should schedule the same authenticated endpoint.
+
+The worker combines provider-related titles with specific gameplay keywords, themes, perspective and game modes. Gameplay families (for example soulslike, metroidvania or deckbuilding) dominate broad genres; popularity only breaks equal affinity scores. Known gameplay conflicts, DLC and add-on expansions are excluded, and alternate editions/remasters of the same parent occupy one recommendation slot. These versions remain distinct canonical games and user purchases.
+
+Up to six qualifying candidates go through canonical catalog resolution, including titles not yet in filazo. Prepared recommendations, reasons and public feature profiles live in the canonical IGDB `GameProviderLink.rawData.gameDiscovery` cache, refreshed every 14 days. Page reads are bounded, use only public catalog fields, do not call providers or write data, and keep the last complete snapshot during an outage. No weak genre-only filler is shown; pending games temporarily omit this optional section. SEO indexability rules are independent of recommendation eligibility.

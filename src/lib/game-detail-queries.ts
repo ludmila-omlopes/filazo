@@ -1,6 +1,7 @@
 import { Prisma, type PrismaClient, type UserGameEntry } from "@prisma/client";
 import { parseMarketplaceSnapshot } from "@/lib/assistant/marketplace-search";
 import { indexableGameSelect, isIndexableGame, looksLikeGameExtra } from "@/lib/game-indexing";
+import { readDiscoverySnapshot } from "@/lib/game-affinity";
 import { parseSteamReviewsSnapshot } from "@/lib/steam-reviews";
 
 type DisplayEntry = Pick<UserGameEntry, "currentPlayingSlot" | "playtimeSource" | "updatedAt">;
@@ -138,40 +139,29 @@ export async function readSitemapGames(db: PrismaClient) {
 }
 
 export const RELATED_GAMES_LIMIT = 6;
-const RELATED_GAME_CANDIDATES = 48;
-
-function readGenres(value: Prisma.JsonValue | null) {
-  return Array.isArray(value)
-    ? value.filter((genre): genre is string => typeof genre === "string" && genre.length > 0)
-    : [];
-}
-
-/** Catalog-only discovery links: public fields, bounded, never user data. */
+/** Prepared discovery: public fields only, no provider requests or writes. */
 export async function readRelatedGames(
   db: PrismaClient,
   game: { id: string; genres: Prisma.JsonValue | null },
 ) {
-  const genres = readGenres(game.genres);
-  if (!genres.length) return [];
-
-  const candidates = await db.game.findMany({
-    where: {
-      id: { not: game.id },
-      AND: [indexableGameWhere, { OR: genres.map((genre) => ({ genres: { array_contains: [genre] } })) }],
-    },
-    select: { slug: true, name: true, genres: true, ...indexableGameSelect },
-    orderBy: [{ totalRatingCount: { sort: "desc", nulls: "last" } }, { id: "asc" }],
-    take: RELATED_GAME_CANDIDATES,
+  const source = await db.game.findUnique({ where: { id: game.id }, select: { igdbId: true } });
+  if (!source?.igdbId) return [];
+  const link = await db.gameProviderLink.findUnique({
+    where: { provider_providerGameId: { provider: "IGDB", providerGameId: String(source.igdbId) } },
+    select: { gameId: true, rawData: true },
   });
-  const genreSet = new Set(genres);
-  return candidates
-    .filter((candidate) => isIndexableGame(candidate) && !looksLikeGameExtra(candidate.name))
-    .map((candidate) => ({
-      candidate,
-      sharedGenres: readGenres(candidate.genres).filter((genre) => genreSet.has(genre)).length,
-    }))
-    // Stable sort keeps the better-known title first among equal genre overlap.
-    .sort((left, right) => right.sharedGenres - left.sharedGenres)
-    .slice(0, RELATED_GAMES_LIMIT)
-    .map(({ candidate }) => ({ slug: candidate.slug, name: candidate.name, coverUrl: candidate.coverUrl }));
+  if (link?.gameId !== game.id) return [];
+  const snapshot = readDiscoverySnapshot(link.rawData);
+  if (!snapshot || snapshot.profile.igdbId !== source.igdbId || !snapshot.recommendations.length) return [];
+  const candidates = await db.game.findMany({
+    where: { id: { in: snapshot.recommendations.map(item => item.gameId), not: game.id } },
+    select: { id: true, slug: true, name: true, coverUrl: true }, take: RELATED_GAMES_LIMIT,
+  });
+  const seen = new Set<string>();
+  return snapshot.recommendations.flatMap(item => {
+    const candidate = candidates.find(game => game.id === item.gameId);
+    if (!candidate?.coverUrl || looksLikeGameExtra(candidate.name) || seen.has(candidate.id)) return [];
+    seen.add(candidate.id);
+    return [{ slug: candidate.slug, name: candidate.name, coverUrl: candidate.coverUrl, reason: item.reason }];
+  });
 }

@@ -3,6 +3,7 @@ import type {
   EnrichedGameMetadata,
 } from "@/lib/providers/contracts";
 import { selectUnambiguousTitleMatch } from "@/lib/catalog-match";
+import { isDiscoveryGameType, profileMechanics, type AffinityProfile } from "@/lib/game-affinity";
 
 type IgdbGameRecord = {
   id: number;
@@ -514,6 +515,63 @@ export async function searchIgdbGames(query: string, limit = 8, signal?: AbortSi
 
 export async function getIgdbGameById(igdbId: number) {
   return fetchIgdbGameById(igdbId, AbortSignal.timeout(6_000));
+}
+
+type DiscoveryRecord = IgdbGameRecord & {
+  keywords?: { id: number; name: string }[];
+  genres?: { id: number; name: string }[];
+  game_modes?: { id: number; name: string }[];
+  themes?: { id: number; name: string }[];
+  player_perspectives?: { id: number; name: string }[];
+  collections?: { id: number; name: string }[];
+  involved_companies?: { developer?: boolean; company?: { id: number; name: string } }[];
+  similar_games?: number[];
+  game_type?: { type?: string };
+  parent_game?: number;
+  version_parent?: number;
+};
+
+function discoveryProfile(game: DiscoveryRecord): AffinityProfile {
+  return {
+    igdbId: game.id, keywords: game.keywords ?? [], genres: game.genres ?? [],
+    themes: game.themes ?? [], perspectives: game.player_perspectives ?? [],
+    modes: game.game_modes ?? [], collections: game.collections ?? [],
+    developers: (game.involved_companies ?? []).flatMap(item => item.developer && item.company ? [item.company] : []),
+    similarIds: game.similar_games ?? [],
+  };
+}
+
+/** Runs in a worker; never during a game-page read. */
+export async function fetchIgdbDiscovery(igdbId: number, signal: AbortSignal) {
+  const token = await getIgdbToken(signal);
+  if (!token || !process.env.IGDB_CLIENT_ID) return null;
+  const fields = "name,slug,summary,first_release_date,aggregated_rating,aggregated_rating_count,cover.url,genres.id,genres.name,game_modes.id,game_modes.name,platforms.name,screenshots.url,artworks.url,websites.url,keywords.id,keywords.name,themes.id,themes.name,player_perspectives.id,player_perspectives.name,collections.id,collections.name,involved_companies.developer,involved_companies.company.id,involved_companies.company.name,similar_games,game_type.type,parent_game,version_parent";
+  const query = async (body: string): Promise<DiscoveryRecord[]> => {
+    const response = await fetch("https://api.igdb.com/v4/games", {
+      method: "POST", signal, cache: "no-store",
+      headers: { "Client-ID": process.env.IGDB_CLIENT_ID!, Authorization: `Bearer ${token}` },
+      body: `fields ${fields}; ${body}`,
+    });
+    if (!response.ok) throw new Error("Game discovery metadata unavailable.");
+    return response.json();
+  };
+  const [source] = await query(`where id = ${igdbId}; limit 1;`);
+  if (!source || source.id !== igdbId) throw new Error("Game discovery identity unavailable.");
+  const profile = discoveryProfile(source);
+  const familyKeywords = profile.keywords.filter(keyword => profileMechanics({ ...profile, keywords: [keyword], genres: [] }).length);
+  const keywordIds = (familyKeywords.length ? familyKeywords : profile.keywords).slice(0, 12).map(item => item.id);
+  const similarIds = profile.similarIds.slice(0, 60);
+  const [related, byFeatures] = await Promise.all([
+    similarIds.length ? query(`where id = (${similarIds.join(",")}); limit 60;`) : [],
+    keywordIds.length ? query(`where keywords = (${keywordIds.join(",")}) & id != ${igdbId} & game_type = (0,4,8,9,10,11); sort total_rating_count desc; limit 80;`) : [],
+  ]);
+  const games = [...new Map([...related, ...byFeatures].map(game => [game.id, game])).values()]
+    .filter(game => game.id !== igdbId && game.parent_game !== igdbId && game.version_parent !== igdbId)
+    .filter(game => isDiscoveryGameType(game.game_type?.type));
+  return { profile, games: games.map(game => ({
+    familyId: game.parent_game ?? game.version_parent ?? game.id,
+    profile: discoveryProfile(game), metadata: mapIgdbGame(game),
+  })) };
 }
 
 export async function searchUpcomingRelatedIgdbReleases({
