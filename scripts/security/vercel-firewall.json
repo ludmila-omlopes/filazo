@@ -20,6 +20,7 @@
                 "/api/internal/platform-sync",
                 "/api/internal/steam-sync-worker",
                 "/api/internal/game-metadata-worker",
+                "/api/internal/game-discovery-worker",
                 "/api/internal/sync-monitor",
                 "/api/internal/abuse-cleanup"
               ]

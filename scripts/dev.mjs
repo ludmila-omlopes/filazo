@@ -43,7 +43,7 @@ async function pollWorker(path) {
   }
 }
 
-for (const path of ["steam-sync-worker", "playstation-sync-worker", "game-metadata-worker"]) {
+for (const path of ["steam-sync-worker", "playstation-sync-worker", "game-metadata-worker", "game-discovery-worker"]) {
   const timer = setTimeout(() => {
     timers.delete(timer);
     void pollWorker(path);

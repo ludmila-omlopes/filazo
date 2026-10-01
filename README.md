@@ -1,5 +1,13 @@
 # filazo
 
+### Related game discovery
+
+The game-page suggestions are prepared by the signed `/api/internal/game-discovery-worker` minute cron. It uses the existing `GameMetadataJob` queue under an environment-specific `:discovery` scope, separately from metadata/import jobs, with claims, leases and retry backoff. IGDB credentials and `CRON_SECRET` are required; no additional schema migration is needed. Other hosts should schedule the same authenticated endpoint.
+
+The worker combines provider-related titles with specific gameplay keywords, themes, perspective and game modes. Gameplay families (for example soulslike, metroidvania or deckbuilding) dominate broad genres; popularity only breaks equal affinity scores. Known gameplay conflicts, DLC and add-on expansions are excluded, and alternate editions/remasters of the same parent occupy one recommendation slot. These versions remain distinct canonical games and user purchases.
+
+Up to six qualifying candidates go through canonical catalog resolution, including titles not yet in filazo. Prepared recommendations, reasons and public feature profiles live in the canonical IGDB `GameProviderLink.rawData.gameDiscovery` cache, refreshed every 14 days. Page reads are bounded, use only public catalog fields, do not call providers or write data, and keep the last complete snapshot during an outage. No weak genre-only filler is shown; pending games temporarily omit this optional section. SEO indexability rules are independent of recommendation eligibility.
+
 ## Free and Pro features
 
 Library organization, reviews, manual imports/sync and text journal entries are available on Free, with no entry-count paywall. Pro unlocks the entire calendar (including date writes), automatic daily platform sync, web search in chat, a private journal retrospective at `/account/retrospective`, and larger media/AI allowances. `/account/billing` displays the current comparison.
