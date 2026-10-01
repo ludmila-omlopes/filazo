@@ -973,12 +973,10 @@ export function GameMemoryCard({
   game,
   locale,
   sessionUserId,
-  advertisement,
 }: {
   game: GameDetail;
   locale: Locale;
   sessionUserId: string | null;
-  advertisement?: React.ReactNode;
 }) {
   const t = createTranslator(locale);
   const personalEntries = game.userEntries.filter((entry) => entry.userId === sessionUserId);
@@ -1131,7 +1129,6 @@ export function GameMemoryCard({
       >
         {t("game.backToCatalog")}
       </Link>
-      {advertisement}
     </main>
   );
 }
