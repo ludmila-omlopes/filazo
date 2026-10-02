@@ -14,6 +14,7 @@ type LoginSearchParams = Promise<{
   error?: string;
   expired?: string;
   feedback?: string;
+  verification?: string;
   ref?: string;
 }>;
 
@@ -68,6 +69,7 @@ export default async function LoginPage({
         authFailureReference={authFailureReference}
         defaultOpen
         error={error}
+        verificationPending={query.verification === "pending"}
         feedbackSent={query.feedback === "sent"}
         feedbackError={feedbackError}
         showTrigger={false}
@@ -92,6 +94,7 @@ export default async function LoginPage({
             <AuthDialog
               authFailureReference={authFailureReference}
               error={error}
+              verificationPending={query.verification === "pending"}
               feedbackSent={query.feedback === "sent"}
               feedbackError={feedbackError}
               triggerClassName="min-h-12 bg-cream px-7 text-base text-dusk-deep hover:bg-glow"

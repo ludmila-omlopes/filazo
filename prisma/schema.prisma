@@ -130,6 +130,20 @@ enum AccountPlan {
   PRO
 }
 
+// Pending credentials have no access to personal records until mailbox proof.
+model PendingEmailRegistration {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  displayName String
+  passwordHash String
+  tokenHash   String   @unique
+  browserHash String
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([expiresAt])
+}
+
 model User {
   // Manual Pro grant. Paid access is derived independently from BillingSubscription.
   plan                     AccountPlan             @default(FREE)
@@ -137,6 +151,7 @@ model User {
   displayName              String?
   email                    String?                 @unique
   passwordHash             String?
+  passwordVerifiedAt       DateTime?
   googleSubject            String?                 @unique
   youtubeSubject           String?                 @unique
   avatarUrl                String?

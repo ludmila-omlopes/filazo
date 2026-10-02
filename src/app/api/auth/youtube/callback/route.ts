@@ -1,3 +1,4 @@
+import { GoogleIdentityConflict } from "@/lib/google-user-linking";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { createOrUpdateYoutubeBetaUser, isAdminEmail } from "@/lib/beta-access";
@@ -48,7 +49,9 @@ export async function GET(request: Request) {
   } catch (error) {
     const { t } = await getRequestTranslator();
     const message =
-      error instanceof Error
+      error instanceof GoogleIdentityConflict
+        ? t("auth.error.identityConflict")
+        : error instanceof Error
         ? error.message
         : t("auth.error.youtubeCallbackFailed");
 

@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
+import { resolveGoogleIdentity } from "@/lib/google-user-linking";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -145,46 +146,5 @@ export async function upsertGoogleUser(
     registrationClosedMessage = "Could not create the filazo account.",
   }: { allowCreate?: boolean; registrationClosedMessage?: string } = {},
 ) {
-  const existingByGoogle = await prisma.user.findUnique({
-    where: { googleSubject: profile.subject },
-  });
-
-  if (existingByGoogle) {
-    return prisma.user.update({
-      where: { id: existingByGoogle.id },
-      data: {
-        email: existingByGoogle.email ?? profile.email,
-        displayName: profile.name ?? existingByGoogle.displayName ?? undefined,
-        avatarUrl: profile.picture ?? existingByGoogle.avatarUrl ?? undefined,
-      },
-    });
-  }
-
-  const existingByEmail = await prisma.user.findUnique({
-    where: { email: profile.email },
-  });
-
-  if (existingByEmail) {
-    return prisma.user.update({
-      where: { id: existingByEmail.id },
-      data: {
-        googleSubject: profile.subject,
-        displayName: existingByEmail.displayName ?? profile.name ?? undefined,
-        avatarUrl: existingByEmail.avatarUrl ?? profile.picture ?? undefined,
-      },
-    });
-  }
-
-  if (!allowCreate) {
-    throw new Error(registrationClosedMessage);
-  }
-
-  return prisma.user.create({
-    data: {
-      email: profile.email,
-      googleSubject: profile.subject,
-      displayName: profile.name ?? profile.email.split("@")[0],
-      avatarUrl: profile.picture,
-    },
-  });
+  return resolveGoogleIdentity(prisma, profile, { allowCreate, registrationClosedMessage });
 }

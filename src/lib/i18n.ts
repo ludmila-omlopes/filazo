@@ -155,6 +155,14 @@ const messages = {
     "auth.browserRequired.back": "Back to filazo",
     "auth.browserRequired.open": "Open filazo",
 
+    "auth.error.emailDelivery": "Could not send your confirmation email. Try again later or use Google sign-in.",
+    "auth.error.passwordIdentityProof": "Use this account's original sign-in method. If you registered with Google, continue with Google; otherwise contact support to restore access.",
+    "auth.error.verificationInvalid": "This confirmation link is invalid, expired, or opened in a different browser. Start registration again in this browser.",
+    "auth.error.identityConflict": "This email is already associated with an account. Sign in using its original method; contact support to link accounts.",
+    "auth.verification.pending": "Check your email. Open the confirmation link in this browser within 30 minutes. Your account is created only after confirmation.",
+    "auth.verification.title": "Confirm your registration",
+    "auth.verification.body": "Confirm only if you started this registration in this browser. This creates your account with the password you chose.",
+    "auth.verification.confirm": "Confirm and create account",
     "auth.error.invalidEmailOrPassword":
       "Use a valid email and a password with at least 8 characters.",
     "auth.error.noPasswordAccount":
@@ -1910,6 +1918,14 @@ const messages = {
     "auth.browserRequired.back": "Voltar para a filazo",
     "auth.browserRequired.open": "Abrir filazo",
 
+    "auth.error.emailDelivery": "Não foi possível enviar o e-mail de confirmação. Tente mais tarde ou entre com o Google.",
+    "auth.error.passwordIdentityProof": "Use o método original de entrada desta conta. Se você se cadastrou com o Google, continue com o Google; caso contrário, contate o suporte para recuperar o acesso.",
+    "auth.error.verificationInvalid": "Este link é inválido, expirou ou foi aberto em outro navegador. Inicie o cadastro novamente neste navegador.",
+    "auth.error.identityConflict": "Este e-mail já está associado a uma conta. Entre pelo método original; contate o suporte para vincular contas.",
+    "auth.verification.pending": "Confira seu e-mail. Abra o link de confirmação neste navegador em até 30 minutos. Sua conta só será criada após a confirmação.",
+    "auth.verification.title": "Confirme seu cadastro",
+    "auth.verification.body": "Confirme apenas se você iniciou este cadastro neste navegador. Isso cria sua conta com a senha que você escolheu.",
+    "auth.verification.confirm": "Confirmar e criar conta",
     "auth.error.invalidEmailOrPassword":
       "Use um e-mail válido e uma senha com pelo menos 8 caracteres.",
     "auth.error.noPasswordAccount":

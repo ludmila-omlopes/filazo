@@ -25,6 +25,7 @@ function load(relativePath, mocks) {
 test("login quotas stop password/database work and use normalized email identities", async () => {
   const checked = [];
   const action = load("../src/app/login/actions.ts", {
+    "next/headers": {}, "@/lib/email-registration": {}, "@/lib/email": {},
     "next/cache": { revalidatePath() {} },
     "next/navigation": { redirect(url) { throw new Error(`redirect:${url}`); } },
     "@/lib/abuse-policy": policy,
@@ -46,6 +47,7 @@ test("login quotas stop password/database work and use normalized email identiti
 
 test("anonymous support quota denial cannot write a feedback row", async () => {
   const action = load("../src/app/login/actions.ts", {
+    "next/headers": {}, "@/lib/email-registration": {}, "@/lib/email": {},
     "next/cache": {}, "next/navigation": { redirect(url) { throw new Error(url); } },
     "@/lib/abuse-policy": policy, "@/lib/abuse-request": { checkActionAbuse: async () => "wait" },
     "@/lib/password-auth": {}, "@/lib/database-errors": {}, "@/lib/request-locale": {}, "@/lib/session": {},

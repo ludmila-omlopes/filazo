@@ -3,11 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { cookies } from "next/headers";
+import { beginEmailRegistration, EmailRegistrationError, EMAIL_REGISTRATION_COOKIE, EMAIL_REGISTRATION_SECONDS } from "@/lib/email-registration";
+import { sendEmailRegistration } from "@/lib/email";
 import { FeedbackType } from "@prisma/client";
 import { ABUSE_LIMITS } from "@/lib/abuse-policy";
 import { checkActionAbuse } from "@/lib/abuse-request";
 import {
   hashPassword,
+  canSignInWithPassword,
   normalizeEmail,
   verifyPassword,
 } from "@/lib/password-auth";
@@ -78,6 +82,9 @@ export async function emailAuthAction(formData: FormData) {
     if (!user?.passwordHash) {
       redirectWithAuthError(t("auth.error.emailPasswordMismatch"));
     }
+    if (!canSignInWithPassword(user)) {
+      redirectWithAuthError(t("auth.error.passwordIdentityProof"));
+    }
 
     const isValidPassword = await verifyPassword(password, user.passwordHash);
     if (!isValidPassword) {
@@ -103,32 +110,28 @@ export async function emailAuthAction(formData: FormData) {
     redirectWithAuthError(t("auth.error.acceptTerms"));
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser?.passwordHash) {
+  const limitError = await checkActionAbuse([ABUSE_LIMITS.registrationEmail], email);
+  if (limitError) redirectWithAuthError(limitError);
+  // Reject every existing identity before doing password work.
+  if (await prisma.user.findUnique({ where: { email } })) {
     redirectWithAuthError(t("auth.error.accountExists"));
   }
-
-  const passwordHash = await hashPassword(password);
-  const user = existingUser
-    ? await prisma.user.update({
-        where: { id: existingUser.id },
-        data: {
-          displayName: existingUser.displayName ?? displayName,
-          passwordHash,
-        },
-      })
-    : await prisma.user.create({
-        data: {
-          displayName,
-          email,
-          passwordHash,
-        },
-      });
-
-  await setUserSession(user.id);
-  revalidatePath("/");
-  revalidatePath("/profile");
-  redirect("/profile?login=created");
+  try {
+    const pending = await beginEmailRegistration(prisma, {
+      email, displayName, passwordHash: await hashPassword(password),
+    }, (token) => sendEmailRegistration({ to: email, token, locale }));
+    (await cookies()).set(EMAIL_REGISTRATION_COOKIE, pending.browserProof, {
+      httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production",
+      path: "/login/verify", maxAge: EMAIL_REGISTRATION_SECONDS,
+    });
+  } catch (error) {
+    if (error instanceof EmailRegistrationError) {
+      redirectWithAuthError(t(error.reason === "exists" ? "auth.error.accountExists" : "auth.error.emailDelivery"));
+    }
+    reportDatabaseError(error, { operation: "email-registration", route: "/login" });
+    redirectWithAuthError(getDatabaseErrorMessage(error, locale));
+  }
+  redirect("/login?auth=1&verification=pending");
 }
 
 export async function submitAuthFailureFeedbackAction(formData: FormData) {

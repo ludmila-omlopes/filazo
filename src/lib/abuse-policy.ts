@@ -2,6 +2,7 @@ import { isIP } from "node:net";
 
 export const ABUSE_LIMITS = {
   loginIp: { name: "login-ip", limit: 30, windowSeconds: 900 },
+  registrationEmail: { name: "registration-email", limit: 3, windowSeconds: 3600 },
   loginEmail: { name: "login-email", limit: 10, windowSeconds: 900 },
   anonymousFeedback: { name: "anonymous-feedback", limit: 3, windowSeconds: 3600 },
   feedback: { name: "feedback", limit: 10, windowSeconds: 3600 },

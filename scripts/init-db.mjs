@@ -39,6 +39,8 @@ if (migration.error || migration.status !== 0) process.exit(migration.status ?? 
 // with separate rows for each supported platform language.
 // AbuseLimitBucket holds atomic, expiring abuse counters with HMAC identifiers.
 // ApiToken stores hashed, read-only personal API keys for the library read API.
+// PendingEmailRegistration and nullable User.passwordVerifiedAt require mailbox proof;
+// legacy passwords are intentionally never backfilled as verified.
 const result = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
   cwd: process.cwd(),
   env: process.env,

@@ -1,6 +1,7 @@
 import { type Prisma, type User } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { resolveGoogleIdentity } from "@/lib/google-user-linking";
 
 export const ADMIN_EMAIL = "ludmila.omlopes@gmail.com";
 
@@ -50,41 +51,7 @@ export async function createOrUpdateYoutubeBetaUser(profile: {
   name: string | null;
   picture: string | null;
 }) {
-  const existingByYoutube = await prisma.user.findUnique({
-    where: { youtubeSubject: profile.subject },
-  });
-
-  const existingByGoogle = await prisma.user.findUnique({
-    where: { googleSubject: profile.subject },
-  });
-
-  const existingByEmail = await prisma.user.findUnique({
-    where: { email: profile.email },
-  });
-
-  const existing = existingByYoutube ?? existingByGoogle ?? existingByEmail;
-  const user = existing
-    ? await prisma.user.update({
-        where: { id: existing.id },
-        data: {
-          email: existing.email ?? profile.email,
-          displayName: existing.displayName ?? profile.name ?? undefined,
-          avatarUrl: existing.avatarUrl ?? profile.picture ?? undefined,
-          googleSubject: existing.googleSubject ?? profile.subject,
-          youtubeSubject: existing.youtubeSubject ?? profile.subject,
-        },
-      })
-    : await prisma.user.create({
-        data: {
-          email: profile.email,
-          displayName: profile.name ?? profile.email.split("@")[0],
-          avatarUrl: profile.picture,
-          googleSubject: profile.subject,
-          youtubeSubject: profile.subject,
-        },
-      });
-
-  return user;
+  return resolveGoogleIdentity(prisma, profile, { youtube: true });
 }
 
 export function oneYearFromNow() {
