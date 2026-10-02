@@ -15,6 +15,8 @@ export const ABUSE_LIMITS = {
   uploadBurst: { name: "upload-burst", limit: 10, windowSeconds: 60 },
   uploadDaily: { name: "upload-daily", limit: 50, windowSeconds: 86400 },
   uploadDelete: { name: "upload-delete", limit: 20, windowSeconds: 60 },
+  libraryApi: { name: "library-api", limit: 120, windowSeconds: 60 },
+  apiTokenCreate: { name: "api-token-create", limit: 10, windowSeconds: 3600 },
 } as const;
 
 export type AbusePolicy = { name: string; limit: number; windowSeconds: number };

@@ -28,6 +28,7 @@ A calm, personal game library. Filazo gathers games from multiple sources into o
 - Offers game pages, journals, reviews, completion tracking, play-next suggestions, and an optional AI assistant.
 - Classifies games as campaign, ongoing, hybrid, or unknown; the profile structure filter is opt-in and starts inactive.
 - Supports English and Brazilian Portuguese.
+- Exposes a read-only library API for the owner's own sites, authenticated with personal API keys.
 
 Game structure uses main-story estimates and story-completion trophies as campaign evidence; solo or cooperative play alone does not establish a campaign. Automatic classifications are recalculated from current evidence, while manual choices retain their value and provenance. Existing titles with missing game modes become eligible for metadata enrichment on library sync and queued metadata work, respecting the seven-day retry interval. An empty modes response is considered fetched and does not trigger repeated searches. Apply the current schema with `npm run db:init` before deploying this feature.
 
@@ -292,6 +293,18 @@ Connecting Steam, PlayStation, Xbox, or GOG never transfers an existing integrat
 Game detail reads select personal entries, reviews (up to 20), and the displayed entry's latest journal page only for the signed-in user. The community section loads at most six other users with only the public shelf fields it displays. Page metadata uses a separate, minimal query. Viewing a game does not refresh catalog metadata; imports and the scheduled metadata worker retain that responsibility. The library's time estimate uses only the viewer's library, with no live cross-user benchmark.
 
 Run `npm run test:user-isolation` against a disposable local PostgreSQL instance using `DATABASE_URL`. It creates an isolated schema, checks concurrent account linking, review ownership, anonymous and authenticated game reads, then removes the test schema. It does not call external providers. Run `npm run lint` and `npm run typecheck` as well.
+
+## Library read API
+
+Each account can create up to five read-only API keys under **Sources → Use your library elsewhere → API access**, so another site the owner runs can list their library. Keys are `flz_` followed by 32 random bytes. The full key appears once at creation; only its SHA-256 hash and a short display prefix are stored in `ApiToken`. Revoking a key deletes it immediately. `lastUsedAt` is updated at most once per hour. Keys are never listed in admin read-only previews.
+
+```bash
+curl -H "Authorization: Bearer flz_..." "$APP_URL/api/v1/library?status=playing,completed&limit=50"
+```
+
+`GET /api/v1/library` returns `{ data, nextCursor }`. Every query is filtered by the key owner's `userId` in the database. `status` takes a comma-separated list of lowercase `UserGameStatus` values; `limit` is 1–100 (default 50). Pass `nextCursor` back as `cursor` until it is `null`. Each entry includes status, platform, playtime, play/finish dates, completion percent, favorite and physical-copy flags, and public canonical game fields with an absolute game-page URL. Notes, intents, abandon reasons, raw provider data and connected-account details are never returned. Responses are `no-store`. Each key is limited to 120 requests per minute through the shared abuse limiter (429 with `Retry-After`), and key creation is limited to 10 per user per hour. Call the API from a server: keys must never be shipped in browser code, and the endpoint does not enable CORS.
+
+Apply the additive `prisma/migrations/20261001120000_add_api_tokens/migration.sql` before deploying (or `npm run db:init` for bootstrap), then run `npm run db:generate`. No new environment variables are required; game URLs use `APP_URL`.
 
 ## Public catalog
 
