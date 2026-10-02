@@ -162,6 +162,7 @@ model User {
   billingCustomers         BillingCustomer[]
   billingSubscriptions     BillingSubscription[]
   dailyActivity            UserDailyActivity[]
+  apiTokens                ApiToken[]
   calendarState            UserCalendarState?
   calendarReleases         UserCalendarRelease[]
   gamePlayDates            UserGamePlayDate[]
@@ -169,6 +170,22 @@ model User {
 
   @@index([lastActiveAt])
   @@index([createdAt])
+}
+
+// Read-only personal API keys for the user's own sites. Only the SHA-256 hash
+// of the key is stored; the raw key is shown once when it is created.
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  name       String
+  tokenHash  String    @unique
+  // First characters of the key, so the owner can tell keys apart.
+  prefix     String
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // One authenticated user per UTC day. Never infer history from lastActiveAt.

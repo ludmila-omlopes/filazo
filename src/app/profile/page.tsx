@@ -41,6 +41,7 @@ import {
   getPlayerProfileShelfChanges,
 } from "@/lib/assistant/profile-agent";
 import { getAiSettings } from "@/lib/ai-settings";
+import { listApiTokens } from "@/lib/api-tokens";
 import { getProfileData } from "@/lib/catalog";
 import { createTranslator } from "@/lib/i18n";
 import { reportDatabaseError } from "@/lib/database-errors";
@@ -151,6 +152,10 @@ export default async function ProfilePage({
       ? await getPlayerProfileShelfChanges(profileUserId, playerProfile.updatedAt)
       : [];
   const aiSettings = applyPlanAiLimits(await getAiSettings(), planAccount);
+  const apiTokens =
+    activeTab === "integrations" && !isReadOnlyPreview
+      ? await listApiTokens(userId)
+      : null;
   const signalEntryIds =
     activeTab === "games" && activeSignal
       ? await getAssistantSignalEntryIds(profileUserId, activeSignal)
@@ -236,6 +241,7 @@ export default async function ProfilePage({
           {activeTab === "integrations" ? (
             <IntegrationsPanel
               aiSettings={aiSettings}
+              apiTokens={apiTokens}
               locale={locale}
               profile={profile}
             />
