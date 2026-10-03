@@ -1,5 +1,5 @@
-import "server-only";
-
+// Plain server module, also loaded by Node QA scripts outside Next. Never mark it
+// "use server": that would expose these senders as unauthenticated actions.
 import { Resend } from "resend";
 import { getBetaDiscordInviteUrl } from "@/lib/beta-community";
 import { ADMIN_EMAIL } from "@/lib/beta-access";
