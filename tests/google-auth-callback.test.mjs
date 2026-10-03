@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { test } from "node:test";
 import ts from "typescript";
 import { reportAuthFailure } from "../src/lib/auth-errors.ts";
+import { GoogleIdentityConflict } from "../src/lib/google-user-linking.ts";
 import { createTranslator } from "../src/lib/i18n.ts";
 
 const require = createRequire(import.meta.url);
@@ -12,7 +13,7 @@ const { outputText } = ts.transpileModule(
   { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true } },
 );
 
-function callback({ state = "expected-state", nonce = "expected-nonce", locale = "en", exchangeError } = {}) {
+function callback({ state = "expected-state", nonce = "expected-nonce", locale = "en", exchangeError, userError } = {}) {
   const stored = new Map([
     ["filazo-google-oauth-state", state],
     ["filazo-google-oauth-nonce", nonce],
@@ -20,6 +21,7 @@ function callback({ state = "expected-state", nonce = "expected-nonce", locale =
   const events = [];
   const calls = [];
   const mocks = {
+    "@/lib/google-user-linking": { GoogleIdentityConflict },
     "next/headers": { cookies: async () => ({
       get: (name) => stored.get(name) ? { value: stored.get(name) } : undefined,
       delete: (name) => stored.delete(name),
@@ -36,6 +38,7 @@ function callback({ state = "expected-state", nonce = "expected-nonce", locale =
       },
       upsertGoogleUser: async (profile) => {
         calls.push(["user", profile.subject]);
+        if (userError) throw userError;
         return { id: "local-user" };
       },
     },
@@ -132,3 +135,12 @@ test("token exchange failures still reach monitoring without exposing their cont
   assert.equal(JSON.stringify(flow.events).includes("secret-token"), false);
   assert.deepEqual(flow.calls, [["exchange", "valid-code", "expected-nonce"]]);
 });
+
+for (const locale of ["en", "pt-BR"]) {
+  test(`identity collision returns actionable localized error without session (${locale})`, async () => {
+    const flow = callback({ locale, userError: new GoogleIdentityConflict() });
+    const redirect = await flow.run("state=expected-state&code=valid-code");
+    assert.equal(redirect.searchParams.get("error"), createTranslator(locale)("auth.error.identityConflict"));
+    assert.equal(flow.calls.some(c => c[0] === "session"), false);
+  });
+}

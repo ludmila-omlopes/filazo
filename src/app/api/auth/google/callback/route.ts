@@ -1,3 +1,4 @@
+import { GoogleIdentityConflict } from "@/lib/google-user-linking";
 import { cookies } from "next/headers";
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
@@ -85,6 +86,7 @@ export async function GET(request: Request) {
     const { t } = await getRequestTranslator();
     const message =
       userMessage ??
+      (error instanceof GoogleIdentityConflict ? t("auth.error.identityConflict") : null) ??
       t("auth.error.googleCallbackFailed", {
         reference: requestId.slice(0, 8),
       });

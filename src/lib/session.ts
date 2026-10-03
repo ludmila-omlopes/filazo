@@ -6,6 +6,7 @@ import { PLATFORM_SYNC_INACTIVE_WEEKLY_AFTER_MS } from "@/lib/platform-sync-poli
 import { prisma } from "@/lib/prisma";
 import { recordDailyActivity } from "@/lib/platform-telemetry";
 
+const AUTH_POLICY = "email-proof-v1";
 const SESSION_COOKIE = "filazo-session";
 const SESSION_DURATION = 60 * 60 * 24 * 30;
 const ACTIVITY_TOUCH_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -58,7 +59,7 @@ async function touchUserActivity(userId: string) {
 
 export async function setUserSession(userId: string) {
   await touchUserActivity(userId);
-  const token = await new SignJWT({})
+  const token = await new SignJWT({ authPolicy: AUTH_POLICY })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(userId)
     .setIssuedAt()
@@ -87,7 +88,8 @@ export async function getSessionUserId() {
   }
 
   try {
-    const verified = await jwtVerify(token, getSessionSecret());
+    const verified = await jwtVerify(token, getSessionSecret(), { algorithms: ["HS256"] });
+    if (verified.payload.authPolicy !== AUTH_POLICY) return null;
     const userId = typeof verified.payload.sub === "string" ? verified.payload.sub : null;
     if (userId) await touchUserActivity(userId);
     return userId;

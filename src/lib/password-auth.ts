@@ -1,5 +1,12 @@
 import crypto from "node:crypto";
 import { promisify } from "node:util";
+import { isAdminEmail } from "@/lib/beta-access";
+
+export function canSignInWithPassword(user: { email: string | null; passwordHash: string | null; passwordVerifiedAt: Date | null; googleSubject: string | null; youtubeSubject: string | null }) {
+  if (!user.passwordHash) return false;
+  if (user.passwordVerifiedAt) return true;
+  return !user.googleSubject && !user.youtubeSubject && !isAdminEmail(user.email);
+}
 
 const scryptAsync = promisify(crypto.scrypt);
 const PASSWORD_PREFIX = "scrypt";

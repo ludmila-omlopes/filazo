@@ -56,4 +56,7 @@ jobs:
       - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/remove-library-entry-check.ts
       - run: npm run test:user-isolation
       - run: npm run test:abuse-limits
+      - run: npm run test:email-auth
+        env:
+          EMAIL_AUTH_QA_DATABASE_URL: postgresql://filazo:filazo_test@localhost:5432/filazo_test
       - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/pro-features-check.ts

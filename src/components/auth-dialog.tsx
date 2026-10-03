@@ -19,6 +19,7 @@ export function AuthDialog({
   defaultOpen = false,
   error,
   authFailureReference,
+  verificationPending = false,
   feedbackSent = false,
   feedbackError,
   showTrigger = true,
@@ -30,6 +31,7 @@ export function AuthDialog({
   defaultOpen?: boolean;
   error?: string;
   authFailureReference?: string;
+  verificationPending?: boolean;
   feedbackSent?: boolean;
   feedbackError?: string;
   showTrigger?: boolean;
@@ -107,6 +109,12 @@ export function AuthDialog({
                 {t("auth.dialog.title")}
               </h2>
             </div>
+
+            {verificationPending ? (
+              <p role="status" className="mb-5 rounded-inner border border-sage/50 bg-sage/15 px-4 py-3 text-sm leading-relaxed">
+                {t("auth.verification.pending")}
+              </p>
+            ) : null}
 
             {error ? (
               <div className="mb-5 rounded-inner border border-clay/50 bg-clay/15 px-4 py-3 text-sm font-semibold text-cream">

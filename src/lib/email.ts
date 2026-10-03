@@ -1,8 +1,31 @@
-"use server";
-
+// Plain server module, also loaded by Node QA scripts outside Next. Never mark it
+// "use server": that would expose these senders as unauthenticated actions.
 import { Resend } from "resend";
 import { getBetaDiscordInviteUrl } from "@/lib/beta-community";
 import { ADMIN_EMAIL } from "@/lib/beta-access";
+
+export async function sendEmailRegistration(input: { to: string; token: string; locale: string }) {
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const from = process.env.EMAIL_AUTH_FROM_EMAIL?.trim() || process.env.BETA_APPROVAL_FROM_EMAIL?.trim();
+  if (!apiKey || !from) return { sent: false };
+  const url = new URL("/login/verify", getBaseUrl());
+  url.searchParams.set("token", input.token);
+  const portuguese = input.locale === "pt-BR";
+  const text = portuguese
+    ? `Confirme seu cadastro na filazo:\n${url}\n\nAbra no mesmo navegador em que você iniciou o cadastro e confirme na página. O link expira em 30 minutos. Se você não pediu o cadastro, ignore este e-mail.`
+    : `Confirm your filazo registration:\n${url}\n\nOpen this in the browser where you started registration and confirm on the page. The link expires in 30 minutes. If you did not request registration, ignore this email.`;
+  // Never include provider responses or the verification URL in diagnostics.
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST", signal: AbortSignal.timeout(8_000),
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from, to: input.to,
+      subject: portuguese ? "Confirme seu cadastro na filazo" : "Confirm your filazo registration", text }),
+  });
+  if (!response.ok) throw new Error("Registration email delivery failed.");
+  const result = await response.json() as { id?: string };
+  if (!result.id) throw new Error("Registration email receipt missing.");
+  return { sent: true };
+}
 
 export async function sendSyncIncidentEmail(input: {
   id: string;
