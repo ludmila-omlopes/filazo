@@ -45,7 +45,7 @@
     "clsx": "^2.1.1",
     "jose": "^6.2.2",
     "lucide-react": "^1.17.0",
-    "next": "16.2.10",
+    "next": "16.3.8",
     "papaparse": "^5.5.3",
     "prisma": "^6.19.3",
     "psn-api": "^2.18.0",
@@ -67,7 +67,7 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.3.8",
     "tsx": "^4.23.13",
     "typescript": "^5"
   }
