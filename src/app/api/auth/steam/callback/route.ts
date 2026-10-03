@@ -21,7 +21,12 @@ export async function GET(request: Request) {
       throw new Error("Steam sign-in state could not be verified.");
     }
 
-    const steamId = await verifySteamOpenIdCallback(url.searchParams);
+    // Same origin the sign-in route used to build the signed return_to.
+    const origin = process.env.APP_URL || url.origin;
+    const steamId = await verifySteamOpenIdCallback(url.searchParams, {
+      origin,
+      state: expectedState,
+    });
     const existingSessionUserId = await getSessionUserId();
 
     const existingSteamAccount = await prisma.externalAccount.findUnique({
