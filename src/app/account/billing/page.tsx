@@ -23,7 +23,7 @@ export const maxDuration = 60;
 const errorKeys: Record<string, TranslationKey> = {
   unavailable: "billing.unavailable", existing: "billing.existing", manual: "billing.manual",
   pending: "billing.pending", customer: "billing.portalError", portal: "billing.portalError", refresh: "billing.refreshError",
-  consent: "billing.brazilConfirm",
+  consent: "billing.brazilConfirm", limited: "billing.rateLimited",
 };
 const statusKeys: Record<string, TranslationKey> = {
   active: "billing.active", past_due: "billing.pastDue", unpaid: "billing.pastDue",

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   getSafeOAuthReturnPath,
+  getSessionClearRedirectPath,
   isGoogleOAuthBlockedUserAgent,
 } from "../src/lib/oauth-browser.ts";
 
@@ -42,4 +43,25 @@ test("OAuth return paths stay inside known auth surfaces", () => {
   assert.equal(getSafeOAuthReturnPath("/profile", "/profile"), "/profile");
   assert.equal(getSafeOAuthReturnPath("https://evil.example", "/profile"), "/profile");
   assert.equal(getSafeOAuthReturnPath("//evil.example", "/profile"), "/profile");
+});
+
+test("clearing a session keeps the existing in-app redirects", () => {
+  assert.equal(getSessionClearRedirectPath("/login", "expired"), "/login?auth=1&expired=1");
+  assert.equal(getSessionClearRedirectPath("/profile?tab=library", null), "/profile?tab=library");
+  assert.equal(getSessionClearRedirectPath(null, null), "/login");
+  assert.equal(getSessionClearRedirectPath(null, "expired"), "/login?auth=1&expired=1");
+});
+
+test("clearing a session never redirects off the site", () => {
+  for (const next of [
+    "https://evil.example",
+    "//evil.example",
+    "/\\evil.example",
+    "/\t/evil.example",
+    "\\\\evil.example",
+    "javascript:alert(1)",
+  ]) {
+    assert.equal(getSessionClearRedirectPath(next, null), "/login", next);
+    assert.equal(getSessionClearRedirectPath(next, "expired"), "/login?auth=1&expired=1", next);
+  }
 });

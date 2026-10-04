@@ -102,13 +102,16 @@ async function main() {
   assert.equal(detail.communityEntries.length, 6);
   assert.ok(detail.communityEntries.every((entry) => entry.user.displayName !== "Player A"));
   assert.doesNotMatch(JSON.stringify(detail), /PRIVATE_/);
+  const anonymousStart = queries.length;
   const anonymous = await readGameDetail(db, game.slug, null);
   assert.ok(anonymous);
   assert.deepEqual(anonymous.userEntries, []);
   assert.deepEqual(anonymous.userReviews, []);
   assert.deepEqual(anonymous.journalEntries, []);
-  assert.equal(anonymous.communityEntries.length, 6);
-  assert.doesNotMatch(JSON.stringify(anonymous), /PRIVATE_/);
+  // Public game pages never expose other players' names or activity.
+  assert.deepEqual(anonymous.communityEntries, []);
+  assert.ok(!queries.slice(anonymousStart).some((query) => /"User"/.test(query)));
+  assert.doesNotMatch(JSON.stringify(anonymous), /PRIVATE_|Neighbor |Player /);
   assert.ok(!queries.some((query) => /^\s*(INSERT|UPDATE|DELETE)\b/i.test(query)));
   assert.deepEqual(await db.game.findUniqueOrThrow({ where: { id: game.id } }), gameBefore);
   queries.length = 0;

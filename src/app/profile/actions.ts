@@ -1190,6 +1190,9 @@ export async function syncGogLibraryAction() {
     );
   }
 
+  const limitError = await checkActionAbuse([{ name: "manual-gog-sync", limit: 1, windowSeconds: 60 }], userId);
+  if (limitError) redirect(`/profile?tab=integrations&error=${encodeURIComponent(limitError)}`);
+
   let result: Awaited<ReturnType<typeof runManualPlatformSync>>;
   try {
     result = await runManualPlatformSync({
@@ -1222,6 +1225,9 @@ export async function syncUserReviewsAction() {
   if (!userId) {
     redirect(`/login?error=${encodeURIComponent(t("profileAction.needReviewsLogin"))}`);
   }
+
+  const limitError = await checkActionAbuse([ABUSE_LIMITS.reviewsSync], userId);
+  if (limitError) redirect(`/profile?tab=integrations&error=${encodeURIComponent(limitError)}`);
 
   let importedCount: number;
   try {
@@ -1885,6 +1891,9 @@ export async function detectFinishedGamesAction() {
   if (!userId) {
     redirect(`/profile?error=${encodeURIComponent(t("profileAction.needFinishedLogin"))}`);
   }
+
+  const limitError = await checkActionAbuse([ABUSE_LIMITS.finishedGamesCheck], userId);
+  if (limitError) redirect(`/profile?error=${encodeURIComponent(limitError)}`);
 
   let finishedCount: number;
   let scannedCount: number;
