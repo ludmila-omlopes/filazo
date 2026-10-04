@@ -49,9 +49,11 @@ export async function readGameDetail(db: PrismaClient, slug: string, userId: str
       orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }, { id: "asc" }],
       take: 20,
     }) : [],
-    db.user.findMany({
+    // Other players' names and activity are for signed-in members only, never
+    // for anonymous visitors or search engines indexing this public page.
+    userId ? db.user.findMany({
       where: {
-        ...(userId ? { id: { not: userId } } : {}),
+        id: { not: userId },
         gameEntries: { some: { gameId: game.id } },
       },
       select: {
@@ -68,7 +70,7 @@ export async function readGameDetail(db: PrismaClient, slug: string, userId: str
       },
       orderBy: { id: "asc" },
       take: COMMUNITY_SHELF_LIMIT,
-    }),
+    }) : [],
   ]);
   const currentEntry = chooseDisplayedGameEntry(userEntries);
   const journalEntries = userId && currentEntry ? await db.gameJournalEntry.findMany({
