@@ -80,6 +80,28 @@ export function getSafeOAuthReturnPath(
   return path;
 }
 
+/** Where to send someone after clearing their session; never off this site. */
+export function getSessionClearRedirectPath(
+  next: string | null | undefined,
+  reason: string | null | undefined,
+) {
+  const expired = reason === "expired";
+  // Parse like a browser would: "/\evil.example" or "/\t/evil.example" leave the site.
+  const path = normalizeAppPath(next);
+  if (!path) {
+    return expired ? "/login?auth=1&expired=1" : "/login";
+  }
+
+  if (!expired) {
+    return path;
+  }
+
+  const url = new URL(path, APP_ROUTE_ORIGIN);
+  url.searchParams.set("auth", "1");
+  url.searchParams.set("expired", "1");
+  return `${url.pathname}${url.search}`;
+}
+
 export function createBrowserRequiredUrl(
   requestUrl: string | URL,
   returnPath: string,
