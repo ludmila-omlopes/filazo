@@ -22,6 +22,24 @@ function load(relativePath, mocks) {
   return exports;
 }
 
+// For modules with many dependencies: anything not mocked fails if it is used.
+function strictModule(name) {
+  return new Proxy({}, { get(_target, prop) {
+    if (prop === "__esModule") return false;
+    return new Proxy(function () {}, {
+      apply() { throw new Error(`unexpected call: ${name}.${String(prop)}`); },
+      get(_fn, inner) { throw new Error(`unexpected use: ${name}.${String(prop)}.${String(inner)}`); },
+    });
+  } });
+}
+
+function loadStrict(relativePath, mocks) {
+  return load(relativePath, new Proxy(mocks, {
+    has: (target, name) => name in target || name.startsWith("@/") || name.startsWith("next/"),
+    get: (target, name) => name in target ? target[name] : strictModule(name),
+  }));
+}
+
 test("login quotas stop password/database work and use normalized email identities", async () => {
   const checked = [];
   const action = load("../src/app/login/actions.ts", {
@@ -116,4 +134,56 @@ test("upload quota denies token issuance; accepted image tokens carry size and r
   assert.equal(options.allowOverwrite, false);
   assert.equal(options.addRandomSuffix, false);
   assert.ok(options.validUntil > Date.now() && options.validUntil <= Date.now() + 300_000);
+});
+
+test("expensive provider actions are denied before any provider or database work", async () => {
+  const checked = [];
+  const actions = loadStrict("../src/app/profile/actions.ts", {
+    "next/navigation": { redirect(url) { throw new Error(`redirect:${url}`); } },
+    "@/lib/abuse-policy": policy,
+    "@/lib/abuse-request": { async checkActionAbuse(policies, identity) {
+      checked.push([policies[0].name, identity]);
+      return "wait";
+    } },
+    "@/lib/session": { getSessionUserId: async () => "user-a" },
+    "@/lib/request-locale": { getRequestLocale: async () => "en" },
+    "@/lib/i18n": { createTranslator: () => (key) => key },
+  });
+  for (const action of ["detectFinishedGamesAction", "syncUserReviewsAction", "syncGogLibraryAction"]) {
+    await assert.rejects(actions[action](), /redirect:\/profile\?(tab=integrations&)?error=wait$/, action);
+  }
+  assert.deepEqual(checked, [
+    ["finished-games-check", "user-a"], ["reviews-sync", "user-a"], ["manual-gog-sync", "user-a"],
+  ]);
+});
+
+test("billing quotas stop checkout and refresh before Stripe; the portal stays reachable", async () => {
+  const checked = [];
+  let portalOpened = false;
+  const actions = load("../src/app/account/billing/actions.ts", {
+    "next/navigation": { redirect(url) { throw new Error(`redirect:${url}`); } },
+    "next/cache": { revalidatePath() {} },
+    "@/lib/abuse-policy": policy,
+    "@/lib/abuse-request": { async checkActionAbuse(policies, identity) {
+      checked.push([policies[0].name, identity]);
+      return "wait";
+    } },
+    "@/lib/beta-access": { getSessionUserWithBeta: async () => ({ id: "user-a" }) },
+    "@/lib/session": { getSessionUserId: async () => "user-a" },
+    "@/lib/billing-service": {
+      BillingError: class extends Error {},
+      getBillingService: () => ({
+        startCheckout() { assert.fail("checkout after quota denial"); },
+        refresh() { assert.fail("refresh after quota denial"); },
+        async openPortal() { portalOpened = true; return "https://billing.stripe.com/session"; },
+      }),
+    },
+  });
+  const form = new FormData();
+  form.set("brazilConsent", "BR");
+  await assert.rejects(actions.startProCheckoutAction(form), /redirect:\/account\/billing\?error=limited$/);
+  await assert.rejects(actions.refreshSubscriptionAction(), /redirect:\/account\/billing\?error=limited$/);
+  await assert.rejects(actions.manageSubscriptionAction(), /redirect:https:\/\/billing\.stripe\.com\/session$/);
+  assert.equal(portalOpened, true);
+  assert.deepEqual(checked, [["billing-checkout", "user-a"], ["billing-refresh", "user-a"]]);
 });

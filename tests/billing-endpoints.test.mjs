@@ -47,6 +47,7 @@ function actionsFor(user, access = true) {
   class BillingError extends Error {}
   const actions = loadModule("../src/app/account/billing/actions.ts", {
     "next/navigation": { redirect }, "next/cache": { revalidatePath: () => {} },
+    "@/lib/abuse-policy": { ABUSE_LIMITS: {} }, "@/lib/abuse-request": { checkActionAbuse: async () => null },
     "@/lib/beta-access": { canAccessPlatform: () => access, getSessionUserWithBeta: async () => user },
     "@/lib/session": { getSessionUserId: async () => user?.id ?? null },
     "@/lib/billing-service": { BillingError, getBillingService: () => ({

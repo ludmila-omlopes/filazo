@@ -18,6 +18,12 @@ export const ABUSE_LIMITS = {
   uploadDelete: { name: "upload-delete", limit: 20, windowSeconds: 60 },
   libraryApi: { name: "library-api", limit: 120, windowSeconds: 60 },
   apiTokenCreate: { name: "api-token-create", limit: 10, windowSeconds: 3600 },
+  // Each run calls Steam/PlayStation once per game with the shared server key.
+  finishedGamesCheck: { name: "finished-games-check", limit: 3, windowSeconds: 3600 },
+  reviewsSync: { name: "reviews-sync", limit: 3, windowSeconds: 3600 },
+  // Checkout and refresh hold a locked transaction while calling Stripe.
+  billingCheckout: { name: "billing-checkout", limit: 5, windowSeconds: 600 },
+  billingRefresh: { name: "billing-refresh", limit: 10, windowSeconds: 600 },
 } as const;
 
 export type AbusePolicy = { name: string; limit: number; windowSeconds: number };

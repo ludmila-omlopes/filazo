@@ -2,6 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { ABUSE_LIMITS } from "@/lib/abuse-policy";
+import { checkActionAbuse } from "@/lib/abuse-request";
 import { getSessionUserWithBeta } from "@/lib/beta-access";
 import { getSessionUserId } from "@/lib/session";
 import { BillingError, getBillingService } from "@/lib/billing-service";
@@ -15,6 +17,7 @@ async function billingUser() {
 export async function startProCheckoutAction(formData: FormData) {
   const user = await billingUser();
   if (formData.get("brazilConsent") !== "BR") redirect("/account/billing?error=consent");
+  if (await checkActionAbuse([ABUSE_LIMITS.billingCheckout], user.id)) redirect("/account/billing?error=limited");
   let url: string;
   try {
     url = await getBillingService().startCheckout(user.id);
@@ -39,6 +42,7 @@ export async function manageSubscriptionAction() {
 
 export async function refreshSubscriptionAction() {
   const user = await billingUser();
+  if (await checkActionAbuse([ABUSE_LIMITS.billingRefresh], user.id)) redirect("/account/billing?error=limited");
   try {
     await getBillingService().refresh(user.id);
   } catch {
