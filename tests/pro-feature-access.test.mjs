@@ -65,6 +65,7 @@ test("Free chat has no search tool; Pro can search and expiry blocks execution",
     "@/lib/abuse-policy": { ABUSE_LIMITS: { assistant: {} } },
     "@/lib/abuse-request": { checkApiAbuse: async () => null },
     "@/lib/request-body": { readLimitedJson: request => request.json() },
+    "@/lib/assistant/chat-request": await import("../src/lib/assistant/chat-request.ts"),
     "@/lib/ai-settings": { getAiSettings: async () => ({ assistantChatEnabled: true, chatMaxSteps: 3, chatMaxOutputTokens: 700 }) },
     "@/lib/openai": { getOpenAiConfig: () => ({ apiKey: "fixture", model: "fixture" }) },
     "@/lib/ai-estimates": { estimateTokensFromValue: () => 1 },
@@ -76,7 +77,7 @@ test("Free chat has no search tool; Pro can search and expiry blocks execution",
       searchWeb: async () => { searches++; return { result: { status: "ok" }, usage: {} }; },
     },
   });
-  const request = () => new Request("http://localhost/api/assistant/chat", { method: "POST", body: JSON.stringify({ messages: [{ role: "user", parts: [{ type: "text", text: "search games" }] }] }) });
+  const request = () => new Request("http://localhost/api/assistant/chat", { method: "POST", body: JSON.stringify({ messages: [{ id: "m1", role: "user", parts: [{ type: "text", text: "search games" }] }] }) });
   assert.equal((await route.POST(request())).status, 200);
   assert.equal(options.tools.search_web, undefined);
   account = { plan: "PRO" };
