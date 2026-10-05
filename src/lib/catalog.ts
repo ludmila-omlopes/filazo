@@ -1058,6 +1058,18 @@ function parseCsvImportProvider(
   return null;
 }
 
+/** Read-only lookup of a provider mapping; never creates or changes it. */
+async function findProviderLinkedGame(
+  provider: ExternalProvider,
+  providerGameId: string,
+) {
+  const link = await prisma.gameProviderLink.findUnique({
+    where: { provider_providerGameId: { provider, providerGameId } },
+    select: { game: true },
+  });
+  return link?.game ?? null;
+}
+
 function getDefaultPlatformName(provider: ExternalProvider | null) {
   if (provider === ExternalProvider.PLAYSTATION) {
     return "PlayStation";
@@ -1153,13 +1165,15 @@ export async function importCsvForUser({
     for (const [index, row] of rows.entries()) {
       try {
         const platformName = row.platformName ?? defaultPlatformName;
-        const providerGameId = importProvider ? row.externalId : null;
-        const game = await resolveCatalogGame({
+        // CSV identifiers are typed by the user. They may reuse a mapping made by
+        // a real provider sync, but must never create or re-point the shared
+        // provider mapping or rename a canonical game; otherwise match by title.
+        const linkedGame = importProvider && row.externalId
+          ? await findProviderLinkedGame(importProvider, row.externalId)
+          : null;
+        const game = linkedGame ?? await resolveCatalogGame({
           title: row.title,
           platformName,
-          provider: importProvider ?? undefined,
-          providerGameId,
-          rawData: importProvider ? row.rawData : undefined,
         });
 
         await upsertLibraryCopy({
