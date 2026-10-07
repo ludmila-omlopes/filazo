@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { GameCard } from "@/components/game-card";
 import { SectionHeader } from "@/components/ui/section-header";
-import { getRelatedGames } from "@/lib/catalog";
+import { getCachedRelatedGames } from "@/lib/game-detail-cache";
 import { createTranslator, type Locale } from "@/lib/i18n";
 
 export async function RelatedGames({
@@ -11,7 +11,7 @@ export async function RelatedGames({
   game: { id: string; genres: Prisma.JsonValue | null };
   locale: Locale;
 }) {
-  const games = await getRelatedGames(game).catch((error: unknown) => {
+  const games = await getCachedRelatedGames(game.id).catch((error: unknown) => {
     // Discovery links are optional; the game page must still render.
     console.error("Could not load related games.", error);
     return [];
