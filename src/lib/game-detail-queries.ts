@@ -16,8 +16,8 @@ export function chooseDisplayedGameEntry<T extends DisplayEntry>(entries: T[]): 
 const entriesPerGame = 64;
 export const COMMUNITY_SHELF_LIMIT = 6;
 
-/** Reading a game never refreshes providers or mutates another user's data. */
-export async function readGameDetail(db: PrismaClient, slug: string, userId: string | null) {
+/** Only canonical public data is eligible for the shared game cache. */
+export async function readPublicGameDetail(db: PrismaClient, slug: string) {
   const game = await db.game.findUnique({
     where: { slug }, include: {
       providerLinks: { omit: { rawData: true } },
@@ -32,60 +32,6 @@ export async function readGameDetail(db: PrismaClient, slug: string, userId: str
   });
   if (!game) return null;
 
-  const [userEntries, userReviews, communityUsers] = await Promise.all([
-    userId ? db.userGameEntry.findMany({
-      where: { gameId: game.id, userId },
-      omit: { rawData: true },
-      include: { user: { select: { onboardingAnswers: true } } },
-      orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
-      take: entriesPerGame,
-    }) : [],
-    userId ? db.userGameReview.findMany({
-      where: { gameId: game.id, userId },
-      select: {
-        id: true, userId: true, provider: true, recommended: true,
-        reviewedAt: true, body: true, sourceUrl: true,
-      },
-      orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }, { id: "asc" }],
-      take: 20,
-    }) : [],
-    // Other players' names and activity are for signed-in members only, never
-    // for anonymous visitors or search engines indexing this public page.
-    userId ? db.user.findMany({
-      where: {
-        id: { not: userId },
-        gameEntries: { some: { gameId: game.id } },
-      },
-      select: {
-        displayName: true,
-        gameEntries: {
-          where: { gameId: game.id },
-          select: {
-            id: true, status: true, finishedAt: true, playtimeMinutes: true,
-            currentPlayingSlot: true, playtimeSource: true, updatedAt: true,
-          },
-          orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
-          take: entriesPerGame,
-        },
-      },
-      orderBy: { id: "asc" },
-      take: COMMUNITY_SHELF_LIMIT,
-    }) : [],
-  ]);
-  const currentEntry = chooseDisplayedGameEntry(userEntries);
-  const journalEntries = userId && currentEntry ? await db.gameJournalEntry.findMany({
-    where: { gameId: game.id, userId, userGameEntryId: currentEntry.id },
-    select: {
-      userId: true, userGameEntryId: true, occurredAt: true,
-      title: true, body: true, audioTranscript: true,
-    },
-    orderBy: [{ occurredAt: "desc" }, { id: "asc" }],
-    take: 1,
-  }) : [];
-  const communityEntries = communityUsers.flatMap((user) => {
-    const entry = chooseDisplayedGameEntry(user.gameEntries);
-    return entry ? [{ ...entry, user: { displayName: user.displayName } }] : [];
-  });
   const marketplaceSnapshots = game.marketplaceSnapshots
     .map((snapshot) => parseMarketplaceSnapshot({
       region: snapshot.region,
@@ -105,7 +51,74 @@ export async function readGameDetail(db: PrismaClient, slug: string, userId: str
         })
       : null)
     .filter((snapshot) => snapshot !== null);
-  return { ...game, marketplaceSnapshots, steamReviewSnapshots, userEntries, userReviews, journalEntries, communityEntries };
+  return { ...game, marketplaceSnapshots, steamReviewSnapshots };
+}
+
+export type PublicGameDetail = NonNullable<Awaited<ReturnType<typeof readPublicGameDetail>>>;
+
+/** Reading a game never refreshes providers or mutates another user's data. */
+export async function readGameDetail(db: PrismaClient, slug: string, userId: string | null) {
+  const game = await readPublicGameDetail(db, slug);
+  return game ? { ...game, ...await readGameExperience(db, game.id, userId) } : null;
+}
+
+/** Personal and member-only community data must never enter a shared cache. */
+export async function readGameExperience(db: PrismaClient, gameId: string, userId: string | null) {
+  const [userEntries, userReviews, communityUsers] = await Promise.all([
+    userId ? db.userGameEntry.findMany({
+      where: { gameId, userId },
+      omit: { rawData: true },
+      include: { user: { select: { onboardingAnswers: true } } },
+      orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+      take: entriesPerGame,
+    }) : [],
+    userId ? db.userGameReview.findMany({
+      where: { gameId, userId },
+      select: {
+        id: true, userId: true, provider: true, recommended: true,
+        reviewedAt: true, body: true, sourceUrl: true,
+      },
+      orderBy: [{ reviewedAt: "desc" }, { createdAt: "desc" }, { id: "asc" }],
+      take: 20,
+    }) : [],
+    // Other players' names and activity are for signed-in members only, never
+    // for anonymous visitors or search engines indexing this public page.
+    userId ? db.user.findMany({
+      where: {
+        id: { not: userId },
+        gameEntries: { some: { gameId } },
+      },
+      select: {
+        displayName: true,
+        gameEntries: {
+          where: { gameId },
+          select: {
+            id: true, status: true, finishedAt: true, playtimeMinutes: true,
+            currentPlayingSlot: true, playtimeSource: true, updatedAt: true,
+          },
+          orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
+          take: entriesPerGame,
+        },
+      },
+      orderBy: { id: "asc" },
+      take: COMMUNITY_SHELF_LIMIT,
+    }) : [],
+  ]);
+  const currentEntry = chooseDisplayedGameEntry(userEntries);
+  const journalEntries = userId && currentEntry ? await db.gameJournalEntry.findMany({
+    where: { gameId, userId, userGameEntryId: currentEntry.id },
+    select: {
+      userId: true, userGameEntryId: true, occurredAt: true,
+      title: true, body: true, audioTranscript: true,
+    },
+    orderBy: [{ occurredAt: "desc" }, { id: "asc" }],
+    take: 1,
+  }) : [];
+  const communityEntries = communityUsers.flatMap((user) => {
+    const entry = chooseDisplayedGameEntry(user.gameEntries);
+    return entry ? [{ ...entry, user: { displayName: user.displayName } }] : [];
+  });
+  return { userEntries, userReviews, journalEntries, communityEntries };
 }
 
 /** SEO metadata needs no library, journal, community or provider queries. */

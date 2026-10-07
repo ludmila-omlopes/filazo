@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import { GameMemoryCard } from "./_components/game-memory-card";
-import { getGameBySlug, getGameMetadataBySlug } from "@/lib/catalog";
+import {
+  getCachedGameDetail as getGameBySlug,
+  getCachedGameMetadata as getGameMetadataBySlug,
+} from "@/lib/game-detail-cache";
 import { isIndexableGame } from "@/lib/game-indexing";
 import { createTranslator } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/request-locale";

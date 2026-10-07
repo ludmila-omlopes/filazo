@@ -8,6 +8,18 @@
   },
   "rules": [
     {
+      "name": "Filazo - bloquear ShapBot",
+      "active": true,
+      "conditionGroup": [
+        {
+          "conditions": [
+            { "type": "user_agent", "op": "sub", "value": "ShapBot" }
+          ]
+        }
+      ],
+      "action": { "mitigate": { "action": "deny" } }
+    },
+    {
       "name": "Filazo - signed internal workers",
       "active": true,
       "conditionGroup": [
