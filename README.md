@@ -28,7 +28,7 @@ A calm, personal game library. Filazo gathers games from multiple sources into o
 - Offers game pages, journals, reviews, completion tracking, play-next suggestions, and an optional AI assistant.
 - Classifies games as campaign, ongoing, hybrid, or unknown; the profile structure filter is opt-in and starts inactive.
 - Supports English and Brazilian Portuguese.
-- Exposes a read-only library API for the owner's own sites, authenticated with personal API keys.
+- Exposes a read-only library API for the admin's own sites, authenticated with admin-created API keys.
 
 Game structure uses main-story estimates and story-completion trophies as campaign evidence; solo or cooperative play alone does not establish a campaign. Automatic classifications are recalculated from current evidence, while manual choices retain their value and provenance. Existing titles with missing game modes become eligible for metadata enrichment on library sync and queued metadata work, respecting the seven-day retry interval. An empty modes response is considered fetched and does not trigger repeated searches. Apply the current schema with `npm run db:init` before deploying this feature.
 
@@ -300,7 +300,7 @@ Run `npm run test:user-isolation` against a disposable local PostgreSQL instance
 
 ## Library read API
 
-Each account can create up to five read-only API keys under **Sources → Use your library elsewhere → API access**, so another site the owner runs can list their library. Keys are `flz_` followed by 32 random bytes. The full key appears once at creation; only its SHA-256 hash and a short display prefix are stored in `ApiToken`. Revoking a key deletes it immediately. `lastUsedAt` is updated at most once per hour. Keys are never listed in admin read-only previews.
+Only the admin account (`ADMIN_EMAIL` in `src/lib/beta-access.ts`) can create read-only API keys, under **Admin → API** (`/admin/api`), so the admin's own sites can list the admin's library. Up to five keys are kept. Keys are `flz_` followed by 32 random bytes. The full key appears once at creation; only its SHA-256 hash and a short display prefix are stored in `ApiToken`. Revoking a key deletes it immediately. `lastUsedAt` is updated at most once per hour. The API also rejects any key whose owner is not the admin, so keys other accounts created before creation became admin-only stay inert.
 
 ```bash
 curl -H "Authorization: Bearer flz_..." "$APP_URL/api/v1/library?status=playing,completed&limit=50"
