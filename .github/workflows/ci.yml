@@ -53,6 +53,7 @@ jobs:
       - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/library-platform-check.ts
       - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/catalog-identity-check.ts
       - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/catalog-identity-repair-check.ts
+      - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/csv-catalog-integrity-check.ts
       - run: node scripts/qa/run-steam-sync-check.mjs scripts/qa/remove-library-entry-check.ts
       - run: npm run test:user-isolation
       - run: npm run test:abuse-limits
