@@ -8,6 +8,7 @@ import Markdown from "react-markdown";
 import { useTranslations } from "@/components/locale-provider";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { CHAT_USER_TEXT_MAX_CHARS } from "@/lib/assistant/chat-request";
 import { getWebSearchStatusKey, webSearchResultSchema } from "@/lib/assistant/web-search";
 
 const STARTER_PROMPT_KEYS = [
@@ -196,6 +197,7 @@ export function LibraryChat({ aiConfigured }: { aiConfigured: boolean }) {
             <input
               className="min-h-11 flex-1 rounded-pill border border-edge bg-surface px-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sage focus-visible:ring-offset-2"
               disabled={busy}
+              maxLength={CHAT_USER_TEXT_MAX_CHARS}
               onChange={(event) => setInput(event.target.value)}
               placeholder={t("libraryChat.placeholder")}
               value={input}

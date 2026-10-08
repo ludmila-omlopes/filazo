@@ -11,6 +11,7 @@ import { z } from "zod";
 import { ABUSE_LIMITS } from "@/lib/abuse-policy";
 import { checkApiAbuse } from "@/lib/abuse-request";
 import { readLimitedJson, RequestBodyError } from "@/lib/request-body";
+import { sanitizeChatMessages } from "@/lib/assistant/chat-request";
 import {
   listGamesArgsSchema,
   loadLibraryEntries,
@@ -47,8 +48,6 @@ import {
 } from "@/lib/assistant/web-search";
 
 export const maxDuration = 60;
-
-const MAX_HISTORY_MESSAGES = 20;
 
 const CHAT_SYSTEM_PROMPT = [
   "You are the filazo library chat: a calm, concrete assistant for the user's own game collection.",
@@ -100,11 +99,11 @@ export async function POST(request: Request) {
 
   let messages: UIMessage[];
   try {
-    const body = (await readLimitedJson(request, 128 * 1024)) as { messages?: UIMessage[] };
-    if (!Array.isArray(body.messages) || !body.messages.length) {
-      throw new Error("Missing messages.");
+    const sanitized = sanitizeChatMessages(await readLimitedJson(request, 128 * 1024));
+    if (!sanitized) {
+      throw new Error("Invalid chat messages.");
     }
-    messages = body.messages.slice(-MAX_HISTORY_MESSAGES);
+    messages = sanitized;
   } catch (error) {
     return NextResponse.json(
       { error: "Invalid chat request." },
