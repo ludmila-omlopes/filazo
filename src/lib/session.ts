@@ -17,24 +17,22 @@ const PLATFORM_SYNC_PROVIDERS = [
   ExternalProvider.GOG,
 ];
 
+const SESSION_USER_SELECT = { sessionVersion: true, lastActiveAt: true } as const;
+
 function getSessionSecret() {
   return new TextEncoder().encode(getAuthSecret());
 }
 
-async function touchUserActivity(userId: string) {
+async function touchUserActivity(userId: string, lastActiveAt: Date) {
   try {
     const now = new Date();
     await recordDailyActivity(userId, now);
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { lastActiveAt: true },
-    });
-    if (!user || user.lastActiveAt.getTime() > now.getTime() - ACTIVITY_TOUCH_INTERVAL_MS) {
+    if (lastActiveAt.getTime() > now.getTime() - ACTIVITY_TOUCH_INTERVAL_MS) {
       return;
     }
 
     const shouldResumeDailySync =
-      user.lastActiveAt.getTime() <=
+      lastActiveAt.getTime() <=
       now.getTime() - PLATFORM_SYNC_INACTIVE_WEEKLY_AFTER_MS;
 
     await prisma.$transaction(async (transaction) => {
@@ -58,8 +56,15 @@ async function touchUserActivity(userId: string) {
 }
 
 export async function setUserSession(userId: string) {
-  await touchUserActivity(userId);
-  const token = await new SignJWT({ authPolicy: AUTH_POLICY })
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: SESSION_USER_SELECT,
+  });
+  await touchUserActivity(userId, user.lastActiveAt);
+  const token = await new SignJWT({
+    authPolicy: AUTH_POLICY,
+    sessionVersion: user.sessionVersion,
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(userId)
     .setIssuedAt()
@@ -81,19 +86,47 @@ export async function clearUserSession() {
   cookieStore.delete(SESSION_COOKIE);
 }
 
+/** Signs a user out everywhere: every token issued so far stops matching. */
+export async function revokeAllUserSessions(userId: string) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { sessionVersion: { increment: 1 } },
+  });
+}
+
 export async function getSessionUserId() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) {
     return null;
   }
 
+  let userId: string;
+  let tokenVersion: unknown;
   try {
     const verified = await jwtVerify(token, getSessionSecret(), { algorithms: ["HS256"] });
     if (verified.payload.authPolicy !== AUTH_POLICY) return null;
-    const userId = typeof verified.payload.sub === "string" ? verified.payload.sub : null;
-    if (userId) await touchUserActivity(userId);
-    return userId;
+    if (typeof verified.payload.sub !== "string") return null;
+    userId = verified.payload.sub;
+    tokenVersion = verified.payload.sessionVersion;
   } catch {
     return null;
   }
+
+  let user: { sessionVersion: number; lastActiveAt: Date } | null;
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: SESSION_USER_SELECT,
+    });
+  } catch {
+    // Every protected read and write needs the database too. During an outage,
+    // keep the signed session instead of turning a database error into a logout.
+    return userId;
+  }
+
+  // Deleted accounts and revoked sessions end here. Tokens issued before
+  // revocation existed carry no version and match the initial value 0.
+  if (!user || user.sessionVersion !== (tokenVersion ?? 0)) return null;
+  await touchUserActivity(userId, user.lastActiveAt);
+  return userId;
 }
