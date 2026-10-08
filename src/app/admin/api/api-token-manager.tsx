@@ -8,7 +8,7 @@ import {
   revokeApiTokenAction,
   type CreateApiTokenState,
   type RevokeApiTokenState,
-} from "../api-token-actions";
+} from "./actions";
 
 export type ApiTokenListItem = {
   id: string;
@@ -19,10 +19,10 @@ export type ApiTokenListItem = {
 };
 
 const createErrors = {
-  invalid: "profile.api.invalidName",
-  limit: "profile.api.limitReached",
-  rateLimited: "profile.api.rateLimited",
-  error: "profile.api.error",
+  invalid: "admin.api.invalidName",
+  limit: "admin.api.limitReached",
+  rateLimited: "admin.api.rateLimited",
+  error: "admin.api.error",
 } as const;
 
 function CreatedKey({ locale, token }: { locale: Locale; token: string }) {
@@ -31,8 +31,8 @@ function CreatedKey({ locale, token }: { locale: Locale; token: string }) {
 
   return (
     <div role="status" className="rounded-inner border border-sand/70 bg-sand-soft px-4 py-3 text-sm leading-relaxed">
-      <p className="font-bold">{t("profile.api.createdTitle")}</p>
-      <p className="mt-1 text-ink-soft">{t("profile.api.createdBody")}</p>
+      <p className="font-bold">{t("admin.api.createdTitle")}</p>
+      <p className="mt-1 text-ink-soft">{t("admin.api.createdBody")}</p>
       <code className="mt-3 block select-all break-all rounded-inner border border-edge bg-surface px-3 py-2 font-mono text-xs">
         {token}
       </code>
@@ -45,7 +45,7 @@ function CreatedKey({ locale, token }: { locale: Locale; token: string }) {
           navigator.clipboard.writeText(token).then(() => setCopied(true), () => undefined);
         }}
       >
-        {copied ? t("profile.api.copied") : t("profile.api.copy")}
+        {copied ? t("admin.api.copied") : t("admin.api.copy")}
       </Button>
     </div>
   );
@@ -74,10 +74,10 @@ function ApiTokenRow({ locale, token }: { locale: Locale; token: ApiTokenListIte
             type="button"
             size="xs"
             variant="ghost"
-            aria-label={t("profile.api.revokeLabel", { name: token.name })}
+            aria-label={t("admin.api.revokeLabel", { name: token.name })}
             onClick={() => setConfirming(true)}
           >
-            {t("profile.api.revoke")}
+            {t("admin.api.revoke")}
           </Button>
         ) : null}
       </div>
@@ -85,17 +85,17 @@ function ApiTokenRow({ locale, token }: { locale: Locale; token: ApiTokenListIte
         <form action={action} aria-describedby={descriptionId} className="grid gap-2 text-xs">
           <input type="hidden" name="tokenId" value={token.id} />
           <p id={descriptionId} className="font-semibold">
-            {t("profile.api.revokeConfirm", { name: token.name })}
+            {t("admin.api.revokeConfirm", { name: token.name })}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button type="button" size="xs" variant="ghost" disabled={pending} onClick={() => setConfirming(false)}>
-              {t("profile.api.cancel")}
+              {t("admin.api.cancel")}
             </Button>
             <Button type="submit" size="xs" variant="destructive" disabled={pending}>
-              {pending ? t("profile.api.revoking") : t("profile.api.revokeConfirmButton")}
+              {pending ? t("admin.api.revoking") : t("admin.api.revokeConfirmButton")}
             </Button>
           </div>
-          {state.result === "error" ? <p role="alert">{t("profile.api.revokeError")}</p> : null}
+          {state.result === "error" ? <p role="alert">{t("admin.api.revokeError")}</p> : null}
         </form>
       ) : null}
     </li>
@@ -123,7 +123,7 @@ export function ApiTokenManager({
       ) : null}
 
       <div>
-        <h4 className="mb-2 text-sm font-bold">{t("profile.api.keysTitle")}</h4>
+        <h2 className="mb-2 text-sm font-bold">{t("admin.api.keysTitle")}</h2>
         {tokens.length ? (
           <ul className="grid gap-2">
             {tokens.map((token) => (
@@ -131,25 +131,25 @@ export function ApiTokenManager({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-ink-soft">{t("profile.api.noKeys")}</p>
+          <p className="text-sm text-ink-soft">{t("admin.api.noKeys")}</p>
         )}
       </div>
 
       <form action={action} className="grid gap-2">
         <label className="grid gap-2">
-          <span className="text-sm font-semibold">{t("profile.api.nameLabel")}</span>
+          <span className="text-sm font-semibold">{t("admin.api.nameLabel")}</span>
           <input
             className="min-h-11 rounded-inner border border-edge bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-canvas"
             name="name"
             maxLength={60 /* API_TOKEN_NAME_MAX_LENGTH, kept out of the client bundle */}
             autoComplete="off"
-            placeholder={t("profile.api.namePlaceholder")}
+            placeholder={t("admin.api.namePlaceholder")}
             required
           />
         </label>
         <div>
           <Button type="submit" disabled={pending} loading={pending}>
-            {pending ? t("profile.api.creating") : t("profile.api.create")}
+            {pending ? t("admin.api.creating") : t("admin.api.create")}
           </Button>
         </div>
         {errorKey ? <p role="alert" className="text-sm font-semibold">{t(errorKey)}</p> : null}
