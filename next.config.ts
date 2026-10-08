@@ -1,8 +1,13 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 import { remoteImagePatterns } from "./src/lib/image-urls";
+import { securityHeaders } from "./src/lib/security-headers";
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
+  },
   // CSV is capped at 1 MiB; leave room for form encoding and metadata.
   // Photos go directly to private Blob storage, never through a Server Action.
   experimental: { serverActions: { bodySizeLimit: "4mb" } },
