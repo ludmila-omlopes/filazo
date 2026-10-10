@@ -8,10 +8,10 @@ import { Button } from "@/components/ui/button";
 
 export function RouteErrorState({
   error,
-  unstable_retry,
+  retry,
 }: {
   error: Error & { digest?: string };
-  unstable_retry: () => void;
+  retry: () => void;
 }) {
   const t = useTranslations();
 
@@ -36,7 +36,7 @@ export function RouteErrorState({
           {t("routeError.body")}
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Button onClick={() => unstable_retry()} type="button">
+          <Button onClick={() => retry()} type="button">
             {t("routeError.retry")}
           </Button>
           <Button asChild variant="ghost">
