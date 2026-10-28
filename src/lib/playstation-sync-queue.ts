@@ -244,7 +244,20 @@ export function createPlayStationSyncQueue({
     }
   }
 
-  return { enqueue, processBatch, drain, recoverInterruptedManualRuns };
+  /** Whether a run could be claimed right now (used to continue without cron). */
+  async function hasDueWork() {
+    const now = new Date();
+    return Boolean(await db.platformSyncRun.findFirst({
+      where: {
+        provider: "PLAYSTATION", workerScope,
+        status: { in: ["PENDING", "RUNNING"] }, nextAttemptAt: { lte: now },
+        OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lt: now } }],
+      },
+      select: { id: true },
+    }));
+  }
+
+  return { enqueue, processBatch, drain, hasDueWork, recoverInterruptedManualRuns };
 }
 
 export const playStationSyncQueue = createPlayStationSyncQueue();

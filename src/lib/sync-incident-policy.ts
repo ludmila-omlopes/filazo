@@ -1,4 +1,6 @@
-export const SYNC_STALL_MS = 15 * 60_000;
+// Queue workers are scheduled every 30 minutes (continuations start sooner).
+// Waiting for one scheduled window is not a stall, so allow a full interval.
+export const SYNC_STALL_MS = 45 * 60_000;
 export const SYNC_MONITOR_ID = "sync-incident-monitor";
 export const CLOSED_FEEDBACK_STATUSES = ["DONE", "DECLINED"] as const;
 
@@ -39,7 +41,7 @@ export function getSyncIncidentKey(run: SyncHealthRun) {
 
 export function syncIncidentStateText(state: string) {
   return ({
-    FAILED: "Sincronização falhou", STALLED: "Sem avanço há pelo menos 15 minutos",
+    FAILED: "Sincronização falhou", STALLED: `Sem avanço há pelo menos ${SYNC_STALL_MS / 60_000} minutos`,
     RETRYING: "Nova tentativa em andamento", RECOVERED: "Sincronização recuperada",
     DISCONNECTED: "Conta desconectada",
   } as Record<string, string>)[state] ?? state;

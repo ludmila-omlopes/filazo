@@ -2,35 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run db:sync-monitor && npm run build",
   "crons": [
-    { "path": "/api/internal/game-discovery-worker", "schedule": "* * * * *" },
-    { "path": "/api/internal/playstation-sync-worker", "schedule": "* * * * *" },
-    {
-      "path": "/api/internal/calendar-refresh",
-      "schedule": "*/15 * * * *"
-    },
-    {
-      "path": "/api/internal/calendar-releases",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/internal/abuse-cleanup",
-      "schedule": "*/10 * * * *"
-    },
-    {
-      "path": "/api/internal/sync-monitor",
-      "schedule": "* * * * *"
-    },
-    {
-      "path": "/api/internal/steam-sync-worker",
-      "schedule": "* * * * *"
-    },
-    {
-      "path": "/api/internal/game-metadata-worker",
-      "schedule": "* * * * *"
-    },
-    {
-      "path": "/api/internal/platform-sync",
-      "schedule": "0 * * * *"
-    }
+    { "path": "/api/internal/steam-sync-worker", "schedule": "*/30 * * * *" },
+    { "path": "/api/internal/playstation-sync-worker", "schedule": "*/30 * * * *" },
+    { "path": "/api/internal/game-metadata-worker", "schedule": "*/30 * * * *" },
+    { "path": "/api/internal/platform-sync", "schedule": "0 * * * *" },
+    { "path": "/api/internal/sync-monitor", "schedule": "1,31 * * * *" },
+    { "path": "/api/internal/game-discovery-worker", "schedule": "1 * * * *" },
+    { "path": "/api/internal/abuse-cleanup", "schedule": "2 * * * *" },
+    { "path": "/api/internal/calendar-refresh", "schedule": "2 * * * *" },
+    { "path": "/api/internal/calendar-releases", "schedule": "0 4 * * *" }
   ]
 }

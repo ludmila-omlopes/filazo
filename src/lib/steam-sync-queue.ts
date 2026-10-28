@@ -219,7 +219,20 @@ export function createSteamSyncQueue({
     return worked;
   }
 
-  return { enqueue, processBatch, drain };
+  /** Whether a run could be claimed right now (used to continue without cron). */
+  async function hasDueWork() {
+    const now = new Date();
+    return Boolean(await db.platformSyncRun.findFirst({
+      where: {
+        provider: "STEAM", workerScope,
+        status: { in: ["PENDING", "RUNNING"] }, nextAttemptAt: { lte: now },
+        OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lt: now } }],
+      },
+      select: { id: true },
+    }));
+  }
+
+  return { enqueue, processBatch, drain, hasDueWork };
 }
 
 export const steamSyncQueue = createSteamSyncQueue();

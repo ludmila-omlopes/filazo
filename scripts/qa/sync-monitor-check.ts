@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import type { ExternalProvider } from "@prisma/client";
 import { prisma as db } from "../../src/lib/prisma";
 import { createSyncIncidentMonitor } from "../../src/lib/sync-incident-monitor";
+import { SYNC_STALL_MS } from "../../src/lib/sync-incident-policy";
 
 async function main() {
   assert.match(new URL(process.env.DATABASE_URL!).searchParams.get("schema") ?? "", /^steam_sync_test_[a-f0-9]{16}$/);
@@ -101,9 +102,10 @@ async function main() {
   assert.equal(recurring.members[0].state, "DISCONNECTED");
   assert.ok(recurring.recoveredAt);
   const stalled = await account("STEAM", "stalled");
+  const stalledSince = new Date(clock.getTime() - SYNC_STALL_MS - 60_000);
   await db.platformSyncRun.update({ where: { id: stalled.run.id }, data: {
-    status: "RUNNING", errorCode: null, startedAt: new Date(clock.getTime() - 16 * 60_000),
-    lastProgressAt: new Date(clock.getTime() - 16 * 60_000), nextAttemptAt: clock,
+    status: "RUNNING", errorCode: null, startedAt: stalledSince,
+    lastProgressAt: stalledSince, nextAttemptAt: clock,
   } });
   await monitor.scan();
   const stalledMember = await db.syncIncidentMember.findFirstOrThrow({ where: { externalAccountId: stalled.source.id } });
