@@ -5,7 +5,14 @@ import { ABUSE_LIMITS } from "@/lib/abuse-policy";
 import { checkActionAbuse } from "@/lib/abuse-request";
 import { normalizeApiTokenName } from "@/lib/api-token-policy";
 import { createApiToken, revokeApiToken } from "@/lib/api-tokens";
+import { getSessionUserWithBeta, isAdminEmail } from "@/lib/beta-access";
 import { getSessionUserId } from "@/lib/session";
+
+/** Only the admin account may manage API keys; keys still read only its own library. */
+async function getAdminUserId() {
+  const user = await getSessionUserWithBeta(await getSessionUserId());
+  return user && isAdminEmail(user.email) ? user.id : null;
+}
 
 export type CreateApiTokenState = {
   result: "" | "created" | "invalid" | "limit" | "rateLimited" | "error";
@@ -16,7 +23,7 @@ export async function createApiTokenAction(
   _previous: CreateApiTokenState,
   formData: FormData,
 ): Promise<CreateApiTokenState> {
-  const userId = await getSessionUserId();
+  const userId = await getAdminUserId();
   if (!userId) return { result: "error" };
   const name = normalizeApiTokenName(formData.get("name"));
   if (!name) return { result: "invalid" };
@@ -26,7 +33,7 @@ export async function createApiTokenAction(
 
   const created = await createApiToken(userId, name);
   if (created.result !== "created") return { result: created.result };
-  revalidatePath("/profile");
+  revalidatePath("/admin/api");
   return created;
 }
 
@@ -36,7 +43,7 @@ export async function revokeApiTokenAction(
   _previous: RevokeApiTokenState,
   formData: FormData,
 ): Promise<RevokeApiTokenState> {
-  const userId = await getSessionUserId();
+  const userId = await getAdminUserId();
   const tokenId = formData.get("tokenId");
   if (!userId || typeof tokenId !== "string" || !tokenId) return { result: "error" };
   try {
@@ -44,6 +51,6 @@ export async function revokeApiTokenAction(
   } catch {
     return { result: "error" };
   }
-  revalidatePath("/profile");
+  revalidatePath("/admin/api");
   return { result: "" };
 }

@@ -5,6 +5,7 @@ import {
   hashApiToken,
   readBearerToken,
 } from "./api-token-policy";
+import { isAdminEmail } from "./beta-access";
 import { prisma } from "./prisma";
 
 const LAST_USED_RESOLUTION_MS = 60 * 60 * 1000;
@@ -49,15 +50,19 @@ export async function revokeApiToken(userId: string, tokenId: string) {
   return count > 0;
 }
 
-/** Resolves a read-only API key to its owner, or null when it is missing or revoked. */
+/**
+ * Resolves a read-only API key to its owner, or null when it is missing,
+ * revoked, or owned by an account that is not the admin. Keys created by
+ * other accounts before creation became admin-only stay inert.
+ */
 export async function authenticateApiToken(authorization: string | null) {
   const token = readBearerToken(authorization);
   if (!token) return null;
   const record = await prisma.apiToken.findUnique({
     where: { tokenHash: hashApiToken(token) },
-    select: { id: true, userId: true, lastUsedAt: true },
+    select: { id: true, userId: true, lastUsedAt: true, user: { select: { email: true } } },
   });
-  if (!record) return null;
+  if (!record || !isAdminEmail(record.user.email)) return null;
 
   // Coarse timestamp: enough to spot unused keys without a write per request.
   const staleBefore = new Date(Date.now() - LAST_USED_RESOLUTION_MS);

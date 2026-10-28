@@ -14,7 +14,6 @@ import { SyncActionForm } from "@/components/sync-action-form";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import type { AiSettingsValues } from "@/lib/ai-settings";
-import type { ApiTokenSummary } from "@/lib/api-tokens";
 import { hasIgdbConfig } from "@/lib/igdb";
 import { createTranslator, type Locale } from "@/lib/i18n";
 import {
@@ -23,7 +22,6 @@ import {
 } from "@/lib/import-audit";
 import { isAiProviderConfigured } from "@/lib/openai";
 import { isSteamConfigured } from "@/lib/steam";
-import { getSiteUrl } from "@/lib/site-metadata";
 import { isXboxConfigured } from "@/lib/xbox";
 import { cn, formatDate, formatNumber } from "@/lib/utils";
 import {
@@ -37,7 +35,6 @@ import {
   syncUserReviewsAction,
   syncXboxLibraryAction,
 } from "../actions";
-import { ApiTokenManager } from "./api-token-manager";
 import { ImportImageGallery } from "./import-image-gallery";
 import { ManualGameLookupPanel } from "./manual-game-lookup-panel";
 import type { ProfileData } from "./profile-types";
@@ -593,58 +590,12 @@ function ReviewSyncRow({
   );
 }
 
-function ApiAccessRow({
-  locale,
-  tokens,
-}: {
-  locale: Locale;
-  tokens: ApiTokenSummary[];
-}) {
-  const t = createTranslator(locale);
-  const endpoint = new URL("/api/v1/library", getSiteUrl()).toString();
-
-  return (
-    <SourceTool
-      eyebrow={t("profile.api.label")}
-      summary={t("profile.api.body")}
-      title={t("profile.api.title")}
-    >
-      <ApiTokenManager
-        locale={locale}
-        tokens={tokens.map((token) => ({
-          id: token.id,
-          name: token.name,
-          prefix: token.prefix,
-          meta: t("profile.api.keyMeta", {
-            created: formatDate(token.createdAt, locale),
-            lastUsed: token.lastUsedAt
-              ? t("profile.api.lastUsed", { date: formatDate(token.lastUsedAt, locale) })
-              : t("profile.api.neverUsed"),
-          }),
-        }))}
-      />
-      <details className="text-sm text-ink-soft">
-        <summary className="cursor-pointer font-semibold text-ink">
-          {t("profile.api.usageTitle")}
-        </summary>
-        <p className="mt-2 leading-relaxed">{t("profile.api.usageBody")}</p>
-        <pre className="mt-3 overflow-x-auto rounded-inner border border-edge bg-surface px-3 py-2 font-mono text-xs text-ink">
-          {`curl -H "Authorization: Bearer flz_..." \\\n  "${endpoint}?status=playing"`}
-        </pre>
-      </details>
-    </SourceTool>
-  );
-}
-
 export function IntegrationsPanel({
   aiSettings,
-  apiTokens,
   locale,
   profile,
 }: {
   aiSettings: AiSettingsValues;
-  /** Null in read-only admin previews: keys are never shown to anyone else. */
-  apiTokens: ApiTokenSummary[] | null;
   locale: Locale;
   profile: ProfileData;
 }) {
@@ -869,15 +820,6 @@ export function IntegrationsPanel({
 
         <CompletionStatusRow locale={locale} profile={profile} />
       </div>
-
-      {apiTokens ? (
-        <>
-          <h3 className="mb-4 mt-8 font-display text-xl font-medium">
-            {t("profile.api.sectionTitle")}
-          </h3>
-          <ApiAccessRow locale={locale} tokens={apiTokens} />
-        </>
-      ) : null}
     </section>
   );
 }
