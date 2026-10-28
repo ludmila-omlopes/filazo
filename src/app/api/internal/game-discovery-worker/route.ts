@@ -12,7 +12,8 @@ export async function GET(request: Request) {
   if (!hasInternalWorkerAuth(request)) return new Response(null, { status: 401 });
   if (!process.env.IGDB_CLIENT_ID || !process.env.IGDB_CLIENT_SECRET) return Response.json({ ok: true, configured: false });
   const workerScope = discoveryWorkerScope(getSyncWorkerScope());
-  const deadline = Date.now() + 40_000;
+  // Runs hourly: use most of the invocation instead of polling every minute.
+  const deadline = Date.now() + 45_000;
   let completed = 0;
   try {
     await seedDiscoveryJobs(workerScope);
@@ -31,9 +32,16 @@ export async function GET(request: Request) {
       });
       if (!claim.count) continue;
       try {
-        await prepareGameDiscovery(candidate.gameId, workerScope, token, AbortSignal.timeout(Math.max(1, deadline - Date.now())));
-        await prisma.gameMetadataJob.deleteMany({ where: { ...where, workerToken: token } });
-        completed++;
+        const prepared = await prepareGameDiscovery(candidate.gameId, workerScope, token, AbortSignal.timeout(Math.max(1, deadline - Date.now())));
+        if (prepared) {
+          // Keep the row as the source's schedule; seeding skips queued games.
+          await prisma.gameMetadataJob.updateMany({ where: { ...where, workerToken: token }, data: {
+            workerToken: null, leaseExpiresAt: null, attempt: 0, nextAttemptAt: prepared.refreshAfter,
+          } });
+          completed++;
+        } else {
+          await prisma.gameMetadataJob.deleteMany({ where: { ...where, workerToken: token } });
+        }
       } catch {
         // Retain the previous complete snapshot on failure; bounded retry backoff.
         await prisma.gameMetadataJob.updateMany({ where: { ...where, workerToken: token }, data: {

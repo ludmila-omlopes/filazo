@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { runScheduledPlatformSyncs } from "@/lib/platform-sync";
+import { continueWorker } from "@/lib/worker-continuation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -39,6 +40,13 @@ export async function GET(request: Request) {
     if (!result.accepted || !result.summary) {
       return json({ ok: true, status: "ignored" });
     }
+    // Start queued Steam/PlayStation work and enrichment of inline imports now,
+    // independently of when their own (sparser) cron windows run.
+    if (result.summary.queued) {
+      continueWorker("steam");
+      continueWorker("playstation");
+    }
+    if (result.summary.succeeded) continueWorker("metadata");
 
     return json({
       ok: true,

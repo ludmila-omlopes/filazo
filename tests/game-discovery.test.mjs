@@ -19,7 +19,7 @@ test("worker imports a missing game canonically, suppresses alternate editions a
   const writes = []; const resolutions = [];
   const db = {
     gameMetadataJob: { count: async () => 1, updateMany: async () => ({ count: 1 }) },
-    game: { findUnique: async () => ({ igdbId: 1 }) },
+    game: { findUnique: async () => ({ igdbId: 1, userEntries: [{ id: "entry" }] }) },
     gameProviderLink: { findUnique: async () => ({ gameId: "source", rawData: { preserved: true } }), upsert: async args => writes.push(args) },
   };
   db.$transaction = async fn => fn(db);
@@ -32,7 +32,9 @@ test("worker imports a missing game canonically, suppresses alternate editions a
     ] }) },
     "@/lib/catalog": { resolveCatalogGame: async args => { resolutions.push(args); return { id: "canonical" }; } },
   });
-  await service.prepareGameDiscovery("source", "production:discovery", "lease", new AbortController().signal);
+  const prepared = await service.prepareGameDiscovery("source", "production:discovery", "lease", new AbortController().signal);
+  assert.equal(prepared.refreshAfter.toISOString(), writes[0].update.rawData.gameDiscovery.refreshAfter, "queue reschedules to the published refresh date");
+  assert.ok(prepared.refreshAfter.getTime() - Date.now() > 59 * 86_400_000);
   assert.equal(resolutions.length, 1);
   assert.equal(resolutions[0].provider, "IGDB"); assert.equal(resolutions[0].deferEnrichment, true);
   assert.equal(writes.length, 1);

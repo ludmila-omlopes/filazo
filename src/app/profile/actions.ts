@@ -52,6 +52,7 @@ import { detectFinishedGamesForUser } from "@/lib/story-completion";
 import { runManualPlatformSync } from "@/lib/platform-sync";
 import { playStationSyncQueue } from "@/lib/playstation-sync-queue";
 import { steamSyncQueue } from "@/lib/steam-sync-queue";
+import { continueWorker } from "@/lib/worker-continuation";
 import { saveCalendarStart } from "@/lib/calendar-writes";
 import { parseCalendarDate } from "@/lib/calendar-policy";
 
@@ -999,6 +1000,9 @@ export async function syncSteamLibraryAction() {
       if (await steamSyncQueue.drain(runId)) {
         revalidatePath("/profile");
         revalidatePath("/");
+        // Large libraries continue in the background instead of waiting for cron.
+        if (await steamSyncQueue.hasDueWork()) continueWorker("steam");
+        else continueWorker("metadata");
       }
     } catch {
       console.warn("Steam worker deferred to the next scheduled tick.");
@@ -1095,6 +1099,9 @@ export async function syncPlayStationLibraryAction() {
       if (await playStationSyncQueue.drain(runId)) {
         revalidatePath("/profile");
         revalidatePath("/");
+        // Large libraries continue in the background instead of waiting for cron.
+        if (await playStationSyncQueue.hasDueWork()) continueWorker("playstation");
+        else continueWorker("metadata");
       }
     } catch {
       console.warn("PlayStation worker deferred to the next scheduled tick.");
@@ -1135,6 +1142,7 @@ export async function syncXboxLibraryAction() {
     );
   }
   const syncedCount = result.syncedCount;
+  continueWorker("metadata");
 
   revalidatePath("/profile");
   revalidatePath("/");
@@ -1213,6 +1221,7 @@ export async function syncGogLibraryAction() {
     );
   }
 
+  continueWorker("metadata");
   revalidatePath("/profile");
   revalidatePath("/");
   redirect(`/profile?tab=integrations&gogSynced=${result.syncedCount}`);

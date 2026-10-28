@@ -6,14 +6,28 @@ import { getSyncWorkerScope } from "@/lib/steam-sync-state";
 import { CLOSED_FEEDBACK_STATUSES, getSyncHealth, getSyncIncidentKey, SYNC_MONITOR_ID, syncIncidentStateText } from "@/lib/sync-incident-policy";
 
 const openFeedback = { status: { notIn: [...CLOSED_FEEDBACK_STATUSES] } };
-const accountInclude = {
+const SCAN_BATCH = 100;
+// Only the fields the health check and incident card use. In particular, never
+// load run snapshots (whole provider libraries) or account credentials here.
+const accountSelect = {
+  id: true, displayName: true, username: true,
   user: { select: { displayName: true } },
   platformSyncRuns: {
     where: { workerScope: "production", status: { not: "SKIPPED" as const } },
     orderBy: { createdAt: "desc" as const }, take: 1,
+    select: {
+      id: true, provider: true, externalAccountId: true, workerScope: true, status: true,
+      errorCode: true, lastProgressAt: true, startedAt: true, createdAt: true,
+      nextAttemptAt: true, cursor: true, totalCount: true, syncedCount: true,
+    },
   },
-} satisfies Prisma.ExternalAccountInclude;
-type Account = Prisma.ExternalAccountGetPayload<{ include: typeof accountInclude }>;
+} satisfies Prisma.ExternalAccountSelect;
+type Account = Prisma.ExternalAccountGetPayload<{ select: typeof accountSelect }>;
+const membershipSelect = {
+  incidentId: true, externalAccountId: true, runId: true, userLabel: true,
+  state: true, errorCode: true, progress: true, totalCount: true,
+} satisfies Prisma.SyncIncidentMemberSelect;
+type Membership = Prisma.SyncIncidentMemberGetPayload<{ select: typeof membershipSelect }>;
 
 export function createSyncIncidentMonitor({
   db = prisma, sendEmail = sendSyncIncidentEmail, scope = getSyncWorkerScope(),
@@ -96,7 +110,7 @@ export function createSyncIncidentMonitor({
         });
       }, { timeout: 15_000 });
     }
-    async function record(account: Account) {
+    async function record(account: Account, memberships: Membership[]) {
       const run = account.platformSyncRuns[0];
       if (!run) return;
       // A private Steam library needs action from the account owner. It remains
@@ -107,10 +121,13 @@ export function createSyncIncidentMonitor({
       const problematic = state === "FAILED" || state === "STALLED";
       const incidentKey = getSyncIncidentKey(run);
       // Healthy accounts with no incident need no writes.
-      const memberships = await db.syncIncidentMember.findMany({ where: {
-        externalAccountId: account.id, incident: { feedback: openFeedback },
-      }, select: { incidentId: true } });
       if (!problematic && !memberships.length) return;
+      const userLabel = account.user.displayName || account.displayName || account.username || `Conta ${account.id}`;
+      const progress = run.totalCount !== null ? run.cursor : run.syncedCount;
+      const current = memberships[0];
+      // The open incident already shows this exact state: nothing to rewrite.
+      if (current && current.runId === run.id && current.state === state && current.errorCode === run.errorCode &&
+          current.progress === progress && current.totalCount === run.totalCount && current.userLabel === userLabel) return;
       await db.$transaction(async tx => {
         await fence(tx);
         await tx.syncIncident.updateMany({ where: { activeKey: incidentKey, feedback: { status: { in: [...CLOSED_FEEDBACK_STATUSES] } } }, data: { activeKey: null } });
@@ -142,11 +159,9 @@ export function createSyncIncidentMonitor({
         if (!writable.count) return;
         const where = { incidentId_externalAccountId: { incidentId: incident.id, externalAccountId: account.id } };
         const before = await tx.syncIncidentMember.findUnique({ where });
-        const userLabel = account.user.displayName || account.displayName || account.username || `Conta ${account.id}`;
         const data = {
           accountId: account.id, runId: run.id, userLabel, state,
-          errorCode: run.errorCode, progress: run.totalCount !== null ? run.cursor : run.syncedCount,
-          totalCount: run.totalCount,
+          errorCode: run.errorCode, progress, totalCount: run.totalCount,
         };
         await tx.syncIncidentMember.upsert({ where, create: { incidentId: incident.id, externalAccountId: account.id, ...data }, update: data });
         // Store milestones, not one comment for every processed game.
@@ -184,16 +199,31 @@ export function createSyncIncidentMonitor({
       const scheduler = await db.platformSyncSchedulerState.findUniqueOrThrow({ where: { id: SYNC_MONITOR_ID } });
       const accounts = await db.externalAccount.findMany({
         where: { ...(scheduler.scanCursor ? { id: { gt: scheduler.scanCursor } } : {}), platformSyncRuns: { some: { workerScope: "production" } } },
-        include: accountInclude, orderBy: { id: "asc" }, take: 100,
+        select: accountSelect, orderBy: { id: "asc" }, take: SCAN_BATCH,
       });
+      // One read for the whole batch instead of one per account.
+      const memberships = new Map<string, Membership[]>();
+      if (accounts.length) {
+        for (const membership of await db.syncIncidentMember.findMany({
+          where: { externalAccountId: { in: accounts.map(account => account.id) }, incident: { feedback: openFeedback } },
+          select: membershipSelect,
+        })) {
+          memberships.set(membership.externalAccountId, [...memberships.get(membership.externalAccountId) ?? [], membership]);
+        }
+      }
+      let lastInspected: string | null = null;
       for (const account of accounts) {
         if (Date.now() >= deadline - 12_000) break;
-        await record(account);
+        await record(account, memberships.get(account.id) ?? []);
         inspected++;
-        await db.platformSyncSchedulerState.updateMany({ where: { id: SYNC_MONITOR_ID, leaseToken: token }, data: { scanCursor: account.id } });
+        lastInspected = account.id;
       }
-      if (inspected === accounts.length && accounts.length < 100) {
-        await db.platformSyncSchedulerState.updateMany({ where: { id: SYNC_MONITOR_ID, leaseToken: token }, data: { scanCursor: null } });
+      // Persist the cursor once per batch, and only when it moves. Accounts of an
+      // interrupted batch are re-inspected next time; inspection is idempotent.
+      const scanCursor = inspected === accounts.length && accounts.length < SCAN_BATCH
+        ? null : lastInspected ?? scheduler.scanCursor;
+      if (scanCursor !== scheduler.scanCursor) {
+        await db.platformSyncSchedulerState.updateMany({ where: { id: SYNC_MONITOR_ID, leaseToken: token }, data: { scanCursor } });
       }
       const disconnected = await db.syncIncidentMember.findMany({
         where: { accountId: null, state: { not: "DISCONNECTED" }, incident: { feedback: openFeedback } }, take: 20,
