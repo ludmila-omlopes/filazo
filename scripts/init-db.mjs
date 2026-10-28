@@ -41,6 +41,7 @@ if (migration.error || migration.status !== 0) process.exit(migration.status ?? 
 // ApiToken stores hashed, read-only personal API keys for the library read API.
 // PendingEmailRegistration and nullable User.passwordVerifiedAt require mailbox proof;
 // legacy passwords are intentionally never backfilled as verified.
+// User.sessionVersion (default 0) lets "sign out everywhere" revoke all sessions.
 const result = spawnSync("npx", ["prisma", "db", "push", "--skip-generate"], {
   cwd: process.cwd(),
   env: process.env,
