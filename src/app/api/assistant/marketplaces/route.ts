@@ -10,6 +10,7 @@ import { AiBudgetExceededError, runWithAiBudget } from "@/lib/ai-budget";
 import { MARKETPLACE_ESTIMATED_CALLS, marketplaceInputSchema, searchMarketplaces } from "@/lib/assistant/marketplace-search";
 import { searchDirectMarketplaces } from "@/lib/marketplace-direct";
 import { prisma } from "@/lib/prisma";
+import { revalidateGamePage } from "@/lib/public-game-cache";
 import {
   claimMarketplaceRefresh,
   findMarketplaceSnapshot,
@@ -54,9 +55,11 @@ export async function POST(request: Request) {
   const { gameId, ...requestedInput } = parsed.data;
   let searchInput = requestedInput;
   let snapshot: Awaited<ReturnType<typeof findMarketplaceSnapshot>> = null;
+  let gameSlug: string | null = null;
   if (gameId) {
-    const game = await prisma.game.findUnique({ where: { id: gameId }, select: { name: true } });
+    const game = await prisma.game.findUnique({ where: { id: gameId }, select: { name: true, slug: true } });
     if (!game) return NextResponse.json({ code: "INVALID_INPUT" }, { status: 400 });
+    gameSlug = game.slug;
     searchInput = { ...requestedInput, title: game.name };
     snapshot = await findMarketplaceSnapshot(gameId, requestedInput.region);
     if (isMarketplaceSnapshotFresh(snapshot)) {
@@ -117,6 +120,7 @@ export async function POST(request: Request) {
     if (gameId && refreshToken) {
       await saveMarketplaceSnapshot(result, gameId, refreshToken);
       refreshClaimed = false;
+      if (gameSlug) revalidateGamePage(gameSlug);
       return NextResponse.json(result, { headers: PUBLIC_CACHE_HEADERS });
     }
     return NextResponse.json(result, { headers: { "Cache-Control": "private, no-store" } });

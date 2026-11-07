@@ -1,6 +1,7 @@
-// Queue workers are scheduled every 30 minutes (continuations start sooner).
-// Waiting for one scheduled window is not a stall, so allow a full interval.
-export const SYNC_STALL_MS = 45 * 60_000;
+// Queue workers run in four windows a day, six hours apart (continuations start
+// sooner). Waiting for one window is not a stall, so allow a full interval plus
+// the time a window's chain needs to pick the run up.
+export const SYNC_STALL_MS = (6 * 60 + 45) * 60_000;
 export const SYNC_MONITOR_ID = "sync-incident-monitor";
 export const CLOSED_FEEDBACK_STATUSES = ["DONE", "DECLINED"] as const;
 
@@ -39,9 +40,17 @@ export function getSyncIncidentKey(run: SyncHealthRun) {
     : `${run.provider}:account:${run.externalAccountId}`;
 }
 
+function formatStallDuration(ms: number) {
+  const minutes = Math.round(ms / 60_000);
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (!hours) return `${minutes} minutos`;
+  return rest ? `${hours}h${String(rest).padStart(2, "0")}` : `${hours} horas`;
+}
+
 export function syncIncidentStateText(state: string) {
   return ({
-    FAILED: "Sincronização falhou", STALLED: `Sem avanço há pelo menos ${SYNC_STALL_MS / 60_000} minutos`,
+    FAILED: "Sincronização falhou", STALLED: `Sem avanço há pelo menos ${formatStallDuration(SYNC_STALL_MS)}`,
     RETRYING: "Nova tentativa em andamento", RECOVERED: "Sincronização recuperada",
     DISCONNECTED: "Conta desconectada",
   } as Record<string, string>)[state] ?? state;

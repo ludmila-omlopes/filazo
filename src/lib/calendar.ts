@@ -96,13 +96,13 @@ export async function readCalendar(userId: string) {
 }
 
 export async function runDailyCalendars(now = new Date()) {
-  // Bounded batches resume on subsequent hourly cron ticks. Each user refreshes
-  // only once per UTC day, including users who never open the page that day.
+  // Bounded batches resume in the next worker window (four a day). Each user
+  // refreshes only once per UTC day, including users who never open the page.
   const users = await prisma.user.findMany({
     where: { gameEntries: { some: trackedWhere }, AND: [{ OR: [
       { calendarState: null }, { calendarState: { automaticAt: null } }, { calendarState: { automaticAt: { lt: utcDay(now) } } },
     ] }, { OR: [{ calendarState: null }, { calendarState: { retryAfter: null } }, { calendarState: { retryAfter: { lte: now } } }] }] },
-    select: { id: true }, orderBy: { id: "asc" }, take: 40,
+    select: { id: true }, orderBy: { id: "asc" }, take: 100,
   });
   let updated = 0;
   let failed = 0;

@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 
+// A pending sync refreshes the page while someone is looking at it. Hidden or
+// untouched tabs stop refreshing, so a forgotten tab cannot keep the database
+// awake; returning to the tab or interacting resumes right away.
+const PENDING_REFRESH_MS = 5_000;
+const IDLE_STOP_MS = 10 * 60_000;
+
 type SyncActionFormProps = {
   action: (formData: FormData) => void;
   buttonLabel: string;
@@ -75,11 +81,37 @@ export function SyncActionForm({
       return;
     }
 
-    const intervalId = window.setInterval(() => {
+    let lastActivity = Date.now();
+    const isVisible = () => document.visibilityState === "visible";
+    const markActivity = () => {
+      lastActivity = Date.now();
+    };
+    const resume = () => {
+      if (!isVisible()) return;
+      markActivity();
       router.refresh();
-    }, 5_000);
+    };
+    const intervalId = window.setInterval(() => {
+      if (isVisible() && Date.now() - lastActivity <= IDLE_STOP_MS) {
+        router.refresh();
+      }
+    }, PENDING_REFRESH_MS);
+    const activityEvents = ["pointerdown", "pointermove", "keydown", "scroll"] as const;
 
-    return () => window.clearInterval(intervalId);
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("focus", resume);
+    for (const event of activityEvents) {
+      window.addEventListener(event, markActivity, { passive: true });
+    }
+
+    return () => {
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("focus", resume);
+      for (const event of activityEvents) {
+        window.removeEventListener(event, markActivity);
+      }
+    };
   }, [externallyPending, router]);
 
   return (

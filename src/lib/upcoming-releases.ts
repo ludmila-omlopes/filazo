@@ -5,6 +5,7 @@ import {
   type IgdbUpcomingReleaseLookup,
 } from "@/lib/igdb";
 import { prisma } from "@/lib/prisma";
+import { revalidateGamePage } from "@/lib/public-game-cache";
 import { isEntryFinished } from "@/lib/time-estimates";
 
 const RELEASE_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -140,13 +141,15 @@ export async function refreshUpcomingReleaseCachesForEntries(
         ? buildCache(lookup, now)
         : fallbackCacheForGame(game, now);
 
-      await prisma.game.update({
+      const updated = await prisma.game.update({
         where: { id: game.id },
         data: {
           upcomingReleases: cache as Prisma.InputJsonValue,
           upcomingReleasesCheckedAt: now,
         },
+        select: { slug: true },
       });
+      revalidateGamePage(updated.slug);
       updatedCount += 1;
     } catch (error) {
       failedCount += 1;

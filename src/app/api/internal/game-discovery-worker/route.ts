@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { discoveryWorkerScope, prepareGameDiscovery, seedDiscoveryJobs } from "@/lib/game-discovery";
 import { hasInternalWorkerAuth } from "@/lib/internal-worker-auth";
+import { revalidateGamePage } from "@/lib/public-game-cache";
 import { getSyncWorkerScope } from "@/lib/steam-sync-state";
 
 export const runtime = "nodejs";
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   if (!hasInternalWorkerAuth(request)) return new Response(null, { status: 401 });
   if (!process.env.IGDB_CLIENT_ID || !process.env.IGDB_CLIENT_SECRET) return Response.json({ ok: true, configured: false });
   const workerScope = discoveryWorkerScope(getSyncWorkerScope());
-  // Runs hourly: use most of the invocation instead of polling every minute.
+  // Runs once per worker window: use most of the invocation.
   const deadline = Date.now() + 45_000;
   let completed = 0;
   try {
@@ -38,6 +39,7 @@ export async function GET(request: Request) {
           await prisma.gameMetadataJob.updateMany({ where: { ...where, workerToken: token }, data: {
             workerToken: null, leaseExpiresAt: null, attempt: 0, nextAttemptAt: prepared.refreshAfter,
           } });
+          revalidateGamePage(prepared.slug);
           completed++;
         } else {
           await prisma.gameMetadataJob.deleteMany({ where: { ...where, workerToken: token } });

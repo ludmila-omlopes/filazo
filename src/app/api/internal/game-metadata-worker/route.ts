@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { enrichCatalogGame } from "@/lib/catalog";
 import { hasInternalWorkerAuth } from "@/lib/internal-worker-auth";
+import { revalidateGamePage } from "@/lib/public-game-cache";
 import { getSyncWorkerScope } from "@/lib/steam-sync-state";
 import { continueWorker, readWorkerHop } from "@/lib/worker-continuation";
 
@@ -35,8 +36,9 @@ export async function GET(request: Request) {
       });
       if (!claim.count) break;
       try {
-        await enrichCatalogGame(candidate.gameId);
+        const slug = await enrichCatalogGame(candidate.gameId);
         await prisma.gameMetadataJob.deleteMany({ where: { ...where, workerToken: token } });
+        if (slug) revalidateGamePage(slug);
         completed++;
       } catch {
         await prisma.gameMetadataJob.updateMany({ where: { ...where, workerToken: token }, data: {

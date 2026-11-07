@@ -1556,9 +1556,12 @@ export function getSitemapGames() {
   return readSitemapGames(prisma);
 }
 
+/** Returns the enriched game's slug so the caller can refresh its public page. */
 export async function enrichCatalogGame(gameId: string) {
   const game = await prisma.game.findUnique({
     where: { id: gameId }, include: { providerLinks: true },
   });
-  if (game) await enrichMissingGameDetailData(game, true);
+  if (!game) return null;
+  await enrichMissingGameDetailData(game, true);
+  return game.slug;
 }

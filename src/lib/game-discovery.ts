@@ -55,7 +55,7 @@ function readDiscoveryRefreshAfter(rawData: Prisma.JsonValue | null) {
   return Number.isFinite(at) ? at : null;
 }
 
-/** Publishes a snapshot and returns when to refresh it, or null if the game is no longer a source. */
+/** Publishes a snapshot and returns when to refresh it and which page changed, or null if the game is no longer a source. */
 export async function prepareGameDiscovery(gameId: string, workerScope: string, token: string, signal: AbortSignal) {
   const assertLease = async () => {
     signal.throwIfAborted();
@@ -67,7 +67,7 @@ export async function prepareGameDiscovery(gameId: string, workerScope: string, 
   await assertLease();
   // Existence check only: no personal fields are read.
   const game = await prisma.game.findUnique({ where: { id: gameId }, select: {
-    igdbId: true, userEntries: { select: { id: true }, take: 1 },
+    igdbId: true, slug: true, userEntries: { select: { id: true }, take: 1 },
   } });
   // A game removed from every library stops being refreshed (no provider call).
   if (!game?.igdbId || !game.userEntries.length) return null;
@@ -122,5 +122,5 @@ export async function prepareGameDiscovery(gameId: string, workerScope: string, 
       update: { rawData },
     });
   });
-  return { refreshAfter };
+  return { refreshAfter, slug: game.slug };
 }
