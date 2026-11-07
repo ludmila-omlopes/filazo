@@ -8,10 +8,10 @@ export async function RelatedGames({
   game,
   locale,
 }: {
-  game: { id: string; genres: Prisma.JsonValue | null };
+  game: { id: string; slug: string; genres: Prisma.JsonValue | null };
   locale: Locale;
 }) {
-  const games = await getCachedRelatedGames(game.id).catch((error: unknown) => {
+  const games = await getCachedRelatedGames(game).catch((error: unknown) => {
     // Discovery links are optional; the game page must still render.
     console.error("Could not load related games.", error);
     return [];

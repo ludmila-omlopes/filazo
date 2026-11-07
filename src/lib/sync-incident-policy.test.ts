@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { getSyncHealth, getSyncIncidentKey, SYNC_STALL_MS, type SyncHealthRun } from "./sync-incident-policy.ts";
+import { getSyncHealth, getSyncIncidentKey, SYNC_STALL_MS, syncIncidentStateText, type SyncHealthRun } from "./sync-incident-policy.ts";
 
 const now = new Date("2026-09-10T15:00:00Z");
 const base: SyncHealthRun = {
@@ -20,6 +20,12 @@ test("a long import advancing recently is healthy; rescheduling without progress
   assert.equal(getSyncHealth({ ...base, lastProgressAt: now }, now), "RETRYING");
   assert.equal(getSyncHealth({ ...base, nextAttemptAt: now }, now), "STALLED");
   assert.equal(getSyncHealth({ ...base, status: "PENDING" }, now), "STALLED");
+});
+
+test("waiting a full six-hour worker window for pickup is not a stall", () => {
+  const waited = new Date(now.getTime() - 6 * 60 * 60_000 - 5 * 60_000);
+  assert.equal(getSyncHealth({ ...base, status: "PENDING", startedAt: waited, createdAt: waited, nextAttemptAt: waited }, now), "RETRYING");
+  assert.equal(syncIncidentStateText("STALLED"), "Sem avanço há pelo menos 6h45");
 });
 
 test("intentional rate-limit backoff is not stalled", () => {

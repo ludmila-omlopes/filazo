@@ -18,6 +18,7 @@ import {
   steamReviewsSnapshotToResult,
 } from "@/lib/steam-reviews-cache";
 import { prisma } from "@/lib/prisma";
+import { revalidateGamePage } from "@/lib/public-game-cache";
 
 export const maxDuration = 45;
 
@@ -60,6 +61,7 @@ export async function POST(
     where: { id: gameId },
     select: {
       id: true,
+      slug: true,
       providerLinks: {
         where: { provider: ExternalProvider.STEAM },
         select: { providerGameId: true, storeUrl: true },
@@ -132,6 +134,7 @@ export async function POST(
     });
     await saveSteamReviewsSnapshot(result, gameId, refreshToken);
     refreshClaimed = false;
+    revalidateGamePage(game.slug);
     return NextResponse.json(result, { headers: PUBLIC_CACHE_HEADERS });
   } catch (error) {
     console.error("Steam review search failed:", error instanceof Error ? error.message : "Unknown error");

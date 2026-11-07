@@ -52,7 +52,7 @@ import { detectFinishedGamesForUser } from "@/lib/story-completion";
 import { runManualPlatformSync } from "@/lib/platform-sync";
 import { playStationSyncQueue } from "@/lib/playstation-sync-queue";
 import { steamSyncQueue } from "@/lib/steam-sync-queue";
-import { continueWorker } from "@/lib/worker-continuation";
+import { continueSyncQueue, continueWorker } from "@/lib/worker-continuation";
 import { saveCalendarStart } from "@/lib/calendar-writes";
 import { parseCalendarDate } from "@/lib/calendar-policy";
 
@@ -1000,12 +1000,12 @@ export async function syncSteamLibraryAction() {
       if (await steamSyncQueue.drain(runId)) {
         revalidatePath("/profile");
         revalidatePath("/");
-        // Large libraries continue in the background instead of waiting for cron.
-        if (await steamSyncQueue.hasDueWork()) continueWorker("steam");
-        else continueWorker("metadata");
+        // Large libraries and short retries continue in the background
+        // instead of waiting for the next worker window.
+        await continueSyncQueue("steam", steamSyncQueue, { worked: true });
       }
     } catch {
-      console.warn("Steam worker deferred to the next scheduled tick.");
+      console.warn("Steam worker deferred to the next worker window.");
     }
   });
   revalidatePath("/profile");
@@ -1099,12 +1099,12 @@ export async function syncPlayStationLibraryAction() {
       if (await playStationSyncQueue.drain(runId)) {
         revalidatePath("/profile");
         revalidatePath("/");
-        // Large libraries continue in the background instead of waiting for cron.
-        if (await playStationSyncQueue.hasDueWork()) continueWorker("playstation");
-        else continueWorker("metadata");
+        // Large libraries and short retries continue in the background
+        // instead of waiting for the next worker window.
+        await continueSyncQueue("playstation", playStationSyncQueue, { worked: true });
       }
     } catch {
-      console.warn("PlayStation worker deferred to the next scheduled tick.");
+      console.warn("PlayStation worker deferred to the next worker window.");
     }
   });
   revalidatePath("/profile");

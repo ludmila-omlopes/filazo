@@ -47,7 +47,8 @@ export function getPlatformSyncPolicy(env = process.env) {
       45_000,
       5 * 60_000,
     ),
-    batchSize: clampInteger(env.PLATFORM_SYNC_BATCH_SIZE, 6, 50),
+    // Four worker windows a day: each pass must start a quarter of the daily syncs.
+    batchSize: clampInteger(env.PLATFORM_SYNC_BATCH_SIZE, 24, 50),
     enabled: isEnabled(env.PLATFORM_SYNC_ENABLED),
     jitterMs: jitterMinutes * 60_000,
     maxConcurrency: clampInteger(

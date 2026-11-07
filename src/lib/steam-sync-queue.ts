@@ -219,20 +219,25 @@ export function createSteamSyncQueue({
     return worked;
   }
 
-  /** Whether a run could be claimed right now (used to continue without cron). */
-  async function hasDueWork() {
+  /**
+   * Milliseconds until an unclaimed run is due (0 when due now), or null when
+   * none is pending. Lets a chain continue or wait for a retry without cron.
+   */
+  async function nextDueIn() {
     const now = new Date();
-    return Boolean(await db.platformSyncRun.findFirst({
+    const run = await db.platformSyncRun.findFirst({
       where: {
         provider: "STEAM", workerScope,
-        status: { in: ["PENDING", "RUNNING"] }, nextAttemptAt: { lte: now },
+        status: { in: ["PENDING", "RUNNING"] },
         OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lt: now } }],
       },
-      select: { id: true },
-    }));
+      orderBy: { nextAttemptAt: "asc" },
+      select: { nextAttemptAt: true },
+    });
+    return run ? Math.max(0, run.nextAttemptAt.getTime() - now.getTime()) : null;
   }
 
-  return { enqueue, processBatch, drain, hasDueWork };
+  return { enqueue, processBatch, drain, nextDueIn };
 }
 
 export const steamSyncQueue = createSteamSyncQueue();

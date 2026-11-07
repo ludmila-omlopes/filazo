@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { CSSProperties } from "react";
@@ -185,32 +186,44 @@ function selectHomeShowcaseGames(candidates: HomeShowcaseCandidate[]) {
     .map(toShowcaseGame);
 }
 
+async function loadHomeCatalog() {
+  const [catalogStats, showcaseCandidates] =
+    await Promise.all([
+      prisma.game.aggregate({ _count: { id: true } }),
+      prisma.game.findMany({
+        where: {
+          coverUrl: { not: null },
+          igdbId: { not: null },
+          userEntries: {
+            some: {},
+          },
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+        select: homeShowcaseSelect,
+        take: 48,
+      }),
+    ]);
+
+  return {
+    catalogCount: catalogStats._count.id,
+    showcaseGames: selectHomeShowcaseGames(showcaseCandidates),
+  };
+}
+
+// Only anonymous visitors reach this page: people, link previews and an
+// uptime check every minute. Reading the database on each visit keeps Neon
+// from ever scaling to zero, so the showcase is rebuilt at most every six
+// hours, or sooner when Steam/PlayStation workers revalidate "/".
+const HOME_CATALOG_CACHE_SECONDS = 6 * 60 * 60;
+const readCachedHomeCatalog = unstable_cache(loadHomeCatalog, ["home-catalog-v1"], {
+  revalidate: HOME_CATALOG_CACHE_SECONDS,
+});
+
 async function getHomeData() {
   try {
-    const [catalogStats, showcaseCandidates] =
-      await Promise.all([
-        prisma.game.aggregate({ _count: { id: true } }),
-        prisma.game.findMany({
-          where: {
-            coverUrl: { not: null },
-            igdbId: { not: null },
-            userEntries: {
-              some: {},
-            },
-          },
-          orderBy: {
-            updatedAt: "desc",
-          },
-          select: homeShowcaseSelect,
-          take: 48,
-        }),
-      ]);
-
-    return {
-      catalogCount: catalogStats._count.id,
-      showcaseGames: selectHomeShowcaseGames(showcaseCandidates),
-      databaseError: null,
-    };
+    return { ...await readCachedHomeCatalog(), databaseError: null };
   } catch (error) {
     console.error("Could not load home catalog data.", error);
     reportDatabaseError(error, {

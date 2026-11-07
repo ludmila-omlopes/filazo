@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { GameCard } from "@/components/game-card";
 import { Button } from "@/components/ui/button";
 import { createTranslator } from "@/lib/i18n";
@@ -8,6 +9,21 @@ import { getRequestLocale } from "@/lib/request-locale";
 import { createPageMetadata } from "@/lib/site-metadata";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+// Browsing pages are the same for everyone and are mostly opened by crawlers;
+// reading them from the database on every visit keeps Neon from scaling to
+// zero. New games appear within a day. Searches stay live.
+const CATALOG_BROWSE_CACHE_SECONDS = 24 * 60 * 60;
+
+function readCatalogBrowsePage(page: number) {
+  return readPublicCatalog(prisma, { page: String(page) });
+}
+
+const readCachedCatalogBrowsePage = unstable_cache(
+  readCatalogBrowsePage,
+  ["public-catalog-browse-v1"],
+  { revalidate: CATALOG_BROWSE_CACHE_SECONDS },
+);
 
 export async function generateMetadata({ searchParams }: Props) {
   const { q, page } = parsePublicCatalogParams(await searchParams);
@@ -24,7 +40,10 @@ export async function generateMetadata({ searchParams }: Props) {
 
 export default async function CatalogPage({ searchParams }: Props) {
   const [params, locale] = await Promise.all([searchParams, getRequestLocale()]);
-  const { q, page, games, hasNext } = await readPublicCatalog(prisma, params);
+  const requested = parsePublicCatalogParams(params);
+  const { q, page, games, hasNext } = requested.q
+    ? await readPublicCatalog(prisma, params)
+    : await readCachedCatalogBrowsePage(requested.page);
   const t = createTranslator(locale);
 
   return (
