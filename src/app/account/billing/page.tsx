@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { BillingButton } from "./billing-button";
 import { PaymentRefresh } from "./payment-refresh";
 import { manageSubscriptionAction, refreshSubscriptionAction, startProCheckoutAction } from "./actions";
+import { signOutEverywhereAction } from "../session-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Notice } from "@/components/ui/notice";
@@ -103,5 +104,14 @@ export default async function BillingPage({ searchParams }: {
       </CardContent>
     </Card>
     <PlanComparison locale={locale} />
+    <Card>
+      <CardContent className="grid justify-items-start gap-3 p-6 max-sm:p-4">
+        <h2 className="font-display text-xl">{t("account.sessions.title")}</h2>
+        <p className="max-w-[60ch] text-sm leading-relaxed text-ink-soft">{t("account.sessions.body")}</p>
+        <form action={signOutEverywhereAction}>
+          <Button type="submit" variant="outline">{t("account.sessions.signOutEverywhere")}</Button>
+        </form>
+      </CardContent>
+    </Card>
   </main>;
 }

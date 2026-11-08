@@ -152,6 +152,8 @@ model User {
   email                    String?                 @unique
   passwordHash             String?
   passwordVerifiedAt       DateTime?
+  // Session tokens carry this value; incrementing it revokes every session.
+  sessionVersion           Int                     @default(0)
   googleSubject            String?                 @unique
   youtubeSubject           String?                 @unique
   avatarUrl                String?
