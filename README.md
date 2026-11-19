@@ -405,3 +405,7 @@ All existing account emails are rejected by unauthenticated signup. Returning Go
 This release invalidates all old session tokens once through an authentication-policy claim. Everyone must sign in again; keep `AUTH_SECRET` unchanged. Future password reset or account linking must require identity proof and preserve account ownership. Never log confirmation URLs, proof tokens, or password hashes. Expired pending records may be removed by scheduled maintenance; normal signup only replaces its own email record.
 
 For race/rollback QA, set `EMAIL_AUTH_QA_DATABASE_URL` explicitly to a disposable local PostgreSQL instance and run `npm run test:email-auth`. This harness never loads `.env`, rejects remote hosts, creates a random schema, and drops it afterward. It sends no mail and calls no external identity provider.
+
+## License
+
+Released under the [MIT License](LICENSE).
